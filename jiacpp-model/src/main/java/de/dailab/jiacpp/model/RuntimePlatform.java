@@ -13,12 +13,18 @@ import java.util.Map;
 @Data @AllArgsConstructor @NoArgsConstructor
 public class RuntimePlatform {
 
+    // TODO type of backend, e.g. Docker or Kubernetes, and where those are running?
+
+    /** the external base URL where to reach this platform */
     String baseUrl;
 
-    Map<String, AgentContainer> containers;
+    /** Agetn Containers managed by this platform */
+    List<AgentContainer> containers;
 
+    /** List of capabilities this platform provides, e.g. "gpu-support"; format to be specified */
     List<String> provides;
 
+    /** List of base URLs of other platforms this platform is connected with */
     List<String> connections;
 
 }

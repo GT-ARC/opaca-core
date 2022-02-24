@@ -11,9 +11,13 @@ import lombok.NoArgsConstructor;
 public class Message {
 
     // TODO receipient here, or in API method, or both?
+    // TODO specify format/API for reply-to callback
 
+    /** the actual payload of the message */
     Object payload;
 
+    /** URL of REST service where to post replies; optional; for inter/intra platform
+     * communication this could also be a "path" like "platformId/containerId/agentId" */
     String replyTo;
 
 }

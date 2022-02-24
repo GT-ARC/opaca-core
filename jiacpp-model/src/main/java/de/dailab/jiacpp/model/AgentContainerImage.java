@@ -12,20 +12,28 @@ import java.util.List;
 @Data @AllArgsConstructor @NoArgsConstructor
 public class AgentContainerImage {
 
+    // TODO what does a container actually "provide", besides its agents and their actions?
+
     // REQUIRED attributes for starting a container
 
+    /** full path of the (Docker) Container, including repository and version */
     String imageName;
 
+    /** list of required features, e.g. available agents, actions, or platform features */
     List<String> requires;
 
+    /** special features provided by this container */
     List<String> provides;
 
     // OPTIONAL attributes for description of the container (e.g. in a repository, or of the container itself)
 
+    /** short readable name of this Agent Container */
     String name;
 
+    /** Optional longer description of what the container does */
     String description;
 
+    /** provider of the container, e.g. institute or researcher */
     String provider;
 
 }
