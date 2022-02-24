@@ -12,6 +12,7 @@ public class Message {
 
     // TODO receipient here, or in API method, or both?
     // TODO specify format/API for reply-to callback
+    // TODO expected result type?
 
     /** the actual payload of the message */
     Object payload;

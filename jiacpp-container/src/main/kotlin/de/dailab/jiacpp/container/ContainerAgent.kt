@@ -5,6 +5,7 @@ import de.dailab.jiacpp.model.AgentContainer
 import de.dailab.jiacpp.model.AgentContainerImage
 import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
+import de.dailab.jiacpp.util.RestHelper
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.behaviour.act
 import jakarta.servlet.http.HttpServlet
@@ -13,6 +14,7 @@ import jakarta.servlet.http.HttpServletResponse
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
+import java.util.stream.Collectors
 
 /**
  * Agent providing the REST interface of the Agent Container using a simple Jetty server.
@@ -20,75 +22,123 @@ import org.eclipse.jetty.servlet.ServletHolder
  * sufficient, since all "outside" calls would go through the Runtime Container.
  * Still, might be improved a bit...
  */
-class ContainerAgent(val image: AgentContainerImage): Agent() {
+class ContainerAgent(val image: AgentContainerImage): Agent(overrideName="container-agent") {
 
     private val server = Server(8082)
 
     private val servlet = object : HttpServlet() {
 
+        // I'm sure there's a much better way to do this...
+
         override fun doGet(request: HttpServletRequest, response: HttpServletResponse) {
             log.info("received GET $request")
+            val path = request.pathInfo
 
-            // TODO use different regular expressions to match the paths here?
+            val info = Regex("^/info$").find(path)
+            if (info != null) {
+                val res = impl.info
+                response.writer.write(RestHelper.writeJson(res))
+            }
 
-	        // TODO "/info" -> AgetnCotantainer
-            // TODO "/agents" -> List<AgentDescription>
-	        // TODO "/agents/{agentId}" -> AgentDescription
+            val agents = Regex("^/agents$").find(path)
+            if (agents != null) {
+                val res = impl.agents
+                response.writer.write(RestHelper.writeJson(res))
+            }
 
+            val agentWithId = Regex("^/agents/([^/]+)$").find(path)
+            if (agentWithId != null) {
+                val id = agentWithId.groupValues[1]
+                val res = impl.getAgent(id)
+                response.writer.write(RestHelper.writeJson(res))
+            }
         }
 
         override fun doPost(request: HttpServletRequest, response: HttpServletResponse) {
             log.info("received POST $request")
+            val path = request.pathInfo
+            val body: String = request.reader.lines().collect(Collectors.joining())
 
-            // TODO "/send/{agentId}" Message -> void
-            // TODO "/broadcast/{channel}" Message -> void
-			// TODO "/invoke/{action}" Map<String, Object> -> Object
-        	// TODO "/invoke/{action}/{agentId}" Map<String, Object> -> Object
-
-            /*
-            val json: String = request.reader.lines().collect(Collectors.joining())
-            when (request.pathInfo) {
-                "/event" -> {
-                    val event = RestHelper.readJson(json, MesEvent::class.java)
-                    val ref = system.resolve("mediator")
-                    ref.tell(event)
-                }
-                else -> {
-                    log.warn("POST on unexpected path: ${request.pathInfo}")
-                }
+            val send = Regex("^/send/([^/]+)$").find(path)
+            if (send != null) {
+                val id = send.groupValues[1]
+                val message = RestHelper.readJson(body, Message::class.java)
+                val res = impl.send(id, message)
+                response.writer.write(RestHelper.writeJson(res))
             }
-            */
+
+            val broadcast = Regex("^/broadcast/([^/]+)$").find(path)
+            if (broadcast != null) {
+                val channel = broadcast.groupValues[1]
+                val message = RestHelper.readJson(body, Message::class.java)
+                val res = impl.broadcast(channel, message)
+                response.writer.write(RestHelper.writeJson(res))
+            }
+
+            val invokeAct = Regex("^/invoke/([^/]+)$").find(path)
+            if (invokeAct != null) {
+                val action = invokeAct.groupValues[1]
+                // TODO this probably won't work properly without the actual types
+                val parameters = null // RestHelper.readJson(body, Map::class.java)
+                val res = impl.invoke(action, parameters)
+                response.writer.write(RestHelper.writeJson(res))
+            }
+
+            val invokeActOf = Regex("^/invoke/([^/]+)/([^/]+)$").find(path)
+            if (invokeActOf != null) {
+                val action = invokeActOf.groupValues[1]
+                val agentId = invokeActOf.groupValues[2]
+                // TODO this probably won't work properly without the actual types
+                val parameters = null // RestHelper.readJson(body, Map::class.java)
+                val res = impl.invoke(agentId, action, parameters)
+                response.writer.write(RestHelper.writeJson(res))
+            }
         }
     }
 
     private val impl = object : AgentContainerApi {
 
         override fun getInfo(): AgentContainer {
-            TODO("Not yet implemented")
+            println("GET INFO")
+            return AgentContainer()
         }
 
-        override fun getAgents(): MutableList<AgentDescription> {
-            TODO("Not yet implemented")
+        override fun getAgents(): List<AgentDescription> {
+            println("GET AGENTS")
+            return listOf<AgentDescription>()
         }
 
         override fun getAgent(agentId: String?): AgentDescription {
-            TODO("Not yet implemented")
+            println("GET AGENT")
+            println(agentId)
+            return AgentDescription()
         }
 
         override fun send(agentId: String?, message: Message?) {
-            TODO("Not yet implemented")
+            println("SEND")
+            println(agentId)
+            println(message)
         }
 
         override fun broadcast(channel: String?, message: Message?) {
-            TODO("Not yet implemented")
+            println("BROADCAST")
+            println(channel)
+            println(message)
         }
 
-        override fun invoke(action: String?, parameters: MutableMap<String, Any>?): Any {
-            TODO("Not yet implemented")
+        override fun invoke(action: String?, parameters: Map<String, Any>?): Any {
+            println("INVOKE ACTION")
+            println(action)
+            println(parameters)
+            return "nothing"
         }
 
-        override fun invoke(agentId: String?, action: String?, parameters: MutableMap<String, Any>?): Any {
-            TODO("Not yet implemented")
+        override fun invoke(agentId: String?, action: String?, parameters: Map<String, Any>?): Any {
+            println("INVOKE ACTION OF AGENT")
+            println(agentId)
+            println(action)
+            println(parameters)
+            return "nothing"
         }
     }
 
