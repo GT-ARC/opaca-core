@@ -31,7 +31,7 @@ public class RestHelper {
         return mapper.readValue(connection.getInputStream(), type);
     }
 
-    public void post(String path, Object payload) throws IOException {
+    public <T> T post(String path, Object payload, Class<T> type) throws IOException {
         String json = mapper.writeValueAsString(payload);
         byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
 
@@ -44,10 +44,20 @@ public class RestHelper {
         try (OutputStream os = connection.getOutputStream()) {
             os.write(bytes);
         }
+
+        if (type != null) {
+            return mapper.readValue(connection.getInputStream(), type);
+        } else {
+            return null;
+        }
     }
 
     public static <T> T readJson(String json, Class<T> type) throws IOException {
         return mapper.readValue(json, type);
+    }
+
+    public static String writeJson(Object obj) throws IOException {
+        return mapper.writeValueAsString(obj);
     }
 
 }

@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -17,7 +18,7 @@ import java.util.Map;
 @RestController
 public class PlatformRestController implements RuntimePlatformApi {
 
-	RuntimePlatformApi implementation = PlatformImpl.INSTANCE;
+	RuntimePlatformApi implementation = AgentProxy.INSTANCE;
 
 	/*
 	 * LIFECYCLE
@@ -40,7 +41,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 	@RequestMapping(value="/info", method=RequestMethod.GET)
 	@Override
-	public RuntimePlatform getInfo() {
+	public RuntimePlatform getInfo() throws IOException {
 		return implementation.getInfo();
 	}
 
@@ -50,7 +51,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 	@RequestMapping(value="/agents", method=RequestMethod.GET)
 	@Override
-	public List<AgentDescription> getAgents() {
+	public List<AgentDescription> getAgents() throws IOException {
 		return implementation.getAgents();
 	}
 
@@ -58,7 +59,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public AgentDescription getAgent(
 			@PathVariable String agentId
-	) {
+	) throws IOException {
 		return implementation.getAgent(agentId);
 	}
 
@@ -67,7 +68,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public void send(
 			@PathVariable String agentId,
 			@RequestBody Message message
-	) {
+	) throws IOException {
 		implementation.send(agentId, message);
 	}
 
@@ -76,7 +77,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public void broadcast(
 			@PathVariable String channel,
 			@RequestBody Message message
-	) {
+	) throws IOException {
 		implementation.broadcast(channel, message);
 	}
 
@@ -85,7 +86,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public Object invoke(
 			@PathVariable String action,
 			@RequestBody Map<String, Object> parameters
-	) {
+	) throws IOException {
 		return implementation.invoke(action, parameters);
 	}
 
@@ -95,7 +96,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@PathVariable String agentId,
 			@PathVariable String action,
 			@RequestBody Map<String, Object> parameters
-	) {
+	) throws IOException {
 		return implementation.invoke(agentId, action, parameters);
 	}
 
@@ -107,13 +108,13 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public String addContainer(
 			@RequestBody AgentContainerImage container
-	) {
+	) throws IOException {
 		return implementation.addContainer(container);
 	}
 
 	@RequestMapping(value="/containers", method=RequestMethod.GET)
 	@Override
-	public List<AgentContainer> getContainers() {
+	public List<AgentContainer> getContainers() throws IOException {
 		return implementation.getContainers();
 	}
 
@@ -121,7 +122,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public AgentContainer getContainer(
 			@PathVariable String containerId
-	) {
+	) throws IOException {
 		return implementation.getContainer(containerId);
 	}
 
@@ -129,7 +130,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public boolean removeContainer(
 			@PathVariable String containerId
-	) {
+	) throws IOException {
 		return implementation.removeContainer(containerId);
 	}
 
@@ -141,13 +142,13 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public boolean connectPlatform(
 			@RequestBody String url
-	) {
+	) throws IOException {
 		return implementation.connectPlatform(url);
 	}
 
 	@RequestMapping(value="/connections", method=RequestMethod.GET)
 	@Override
-	public List<String> getConnections() {
+	public List<String> getConnections() throws IOException {
 		return implementation.getConnections();
 	}
 
@@ -155,7 +156,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public boolean disconnectPlatform(
 			@RequestBody String url
-	) {
+	) throws IOException {
 		return implementation.disconnectPlatform(url);
 	}
 }

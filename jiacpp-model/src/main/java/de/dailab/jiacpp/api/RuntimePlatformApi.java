@@ -4,6 +4,7 @@ import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
 import de.dailab.jiacpp.model.RuntimePlatform;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -24,7 +25,7 @@ public interface RuntimePlatformApi extends CommonApi {
      *
      * @return Extensive information on the platform and its containers and agents.
      */
-    RuntimePlatform getInfo();
+    RuntimePlatform getInfo() throws IOException;
 
     /**
      * Deploy a container to the runtime Platform. Check requirements, get actual docker image, and
@@ -35,7 +36,7 @@ public interface RuntimePlatformApi extends CommonApi {
      * @param container The container to start
      * @return ID of the started container
      */
-    String addContainer(AgentContainerImage container);
+    String addContainer(AgentContainerImage container) throws IOException;
 
     /**
      * Get descriptions of all currently running Agent Containers.
@@ -44,7 +45,7 @@ public interface RuntimePlatformApi extends CommonApi {
      *
      * @return List of all running containers
      */
-    List<AgentContainer> getContainers();
+    List<AgentContainer> getContainers() throws IOException;
 
     /**
      * Get description of a single Agent Container
@@ -54,7 +55,7 @@ public interface RuntimePlatformApi extends CommonApi {
      * @param containerId ID of the container
      * @return Description of the container
      */
-    AgentContainer getContainer(String containerId);
+    AgentContainer getContainer(String containerId) throws IOException;
 
     /**
      * Remove an Agent Container from the platform.
@@ -64,7 +65,7 @@ public interface RuntimePlatformApi extends CommonApi {
      * @param containerId ID of the container
      * @return Removal successul?
      */
-    boolean removeContainer(String containerId);
+    boolean removeContainer(String containerId) throws IOException;
 
     /**
      * Connect this platform to another platform, running on a different host.
@@ -75,7 +76,7 @@ public interface RuntimePlatformApi extends CommonApi {
      * @param url The base URL of that other Runtime Platform
      * @return Connection successful?
      */
-    boolean connectPlatform(String url);
+    boolean connectPlatform(String url) throws IOException;
 
     /**
      * Get list uf base-URLs of connected other Runtime Platforms
@@ -84,7 +85,7 @@ public interface RuntimePlatformApi extends CommonApi {
      *
      * @return List of base-URLs of connected Platforms
      */
-    List<String> getConnections();
+    List<String> getConnections() throws IOException;
 
     /**
      * Disconnect a previously connected Platform, in both directions.
@@ -96,6 +97,6 @@ public interface RuntimePlatformApi extends CommonApi {
      * @param url The base-URL of the platform to disconnect.
      * @return Disconnect successful?
      */
-    boolean disconnectPlatform(String url);
+    boolean disconnectPlatform(String url) throws IOException;
 
 }

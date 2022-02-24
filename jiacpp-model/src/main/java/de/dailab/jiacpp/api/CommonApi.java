@@ -4,6 +4,7 @@ import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentDescription;
 import de.dailab.jiacpp.model.Message;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -24,7 +25,7 @@ public interface CommonApi {
      *
      * @return List of Agents running in the container
      */
-    List<AgentDescription> getAgents();
+    List<AgentDescription> getAgents() throws IOException;
 
     /**
      * Get description of one specific Agent
@@ -34,7 +35,7 @@ public interface CommonApi {
      * @param agentId ID of the agent
      * @return Descripiton of that agent
      */
-    AgentDescription getAgent(String agentId);
+    AgentDescription getAgent(String agentId) throws IOException;
 
     /**
      * Send message to a single agent in the container.
@@ -44,7 +45,7 @@ public interface CommonApi {
      * @param agentId ID of the agent
      * @param message The message envelope
      */
-    void send(String agentId, Message message);
+    void send(String agentId, Message message) throws IOException;
 
     /**
      * Send message to a group of agents, or channel.
@@ -54,7 +55,7 @@ public interface CommonApi {
      * @param channel Name of the group or channel
      * @param message The message envelope
      */
-    void broadcast(String channel, Message message);
+    void broadcast(String channel, Message message) throws IOException;
 
     /**
      * Invoke an action provided by any agent on this container.
@@ -65,7 +66,7 @@ public interface CommonApi {
      * @param parameters Map of Parameters
      * @return Action result
      */
-    Object invoke(String action, Map<String, Object> parameters);
+    Object invoke(String action, Map<String, Object> parameters) throws IOException;
 
     /**
      * Invoke an action provided by a specific agent on this container.
@@ -76,6 +77,6 @@ public interface CommonApi {
      * @param parameters Map of Parameters
      * @return Action result
      */
-    Object invoke(String agentId, String action, Map<String, Object> parameters);
+    Object invoke(String agentId, String action, Map<String, Object> parameters) throws IOException;
 
 }
