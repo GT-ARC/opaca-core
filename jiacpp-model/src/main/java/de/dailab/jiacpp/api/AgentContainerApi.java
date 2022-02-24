@@ -1,25 +1,23 @@
 package de.dailab.jiacpp.api;
 
 import de.dailab.jiacpp.model.AgentContainer;
-import de.dailab.jiacpp.model.AgentDescription;
-import de.dailab.jiacpp.model.Message;
 
-import java.util.Map;
+/**
+ * Agent-Container-specific additions on top of the Common API. Basically, this is just
+ * a single route for retrieving information on the container. The Runtime Platform has
+ * the same route, but with different return type.
+ */
+public interface AgentContainerApi extends CommonApi{
 
-public interface AgentContainerApi {
+    // TODO REST routes are still preliminary
 
+    /**
+     * Get information on the container, to be called by the Runtime Platform after start
+     *
+     * REST Route: GET /info
+     *
+     * @return  Information on the started container
+     */
     AgentContainer getInfo();
-
-    Map<String, AgentDescription> getAgents();
-
-    AgentDescription getAgent(String agentId);
-
-    void send(String agentId, Message message);
-
-    void broadcast(String channel, Message message);
-
-    Object invoke(String action, Map<String, Object> parameters);
-
-    Object invoke(String agentId, String action, Map<String, Object> parameters);
 
 }

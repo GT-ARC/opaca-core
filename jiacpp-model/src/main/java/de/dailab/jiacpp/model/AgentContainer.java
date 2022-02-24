@@ -4,7 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Information on a running Agent Container, combining information on image with runtime data.
@@ -16,6 +17,8 @@ public class AgentContainer {
 
     AgentContainerImage image;
 
-    Map<String, AgentDescription> agents;
+    List<AgentDescription> agents;
+
+    LocalDateTime runningSince;
 
 }
