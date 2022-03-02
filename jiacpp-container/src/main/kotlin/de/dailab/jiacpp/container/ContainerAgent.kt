@@ -1,5 +1,6 @@
 package de.dailab.jiacpp.container
 
+import com.fasterxml.jackson.databind.JsonNode
 import de.dailab.jiacpp.api.AgentContainerApi
 import de.dailab.jiacpp.model.AgentContainer
 import de.dailab.jiacpp.model.AgentContainerImage
@@ -62,7 +63,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName="contai
             val send = Regex("^/send/([^/]+)$").find(path)
             if (send != null) {
                 val id = send.groupValues[1]
-                val message = RestHelper.readJson(body, Message::class.java)
+                val message = RestHelper.readObject(body, Message::class.java)
                 val res = impl.send(id, message)
                 response.writer.write(RestHelper.writeJson(res))
             }
@@ -70,7 +71,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName="contai
             val broadcast = Regex("^/broadcast/([^/]+)$").find(path)
             if (broadcast != null) {
                 val channel = broadcast.groupValues[1]
-                val message = RestHelper.readJson(body, Message::class.java)
+                val message = RestHelper.readObject(body, Message::class.java)
                 val res = impl.broadcast(channel, message)
                 response.writer.write(RestHelper.writeJson(res))
             }
@@ -78,8 +79,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName="contai
             val invokeAct = Regex("^/invoke/([^/]+)$").find(path)
             if (invokeAct != null) {
                 val action = invokeAct.groupValues[1]
-                // TODO this probably won't work properly without the actual types
-                val parameters = null // RestHelper.readJson(body, Map::class.java)
+                val parameters = RestHelper.readMap(body)
                 val res = impl.invoke(action, parameters)
                 response.writer.write(RestHelper.writeJson(res))
             }
@@ -88,8 +88,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName="contai
             if (invokeActOf != null) {
                 val action = invokeActOf.groupValues[1]
                 val agentId = invokeActOf.groupValues[2]
-                // TODO this probably won't work properly without the actual types
-                val parameters = null // RestHelper.readJson(body, Map::class.java)
+                val parameters = RestHelper.readMap(body)
                 val res = impl.invoke(agentId, action, parameters)
                 response.writer.write(RestHelper.writeJson(res))
             }
@@ -126,14 +125,14 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName="contai
             println(message)
         }
 
-        override fun invoke(action: String?, parameters: Map<String, Any>?): Any {
+        override fun invoke(action: String?, parameters: Map<String, JsonNode>?): Any {
             println("INVOKE ACTION")
             println(action)
             println(parameters)
             return "nothing"
         }
 
-        override fun invoke(agentId: String?, action: String?, parameters: Map<String, Any>?): Any {
+        override fun invoke(agentId: String?, action: String?, parameters: Map<String, JsonNode>?): Any {
             println("INVOKE ACTION OF AGENT")
             println(agentId)
             println(action)

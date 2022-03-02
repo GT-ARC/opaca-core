@@ -1,5 +1,6 @@
 package de.dailab.jiacpp.plattform;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 import org.springframework.web.bind.annotation.*;
@@ -85,7 +86,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public Object invoke(
 			@PathVariable String action,
-			@RequestBody Map<String, Object> parameters
+			@RequestBody Map<String, JsonNode> parameters
 	) throws IOException {
 		return implementation.invoke(action, parameters);
 	}
@@ -95,7 +96,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public Object invoke(
 			@PathVariable String agentId,
 			@PathVariable String action,
-			@RequestBody Map<String, Object> parameters
+			@RequestBody Map<String, JsonNode> parameters
 	) throws IOException {
 		return implementation.invoke(agentId, action, parameters);
 	}

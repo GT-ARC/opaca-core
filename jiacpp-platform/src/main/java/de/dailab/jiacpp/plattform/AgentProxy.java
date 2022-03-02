@@ -1,5 +1,6 @@
 package de.dailab.jiacpp.plattform;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.util.RestHelper;
@@ -57,7 +58,7 @@ public class AgentProxy implements RuntimePlatformApi {
     }
 
     @Override
-    public Object invoke(String action, Map<String, Object> parameters) throws IOException {
+    public Object invoke(String action, Map<String, JsonNode> parameters) throws IOException {
         System.out.println("INVOKE");
         System.out.println(action);
         System.out.println(parameters);
@@ -66,7 +67,7 @@ public class AgentProxy implements RuntimePlatformApi {
     }
 
     @Override
-    public Object invoke(String agentId, String action, Map<String, Object> parameters) throws IOException {
+    public Object invoke(String agentId, String action, Map<String, JsonNode> parameters) throws IOException {
         System.out.println("INVOKE");
         System.out.println(action);
         System.out.println(agentId);

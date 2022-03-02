@@ -1,5 +1,6 @@
 package de.dailab.jiacpp.api;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentDescription;
 import de.dailab.jiacpp.model.Message;
@@ -66,7 +67,7 @@ public interface CommonApi {
      * @param parameters Map of Parameters
      * @return Action result
      */
-    Object invoke(String action, Map<String, Object> parameters) throws IOException;
+    Object invoke(String action, Map<String, JsonNode> parameters) throws IOException;
 
     /**
      * Invoke an action provided by a specific agent on this container.
@@ -77,6 +78,6 @@ public interface CommonApi {
      * @param parameters Map of Parameters
      * @return Action result
      */
-    Object invoke(String agentId, String action, Map<String, Object> parameters) throws IOException;
+    Object invoke(String agentId, String action, Map<String, JsonNode> parameters) throws IOException;
 
 }

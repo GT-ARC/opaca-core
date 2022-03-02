@@ -1,5 +1,6 @@
 package de.dailab.jiacpp.model;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,7 +16,7 @@ public class Message {
     // TODO expected result type?
 
     /** the actual payload of the message */
-    Object payload;
+    JsonNode payload;
 
     /** URL of REST service where to post replies; optional; for inter/intra platform
      * communication this could also be a "path" like "platformId/containerId/agentId" */
