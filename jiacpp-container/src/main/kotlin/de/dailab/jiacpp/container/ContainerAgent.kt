@@ -17,7 +17,12 @@ import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
 import java.time.LocalDateTime
+import java.util.concurrent.Semaphore
+import java.util.concurrent.atomic.AtomicReference
 import java.util.stream.Collectors
+
+
+const val CONTAINER_AGENT = "container-agent"
 
 /**
  * Agent providing the REST interface of the Agent Container using a simple Jetty server.
@@ -25,7 +30,7 @@ import java.util.stream.Collectors
  * sufficient, since all "outside" calls would go through the Runtime Container.
  * Still, might be improved a bit...
  */
-class ContainerAgent(val image: AgentContainerImage): Agent(overrideName="container-agent") {
+class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAINER_AGENT) {
 
     // implementation of API
 
@@ -183,7 +188,31 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName="contai
             // TODO check if agent has action and parameters match description
             //  invoke action with ask protocol
             //  wait until finished, then return
-            return null
+
+            val lock = Semaphore(1)
+            lock.acquireUninterruptibly()
+
+            val result = AtomicReference<Any>()
+
+            val ref = system.resolve(agentId)
+            ref invoke ask<Any>(Invoke(action, parameters)) {
+                log.info("GOT RESULT")
+                lock.release()
+
+                result.set(it)
+            }.error {
+                log.error("errör $it")
+                lock.release()
+            }
+            // TODO timeout?
+
+            // TODO does this block the agent or the entire system? nope, seems to work as intended
+            log.info("waiting...")
+            lock.acquireUninterruptibly()
+
+            log.info("done")
+
+            return RestHelper.mapper.valueToTree(result.get())
         }
     }
 
@@ -210,7 +239,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName="contai
         respond<AgentDescription, Boolean> {
             // TODO agents may register with the container agent, publishing their ID and actions
             // TODO make this a dedicated message class, e.g. RegisterAgent (and also Deregister?)
-            false
+            registeredAgents[it.agentId] = it
+            true
         }
 
         respond<OutboundInvoke, Any?> {
@@ -230,10 +260,12 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName="contai
     // TODO placeholders for messages to be forwarded by container agent to platform (and thus to
     //  other containers, possibly connected platforms, etc.)
 
-    class OutboundInvoke()
+    data class OutboundInvoke(val name: String, val agentId: String?, val parameters: Map<String, JsonNode>)
 
-    class OutboundMessage()
+    data class OutboundMessage(val agentId: String, val message: Any)
 
-    class OutboundBroadcast()
+    data class OutboundBroadcast(val channel: String, val message: Any)
+
+    data class Invoke(val name: String, val parameters: Map<String, JsonNode>)
 
 }
