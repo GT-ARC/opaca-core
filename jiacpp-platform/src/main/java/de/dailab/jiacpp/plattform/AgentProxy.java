@@ -58,22 +58,20 @@ public class AgentProxy implements RuntimePlatformApi {
     }
 
     @Override
-    public Object invoke(String action, Map<String, JsonNode> parameters) throws IOException {
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters) throws IOException {
         System.out.println("INVOKE");
         System.out.println(action);
         System.out.println(parameters);
-        // TODO object return typo won't work here; rather Map, or "JsonObject"?
-        return client.post(String.format("/invoke/%s", action), parameters, Object.class);
+        return client.post(String.format("/invoke/%s", action), parameters, JsonNode.class);
     }
 
     @Override
-    public Object invoke(String agentId, String action, Map<String, JsonNode> parameters) throws IOException {
+    public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters) throws IOException {
         System.out.println("INVOKE");
         System.out.println(action);
         System.out.println(agentId);
         System.out.println(parameters);
-        // TODO object return typo won't work here; rather Map, or "JsonObject"?
-        return client.post(String.format("/invoke/%s/%s", action, agentId), parameters, Object.class);
+        return client.post(String.format("/invoke/%s/%s", action, agentId), parameters, JsonNode.class);
     }
 
     /*

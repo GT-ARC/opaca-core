@@ -58,6 +58,8 @@ public interface CommonApi {
      */
     void broadcast(String channel, Message message) throws IOException;
 
+    // TODO invoke: object return typo won't work here; rather Map, or "JsonObject"?
+
     /**
      * Invoke an action provided by any agent on this container.
      *
@@ -67,7 +69,7 @@ public interface CommonApi {
      * @param parameters Map of Parameters
      * @return Action result
      */
-    Object invoke(String action, Map<String, JsonNode> parameters) throws IOException;
+    JsonNode invoke(String action, Map<String, JsonNode> parameters) throws IOException;
 
     /**
      * Invoke an action provided by a specific agent on this container.
@@ -78,6 +80,6 @@ public interface CommonApi {
      * @param parameters Map of Parameters
      * @return Action result
      */
-    Object invoke(String agentId, String action, Map<String, JsonNode> parameters) throws IOException;
+    JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters) throws IOException;
 
 }

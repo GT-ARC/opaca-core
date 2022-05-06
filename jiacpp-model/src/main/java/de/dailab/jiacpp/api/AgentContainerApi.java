@@ -22,4 +22,15 @@ public interface AgentContainerApi extends CommonApi{
      */
     AgentContainer getInfo() throws IOException;
 
+    /**
+     * After being started, tell this AgentContainer its Container-ID and the URL of the parent
+     * RuntimePlatform. Should have no effect (and return False) if already initialized.
+     *
+     * @param containerId this container's unique container ID, given by the platform (or e.g. Docker)
+     * @param platformUrl the URL where to find this container's parent runtime platform
+     * @return true if initialization successful and has not been initialized before, otherwise false
+     * @throws IOException
+     */
+    boolean initialize(String containerId, String platformUrl) throws IOException;
+
 }

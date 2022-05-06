@@ -84,7 +84,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 	@RequestMapping(value="/invoke/{action}", method=RequestMethod.POST)
 	@Override
-	public Object invoke(
+	public JsonNode invoke(
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters
 	) throws IOException {
@@ -93,7 +93,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 	@RequestMapping(value="/invoke/{action}/{agentId}", method=RequestMethod.POST)
 	@Override
-	public Object invoke(
+	public JsonNode invoke(
 			@PathVariable String agentId,
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters
