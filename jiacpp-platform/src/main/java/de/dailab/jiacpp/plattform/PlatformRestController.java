@@ -19,7 +19,7 @@ import java.util.Map;
 @RestController
 public class PlatformRestController implements RuntimePlatformApi {
 
-	RuntimePlatformApi implementation = AgentProxy.INSTANCE;
+	RuntimePlatformApi implementation = PlatformImpl.INSTANCE;
 
 	/*
 	 * LIFECYCLE

@@ -28,6 +28,7 @@
 			<version>${project.version}</version>
 		</dependency>
 
+		<!-- Spring Boot, OpenAPI -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
@@ -40,6 +41,17 @@
 			<version>1.6.6</version>
 		</dependency>
 
+		<!-- Docker API for Java -->
+		<dependency>
+			<groupId>com.github.docker-java</groupId>
+			<artifactId>docker-java-core</artifactId>
+			<version>3.2.13</version>
+		</dependency>
+		<dependency>
+			<groupId>com.github.docker-java</groupId>
+			<artifactId>docker-java-transport-httpclient5</artifactId>
+			<version>3.2.13</version>
+		</dependency>
 	</dependencies>
 
 	<build>

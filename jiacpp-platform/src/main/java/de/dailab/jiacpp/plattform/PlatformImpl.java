@@ -1,11 +1,23 @@
 package de.dailab.jiacpp.plattform;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.CreateContainerResponse;
+import com.github.dockerjava.core.DefaultDockerClientConfig;
+import com.github.dockerjava.core.DockerClientConfig;
+import com.github.dockerjava.core.DockerClientImpl;
+import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
+import com.github.dockerjava.transport.DockerHttpClient;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
+import lombok.Builder;
 
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * This class provides the actual implementation of the API routes. Might also be split up
@@ -15,12 +27,49 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     public static final RuntimePlatformApi INSTANCE = new PlatformImpl();
 
+    /** Currently running Agent Containers, mapping container ID to description */
+    private final Map<String, AgentContainer> runningContainers = new HashMap<>();
+
+
+    private final DockerClient dockerClient = buildClient();
+
+
+    private DockerClient buildClient() {
+
+        DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
+                .withDockerHost("unix:///var/run/docker.sock")
+                //.withDockerTlsVerify(true)
+                //.withDockerCertPath("/home/user/.docker")
+                //.withRegistryUsername(registryUser)
+                //.withRegistryPassword(registryPass)
+                //.withRegistryEmail(registryMail)
+                //.withRegistryUrl(registryUrl)
+                .build();
+
+        DockerHttpClient dockerHttpClient = new ApacheDockerHttpClient.Builder()
+                .dockerHost(dockerConfig.getDockerHost())
+                .sslConfig(dockerConfig.getSSLConfig())
+                .maxConnections(100)
+                .connectionTimeout(Duration.ofSeconds(30))
+                .responseTimeout(Duration.ofSeconds(45))
+                .build();
+
+        return  DockerClientImpl.getInstance(dockerConfig, dockerHttpClient);
+    }
+
+
 
     @Override
     public RuntimePlatform getInfo() {
         System.out.println("GET INFO");
-        // TODO assemble and return RuntimePlatform description
-        return null;
+        // TODO how to get own base URL? own "provides" value?
+        //  separate PlatformConfig analogous to AgentContainerImage class?
+        return new RuntimePlatform(
+                "https://i-dont-really-know.com",
+                new ArrayList<>(runningContainers.values()),
+                List.of("nothing"),
+                List.of()
+        );
     }
 
     /*
@@ -30,16 +79,19 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public List<AgentDescription> getAgents() {
         System.out.println("GET AGENTS");
-        // TODO return list of all agents currently running in all the containers
-        return null;
+        return runningContainers.values().stream()
+                .flatMap(c -> c.getAgents().stream())
+                .collect(Collectors.toList());
     }
 
     @Override
     public AgentDescription getAgent(String agentId) {
         System.out.println("GET AGENT");
         System.out.println(agentId);
-        // TODO get agent container this agent is running in; get AgentDescription from that container
-        return null;
+        return runningContainers.values().stream()
+                .flatMap(c -> c.getAgents().stream())
+                .filter(a -> a.getAgentId().equals(agentId))
+                .findAny().orElse(null);
     }
 
     @Override
@@ -92,7 +144,23 @@ public class PlatformImpl implements RuntimePlatformApi {
         // lookup container docker image
         // pull and start image
         // add container to internal containers table
-        return null;
+
+        System.out.println("pulling...");
+
+        dockerClient.pullImageCmd(container.getImageName()).start();
+
+        System.out.println("creating...");
+
+        CreateContainerResponse res = dockerClient.createContainerCmd(container.getImageName()).exec();
+
+        System.out.println("res " + res);
+
+        System.out.println("running...");
+
+        dockerClient.startContainerCmd(res.getId()).exec();
+        System.out.println("container id: " + res.getId());
+
+        return res.getId();
     }
 
     @Override
