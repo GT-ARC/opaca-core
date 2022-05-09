@@ -1,12 +1,13 @@
 package de.dailab.jiacpp.sample
 
 import de.dailab.jiacpp.container.CONTAINER_AGENT
-import de.dailab.jiacpp.container.ContainerAgent
+import de.dailab.jiacpp.container.Invoke
 import de.dailab.jiacpp.model.Action
 import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.behaviour.act
+
 
 class SampleAgent: Agent(overrideName="sample") {
 
@@ -16,12 +17,14 @@ class SampleAgent: Agent(overrideName="sample") {
         val desc = AgentDescription(
             this.name,
             this.javaClass.name,
-            listOf<Action>()
+            listOf(
+                Action("DoThis", mapOf(Pair("foo", "String"), Pair("bar", "Int")), "String")
+            )
         )
 
         val ref = system.resolve(CONTAINER_AGENT)
         ref invoke ask<Boolean>(desc) {
-            println("REGISTERED: $it")
+            log.info("REGISTERED: $it")
         }
     }
 
@@ -35,7 +38,7 @@ class SampleAgent: Agent(overrideName="sample") {
             log.info("LISTEN $it")
         }
 
-        respond<ContainerAgent.Invoke, Any?> {
+        respond<Invoke, Any?> {
             log.info("RESPOND $it")
             when (it.name) {
                 "DoThis" -> actionDoThis(it.parameters["foo"]!!.asText(), it.parameters["bar"]!!.asInt())
@@ -46,9 +49,9 @@ class SampleAgent: Agent(overrideName="sample") {
     }
 
     private fun actionDoThis(foo: String, bar: Int): String {
-        println("in do this, waiting...")
+        log.info("in 'DoThis' action, waiting...")
         Thread.sleep(5000)
-        println("done waiting")
+        log.info("done waiting")
         return "Action 'DoThis' Called with foo=$foo and bar=$bar"
     }
 

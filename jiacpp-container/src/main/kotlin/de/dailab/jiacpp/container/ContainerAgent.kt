@@ -141,8 +141,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     private val impl = object : AgentContainerApi {
 
         override fun initialize(initialize: Initialize): Boolean {
-            println("INITIALIZE")
-            println(initialize)
+            log.info("INITIALIZE: $initialize")
             if (containerId == null) {
                 containerId = initialize.containerId
                 runtimePlatformUrl = initialize.platformUrl
@@ -154,48 +153,41 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
 
         override fun shutdown(): Boolean {
-            println("SHUTDOWN")
+            log.info("SHUTDOWN")
             // TODO anything to do here? send shutdown message to all agents, or do agents
             //  already shutdown gracefully when the container is stopped?
             return true
         }
 
         override fun getInfo(): AgentContainer {
-            println("GET INFO")
+            log.info("GET INFO")
             return AgentContainer(containerId, image, getAgents(), startedAt)
         }
 
         override fun getAgents(): List<AgentDescription> {
-            println("GET AGENTS")
+            log.info("GET AGENTS")
             return registeredAgents.values.toList()
         }
 
         override fun getAgent(agentId: String?): AgentDescription? {
-            println("GET AGENT")
-            println(agentId)
+            log.info("GET AGENT: $agentId")
             return registeredAgents[agentId]
         }
 
         override fun send(agentId: String, message: Message) {
-            println("SEND")
-            println(agentId)
-            println(message)
+            log.info("SEND: $agentId $message")
             // TODO ref not found? does this raise an exception? is this okay?
             val ref = system.resolve(agentId)
             ref tell message
         }
 
         override fun broadcast(channel: String, message: Message) {
-            println("BROADCAST")
-            println(channel)
-            println(message)
+            log.info("BROADCAST: $channel $message")
             broker.publish(channel, message)
         }
 
         override fun invoke(action: String, parameters: Map<String, JsonNode>): JsonNode? {
-            println("INVOKE ACTION")
-            println(action)
-            println(parameters)
+            log.info("INVOKE ACTION: $action $parameters")
 
             val agent = registeredAgents.values.find { ag -> ag.actions.any { ac -> ac.name == action } }
             return if (agent != null) {
@@ -206,13 +198,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
 
         override fun invoke(agentId: String, action: String, parameters: Map<String, JsonNode>): JsonNode? {
-            println("INVOKE ACTION OF AGENT")
-            println(agentId)
-            println(action)
-            println(parameters)
+            log.info("INVOKE ACTION OF AGENT: $agentId $action $parameters")
             // TODO check if agent has action and parameters match description
-            //  invoke action with ask protocol
-            //  wait until finished, then return
 
             val lock = Semaphore(1)
             lock.acquireUninterruptibly()
@@ -229,10 +216,13 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 log.error("errör $it")
                 lock.release()
             }
-            // TODO timeout?
+            // TODO handle timeout?
 
             // TODO does this block the agent or the entire system?
             //  nope, seems to work as intended, but test some more...
+            //  Container Agent still reacts to REST calls, e.g. SEND, or another INVOKE...
+            //  but when calling the action again on the same agent, it only starts when the first finished
+            //  (same thread used for all ask-respond invocations of same agent?
             log.info("waiting...")
             lock.acquireUninterruptibly()
 

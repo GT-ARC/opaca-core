@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Data @AllArgsConstructor  @NoArgsConstructor
 public class Message {
 
-    // TODO receipient here, or in API method, or both?
+    // TODO recipient here, or in API method, or both?
     // TODO specify format/API for reply-to callback
     // TODO expected result type?
 
