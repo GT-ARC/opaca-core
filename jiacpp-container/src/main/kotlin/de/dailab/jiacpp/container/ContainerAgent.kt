@@ -2,10 +2,7 @@ package de.dailab.jiacpp.container
 
 import com.fasterxml.jackson.databind.JsonNode
 import de.dailab.jiacpp.api.AgentContainerApi
-import de.dailab.jiacpp.model.AgentContainer
-import de.dailab.jiacpp.model.AgentContainerImage
-import de.dailab.jiacpp.model.AgentDescription
-import de.dailab.jiacpp.model.Message
+import de.dailab.jiacpp.model.*
 import de.dailab.jiacpp.util.RestHelper
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.BrokerAgentRef
@@ -32,10 +29,15 @@ const val CONTAINER_AGENT = "container-agent"
  */
 class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAINER_AGENT) {
 
+    private val broker by resolve<BrokerAgentRef>()
+
+
     // implementation of API
 
+    /** minimal Jetty server for providing the REST interface */
     private val server = Server(8082)
 
+    /** servlet handling the different REST routes, delegating to `impl` for actual logic */
     private val servlet = object : HttpServlet() {
 
         // I'm sure there's a much better way to do this...
@@ -68,6 +70,19 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             log.info("received POST $request")
             val path = request.pathInfo
             val body: String = request.reader.lines().collect(Collectors.joining())
+
+            val initialize = Regex("^/initialize$").find(path)
+            if (initialize != null) {
+                val init = RestHelper.readObject(body, Initialize::class.java)
+                val res = impl.initialize(init)
+                response.writer.write(RestHelper.writeJson(res))
+            }
+
+            val shutdown = Regex("^/shutdown$").find(path)
+            if (shutdown != null) {
+                val res = impl.shutdown()
+                response.writer.write(RestHelper.writeJson(res))
+            }
 
             val send = Regex("^/send/([^/]+)$").find(path)
             if (send != null) {
@@ -104,40 +119,50 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
     }
 
-    private val broker by resolve<BrokerAgentRef>()
-
 
     // information on current state of agent container
 
+    /** when the Agent Container was initialized */
     private var startedAt: LocalDateTime? = null
 
+    /** the ID of the Agent Container itself, received on initialization */
     private var containerId: String? = null
 
+    /** the URL of the parent Runtime Platform, received on initialization */
     private var runtimePlatformUrl: String? = null
 
+    /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
 
 
+    /**
+     * Implementation of the Agent Container API
+     */
     private val impl = object : AgentContainerApi {
 
-        override fun getInfo(): AgentContainer {
-            println("GET INFO")
-            // TODO how does the Agent Container know it's own ID?
-            return AgentContainer(null, image, getAgents(), startedAt)
-        }
-
-        override fun initialize(contId: String?, platformUrl: String?): Boolean {
+        override fun initialize(initialize: Initialize): Boolean {
             println("INITIALIZE")
-            println(contId)
-            println(platformUrl)
+            println(initialize)
             if (containerId == null) {
-                containerId = contId
-                runtimePlatformUrl = platformUrl
+                containerId = initialize.containerId
+                runtimePlatformUrl = initialize.platformUrl
                 startedAt = LocalDateTime.now()
                 return true
             } else {
                 return false
             }
+        }
+
+        override fun shutdown(): Boolean {
+            println("SHUTDOWN")
+            // TODO anything to do here? send shutdown message to all agents, or do agents
+            //  already shutdown gracefully when the container is stopped?
+            return true
+        }
+
+        override fun getInfo(): AgentContainer {
+            println("GET INFO")
+            return AgentContainer(containerId, image, getAgents(), startedAt)
         }
 
         override fun getAgents(): List<AgentDescription> {
@@ -206,7 +231,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             }
             // TODO timeout?
 
-            // TODO does this block the agent or the entire system? nope, seems to work as intended
+            // TODO does this block the agent or the entire system?
+            //  nope, seems to work as intended, but test some more...
             log.info("waiting...")
             lock.acquireUninterruptibly()
 
@@ -216,7 +242,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
     }
 
-    // start Web Server
+    /**
+     * Start the Web Server.
+     */
     override fun preStart() {
         super.preStart()
         val handler = ServletHandler()
@@ -225,16 +253,20 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         server.start()
     }
 
-    // stop Web Server
+    /**
+     * Stop the Web Server
+     */
     override fun postStop() {
+        // TODO test if this is actually reliably called if the Agent Container is killed
         server.stop()
         super.postStop()
     }
 
-    override fun behaviour() = act {
 
-        // Container Agent does not have any behaviour of its own?
-        // should probably handle messages to be sent to other containers/platforms
+    /**
+     * React to other agents, e.g. for forwarding their requests to the Runtime Platform
+     */
+    override fun behaviour() = act {
 
         respond<AgentDescription, Boolean> {
             // TODO agents may register with the container agent, publishing their ID and actions
@@ -252,20 +284,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
 
         on<OutboundBroadcast> {
-            // TODO send broadcase to parent RuntimePlatform
+            // TODO send broadcast to parent RuntimePlatform
         }
 
     }
-
-    // TODO placeholders for messages to be forwarded by container agent to platform (and thus to
-    //  other containers, possibly connected platforms, etc.)
-
-    data class OutboundInvoke(val name: String, val agentId: String?, val parameters: Map<String, JsonNode>)
-
-    data class OutboundMessage(val agentId: String, val message: Any)
-
-    data class OutboundBroadcast(val channel: String, val message: Any)
-
-    data class Invoke(val name: String, val parameters: Map<String, JsonNode>)
 
 }

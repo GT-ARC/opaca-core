@@ -1,6 +1,7 @@
 package de.dailab.jiacpp.api;
 
 import de.dailab.jiacpp.model.AgentContainer;
+import de.dailab.jiacpp.model.Initialize;
 
 import java.io.IOException;
 
@@ -26,11 +27,19 @@ public interface AgentContainerApi extends CommonApi{
      * After being started, tell this AgentContainer its Container-ID and the URL of the parent
      * RuntimePlatform. Should have no effect (and return False) if already initialized.
      *
-     * @param containerId this container's unique container ID, given by the platform (or e.g. Docker)
-     * @param platformUrl the URL where to find this container's parent runtime platform
+     * @param initialize Initialization information to the Agent Container
      * @return true if initialization successful and has not been initialized before, otherwise false
      * @throws IOException
      */
-    boolean initialize(String containerId, String platformUrl) throws IOException;
+    boolean initialize(Initialize initialize) throws IOException;
+
+    /**
+     * To be called before being shut down by the Runtime Platform, so the Agent Container can do
+     * any necessary clean up or persistance tasks.
+     *
+     * @return true if graceful shutdown succeeded, otherwise false
+     * @throws IOException
+     */
+    boolean shutdown() throws IOException;
 
 }
