@@ -198,7 +198,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         // TODO get internal IP... why is this deprecated?
         InspectContainerResponse info = dockerClient.inspectContainerCmd(res.getId()).exec();
         dockerContainers.put(agentContainerId, new DockerContainerInfo(res.getId(), info.getNetworkSettings().getIpAddress()));
-        log.info(dockerContainers.get(agentContainerId).toString());
         runningContainers.put(agentContainerId, null); // to be updated later
 
         return agentContainerId;
@@ -294,7 +293,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     private void updateContainers() throws IOException {
         // TODO check last update time for all containers, get new info after some time
         for (String id : runningContainers.keySet()) {
-            System.out.println(id + " " + runningContainers.get(id));
             if (runningContainers.get(id) == null) {
                 var container = getClient(id).get("/info", AgentContainer.class);
                 runningContainers.put(id, container);

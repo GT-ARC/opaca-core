@@ -3,6 +3,7 @@ package de.dailab.jiacpp.plattform;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.java.Log;
 import org.springframework.web.bind.annotation.*;
 
@@ -54,6 +55,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	 */
 
 	@RequestMapping(value="/info", method=RequestMethod.GET)
+	@Operation(summary="Get information on this Runtime Platform", tags={"info"})
 	@Override
 	public RuntimePlatform getInfo() throws IOException {
 		log.info("Get Info");
@@ -65,6 +67,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	 */
 
 	@RequestMapping(value="/agents", method=RequestMethod.GET)
+	@Operation(summary="Get List of Agents of all Agent Containers on this Platform", tags={"agents"})
 	@Override
 	public List<AgentDescription> getAgents() throws IOException {
 		log.info("GET AGENTS");
@@ -72,6 +75,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	@RequestMapping(value="/agents/{agentId}", method=RequestMethod.GET)
+	@Operation(summary="Get Description of a single Agent", tags={"agents"})
 	@Override
 	public AgentDescription getAgent(
 			@PathVariable String agentId
@@ -81,6 +85,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	@RequestMapping(value="/send/{agentId}", method=RequestMethod.POST)
+	@Operation(summary="Send message to an Agent", tags={"agents"})
 	@Override
 	public void send(
 			@PathVariable String agentId,
@@ -91,6 +96,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	@RequestMapping(value="/broadcast/{channel}", method=RequestMethod.POST)
+	@Operation(summary="Send broadcast message to all agents in all containers", tags={"agents"})
 	@Override
 	public void broadcast(
 			@PathVariable String channel,
@@ -101,6 +107,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	@RequestMapping(value="/invoke/{action}", method=RequestMethod.POST)
+	@Operation(summary="Invoke action at any agent that provides it", tags={"agents"})
 	@Override
 	public JsonNode invoke(
 			@PathVariable String action,
@@ -111,6 +118,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	@RequestMapping(value="/invoke/{action}/{agentId}", method=RequestMethod.POST)
+	@Operation(summary="Invoke action at that specific agent", tags={"agents"})
 	@Override
 	public JsonNode invoke(
 			@PathVariable String agentId,
@@ -126,6 +134,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	 */
 
 	@RequestMapping(value="/containers", method=RequestMethod.POST)
+	@Operation(summary="Start a new Agent Container on this platform", tags={"containers"})
 	@Override
 	public String addContainer(
 			@RequestBody AgentContainerImage container
@@ -135,6 +144,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	@RequestMapping(value="/containers", method=RequestMethod.GET)
+	@Operation(summary="Get all Agent Containers running on this platform", tags={"containers"})
 	@Override
 	public List<AgentContainer> getContainers() throws IOException {
 		log.info("GET CONTAINERS");
@@ -142,6 +152,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	@RequestMapping(value="/containers/{containerId}", method=RequestMethod.GET)
+	@Operation(summary="Get details on one specific Agent Container running on this platform", tags={"containers"})
 	@Override
 	public AgentContainer getContainer(
 			@PathVariable String containerId
@@ -151,6 +162,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	@RequestMapping(value="/containers/{containerId}", method=RequestMethod.DELETE)
+	@Operation(summary="Stop and remove Agent Container running on this platform", tags={"containers"})
 	@Override
 	public boolean removeContainer(
 			@PathVariable String containerId
@@ -164,6 +176,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	 */
 
 	@RequestMapping(value="/connections", method=RequestMethod.POST)
+	@Operation(summary="Establish connection to another Runtime Platform", tags={"connections"})
 	@Override
 	public boolean connectPlatform(
 			@RequestBody String url
@@ -173,6 +186,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	@RequestMapping(value="/connections", method=RequestMethod.GET)
+	@Operation(summary="Get list of connected Runtime Platforms", tags={"connections"})
 	@Override
 	public List<String> getConnections() throws IOException {
 		log.info("GET CONNECTIONS");
@@ -180,6 +194,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	@RequestMapping(value="/connections", method=RequestMethod.DELETE)
+	@Operation(summary="Remove connection to another Runtime Platform", tags={"connections"})
 	@Override
 	public boolean disconnectPlatform(
 			@RequestBody String url
