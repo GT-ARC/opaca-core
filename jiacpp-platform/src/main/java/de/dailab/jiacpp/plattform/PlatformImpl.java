@@ -3,14 +3,18 @@ package de.dailab.jiacpp.plattform;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
+import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
+import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.util.RestHelper;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.extern.java.Log;
 
 import java.io.IOException;
@@ -28,6 +32,9 @@ public class PlatformImpl implements RuntimePlatformApi {
     // TODO behaviour on "not found" should probably rather be to raise an exception,
     //  not return null or do nothing
 
+    // TODO properly describe the different routes and their expected behaviour somewhere,
+    //  including error cases, forwarding to containers and remote platforms, etc.
+
     // TODO move all the trace-logging (which method is called) to the REST Controller
 
     // TODO if not found on own AgentContainers, all the Container Routes should
@@ -36,10 +43,14 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     // TODO make sure agent IDs are globally unique? extend agent-ids with platform-hash or similar?
 
+    // TODO give proper UUIDs to containers (not docker-specific), pass those as env vars to the
+
     public static final RuntimePlatformApi INSTANCE = new PlatformImpl();
 
     /** Currently running Agent Containers, mapping container ID to description */
     private final Map<String, AgentContainer> runningContainers = new HashMap<>();
+
+    private final Map<String, DockerContainerInfo> dockerContainers = new HashMap<>();
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
     private final Map<String, RuntimePlatform> connectedPlatforms = new HashMap<>();
@@ -74,11 +85,20 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
 
+    @Data @AllArgsConstructor
+    class DockerContainerInfo {
+        String containerId;
+        String internalIp;
+    }
+
     @Override
-    public RuntimePlatform getInfo() {
+    public RuntimePlatform getInfo() throws IOException {
         log.info("GET INFO");
+        updateContainers();
+        // TODO when to refresh info on running containers? might have spawned new agents since they started
+        // TODO add flag "update interval" and refresh info if info is too old? same for connected platforms.
         return new RuntimePlatform(
-                "https://i-dont-really-know.com",
+                getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),
                 List.of("nothing"),
                 List.of()
@@ -90,16 +110,18 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     @Override
-    public List<AgentDescription> getAgents() {
+    public List<AgentDescription> getAgents() throws IOException {
         log.info("GET AGENTS");
+        updateContainers();
         return runningContainers.values().stream()
                 .flatMap(c -> c.getAgents().stream())
                 .collect(Collectors.toList());
     }
 
     @Override
-    public AgentDescription getAgent(String agentId) {
+    public AgentDescription getAgent(String agentId) throws IOException {
         log.info(String.format("GET AGENT: %s", agentId));
+        updateContainers();
         return runningContainers.values().stream()
                 .flatMap(c -> c.getAgents().stream())
                 .filter(a -> a.getAgentId().equals(agentId))
@@ -109,6 +131,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public void send(String agentId, Message message) throws IOException {
         log.info(String.format("SEND: %s, %s", agentId, message));
+        updateContainers();
         var container = runningContainers.values().stream()
                 .filter(c -> c.getAgents().stream()
                         .anyMatch(a -> a.getAgentId().equals(agentId)))
@@ -123,6 +146,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public void broadcast(String channel, Message message) throws IOException {
         log.info(String.format("BROADCAST: %s, %s", channel, message));
+        updateContainers();
         for (AgentContainer container : runningContainers.values()) {
             getClient(container).post(String.format("/broadcast/%s", channel), message, null);
         }
@@ -132,26 +156,17 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public JsonNode invoke(String action, Map<String, JsonNode> parameters) throws IOException {
         log.info(String.format("INVOKE: %s, %s", action, parameters));
-        var container = runningContainers.values().stream()
-                .filter(c -> c.getAgents().stream()
-                        .anyMatch(a -> a.getActions().stream()
-                                .anyMatch(x -> x.getName().equals(action))))
-                .findAny().orElse(null);
-        if (container != null) {
-            return getClient(container).post(String.format("/invoke/%s", action), parameters, JsonNode.class);
-        } else {
-            // TODO check connected platforms
-        }
-        return null;
+        return invoke(null, action, parameters);
     }
 
     @Override
     public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters) throws IOException {
         log.info(String.format("INVOKE: %s, %s, %s", action, agentId, parameters));
+        updateContainers();
         // TODO check that parameters match
         var container = runningContainers.values().stream()
                 .filter(c -> c.getAgents().stream()
-                        .anyMatch(a -> a.getAgentId().equals(agentId) &&
+                        .anyMatch(a -> (agentId == null || a.getAgentId().equals(agentId)) &&
                                 a.getActions().stream().anyMatch(x -> x.getName().equals(action))))
                 .findAny().orElse(null);
         if (container != null) {
@@ -168,51 +183,61 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     @Override
-    public String addContainer(AgentContainerImage container) {
-        System.out.println("ADD CONTAINER");
-        System.out.println(container);
-        // lookup container docker image
-        // pull and start image
-        // add container to internal containers table
+    public String addContainer(AgentContainerImage container) throws IOException {
+        log.info(String.format("ADD CONTAINER: %s", container));
 
-        System.out.println("pulling...");
+        //log.info("Pulling Image...");
+        //dockerClient.pullImageCmd(container.getImageName()).start();
 
-        dockerClient.pullImageCmd(container.getImageName()).start();
+        String agentContainerId = UUID.randomUUID().toString();
 
-        System.out.println("creating...");
+        log.info("Creating Container...");
+        CreateContainerResponse res = dockerClient.createContainerCmd(container.getImageName())
+                .withEnv(
+                        String.format("%s=%s", AgentContainerApi.ENV_CONTAINER_ID, agentContainerId),
+                        String.format("%s=%s", AgentContainerApi.ENV_PLATFORM_URL, getOwnBaseUrl()))
+                .exec();
+        log.info(String.format("Result: %s", res));
 
-        CreateContainerResponse res = dockerClient.createContainerCmd(container.getImageName()).exec();
-
-        System.out.println("res " + res);
-
-        System.out.println("running...");
-
+        log.info("Starting Container...");
         dockerClient.startContainerCmd(res.getId()).exec();
-        System.out.println("container id: " + res.getId());
 
-        return res.getId();
+        // TODO get internal IP... why is this deprecated?
+        InspectContainerResponse info = dockerClient.inspectContainerCmd(res.getId()).exec();
+        dockerContainers.put(agentContainerId, new DockerContainerInfo(res.getId(), info.getNetworkSettings().getIpAddress()));
+        log.info(dockerContainers.get(agentContainerId).toString());
+        runningContainers.put(agentContainerId, null); // to be updated later
+
+        return agentContainerId;
     }
 
     @Override
-    public List<AgentContainer> getContainers() {
+    public List<AgentContainer> getContainers() throws IOException {
         log.info("GET CONTAINERS");
+        updateContainers();
         return List.copyOf(runningContainers.values());
     }
 
     @Override
-    public AgentContainer getContainer(String containerId) {
+    public AgentContainer getContainer(String containerId) throws IOException {
         log.info(String.format("GET CONTAINER: %s", containerId));
+        updateContainers();
         return runningContainers.values().stream()
                 .filter(c -> c.getContainerId().equals(containerId))
                 .findAny().orElse(null);
     }
 
     @Override
-    public boolean removeContainer(String containerId) {
+    public boolean removeContainer(String containerId) throws IOException {
         log.info(String.format("REMOVE CONTAINER: %s", containerId));
-
-        // TODO get container ID, use docker client to stop container...
-
+        updateContainers();
+        AgentContainer container = runningContainers.get(containerId);
+        if (container != null) {
+            var dockerId = dockerContainers.get(containerId).getContainerId();
+            dockerClient.stopContainerCmd(dockerId).exec();
+            // TODO get result, check if and when it is finally stopped?
+            return true;
+        }
         return false;
     }
 
@@ -268,10 +293,33 @@ public class PlatformImpl implements RuntimePlatformApi {
      * HELPER METHODS
      */
 
+    private String getOwnBaseUrl() {
+        // TODO for testing, hardcoded my current DAI intranet IP address...
+        return "http://10.1.1.8:8000";
+    }
+
     private RestHelper getClient(AgentContainer container) {
+        return getClient(container.getContainerId());
+    }
+
+    private RestHelper getClient(String containerId) {
         // TODO get URL to started Docker Container
         //  or extend this method to actually call the route?
-        return new RestHelper("http://localhost:8082");
+        var ip = dockerContainers.get(containerId).getInternalIp();
+        return new RestHelper(String.format("http://%s:8082", ip));
+    }
+
+    private void updateContainers() throws IOException {
+        // TODO check last update time for all containers, get new info after some time
+        System.out.println("UPDATING CONTAINERS");
+        for (String id : runningContainers.keySet()) {
+            System.out.println(id + " " + runningContainers.get(id));
+            if (runningContainers.get(id) == null) {
+                var container = getClient(id).get("/info", AgentContainer.class);
+                runningContainers.put(id, container);
+                System.out.println("Updated " + id + " with " + container);
+            }
+        }
     }
 
 }

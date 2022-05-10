@@ -27,13 +27,22 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 	@PostConstruct
 	public void postConstruct() {
-		System.out.println("Code on starup goes here");
+		// TODO read config/settings (tbd) with initial containers and connections to deploy and establish
 	}
 
 	@PreDestroy
 	public void preDestroy() {
-		System.out.println("Code on shutdown goes here");
-		// TODO disconnect remote platform, undeploy agent containers
+		// disconnect remote platform, undeploy agent containers
+		try {
+			for (String connection : implementation.getConnections()) {
+				implementation.disconnectPlatform(connection);
+			}
+			for (AgentContainer container : implementation.getContainers()) {
+				implementation.removeContainer(container.getContainerId());
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/*
