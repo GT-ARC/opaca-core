@@ -18,6 +18,8 @@ public interface AgentContainerApi extends CommonApi{
 
     String ENV_PLATFORM_URL = "PLATFORM_URL";
 
+    int DEFAULT_PORT = 8082;
+
     /**
      * Get information on the container, to be called by the Runtime Platform after start
      *

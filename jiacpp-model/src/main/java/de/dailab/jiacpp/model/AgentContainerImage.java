@@ -14,6 +14,9 @@ public class AgentContainerImage {
 
     // TODO what does a container actually "provide", besides its agents and their actions?
 
+    // TODO additional ports to be exposed and services those provide, e.g. for streaming API?
+    //  otherwise, agent containers are _only_ reachable through the here defined API...
+
     // REQUIRED attributes for starting a container
 
     /** full path of the (Docker) Container, including repository and version */

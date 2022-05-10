@@ -3,6 +3,7 @@ package de.dailab.jiacpp.plattform;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
+import lombok.extern.java.Log;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
@@ -16,6 +17,7 @@ import java.util.Map;
  * REST controller for the JIAC++ Runtime Platform API. This class only defines the REST endpoints,
  * handles security etc. (once that's implemented); the actual logic is implemented elsewhere.
  */
+@Log
 @RestController
 public class PlatformRestController implements RuntimePlatformApi {
 
@@ -27,11 +29,13 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 	@PostConstruct
 	public void postConstruct() {
+		log.info("In Post-Construct");
 		// TODO read config/settings (tbd) with initial containers and connections to deploy and establish
 	}
 
 	@PreDestroy
 	public void preDestroy() {
+		log.info("In Destroy, stopping containers...");
 		// disconnect remote platform, undeploy agent containers
 		try {
 			for (String connection : implementation.getConnections()) {
@@ -52,6 +56,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@RequestMapping(value="/info", method=RequestMethod.GET)
 	@Override
 	public RuntimePlatform getInfo() throws IOException {
+		log.info("Get Info");
 		return implementation.getInfo();
 	}
 
@@ -62,6 +67,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@RequestMapping(value="/agents", method=RequestMethod.GET)
 	@Override
 	public List<AgentDescription> getAgents() throws IOException {
+		log.info("GET AGENTS");
 		return implementation.getAgents();
 	}
 
@@ -70,6 +76,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public AgentDescription getAgent(
 			@PathVariable String agentId
 	) throws IOException {
+		log.info(String.format("GET AGENT: %s", agentId));
 		return implementation.getAgent(agentId);
 	}
 
@@ -79,6 +86,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@PathVariable String agentId,
 			@RequestBody Message message
 	) throws IOException {
+		log.info(String.format("SEND: %s, %s", agentId, message));
 		implementation.send(agentId, message);
 	}
 
@@ -88,6 +96,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@PathVariable String channel,
 			@RequestBody Message message
 	) throws IOException {
+		log.info(String.format("BROADCAST: %s, %s", channel, message));
 		implementation.broadcast(channel, message);
 	}
 
@@ -97,6 +106,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters
 	) throws IOException {
+		log.info(String.format("INVOKE: %s, %s", action, parameters));
 		return implementation.invoke(action, parameters);
 	}
 
@@ -107,6 +117,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters
 	) throws IOException {
+		log.info(String.format("INVOKE: %s, %s, %s", action, agentId, parameters));
 		return implementation.invoke(agentId, action, parameters);
 	}
 
@@ -119,12 +130,14 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public String addContainer(
 			@RequestBody AgentContainerImage container
 	) throws IOException {
+		log.info(String.format("ADD CONTAINER: %s", container));
 		return implementation.addContainer(container);
 	}
 
 	@RequestMapping(value="/containers", method=RequestMethod.GET)
 	@Override
 	public List<AgentContainer> getContainers() throws IOException {
+		log.info("GET CONTAINERS");
 		return implementation.getContainers();
 	}
 
@@ -133,6 +146,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public AgentContainer getContainer(
 			@PathVariable String containerId
 	) throws IOException {
+		log.info(String.format("GET CONTAINER: %s", containerId));
 		return implementation.getContainer(containerId);
 	}
 
@@ -141,6 +155,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public boolean removeContainer(
 			@PathVariable String containerId
 	) throws IOException {
+		log.info(String.format("REMOVE CONTAINER: %s", containerId));
 		return implementation.removeContainer(containerId);
 	}
 
@@ -153,12 +168,14 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public boolean connectPlatform(
 			@RequestBody String url
 	) throws IOException {
+		log.info(String.format("CONNECT PLATFORM: %s", url));
 		return implementation.connectPlatform(url);
 	}
 
 	@RequestMapping(value="/connections", method=RequestMethod.GET)
 	@Override
 	public List<String> getConnections() throws IOException {
+		log.info("GET CONNECTIONS");
 		return implementation.getConnections();
 	}
 
@@ -167,6 +184,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public boolean disconnectPlatform(
 			@RequestBody String url
 	) throws IOException {
+		log.info(String.format("DISCONNECT PLATFORM: %s", url));
 		return implementation.disconnectPlatform(url);
 	}
 }

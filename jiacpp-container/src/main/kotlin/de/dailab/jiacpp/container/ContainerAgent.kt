@@ -36,7 +36,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     // implementation of API
 
     /** minimal Jetty server for providing the REST interface */
-    private val server = Server(8082)
+    private val server = Server(AgentContainerApi.DEFAULT_PORT)
 
     /** servlet handling the different REST routes, delegating to `impl` for actual logic */
     private val servlet = object : HttpServlet() {

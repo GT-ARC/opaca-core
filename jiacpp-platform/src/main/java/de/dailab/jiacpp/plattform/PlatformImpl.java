@@ -29,27 +29,26 @@ import java.util.stream.Collectors;
 @Log
 public class PlatformImpl implements RuntimePlatformApi {
 
-    // TODO behaviour on "not found" should probably rather be to raise an exception,
-    //  not return null or do nothing
-
     // TODO properly describe the different routes and their expected behaviour somewhere,
-    //  including error cases, forwarding to containers and remote platforms, etc.
-
-    // TODO move all the trace-logging (which method is called) to the REST Controller
+    //  including error cases (not found?), forwarding to containers and remote platforms, etc.
 
     // TODO if not found on own AgentContainers, all the Container Routes should
     //  also check connected platforms next... not just forward the request to connected platforms,
     //  but check which platform actually has the desired agent or action and then send it there
 
     // TODO make sure agent IDs are globally unique? extend agent-ids with platform-hash or similar?
+    //  e.g. optionally allow "agentId@containerId" to be passed in place of agentId for all routes?
 
-    // TODO give proper UUIDs to containers (not docker-specific), pass those as env vars to the
+    // TODO later, move all docker-specific stuff to separate class
+
 
     public static final RuntimePlatformApi INSTANCE = new PlatformImpl();
+
 
     /** Currently running Agent Containers, mapping container ID to description */
     private final Map<String, AgentContainer> runningContainers = new HashMap<>();
 
+    /** additional Docker-specific information on agent containers */
     private final Map<String, DockerContainerInfo> dockerContainers = new HashMap<>();
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
@@ -93,10 +92,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public RuntimePlatform getInfo() throws IOException {
-        log.info("GET INFO");
         updateContainers();
-        // TODO when to refresh info on running containers? might have spawned new agents since they started
-        // TODO add flag "update interval" and refresh info if info is too old? same for connected platforms.
         return new RuntimePlatform(
                 getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),
@@ -111,7 +107,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public List<AgentDescription> getAgents() throws IOException {
-        log.info("GET AGENTS");
         updateContainers();
         return runningContainers.values().stream()
                 .flatMap(c -> c.getAgents().stream())
@@ -120,7 +115,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public AgentDescription getAgent(String agentId) throws IOException {
-        log.info(String.format("GET AGENT: %s", agentId));
         updateContainers();
         return runningContainers.values().stream()
                 .flatMap(c -> c.getAgents().stream())
@@ -130,7 +124,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public void send(String agentId, Message message) throws IOException {
-        log.info(String.format("SEND: %s, %s", agentId, message));
         updateContainers();
         var container = runningContainers.values().stream()
                 .filter(c -> c.getAgents().stream()
@@ -145,7 +138,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public void broadcast(String channel, Message message) throws IOException {
-        log.info(String.format("BROADCAST: %s, %s", channel, message));
         updateContainers();
         for (AgentContainer container : runningContainers.values()) {
             getClient(container).post(String.format("/broadcast/%s", channel), message, null);
@@ -155,13 +147,11 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public JsonNode invoke(String action, Map<String, JsonNode> parameters) throws IOException {
-        log.info(String.format("INVOKE: %s, %s", action, parameters));
         return invoke(null, action, parameters);
     }
 
     @Override
     public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters) throws IOException {
-        log.info(String.format("INVOKE: %s, %s, %s", action, agentId, parameters));
         updateContainers();
         // TODO check that parameters match
         var container = runningContainers.values().stream()
@@ -184,8 +174,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public String addContainer(AgentContainerImage container) throws IOException {
-        log.info(String.format("ADD CONTAINER: %s", container));
-
         //log.info("Pulling Image...");
         //dockerClient.pullImageCmd(container.getImageName()).start();
 
@@ -213,14 +201,12 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public List<AgentContainer> getContainers() throws IOException {
-        log.info("GET CONTAINERS");
         updateContainers();
         return List.copyOf(runningContainers.values());
     }
 
     @Override
     public AgentContainer getContainer(String containerId) throws IOException {
-        log.info(String.format("GET CONTAINER: %s", containerId));
         updateContainers();
         return runningContainers.values().stream()
                 .filter(c -> c.getContainerId().equals(containerId))
@@ -229,7 +215,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public boolean removeContainer(String containerId) throws IOException {
-        log.info(String.format("REMOVE CONTAINER: %s", containerId));
         updateContainers();
         AgentContainer container = runningContainers.get(containerId);
         if (container != null) {
@@ -247,12 +232,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public boolean connectPlatform(String url) throws IOException {
-        log.info(String.format("CONNECT PLATFORM: %s", url));
-        // TODO add url to "pending" set of remote platforms
-        //  call connect-platform route of remote platform at that URL
-        //  if if returns as okay, finally add to connected platforms
-        //  if url already in pending list, do nothing (might be callback from other platform)
-
+        // TODO not yet tested
         if (pendingConnections.contains(url)) {
             // callback from remote platform following our own request for connection
             return true;
@@ -274,7 +254,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public List<String> getConnections() {
-        log.info("GET CONNECTIONS");
         return List.copyOf(connectedPlatforms.keySet());
     }
 
@@ -303,21 +282,17 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     private RestHelper getClient(String containerId) {
-        // TODO get URL to started Docker Container
-        //  or extend this method to actually call the route?
         var ip = dockerContainers.get(containerId).getInternalIp();
-        return new RestHelper(String.format("http://%s:8082", ip));
+        return new RestHelper(String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT));
     }
 
     private void updateContainers() throws IOException {
         // TODO check last update time for all containers, get new info after some time
-        System.out.println("UPDATING CONTAINERS");
         for (String id : runningContainers.keySet()) {
             System.out.println(id + " " + runningContainers.get(id));
             if (runningContainers.get(id) == null) {
                 var container = getClient(id).get("/info", AgentContainer.class);
                 runningContainers.put(id, container);
-                System.out.println("Updated " + id + " with " + container);
             }
         }
     }
