@@ -9,7 +9,7 @@ fun main() {
 
     // could also be provided as a JSON file in the resources dir
     val image = AgentContainerImage(
-            "sample-docker-image-name",
+            "sample-agent-container-image",
             listOf("sample-requirement"),
             listOf("sample-provision"),
             "Sample JIAC++ Agent Container",

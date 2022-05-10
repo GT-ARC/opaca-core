@@ -1,0 +1,10 @@
+{
+  "imageName": "sample-agent-container-image",
+
+  "requires": ["sample-requirement"],
+  "provides": ["sample-provision"],
+
+  "name": "Sample JIAC++ Agent Container",
+  "description": "Just a sample container doing nothing but receiving and reacting to API calls",
+  "provider": "DAI-Lab"
+}

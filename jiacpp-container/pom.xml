@@ -93,6 +93,33 @@
                     </execution>
                 </executions>
             </plugin>
+
+
+
+            <!-- probably not the best / most up-to-date way to make a Docker image... -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>appassembler-maven-plugin</artifactId>
+                <version>2.0.0</version>
+                <executions>
+                    <execution>
+                        <id>generate start scripts</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>assemble</goal>
+                        </goals>
+                        <configuration>
+                            <repositoryLayout>flat</repositoryLayout>
+                            <programs>
+                                <program>
+                                    <mainClass>de.dailab.jiacpp.sample.MainKt</mainClass>
+                                </program>
+                            </programs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 
