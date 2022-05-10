@@ -165,8 +165,13 @@ public class PlatformImpl implements RuntimePlatformApi {
                                 a.getActions().stream().anyMatch(x -> x.getName().equals(action))))
                 .findAny().orElse(null);
         if (container != null) {
-            return getClient(container).post(String.format("/invoke/%s/%s", action, agentId),
-                    parameters, JsonNode.class);
+            if (agentId == null) {
+                return getClient(container).post(String.format("/invoke/%s", action),
+                        parameters, JsonNode.class);
+            } else {
+                return getClient(container).post(String.format("/invoke/%s/%s", action, agentId),
+                        parameters, JsonNode.class);
+            }
         } else {
             // TODO check connected platforms
         }
