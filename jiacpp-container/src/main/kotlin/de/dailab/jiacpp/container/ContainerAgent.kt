@@ -13,7 +13,6 @@ import jakarta.servlet.http.HttpServletResponse
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicReference
@@ -42,6 +41,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     private val servlet = object : HttpServlet() {
 
         // I'm sure there's a much better way to do this...
+        // TODO this part would actually be the same for any Java-based implementation, incl. JIAC V...
+        //  move this as an abstract class to the Model module to be reusable?
 
         override fun doGet(request: HttpServletRequest, response: HttpServletResponse) {
             log.info("received GET $request")
@@ -161,7 +162,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         override fun getInfo(): AgentContainer {
             log.info("GET INFO")
-            return AgentContainer(containerId, image, getAgents(), startedAt)
+            return AgentContainer(containerId, image, agents, startedAt)
         }
 
         override fun getAgents(): List<AgentDescription> {
