@@ -58,9 +58,21 @@ public class PlatformImpl implements RuntimePlatformApi {
     private final Set<String> pendingConnections = new HashSet<>();
 
 
-    private final DockerClient dockerClient = buildClient();
+    /** Client for accessing (remote) Docker runtime */
+    private final DockerClient dockerClient;
 
-    private DockerClient buildClient() {
+
+    @Data @AllArgsConstructor
+    static class DockerContainerInfo {
+        String containerId;
+        String internalIp;
+    }
+
+
+    private PlatformImpl() {
+        // TODO get config/settings, e.g.
+        //  - time before updating containers or remote platforms
+        //  - docker settings, e.g. remote docker, gpu support, ...
 
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
                 .withDockerHost("unix:///var/run/docker.sock")
@@ -80,14 +92,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 .responseTimeout(Duration.ofSeconds(45))
                 .build();
 
-        return  DockerClientImpl.getInstance(dockerConfig, dockerHttpClient);
-    }
-
-
-    @Data @AllArgsConstructor
-    class DockerContainerInfo {
-        String containerId;
-        String internalIp;
+        dockerClient = DockerClientImpl.getInstance(dockerConfig, dockerHttpClient);
     }
 
     @Override
@@ -258,11 +263,11 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public boolean disconnectPlatform(String url) {
-        log.info(String.format("DISCONNECT PLATFORM: %s", url));
+    public boolean disconnectPlatform(String url) throws IOException {
         if (connectedPlatforms.containsKey(url)) {
             var client = new RestHelper(url);
-            // TODO call "delete" on remote platform (to be implemented in REST Helper)
+            var res = client.delete("/connections", url, Boolean.class);
+            log.info(String.format("Disconnected from %s: %s", url, res));
             return true;
         }
         return false;

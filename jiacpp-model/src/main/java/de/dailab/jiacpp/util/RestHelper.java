@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import lombok.AllArgsConstructor;
-import lombok.Value;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -27,25 +26,33 @@ public class RestHelper {
 
 
     public <T> T get(String path, Class<T> type) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
-        connection.setRequestMethod("GET");
-        connection.connect();
-
-        return mapper.readValue(connection.getInputStream(), type);
+        return request("GET", path, null, type);
     }
 
     public <T> T post(String path, Object payload, Class<T> type) throws IOException {
-        String json = mapper.writeValueAsString(payload);
-        byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+        return request("POST", path, payload, type);
+    }
 
+    public <T> T delete(String path, Object payload, Class<T> type) throws IOException {
+        return request("DELETE", path, payload, type);
+    }
+
+    public <T> T request(String method, String path, Object payload, Class<T> type) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
-        connection.setRequestMethod("POST");
-        connection.setDoOutput(true);
-        connection.setFixedLengthStreamingMode(bytes.length);
-        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-        connection.connect();
-        try (OutputStream os = connection.getOutputStream()) {
-            os.write(bytes);
+        connection.setRequestMethod(method);
+
+        if (payload != null) {
+            String json = mapper.writeValueAsString(payload);
+            byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+            connection.setDoOutput(true);
+            connection.setFixedLengthStreamingMode(bytes.length);
+            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            connection.connect();
+            try (OutputStream os = connection.getOutputStream()) {
+                os.write(bytes);
+            }
+        } else {
+            connection.connect();
         }
 
         if (type != null) {
