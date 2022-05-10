@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletResponse
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicReference
@@ -71,19 +72,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             val path = request.pathInfo
             val body: String = request.reader.lines().collect(Collectors.joining())
 
-            val initialize = Regex("^/initialize$").find(path)
-            if (initialize != null) {
-                val init = RestHelper.readObject(body, Initialize::class.java)
-                val res = impl.initialize(init)
-                response.writer.write(RestHelper.writeJson(res))
-            }
-
-            val shutdown = Regex("^/shutdown$").find(path)
-            if (shutdown != null) {
-                val res = impl.shutdown()
-                response.writer.write(RestHelper.writeJson(res))
-            }
-
             val send = Regex("^/send/([^/]+)$").find(path)
             if (send != null) {
                 val id = send.groupValues[1]
@@ -136,28 +124,40 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
 
     /**
+     * Start the Web Server.
+     */
+    override fun preStart() {
+        log.info("Starting Container Agent...")
+        super.preStart()
+
+        // start web server
+        log.info("Starting web server...")
+        val handler = ServletHandler()
+        handler.addServletWithMapping(ServletHolder(servlet), "/*")
+        server.handler = handler
+        server.start()
+
+        // get environment variables
+        log.info("Setting environment...")
+        containerId = System.getenv(AgentContainerApi.ENV_CONTAINER_ID)
+        runtimePlatformUrl = System.getenv(AgentContainerApi.ENV_PLATFORM_URL)
+        startedAt = LocalDateTime.now()
+    }
+
+    /**
+     * Stop the Web Server
+     */
+    override fun postStop() {
+        log.info("Stopping Container Agent...")
+        server.stop()
+        super.postStop()
+    }
+
+
+    /**
      * Implementation of the Agent Container API
      */
     private val impl = object : AgentContainerApi {
-
-        override fun initialize(initialize: Initialize): Boolean {
-            log.info("INITIALIZE: $initialize")
-            if (containerId == null) {
-                containerId = initialize.containerId
-                runtimePlatformUrl = initialize.platformUrl
-                startedAt = LocalDateTime.now()
-                return true
-            } else {
-                return false
-            }
-        }
-
-        override fun shutdown(): Boolean {
-            log.info("SHUTDOWN")
-            // TODO anything to do here? send shutdown message to all agents, or do agents
-            //  already shutdown gracefully when the container is stopped?
-            return true
-        }
 
         override fun getInfo(): AgentContainer {
             log.info("GET INFO")
@@ -230,26 +230,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
             return RestHelper.mapper.valueToTree(result.get())
         }
-    }
-
-    /**
-     * Start the Web Server.
-     */
-    override fun preStart() {
-        super.preStart()
-        val handler = ServletHandler()
-        handler.addServletWithMapping(ServletHolder(servlet), "/*")
-        server.handler = handler
-        server.start()
-    }
-
-    /**
-     * Stop the Web Server
-     */
-    override fun postStop() {
-        // TODO test if this is actually reliably called if the Agent Container is killed
-        server.stop()
-        super.postStop()
     }
 
 
