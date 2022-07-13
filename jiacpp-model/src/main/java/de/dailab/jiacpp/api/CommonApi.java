@@ -58,8 +58,6 @@ public interface CommonApi {
      */
     void broadcast(String channel, Message message) throws IOException;
 
-    // TODO invoke: object return typo won't work here; rather Map, or "JsonObject"?
-
     /**
      * Invoke an action provided by any agent on this container.
      *

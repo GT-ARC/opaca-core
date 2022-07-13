@@ -94,8 +94,6 @@
                 </executions>
             </plugin>
 
-
-
             <!-- probably not the best / most up-to-date way to make a Docker image... -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -127,7 +125,7 @@
 		<repository>
 			<id>dai-open</id>
 			<name>DAI Open Repository</name>
-			<url>http://repositories.dai-labor.de/extern/content/repositories/dai-open-snapshot/</url>
+			<url>https://repositories.dai-labor.de/extern/content/repositories/dai-open-snapshot/</url>
 		</repository>
         <repository>
             <id>gradle-m2</id>

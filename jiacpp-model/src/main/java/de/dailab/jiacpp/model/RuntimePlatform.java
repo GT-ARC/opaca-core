@@ -13,8 +13,6 @@ import java.util.Map;
 @Data @AllArgsConstructor @NoArgsConstructor
 public class RuntimePlatform {
 
-    // TODO type of backend, e.g. Docker or Kubernetes, and where those are running?
-
     /** the external base URL where to reach this platform */
     String baseUrl;
 

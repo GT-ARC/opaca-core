@@ -16,7 +16,6 @@ public interface RuntimePlatformApi extends CommonApi {
 
     // TODO use boolean for results, or just void + Exception?
     // TODO REST routes are still preliminary
-    // TODO move "connect" route to Common to (a) connect the container to its platform, and (b) to connect stand-alone containers?
 
     /**
      * Get full information on the Runtime Platform, including all running Agent Containrs and
