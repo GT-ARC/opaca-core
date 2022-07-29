@@ -18,6 +18,8 @@ import lombok.Data;
 import lombok.extern.java.Log;
 
 import java.io.IOException;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -281,9 +283,17 @@ public class PlatformImpl implements RuntimePlatformApi {
      * HELPER METHODS
      */
 
+    /**
+     * Get Host IP address. Should return preferred outbound address.
+     * Adapted from https://stackoverflow.com/a/38342964/1639625
+     */
     private String getOwnBaseUrl() {
-        // TODO for testing, hardcoded my current DAI intranet IP address...
-        return "http://10.1.1.8:8000";
+        try (DatagramSocket socket = new DatagramSocket()) {
+            socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
+            return socket.getLocalAddress().getHostAddress();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private RestHelper getClient(AgentContainer container) {
