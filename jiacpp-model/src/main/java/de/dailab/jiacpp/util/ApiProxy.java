@@ -1,24 +1,27 @@
-package de.dailab.jiacpp.plattform;
+package de.dailab.jiacpp.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
-import de.dailab.jiacpp.util.RestHelper;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Just for testing Agent Container's REST interface, forwarding Calls directly to the Container.
- * Later, the code redirecting to the actual agent containers (after finding the right one) would
- * look similar though.
+ * Implementation of the API forwarding to the REST services at a specific base URL.
+ * Can be used for e.g. calling routes of a connected Runtime Platform, or a container's
+ * parent Runtime Platform, or just for testing.
  */
-public class AgentProxy implements RuntimePlatformApi {
+public class ApiProxy implements RuntimePlatformApi {
 
-    public static final RuntimePlatformApi INSTANCE = new AgentProxy();
+    private final RestHelper client;
 
-    private final RestHelper client = new RestHelper("http://localhost:8082");
+    public ApiProxy(String baseUrl) {
+         this.client = new RestHelper(baseUrl);
+    }
+
+    // INFO ROUTES
 
     @Override
     public RuntimePlatform getInfo() throws IOException {
@@ -26,6 +29,8 @@ public class AgentProxy implements RuntimePlatformApi {
         AgentContainer container = client.get("/info", AgentContainer.class);
         return new RuntimePlatform(null, List.of(container), null, null);
     }
+
+    // AGENT ROUTES
 
     @SuppressWarnings({"unchecked"})
     @Override
@@ -74,42 +79,56 @@ public class AgentProxy implements RuntimePlatformApi {
         return client.post(String.format("/invoke/%s/%s", action, agentId), parameters, JsonNode.class);
     }
 
-    /*
-     * UNSUPPORTED ROUTES
-     */
+    // CONTAINER ROUTES
 
     @Override
-    public String addContainer(AgentContainerImage container) {
-        throw new UnsupportedOperationException();
+    public String addContainer(AgentContainerImage container) throws IOException {
+        System.out.println("ADD CONTAINER");
+        System.out.println(container);
+        return client.post("/containers", container, String.class);
+    }
+
+    @SuppressWarnings({"unchecked"})
+    @Override
+    public List<AgentContainer> getContainers() throws IOException {
+        System.out.println("GET CONTAINERS");
+        return client.get("/containers", List.class);
     }
 
     @Override
-    public List<AgentContainer> getContainers() {
-        throw new UnsupportedOperationException();
+    public AgentContainer getContainer(String containerId) throws IOException {
+        System.out.println("GET CONTAINER");
+        System.out.println(containerId);
+        return client.get(String.format("/containers/%s", containerId), AgentContainer.class);
     }
 
     @Override
-    public AgentContainer getContainer(String containerId) {
-        throw new UnsupportedOperationException();
+    public boolean removeContainer(String containerId) throws IOException {
+        System.out.println("REMOVE  CONTAINER");
+        System.out.println(containerId);
+        return client.delete(String.format("/containers/%s", containerId), null, Boolean.class);
+    }
+
+    // CONNECTING ROUTES
+
+    @Override
+    public boolean connectPlatform(String url) throws IOException {
+        System.out.println("POST CONNECTIONS");
+        System.out.println(url);
+        return client.post("/connections", url, Boolean.class);
+    }
+
+    @SuppressWarnings({"unchecked"})
+    @Override
+    public List<String> getConnections() throws IOException {
+        System.out.println("GET CONNECTIONS");
+        return client.get("/connections", List.class);
     }
 
     @Override
-    public boolean removeContainer(String containerId) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean connectPlatform(String url) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public List<String> getConnections() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean disconnectPlatform(String url) {
-        throw new UnsupportedOperationException();
+    public boolean disconnectPlatform(String url) throws IOException {
+        System.out.println("DELETE CONNECTIONS");
+        System.out.println(url);
+        return client.delete("/connections", url, Boolean.class);
     }
 }

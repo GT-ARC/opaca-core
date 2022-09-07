@@ -3,6 +3,7 @@ package de.dailab.jiacpp.container
 import com.fasterxml.jackson.databind.JsonNode
 import de.dailab.jiacpp.api.AgentContainerApi
 import de.dailab.jiacpp.model.*
+import de.dailab.jiacpp.util.ApiProxy
 import de.dailab.jiacpp.util.RestHelper
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.BrokerAgentRef
@@ -123,6 +124,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
 
+    /** proxy to parent Runtime Platform for forwarding outgoing calls */
+    private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl) }
+
 
     /**
      * Start the Web Server.
@@ -240,22 +244,31 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     override fun behaviour() = act {
 
         respond<AgentDescription, Boolean> {
-            // TODO agents may register with the container agent, publishing their ID and actions
+            // agents may register with the container agent, publishing their ID and actions
             // TODO make this a dedicated message class, e.g. RegisterAgent (and also Deregister?)
-            registeredAgents[it.agentId] = it
-            true
+            if (!registeredAgents.containsKey(it.agentId)) {
+                registeredAgents[it.agentId] = it
+                true
+            } else {
+                false
+            }
         }
 
         respond<OutboundInvoke, Any?> {
-            // TODO invoke action at parent RuntimePlatform
+            // invoke action at parent RuntimePlatform
+            parentProxy.invoke(it.agentId, it.name, it.parameters)
         }
 
         on<OutboundMessage> {
-            // TODO send message to parent RuntimePlatform
+            // send message to parent RuntimePlatform
+            val payload: JsonNode = RestHelper.mapper.valueToTree(it.message)
+            parentProxy.send(it.agentId, Message(payload, it.ownId))
         }
 
         on<OutboundBroadcast> {
-            // TODO send broadcast to parent RuntimePlatform
+            // send broadcast to parent RuntimePlatform
+            val payload: JsonNode = RestHelper.mapper.valueToTree(it.message)
+            parentProxy.broadcast(it.channel, Message(payload, it.ownId))
         }
 
     }
