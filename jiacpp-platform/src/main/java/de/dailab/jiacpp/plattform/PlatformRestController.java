@@ -5,6 +5,7 @@ import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.java.Log;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
@@ -22,7 +23,11 @@ import java.util.Map;
 @RestController
 public class PlatformRestController implements RuntimePlatformApi {
 
-	RuntimePlatformApi implementation = PlatformImpl.INSTANCE;
+	@Autowired
+	PlatformConfig config;
+
+	RuntimePlatformApi implementation;
+
 
 	/*
 	 * LIFECYCLE
@@ -31,7 +36,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@PostConstruct
 	public void postConstruct() {
 		log.info("In Post-Construct");
-		// TODO read config/settings (tbd) with initial containers and connections to deploy and establish
+		implementation = new PlatformImpl(config);
 	}
 
 	@PreDestroy

@@ -43,8 +43,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     // TODO later, move all docker-specific stuff to separate class
 
-
-    public static final RuntimePlatformApi INSTANCE = new PlatformImpl();
+    final PlatformConfig config;
 
 
     /** Currently running Agent Containers, mapping container ID to description */
@@ -71,7 +70,9 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
 
-    private PlatformImpl() {
+    public PlatformImpl(PlatformConfig config) {
+        this.config = config;
+
         // TODO get config/settings, e.g.
         //  - time before updating containers or remote platforms
         //  - docker settings, e.g. remote docker, gpu support, ...
@@ -290,7 +291,8 @@ public class PlatformImpl implements RuntimePlatformApi {
     private String getOwnBaseUrl() {
         try (DatagramSocket socket = new DatagramSocket()) {
             socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
-            return socket.getLocalAddress().getHostAddress();
+            String host = socket.getLocalAddress().getHostAddress();
+            return host + ":" + config.serverPort;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

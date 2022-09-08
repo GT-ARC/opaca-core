@@ -254,6 +254,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             }
         }
 
+        // TODO similar message for "internal invoke"?
+
         respond<OutboundInvoke, Any?> {
             // invoke action at parent RuntimePlatform
             parentProxy.invoke(it.agentId, it.name, it.parameters)
