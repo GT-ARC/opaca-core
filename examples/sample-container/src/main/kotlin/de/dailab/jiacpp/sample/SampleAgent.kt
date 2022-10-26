@@ -1,32 +1,22 @@
 package de.dailab.jiacpp.sample
 
-import de.dailab.jiacpp.container.CONTAINER_AGENT
+import de.dailab.jiacpp.container.AbstractContainerizedAgent
 import de.dailab.jiacpp.container.Invoke
 import de.dailab.jiacpp.model.Action
 import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
-import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.behaviour.act
 
 
-class SampleAgent: Agent(overrideName="sample") {
+class SampleAgent: AbstractContainerizedAgent(name="sample") {
 
-    override fun preStart() {
-        super.preStart()
-
-        val desc = AgentDescription(
-            this.name,
-            this.javaClass.name,
-            listOf(
-                Action("DoThis", mapOf(Pair("foo", "String"), Pair("bar", "Int")), "String")
-            )
+    override fun getDescription() = AgentDescription(
+        this.name,
+        this.javaClass.name,
+        listOf(
+            Action("DoThis", mapOf(Pair("foo", "String"), Pair("bar", "Int")), "String")
         )
-
-        val ref = system.resolve(CONTAINER_AGENT)
-        ref invoke ask<Boolean>(desc) {
-            log.info("REGISTERED: $it")
-        }
-    }
+    )
 
     override fun behaviour() = act {
 
