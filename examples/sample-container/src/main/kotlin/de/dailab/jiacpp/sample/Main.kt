@@ -1,7 +1,6 @@
 package de.dailab.jiacpp.sample
 
 import de.dailab.jiacpp.container.ContainerAgent
-import de.dailab.jiacpp.model.AgentContainerImage
 import de.dailab.jiacpp.util.ConfigLoader
 import de.dailab.jiacvi.communication.LocalBroker
 import de.dailab.jiacvi.dsl.agentSystem
