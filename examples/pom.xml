@@ -5,15 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>de.dailab.jiacpp</groupId>
-    <artifactId>jiacpp-parent</artifactId>
+    <artifactId>jiacpp-examples</artifactId>
     <version>0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
-        <module>jiacpp-model</module>
-        <module>jiacpp-container</module>
-        <module>jiacpp-platform</module>
-        <module>examples</module>
+        <module>sample-container</module>
     </modules>
 
 </project>
