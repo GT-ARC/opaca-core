@@ -213,10 +213,10 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
             val ref = system.resolve(agentId)
             ref invoke ask<Any>(Invoke(action, parameters)) {
-                log.info("GOT RESULT")
+                log.info("GOT RESULT $it")
+                result.set(it)
                 lock.release()
 
-                result.set(it)
             }.error {
                 log.error("errör $it")
                 lock.release()
@@ -231,8 +231,13 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             log.info("waiting...")
             lock.acquireUninterruptibly()
 
-            log.info("done")
+            //while (result.get() == null) {
+            //    Thread.sleep(100)
+            //}
 
+            log.info("done; result is ${result.get()}")
+
+            // TODO handle error case here... raise exception or return null?
             return RestHelper.mapper.valueToTree(result.get())
         }
     }
@@ -265,7 +270,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             // invoke action at parent RuntimePlatform
             log.info("Outbound Invoke: $it")
             // TODO do conversion to/from JsonNode here so clients don't have to?
-            parentProxy.invoke(it.agentId, it.name, it.parameters)
+            val res = parentProxy.invoke(it.agentId, it.name, it.parameters)
+            log.info("invoke result: $res")
+            res
         }
 
         on<OutboundMessage> {

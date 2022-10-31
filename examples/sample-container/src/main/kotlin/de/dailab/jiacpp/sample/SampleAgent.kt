@@ -14,7 +14,7 @@ class SampleAgent: AbstractContainerizedAgent(name="sample") {
         this.name,
         this.javaClass.name,
         listOf(
-            Action("DoThis", mapOf(Pair("foo", "String"), Pair("bar", "Int")), "String")
+            Action("DoThis", mapOf(Pair("message", "String"), Pair("sleep_seconds", "Int")), "String")
         )
     )
 
@@ -31,18 +31,19 @@ class SampleAgent: AbstractContainerizedAgent(name="sample") {
         respond<Invoke, Any?> {
             log.info("RESPOND $it")
             when (it.name) {
-                "DoThis" -> actionDoThis(it.parameters["foo"]!!.asText(), it.parameters["bar"]!!.asInt())
+                "DoThis" -> actionDoThis(it.parameters["message"]!!.asText(), it.parameters["sleep_seconds"]!!.asInt())
                 else -> null
             }
         }
 
     }
 
-    private fun actionDoThis(foo: String, bar: Int): String {
+    private fun actionDoThis(message: String, sleep_seconds: Int): String {
         log.info("in 'DoThis' action, waiting...")
-        Thread.sleep(5000)
+        println(message)
+        Thread.sleep(1000 * sleep_seconds.toLong())
         log.info("done waiting")
-        return "Action 'DoThis' Called with foo=$foo and bar=$bar"
+        return "Action 'DoThis' Called with message=$message and sleep_seconds=$sleep_seconds"
     }
 
 }

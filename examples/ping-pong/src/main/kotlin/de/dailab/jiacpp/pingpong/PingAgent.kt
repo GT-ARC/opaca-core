@@ -42,12 +42,15 @@ class PingAgent: AbstractContainerizedAgent(name="ping-agent") {
                     log.info("RESULT TO INVOKE: $it")
                 }
             }
-            // send new request message to all Pong agents
-            lastRequest = Random.nextInt()
-            val broadcast = OutboundBroadcast("pong-channel", Messages.PingMessage_Java(lastRequest), name)
-            log.info("SENDING NEW REQUEST $lastRequest: $broadcast")
-            val ref = system.resolve(CONTAINER_AGENT)
-            ref tell broadcast
+            // XXX for testing, run only once
+            if (lastRequest == -1) {
+                // send new request message to all Pong agents
+                lastRequest = Random.nextInt()
+                val broadcast = OutboundBroadcast("pong-channel", Messages.PingMessage_Java(lastRequest), name)
+                log.info("SENDING NEW REQUEST $lastRequest: $broadcast")
+                val ref = system.resolve(CONTAINER_AGENT)
+                ref tell broadcast
+            }
         }
 
         on<Message> {
