@@ -93,7 +93,7 @@
                             <repositoryLayout>flat</repositoryLayout>
                             <programs>
                                 <program>
-                                    <mainClass>de.dailab.jiacpp.sample.MainKt</mainClass>
+                                    <mainClass>de.dailab.jiacpp.pingpong.MainKt</mainClass>
                                 </program>
                             </programs>
                         </configuration>

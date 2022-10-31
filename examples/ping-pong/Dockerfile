@@ -6,4 +6,4 @@ ADD ./target/appassembler/ /app
 ENTRYPOINT ["/app/bin/main-kt", "ping"]
 
 # use this to create pong-container: docker build -t pong-container-image .
-ENTRYPOINT ["/app/bin/main-kt", "pong"]
+#ENTRYPOINT ["/app/bin/main-kt", "pong"]

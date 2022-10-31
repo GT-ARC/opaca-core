@@ -2,10 +2,7 @@ package de.dailab.jiacpp.pingpong
 
 import com.fasterxml.jackson.databind.node.IntNode
 import com.fasterxml.jackson.databind.node.NumericNode
-import de.dailab.jiacpp.container.AbstractContainerizedAgent
-import de.dailab.jiacpp.container.Invoke
-import de.dailab.jiacpp.container.OutboundBroadcast
-import de.dailab.jiacpp.container.OutboundInvoke
+import de.dailab.jiacpp.container.*
 import de.dailab.jiacpp.model.Action
 import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
@@ -31,26 +28,32 @@ class PingAgent: AbstractContainerizedAgent(name="ping-agent") {
         every(Duration.ofSeconds(5)) {
             // if already collected messages from last turn, invoke action at best Pong agent
             if (offers.isNotEmpty()) {
-                val best = offers.entries.maxBy { it.value }
+                val best = offers.entries.maxBy { it.value }!!
                 val invoke = OutboundInvoke("PongAction", best.key, mapOf(
                     Pair("request", IntNode(lastRequest)),
                     Pair("offer", IntNode(best.value))
                 ))
-                // TODO send invoke to container agent
-
                 offers.clear()
+
+                // send invoke to container agent
+                log.info("INVOKING ACTION FOR REQUEST $lastRequest AT BEST $best: $invoke")
+                val ref = system.resolve(CONTAINER_AGENT)
+                ref invoke ask<String>(invoke) {
+                    log.info("RESULT TO INVOKE: $it")
+                }
             }
-            // TODO send new request message to all Pong agents
+            // send new request message to all Pong agents
             lastRequest = Random.nextInt()
-            // TODO how to properly get this.name from here?
-            val broadcast = OutboundBroadcast("pong-channel", PingMessage(lastRequest), "ping-agent")
-            // TODO
+            val broadcast = OutboundBroadcast("pong-channel", PingMessage(lastRequest), name)
+            log.info("SENDING NEW REQUEST $lastRequest: $broadcast")
+            val ref = system.resolve(CONTAINER_AGENT)
+            ref tell broadcast
         }
 
         on<Message> {
             log.info("ON $it")
-            // TODO how best to check payload type?
-            //  here we can just assume it's a Pong message
+            // TODO how best to check payload type? here we can just assume it's a Pong message
+            //  is there a better way than to just `try` to read the JSON tree as the expected type(s)?
             val pongMessage = RestHelper.mapper.convertValue(it.payload, PongMessage::class.java)
             if (pongMessage.request == lastRequest) {
                 log.info("Recording offer: $pongMessage")

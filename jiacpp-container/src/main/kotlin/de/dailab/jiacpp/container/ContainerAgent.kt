@@ -246,6 +246,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         respond<AgentDescription, Boolean> {
             // agents may register with the container agent, publishing their ID and actions
             // TODO make this a dedicated message class, e.g. RegisterAgent (and also Deregister?)
+            log.info("Registering $it")
             if (!registeredAgents.containsKey(it.agentId)) {
                 registeredAgents[it.agentId] = it
                 true
@@ -255,20 +256,28 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
 
         // TODO similar message for "internal invoke"?
+        //  - for internal messages, agents can use native JIAC functions, but would also be nice if those
+        //    could also go over the ContainerAgent -> check if the agent is in this container first
+        //  - for invoking actions, there is no native JIAC VI way at all, but agents can just send Invoke messages
+        //    to each others just like the ContainerAgent does
 
-        respond<OutboundInvoke, Any?> {
+        respond<OutboundInvoke, JsonNode?> {
             // invoke action at parent RuntimePlatform
+            log.info("Outbound Invoke: $it")
+            // TODO do conversion to/from JsonNode here so clients don't have to?
             parentProxy.invoke(it.agentId, it.name, it.parameters)
         }
 
         on<OutboundMessage> {
             // send message to parent RuntimePlatform
+            log.info("Outbound Message: $it")
             val payload: JsonNode = RestHelper.mapper.valueToTree(it.message)
             parentProxy.send(it.agentId, Message(payload, it.ownId))
         }
 
         on<OutboundBroadcast> {
             // send broadcast to parent RuntimePlatform
+            log.info("Outbound Broadcast: $it")
             val payload: JsonNode = RestHelper.mapper.valueToTree(it.message)
             parentProxy.broadcast(it.channel, Message(payload, it.ownId))
         }

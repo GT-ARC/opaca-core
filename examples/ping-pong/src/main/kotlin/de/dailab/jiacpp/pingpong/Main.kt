@@ -22,7 +22,9 @@ fun main(args: Array<String>) {
         enable(LocalBroker)
         agents {
             add(ContainerAgent(image))
-            add(if ("ping" == args[0]) PingAgent() else PongAgent())
+            //add(if ("ping" == args[0]) PingAgent() else PongAgent())
+            add(PingAgent())
+            add(PongAgent())
         }
     }.start()
 }

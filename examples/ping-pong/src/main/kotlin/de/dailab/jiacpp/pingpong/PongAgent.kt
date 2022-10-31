@@ -1,12 +1,16 @@
 package de.dailab.jiacpp.pingpong
 
 import de.dailab.jiacpp.container.AbstractContainerizedAgent
+import de.dailab.jiacpp.container.CONTAINER_AGENT
 import de.dailab.jiacpp.container.Invoke
+import de.dailab.jiacpp.container.OutboundMessage
 import de.dailab.jiacpp.model.Action
 import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
+import de.dailab.jiacpp.util.RestHelper
 import de.dailab.jiacvi.behaviour.act
 import kotlin.random.Random
+import kotlin.random.nextInt
 
 
 class PongAgent: AbstractContainerizedAgent(name="pong-agent-${Random.nextInt()}") {
@@ -23,7 +27,14 @@ class PongAgent: AbstractContainerizedAgent(name="pong-agent-${Random.nextInt()}
 
         listen<Message>("pong-channel") {
             log.info("LISTEN $it")
-            // TODO listen to ping message, send offer to ping agent
+            // listen to ping message, send offer to ping agent
+            val ping = RestHelper.mapper.convertValue(it.payload, PingMessage::class.java)
+            val offer = Random.nextInt(0, 1000)
+            val pong = PongMessage(ping.request, name, offer)
+            val message = OutboundMessage(it.replyTo, pong, name)
+
+            val ref = system.resolve(CONTAINER_AGENT)
+            ref tell message
         }
 
         respond<Invoke, Any?> {
