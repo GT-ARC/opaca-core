@@ -292,7 +292,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         try (DatagramSocket socket = new DatagramSocket()) {
             socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
             String host = socket.getLocalAddress().getHostAddress();
-            return host + ":" + config.serverPort;
+            return "http://" + host + ":" + config.serverPort;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

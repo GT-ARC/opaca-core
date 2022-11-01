@@ -3,7 +3,6 @@ package de.dailab.jiacpp.container
 import com.fasterxml.jackson.databind.JsonNode
 import de.dailab.jiacpp.api.AgentContainerApi
 import de.dailab.jiacpp.model.*
-import de.dailab.jiacpp.util.ApiProxy
 import de.dailab.jiacpp.util.RestHelper
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.BrokerAgentRef
@@ -124,9 +123,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
 
-    /** proxy to parent Runtime Platform for forwarding outgoing calls */
-    private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl) }
-
 
     /**
      * Start the Web Server.
@@ -213,12 +209,12 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
             val ref = system.resolve(agentId)
             ref invoke ask<Any>(Invoke(action, parameters)) {
-                log.info("GOT RESULT")
+                log.info("GOT RESULT $it")
+                result.set(it)
                 lock.release()
 
-                result.set(it)
             }.error {
-                log.error("errör $it")
+                log.error("ERROR $it")
                 lock.release()
             }
             // TODO handle timeout?
@@ -231,8 +227,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             log.info("waiting...")
             lock.acquireUninterruptibly()
 
-            log.info("done")
-
+            // TODO handle error case here... raise exception or return null?
             return RestHelper.mapper.valueToTree(result.get())
         }
     }
@@ -243,34 +238,15 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
      */
     override fun behaviour() = act {
 
-        respond<AgentDescription, Boolean> {
+        respond<AgentDescription, String?> {
             // agents may register with the container agent, publishing their ID and actions
-            // TODO make this a dedicated message class, e.g. RegisterAgent (and also Deregister?)
+            log.info("Registering $it")
             if (!registeredAgents.containsKey(it.agentId)) {
                 registeredAgents[it.agentId] = it
-                true
+                runtimePlatformUrl
             } else {
-                false
+                null
             }
-        }
-
-        // TODO similar message for "internal invoke"?
-
-        respond<OutboundInvoke, Any?> {
-            // invoke action at parent RuntimePlatform
-            parentProxy.invoke(it.agentId, it.name, it.parameters)
-        }
-
-        on<OutboundMessage> {
-            // send message to parent RuntimePlatform
-            val payload: JsonNode = RestHelper.mapper.valueToTree(it.message)
-            parentProxy.send(it.agentId, Message(payload, it.ownId))
-        }
-
-        on<OutboundBroadcast> {
-            // send broadcast to parent RuntimePlatform
-            val payload: JsonNode = RestHelper.mapper.valueToTree(it.message)
-            parentProxy.broadcast(it.channel, Message(payload, it.ownId))
         }
 
     }

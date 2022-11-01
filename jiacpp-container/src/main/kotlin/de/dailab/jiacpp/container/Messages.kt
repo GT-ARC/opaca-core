@@ -6,15 +6,6 @@ import com.fasterxml.jackson.databind.JsonNode
 //  other containers, possibly connected platforms, etc.)
 
 
-// TODO register, deregister
-//  outbound invoke, message, broadcast
-//  internal invoke (message, broadcast should not be needed)
-
-
-data class OutboundInvoke(val name: String, val agentId: String?, val parameters: Map<String, JsonNode>)
-
-data class OutboundMessage(val agentId: String, val message: Any, val ownId: String)
-
-data class OutboundBroadcast(val channel: String, val message: Any, val ownId: String)
+// TODO dedicated messages for register? deregister?
 
 data class Invoke(val name: String, val parameters: Map<String, JsonNode>)
