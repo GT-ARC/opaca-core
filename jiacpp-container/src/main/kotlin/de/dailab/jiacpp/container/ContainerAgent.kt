@@ -15,9 +15,11 @@ import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
 import java.time.LocalDateTime
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicReference
 import java.util.stream.Collectors
+import kotlin.concurrent.thread
 
 
 const val CONTAINER_AGENT = "container-agent"
@@ -123,9 +125,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
-
-    /** proxy to parent Runtime Platform for forwarding outgoing calls */
-    private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl) }
 
 
     /**
@@ -248,45 +247,16 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
      */
     override fun behaviour() = act {
 
-        respond<AgentDescription, Boolean> {
+        respond<AgentDescription, String?> {
             // agents may register with the container agent, publishing their ID and actions
             // TODO make this a dedicated message class, e.g. RegisterAgent (and also Deregister?)
             log.info("Registering $it")
             if (!registeredAgents.containsKey(it.agentId)) {
                 registeredAgents[it.agentId] = it
-                true
+                runtimePlatformUrl
             } else {
-                false
+                null
             }
-        }
-
-        // TODO similar message for "internal invoke"?
-        //  - for internal messages, agents can use native JIAC functions, but would also be nice if those
-        //    could also go over the ContainerAgent -> check if the agent is in this container first
-        //  - for invoking actions, there is no native JIAC VI way at all, but agents can just send Invoke messages
-        //    to each others just like the ContainerAgent does
-
-        respond<OutboundInvoke, JsonNode?> {
-            // invoke action at parent RuntimePlatform
-            log.info("Outbound Invoke: $it")
-            // TODO do conversion to/from JsonNode here so clients don't have to?
-            val res = parentProxy.invoke(it.agentId, it.name, it.parameters)
-            log.info("invoke result: $res")
-            res
-        }
-
-        on<OutboundMessage> {
-            // send message to parent RuntimePlatform
-            log.info("Outbound Message: $it")
-            val payload: JsonNode = RestHelper.mapper.valueToTree(it.message)
-            parentProxy.send(it.agentId, Message(payload, it.ownId))
-        }
-
-        on<OutboundBroadcast> {
-            // send broadcast to parent RuntimePlatform
-            log.info("Outbound Broadcast: $it")
-            val payload: JsonNode = RestHelper.mapper.valueToTree(it.message)
-            parentProxy.broadcast(it.channel, Message(payload, it.ownId))
         }
 
     }

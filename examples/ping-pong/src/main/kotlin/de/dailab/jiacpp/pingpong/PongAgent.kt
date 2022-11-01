@@ -32,10 +32,8 @@ class PongAgent: AbstractContainerizedAgent(name="pong-agent-${Random.nextInt()}
             val ping = RestHelper.mapper.convertValue(it.payload, Messages.PingMessage_Java::class.java)
             val offer = Random.nextInt(0, 1000)
             val pong = Messages.PongMessage_Java(ping.request, name, offer)
-            val message = OutboundMessage(it.replyTo, pong, name)
 
-            val ref = system.resolve(CONTAINER_AGENT)
-            ref tell message
+            sendOutboundMessage(it.replyTo, pong)
         }
 
         respond<Invoke, Any?> {

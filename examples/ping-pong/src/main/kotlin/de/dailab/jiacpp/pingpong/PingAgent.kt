@@ -29,27 +29,21 @@ class PingAgent: AbstractContainerizedAgent(name="ping-agent") {
             // if already collected messages from last turn, invoke action at best Pong agent
             if (offers.isNotEmpty()) {
                 val best = offers.entries.maxBy { it.value }!!
-                val invoke = OutboundInvoke("PongAction", best.key, mapOf(
-                    Pair("request", IntNode(lastRequest)),
-                    Pair("offer", IntNode(best.value))
-                ))
                 offers.clear()
 
                 // send invoke to container agent
-                log.info("INVOKING ACTION FOR REQUEST $lastRequest AT BEST $best: $invoke")
-                val ref = system.resolve(CONTAINER_AGENT)
-                ref invoke ask<String>(invoke) {
-                    log.info("RESULT TO INVOKE: $it")
-                }
+                log.info("INVOKING ACTION FOR REQUEST $lastRequest AT BEST $best")
+                val res = sendOutboundInvoke("PongAction", best.key, mapOf(
+                    Pair("request", lastRequest), Pair("offer", best.value)), String::class.java)
+                log.info("RESULT OF INVOKE: $res")
+
             }
             // XXX for testing, run only once
             if (lastRequest == -1) {
                 // send new request message to all Pong agents
                 lastRequest = Random.nextInt()
-                val broadcast = OutboundBroadcast("pong-channel", Messages.PingMessage_Java(lastRequest), name)
-                log.info("SENDING NEW REQUEST $lastRequest: $broadcast")
-                val ref = system.resolve(CONTAINER_AGENT)
-                ref tell broadcast
+
+                sendOutboundBroadcast("pong-channel", Messages.PingMessage_Java(lastRequest))
             }
         }
 
