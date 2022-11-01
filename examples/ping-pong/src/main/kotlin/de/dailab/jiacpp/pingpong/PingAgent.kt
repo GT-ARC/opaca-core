@@ -1,9 +1,6 @@
 package de.dailab.jiacpp.pingpong
 
-import com.fasterxml.jackson.databind.node.IntNode
-import com.fasterxml.jackson.databind.node.NumericNode
 import de.dailab.jiacpp.container.*
-import de.dailab.jiacpp.model.Action
 import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
 import de.dailab.jiacpp.util.RestHelper
@@ -20,8 +17,8 @@ class PingAgent: AbstractContainerizedAgent(name="ping-agent") {
         listOf()
     )
 
-    var lastRequest = -1;
-    val offers = mutableMapOf<String, Int>()
+    private var lastRequest = -1
+    private val offers = mutableMapOf<String, Int>()
 
     override fun behaviour() = act {
 
@@ -32,23 +29,18 @@ class PingAgent: AbstractContainerizedAgent(name="ping-agent") {
                 offers.clear()
 
                 // send invoke to container agent
-                log.info("INVOKING ACTION FOR REQUEST $lastRequest AT BEST $best")
+                log.info("Invoking action for request $lastRequest at $best")
                 val res = sendOutboundInvoke("PongAction", best.key, mapOf(
                     Pair("request", lastRequest), Pair("offer", best.value)), String::class.java)
-                log.info("RESULT OF INVOKE: $res")
-
+                log.info("Result of invoke: $res")
             }
-            // XXX for testing, run only once
-            if (lastRequest == -1) {
-                // send new request message to all Pong agents
-                lastRequest = Random.nextInt()
-
-                sendOutboundBroadcast("pong-channel", Messages.PingMessage_Java(lastRequest))
-            }
+            // send new request message to all Pong agents
+            lastRequest = Random.nextInt()
+            log.info("Broadcasting new request $lastRequest")
+            sendOutboundBroadcast("pong-channel", Messages.PingMessage_Java(lastRequest))
         }
 
         on<Message> {
-            log.info("ON $it")
             // TODO how best to check payload type? here we can just assume it's a Pong message
             //  is there a better way than to just `try` to read the JSON tree as the expected type(s)?
             val pongMessage = RestHelper.mapper.convertValue(it.payload, Messages.PongMessage_Java::class.java)

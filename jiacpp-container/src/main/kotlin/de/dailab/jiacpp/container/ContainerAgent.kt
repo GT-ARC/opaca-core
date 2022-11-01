@@ -3,7 +3,6 @@ package de.dailab.jiacpp.container
 import com.fasterxml.jackson.databind.JsonNode
 import de.dailab.jiacpp.api.AgentContainerApi
 import de.dailab.jiacpp.model.*
-import de.dailab.jiacpp.util.ApiProxy
 import de.dailab.jiacpp.util.RestHelper
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.BrokerAgentRef
@@ -15,11 +14,9 @@ import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
 import java.time.LocalDateTime
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicReference
 import java.util.stream.Collectors
-import kotlin.concurrent.thread
 
 
 const val CONTAINER_AGENT = "container-agent"
@@ -217,7 +214,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 lock.release()
 
             }.error {
-                log.error("errör $it")
+                log.error("ERROR $it")
                 lock.release()
             }
             // TODO handle timeout?
@@ -229,12 +226,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             //  (same thread used for all ask-respond invocations of same agent?
             log.info("waiting...")
             lock.acquireUninterruptibly()
-
-            //while (result.get() == null) {
-            //    Thread.sleep(100)
-            //}
-
-            log.info("done; result is ${result.get()}")
 
             // TODO handle error case here... raise exception or return null?
             return RestHelper.mapper.valueToTree(result.get())
@@ -249,7 +240,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         respond<AgentDescription, String?> {
             // agents may register with the container agent, publishing their ID and actions
-            // TODO make this a dedicated message class, e.g. RegisterAgent (and also Deregister?)
             log.info("Registering $it")
             if (!registeredAgents.containsKey(it.agentId)) {
                 registeredAgents[it.agentId] = it
