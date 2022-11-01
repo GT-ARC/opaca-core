@@ -15,37 +15,15 @@ With this, all three messaging mechanisms -- directed, broadcast, and invoke -- 
 * Ping and Pong in different AgentContainers under the same RuntimePlatform
 * Ping and Pong in different AgentContainers under different RuntimePlatform
 
-In each case, the messages are sent first to the ContainerAgent, who then redirects them accordingly.
-(In the case that both are in the same container, they could also communicate directly with each others,
-but that's not what we want to test.)
+## Starting process for distributed Ping Pong:
 
-The Main.kt file has to be adapted to either start all agents in the same container, or start either a single Ping
-or a single Pong agent depending on command line parameters (which are passed in the Dockerfile, to be adapted 
-before calling `docker build`).
-
-## Starting process for both-in-same-container-case:
-
-* start runtime platform
-* go to pingpong directory
 * run `mvn install`
-* run `docker build -t ping-pong-container-image .`
-* run `curl -X 'POST' 'http://localhost:8000/containers' -H 'Content-Type: application/json' -d '{"imageName": "ping-pong-container-image"}'`
-* check container name with `docker ps`, then see logs with `docker logs -f <container_namw>`
+* start runtime platform
+* go to `pingpong` directory
+* run `docker build -f Dockerfile_Ping -t ping-container-image .` to create Ping agent container
+* run `curl -X 'POST' 'http://localhost:8000/containers' -H 'Content-Type: application/json' -d '{"imageName": "ping-container-image"}'` to deploy ping agent container on runtime platform
+* do the same with `pong` instead of `ping` to start the container with the Pong agent
+* check container names with `docker ps`, then see logs with `docker logs -f <container_namw>`
 
-
-
-
-## Problems
-
-Currently, in the all-on-one-container case, there is a problem with getting the result of the outbound invoke, being
-redirected to the same inner container:
-
-pingagent -> container agent: outbound invoke
-    container agent -> runtime platform: invoke (waiting)
-        runtime platform -> container agent: invoke
-            container agent -> pongagent: invoke    ## this is called
-            container agent <- pongagent: result    ## function is called, but result never received
-
-problem with nested invoke? no matter how we wait, with lock, or Thread.sleep, the callback code in the ContainerAgent's
-invoke method is only executed when the invoke method itself is finished, resulting in either a deadlock (with lock or
-thread.sleep in loop) or null result (with thread.sleep with fixed time).
+You may also run both the ping and pong agents in the same container; for this, adapt the `Main.kt` accordingly to
+create both a ping agent and (one or more) pong agents.

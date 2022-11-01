@@ -201,6 +201,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         override fun invoke(agentId: String, action: String, parameters: Map<String, JsonNode>): JsonNode? {
             log.info("INVOKE ACTION OF AGENT: $agentId $action $parameters")
             // TODO check if agent has action and parameters match description
+            // NOTE when called through the HTTP Handler, this method (and all the other "impl" methods)
+            //      will run in the HTTP handler's thread (a new thread for each request), but the callback
+            //      in "invoke ask" runs in the Container Agent's own thread...
 
             val lock = Semaphore(1)
             lock.acquireUninterruptibly()

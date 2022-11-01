@@ -22,14 +22,7 @@ fun main(args: Array<String>) {
         enable(LocalBroker)
         agents {
             add(ContainerAgent(image))
-            //add(if ("ping" == args[0]) PingAgent() else PongAgent())
-
-            // for now, test with Ping and Pong agents on the same container;
-            // communication is still via the RuntimePlatform since they use the ContainerAgent, not direct messages
-            add(PingAgent())
-            add(PongAgent())
-            //add(PongAgent())
-            //add(PongAgent())
+            add(if ("ping" == args[0]) PingAgent() else PongAgent())
         }
     }.start()
 }
