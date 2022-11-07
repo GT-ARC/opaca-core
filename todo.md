@@ -20,5 +20,5 @@
   * pretty rudimentary; is there a better way to do this, without big imports?
 * [x] register agents and their actions on startup
 * [x] container agent forwarding API calls to actual agents in the container
-* [ ] container agent escalating outgoing communication to runtime platform
-* [ ] make all this a reusable library
+* [x] outgoing communication to runtime platform
+* [x] make all this a reusable library

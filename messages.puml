@@ -1,0 +1,55 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+participant RuntimePlatform as RP
+participant ContainerAgent as CA
+collections "Other Agents" as OA
+
+title Runtime Platform to Container Agent
+
+hnote across: "message"
+RP -> CA: HTTP request
+CA -> OA: ref tell
+RP <-- CA: HTTP response (status only)
+
+hnote across: "broadcast"
+RP -> CA: HTTP request
+CA -> OA: broker publish
+RP <-- CA: HTTP response (status only)
+
+hnote across: "invoke"
+RP -> CA: HTTP request
+CA -> OA: ref invoke
+CA <-- OA: response
+RP <-- CA: HTTP response (status and result)
+
+newpage Agent Container to Runtime Platform
+
+hnote across: "message"
+OA -> RP: HTTP request
+RP -> RP: forward
+OA <-- RP: HTTP response (status only)
+
+hnote across: "broadcast"
+OA -> RP: HTTP request
+RP -> RP: forward
+OA <-- RP: HTTP response (status only)
+
+hnote across: "invoke"
+OA -> RP: HTTP request
+RP -> RP: forward
+OA <-- RP: HTTP response (status and result)
+
+newpage Within Agent Container
+
+hnote across: "message"
+OA -> OA: ref tell
+
+hnote across: "broadcast"
+OA -> OA: broker publish
+
+hnote across: "invoke"
+OA -> OA: ask invoke
+
+@enduml

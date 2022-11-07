@@ -26,3 +26,31 @@ and first tests in order to find out what of this makes sense etc.
 * in the Web UI, run the `GET containers` or `GET agents` routes to see the running agents and their actions
 * use the `POST send` or `POST invoke` routes to send messages to the agent (with any payload; reply-to does not matter for now), or invoke the agent's dummy action (the action takes some time to run); check the logs of the agent container; you can also invoke the action and then immediately re-send the message to check that both work concurrently
 * shut down the platform with Ctrl+C; the agent container(s) should shut down as well
+
+
+## Message Flows in Reference Implementation
+
+### Runtime Platform to Agent Container
+
+* **message**: HTTP request to CA (in HTTP handler thread), send message via `agent_ref tell`
+* **broadcast**: HTTP request to CA (in HTTP handler thread), send message via `broker.publish`
+* **invoke**: HTTP request to CA (in HTTP handler thread), send `Invoke` to agent via `ask invoke` protocol, wait for response (in CA thread), reply in HTTP response
+
+### Agent Container to Runtime Platform
+
+* **message**: agent sends HTTP request to RP via helper method in super class
+* **broadcast**: agent sends HTTP request to RP via helper method in super class
+* **invoke**: agent sends HTTP request to RP via helper method in super class, waits for response in its own thread
+
+### Within Agent Container
+
+* **message**: using regular JIAC-VI `agent_ref tell`
+* **broadcast**: using regular JIAC-VI `broker publish`
+* **invoke**: using regular JIAC-VI `ask invoke`, either with JIAC++ `Invoke` object or any other payload
+
+### Runtime Platform to Runtime Platform 
+
+* not yet implemented, but basically, the same flow for all communication
+* look up other connected RP that has the target container
+* forward **message** or **invoke** to that platform
+* unclear: **broadcast**: how to prevent endlessly forwarding message back and forth? keep track of recently seen messages? or keep sender-history in each forwarded message and don't forward messages to RP in that history?
