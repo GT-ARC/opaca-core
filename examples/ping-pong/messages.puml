@@ -1,0 +1,40 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+participant RuntimePlatform as RP
+participant "Ping ContainerAgent" as CA1
+participant Ping
+participant "Pong ContainerAgent" as CA2
+collections Pong
+
+title Ping Pong Interaction
+
+hnote across: step 1: broadcast
+
+Ping -> RP: post PingMessage
+RP -> CA1: forward request
+CA1 -> Ping: broker publish PingMessage
+RP -> CA2: forward request
+CA2 -> Pong: broker publish PingMessage
+
+hnote across: step 2: message
+
+loop all Pong agents
+    Pong -> RP: post PongMessage
+    RP -> CA1: forward request
+    CA1 -> Ping: ref tell PongMessage
+    Ping -> Ping: store PongMessage
+end loop
+
+hnote across: step 3: invoke
+Ping -> RP: post invoke "PongAction"
+RP -> CA2: forward request
+CA2 -> Pong: ref invoke "PongAction"
+CA2 <-- Pong: response
+RP <-- CA2: HTTP response (status and result)
+Ping <-- RP: forward response
+
+hnote across: repeat
+
+@enduml
