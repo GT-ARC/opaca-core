@@ -176,8 +176,33 @@ public class PlatformImpl implements RuntimePlatformApi {
                         parameters, JsonNode.class);
             }
         } else {
-            // TODO check connected platforms
+            // check connected platforms, find platform that has the agent & action
+            var platform = connectedPlatforms.entrySet().stream()
+                    .filter(p -> p.getValue().getContainers().stream()
+                            .flatMap(c -> c.getAgents().stream())
+                            .filter(a -> agentId == null || a.getAgentId().equals(agentId))
+                            .flatMap(a -> a.getActions().stream()).anyMatch(a -> a.getName().equals(action)))
+                    .findFirst();
+            if (platform.isPresent()) {
+                var url = platform.get().getKey();
+                System.out.println("FOUND CONNECTED PLATFORM: " + url);
+
+                var client = new RestHelper(url);
+
+                // return new RestHelper(String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT));
+                // TODO this part actually is the same as for the container -> create client first, for either container
+                //  or different platform, then if client != null do this
+                if (agentId == null) {
+                    return client.post(String.format("/invoke/%s", action),
+                            parameters, JsonNode.class);
+                } else {
+                    return client.post(String.format("/invoke/%s/%s", action, agentId),
+                            parameters, JsonNode.class);
+                }
+            }
+            // TODO similar for send; broadcast might need additional parameter preventing infinite message ping-pong
         }
+        // TODO this should probably not just return null, but 404 "not found" or similar
         return null;
     }
 
