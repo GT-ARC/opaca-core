@@ -36,17 +36,23 @@ and first tests in order to find out what of this makes sense etc.
 * **broadcast**: HTTP request to CA (in HTTP handler thread), send message via `broker.publish`
 * **invoke**: HTTP request to CA (in HTTP handler thread), send `Invoke` to agent via `ask invoke` protocol, wait for response (in CA thread), reply in HTTP response
 
+![RP-CA Interactions](messages-rp-ca.png)
+
 ### Agent Container to Runtime Platform
 
 * **message**: agent sends HTTP request to RP via helper method in super class
 * **broadcast**: agent sends HTTP request to RP via helper method in super class
 * **invoke**: agent sends HTTP request to RP via helper method in super class, waits for response in its own thread
 
+![CA-RP Interactions](messages-ca-rp.png)
+
 ### Within Agent Container
 
 * **message**: using regular JIAC-VI `agent_ref tell`
 * **broadcast**: using regular JIAC-VI `broker publish`
 * **invoke**: using regular JIAC-VI `ask invoke`, either with JIAC++ `Invoke` object or any other payload
+
+![Internal Interactions](messages-internal.png)
 
 ### Runtime Platform to Runtime Platform 
 

@@ -27,3 +27,7 @@ With this, all three messaging mechanisms -- directed, broadcast, and invoke -- 
 
 You may also run both the ping and pong agents in the same container; for this, adapt the `Main.kt` accordingly to
 create both a ping agent and (one or more) pong agents.
+
+## Interaction
+
+![Ping Pong Interaction Diagram](messages.png)
