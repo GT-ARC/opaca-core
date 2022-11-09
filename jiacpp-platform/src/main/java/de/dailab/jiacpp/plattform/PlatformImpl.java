@@ -34,10 +34,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     // TODO properly describe the different routes and their expected behaviour somewhere,
     //  including error cases (not found?), forwarding to containers and remote platforms, etc.
 
-    // TODO if not found on own AgentContainers, all the Container Routes should
-    //  also check connected platforms next... not just forward the request to connected platforms,
-    //  but check which platform actually has the desired agent or action and then send it there
-
     // TODO make sure agent IDs are globally unique? extend agent-ids with platform-hash or similar?
     //  e.g. optionally allow "agentId@containerId" to be passed in place of agentId for all routes?
 
@@ -134,6 +130,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     public void send(String agentId, Message message) throws IOException {
         var client = getClient(null, agentId, null);
         if (client != null) {
+            log.info("Forwarding /send to " + client.baseUrl);
             client.post(String.format("/send/%s", agentId), message, null);
         } else {
             throw new NoSuchElementException(String.format("Not found: agent %s", agentId));
@@ -158,6 +155,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters) throws IOException {
         var client = getClient(null, agentId, action);
         if (client != null) {
+            log.info("Forwarding /invoke to " + client.baseUrl);
             var url = agentId == null
                     ? String.format("/invoke/%s", action)
                     : String.format("/invoke/%s/%s", action, agentId);
@@ -299,6 +297,7 @@ public class PlatformImpl implements RuntimePlatformApi {
      * _some_ should be set, otherwise it does not make much sense to call the method.
      */
     private RestHelper getClient(String containerId, String agentId, String action) throws IOException {
+        // TODO for /invoke: also check that action parameters match, or just the name?
         // check own containers
         updateContainers();
         var container = runningContainers.values().stream()
