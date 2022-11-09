@@ -132,15 +132,11 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public void send(String agentId, Message message) throws IOException {
-        updateContainers();
-        var container = runningContainers.values().stream()
-                .filter(c -> c.getAgents().stream()
-                        .anyMatch(a -> a.getAgentId().equals(agentId)))
-                .findAny().orElse(null);
-        if (container != null) {
-            getClient(container).post(String.format("/send/%s", agentId), message, null);
+        var client = getClient(null, agentId, null);
+        if (client != null) {
+            client.post(String.format("/send/%s", agentId), message, null);
         } else {
-            // TODO check connected platforms
+            throw new NoSuchElementException(String.format("Not found: agent %s", agentId));
         }
     }
 
@@ -160,50 +156,15 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters) throws IOException {
-        updateContainers();
-        // TODO check that parameters match
-        var container = runningContainers.values().stream()
-                .filter(c -> c.getAgents().stream()
-                        .anyMatch(a -> (agentId == null || a.getAgentId().equals(agentId)) &&
-                                a.getActions().stream().anyMatch(x -> x.getName().equals(action))))
-                .findAny().orElse(null);
-        if (container != null) {
-            if (agentId == null) {
-                return getClient(container).post(String.format("/invoke/%s", action),
-                        parameters, JsonNode.class);
-            } else {
-                return getClient(container).post(String.format("/invoke/%s/%s", action, agentId),
-                        parameters, JsonNode.class);
-            }
+        var client = getClient(null, agentId, action);
+        if (client != null) {
+            var url = agentId == null
+                    ? String.format("/invoke/%s", action)
+                    : String.format("/invoke/%s/%s", action, agentId);
+            return client.post(url, parameters, JsonNode.class);
         } else {
-            // check connected platforms, find platform that has the agent & action
-            var platform = connectedPlatforms.entrySet().stream()
-                    .filter(p -> p.getValue().getContainers().stream()
-                            .flatMap(c -> c.getAgents().stream())
-                            .filter(a -> agentId == null || a.getAgentId().equals(agentId))
-                            .flatMap(a -> a.getActions().stream()).anyMatch(a -> a.getName().equals(action)))
-                    .findFirst();
-            if (platform.isPresent()) {
-                var url = platform.get().getKey();
-                System.out.println("FOUND CONNECTED PLATFORM: " + url);
-
-                var client = new RestHelper(url);
-
-                // return new RestHelper(String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT));
-                // TODO this part actually is the same as for the container -> create client first, for either container
-                //  or different platform, then if client != null do this
-                if (agentId == null) {
-                    return client.post(String.format("/invoke/%s", action),
-                            parameters, JsonNode.class);
-                } else {
-                    return client.post(String.format("/invoke/%s/%s", action, agentId),
-                            parameters, JsonNode.class);
-                }
-            }
-            // TODO similar for send; broadcast might need additional parameter preventing infinite message ping-pong
+            throw new NoSuchElementException(String.format("Not found: action %s @ agent %s", action, agentId));
         }
-        // TODO this should probably not just return null, but 404 "not found" or similar
-        return null;
     }
 
     /*
@@ -332,6 +293,44 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
     }
 
+    /**
+     * Get client for send or invoke to specific agent, in a specific container, for a specific action.
+     * All those parameters are optional (e.g. for "send" or "invoke" without agentId), but obviously
+     * _some_ should be set, otherwise it does not make much sense to call the method.
+     */
+    private RestHelper getClient(String containerId, String agentId, String action) throws IOException {
+        // check own containers
+        updateContainers();
+        var container = runningContainers.values().stream()
+                .filter(c -> matches(c, containerId, agentId, action))
+                .findFirst();
+        if (container.isPresent()) {
+            System.out.println("FOUND IN CONTAINER: " + container.get().getContainerId());
+            return getClient(container.get());
+        }
+        // check containers on connected platforms
+        updatePlatforms();
+        var platform = connectedPlatforms.values().stream()
+                .filter(p -> p.getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action)))
+                .findFirst();
+        if (platform.isPresent()) {
+            System.out.println("FOUND ON PLATFORM: " + platform.get().getBaseUrl());
+            return new RestHelper(platform.get().getBaseUrl());
+        }
+        return null;
+    }
+
+    /**
+     * Check if Container ID matches and has matching agent and/or action.
+     */
+    private boolean matches(AgentContainer container, String containerId, String agentId, String action) {
+        return (containerId == null || container.getContainerId().equals(containerId) &&
+                container.getAgents().stream()
+                        .anyMatch(a -> (agentId == null || a.getAgentId().equals(agentId))
+                                && (action == null || a.getActions().stream()
+                                .anyMatch(x -> x.getName().equals(action)))));
+    }
+
     private RestHelper getClient(AgentContainer container) {
         return getClient(container.getContainerId());
     }
@@ -349,6 +348,10 @@ public class PlatformImpl implements RuntimePlatformApi {
                 runningContainers.put(id, container);
             }
         }
+    }
+
+    private void updatePlatforms() throws IOException {
+        // TODO analogous to updateContainers, but for connected platforms...
     }
 
 }
