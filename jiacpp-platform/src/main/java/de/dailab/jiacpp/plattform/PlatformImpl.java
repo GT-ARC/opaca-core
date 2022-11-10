@@ -273,6 +273,9 @@ public class PlatformImpl implements RuntimePlatformApi {
      * Adapted from https://stackoverflow.com/a/38342964/1639625
      */
     private String getOwnBaseUrl() {
+        if (config.publicUrl != null) {
+            return config.publicUrl;
+        }
         try (DatagramSocket socket = new DatagramSocket()) {
             socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
             String host = socket.getLocalAddress().getHostAddress();
