@@ -228,27 +228,23 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public boolean connectPlatform(String url) throws IOException {
-        // string payload may or may not be enclosed in quotes -> normalize
-        url = url.trim().replaceAll("^\"|\"$", "");
-        if (pendingConnections.contains(url)) {
+        url = normalizeUrl(url);
+        if (url.equals(getOwnBaseUrl()) || connectedPlatforms.containsKey(url)) {
+            return false;
+        } else if (pendingConnections.contains(url)) {
             // callback from remote platform following our own request for connection
             return true;
         } else {
             pendingConnections.add(url);
             var client = new RestHelper(url);
-            // TODO shouldn't this be post /connect ownUrl???
-            var res = client.post("/connections", url, Boolean.class);
+            var res = client.post("/connections", getOwnBaseUrl(), Boolean.class);
             if (res) {
                 pendingConnections.remove(url);
                 var info = client.get("/info", RuntimePlatform.class);
-                if (info != null) {
-                    connectedPlatforms.put(url, info);
-                    return true;
-                }
+                connectedPlatforms.put(url, info);
             }
+            return true;
         }
-        // TODO when exactly is this return false triggered?
-        return false;
     }
 
     @Override
@@ -258,12 +254,11 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public boolean disconnectPlatform(String url) throws IOException {
-        if (connectedPlatforms.containsKey(url)) {
+        url = normalizeUrl(url);
+        if (connectedPlatforms.remove(url) != null) {
             var client = new RestHelper(url);
-            // TODO send own baseUrl!
-            var res = client.delete("/connections", url, Boolean.class);
+            var res = client.delete("/connections", getOwnBaseUrl(), Boolean.class);
             log.info(String.format("Disconnected from %s: %s", url, res));
-            // TODO remove from connected platforms! shouldn't this be an infinite loop as-is?
             return true;
         }
         return false;
@@ -347,6 +342,11 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     private void updatePlatforms() throws IOException {
         // TODO analogous to updateContainers, but for connected platforms...
+    }
+
+    private String normalizeUrl(String url) {
+        // string payload may or may not be enclosed in quotes -> normalize
+        return url.trim().replaceAll("^\"|\"$", "");
     }
 
 }
