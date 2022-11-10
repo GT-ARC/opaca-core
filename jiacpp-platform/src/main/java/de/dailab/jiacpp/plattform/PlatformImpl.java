@@ -236,6 +236,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         } else {
             pendingConnections.add(url);
             var client = new RestHelper(url);
+            // TODO shouldn't this be post /connect ownUrl???
             var res = client.post("/connections", url, Boolean.class);
             if (res) {
                 pendingConnections.remove(url);
@@ -246,6 +247,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 }
             }
         }
+        // TODO when exactly is this return false triggered?
         return false;
     }
 
@@ -258,8 +260,10 @@ public class PlatformImpl implements RuntimePlatformApi {
     public boolean disconnectPlatform(String url) throws IOException {
         if (connectedPlatforms.containsKey(url)) {
             var client = new RestHelper(url);
+            // TODO send own baseUrl!
             var res = client.delete("/connections", url, Boolean.class);
             log.info(String.format("Disconnected from %s: %s", url, res));
+            // TODO remove from connected platforms! shouldn't this be an infinite loop as-is?
             return true;
         }
         return false;
