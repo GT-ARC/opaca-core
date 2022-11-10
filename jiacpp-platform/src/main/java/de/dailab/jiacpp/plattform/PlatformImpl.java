@@ -228,26 +228,18 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public boolean connectPlatform(String url) throws IOException {
-        // TODO for some reason, url is in extra quotes in the forwarded "connect" call to the platform to be connected
-        //  removing quotes works, but not nice; better see why quotes appeat in first place, prevent it
-        url = url.replaceAll("^\"|\"$", "");
-        // TODO remove all the "debug output" once this reliably works
-        System.out.println("CONNECT TO URL " + url);
+        // string payload may or may not be enclosed in quotes -> normalize
+        url = url.trim().replaceAll("^\"|\"$", "");
         if (pendingConnections.contains(url)) {
             // callback from remote platform following our own request for connection
-            System.out.println("already in pending -> done");
             return true;
         } else {
             pendingConnections.add(url);
             var client = new RestHelper(url);
-            System.out.println("forwarding to other platform...");
             var res = client.post("/connections", url, Boolean.class);
-            System.out.println("result " + res);
             if (res) {
                 pendingConnections.remove(url);
-                System.out.println("getting info...");
                 var info = client.get("/info", RuntimePlatform.class);
-                System.out.println("result " + info);
                 if (info != null) {
                     connectedPlatforms.put(url, info);
                     return true;
