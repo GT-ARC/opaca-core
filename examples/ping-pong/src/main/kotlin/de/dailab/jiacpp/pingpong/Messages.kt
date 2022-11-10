@@ -1,8 +1,14 @@
 package de.dailab.jiacpp.pingpong
 
-// TODO there seem to be some problems with Kotlin data classes and Jackson JSON;
-//  for now, use src/main/java/de/dailab/jiacpp/pingpong/Messages.java
+// in order to work with Jackson (JSON ser/deser) the attributes have to be variable and have a default value
+// (i.e. there has to be a default constructor)
 
-data class PingMessage_Kotlin(val request: Int)
+data class PingMessage(
+    var request: Int = 0
+)
 
-data class PongMessage_Kotlin(val request: Int, val agentId: String, val offer: Int)
+data class PongMessage(
+    var request: Int = 0,
+    var agentId: String = "",
+    var offer: Int = 0
+)
