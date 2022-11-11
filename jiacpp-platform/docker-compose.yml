@@ -1,0 +1,23 @@
+version: "3.3"
+
+services:
+
+  runtime-platform-1:
+    image: jiacpp-platform
+    build:
+      .
+    ports:
+      - 8001:8000
+    # run containers on the same Docker as the platform itself
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  runtime-platform-2:
+    image: jiacpp-platform
+    build:
+      .
+    ports:
+      - 8002:8000
+    # run containers on the same Docker as the platform itself
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
