@@ -19,7 +19,7 @@ import java.util.Map;
 @AllArgsConstructor
 public class RestHelper {
 
-    private String baseUrl;
+    public final String baseUrl;
 
     public static final ObjectMapper mapper = JsonMapper.builder()
             .findAndAddModules().build();
