@@ -1,5 +1,8 @@
 version: "3.3"
 
+# This docker-compose is specifically for running unit tests, otherwise you would usually not start two
+# runtime platforms on the same hosts. Can be used as a template for actual RP docker-compose file though.
+
 services:
 
   runtime-platform-1:
