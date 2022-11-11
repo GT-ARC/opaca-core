@@ -111,7 +111,6 @@ public class PlatformTests {
         }
     }
 
-
     /**
      * call send, check that it arrived via another invoke
      */
@@ -163,6 +162,64 @@ public class PlatformTests {
     }
 
     // repeat above tests, but with redirect to second platform
+
+    /**
+     * call invoke, check result
+     * (forwarded from platform B to platform A)
+     */
+    @Test
+    public void test7ForwardInvoke() throws Exception {
+        var params = Map.of("x", 23, "y", 42);
+        var con = request(PLATFORM_B, "POST", "/invoke/Add", params);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Integer.class);
+        Assert.assertEquals(65L, res.longValue());
+    }
+
+    /**
+     * call invoke with agent, check result
+     * (forwarded from platform B to platform A)
+     */
+    @Test
+    public void test7ForwardInvokeNamed() throws Exception {
+        for (String name : List.of("sample1", "sample2")) {
+            var con = request(PLATFORM_B, "POST", "/invoke/GetInfo/" + name, Map.of());
+            var res = result(con, Map.class);
+            Assert.assertEquals(name, res.get("name"));
+        }
+    }
+
+    /**
+     * call send, check that it arrived via another invoke
+     * (forwarded from platform B to platform A)
+     */
+    @Test
+    public void test7ForwardSend() throws Exception {
+        var message = Map.of("payload", "testMessage", "replyTo", "doesnotmatter");
+        var con = request(PLATFORM_B, "POST", "/send/sample1", message);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+        Assert.assertEquals("testMessage", res.get("lastMessage"));
+    }
+
+    /**
+     * call broadcast, check that it arrived via another invoke
+     * (forwarded from platform B to platform A)
+     */
+    @Test
+    public void test7ForwardBroadcast() throws Exception {
+        var message = Map.of("payload", "testBroadcast", "replyTo", "doesnotmatter");
+        var con = request(PLATFORM_B, "POST", "/broadcast/topic", message);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+        Assert.assertEquals("testBroadcast", res.get("lastBroadcast"));
+    }
 
     /**
      * disconnect platforms, check that both are disconnected
