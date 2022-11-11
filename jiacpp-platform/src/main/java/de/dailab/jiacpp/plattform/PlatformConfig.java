@@ -14,6 +14,9 @@ public class PlatformConfig {
     @Value("${server.port}")
     String serverPort;
 
+    @Value("${public_url}")
+    String publicUrl;
+
 
     // TODO
     //  docker registries and logins
