@@ -1,6 +1,6 @@
 package de.dailab.jiacpp.platform.tests;
 
-import com.sun.jdi.connect.spi.Connection;
+import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
 import de.dailab.jiacpp.model.RuntimePlatform;
 import de.dailab.jiacpp.util.RestHelper;
@@ -15,17 +15,28 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Before running these tests, make sure to start the runtime platform with
- * `docker-compose up` (after building everything with `mvn install`).
- * Some of the tests depend on each others, so best always execute all tests.
+ * The unit tests in this class test all the basic functionality of the Runtime Platform as well as some
+ * error cases. The tests run against a live Runtime Platform that has to be started before the tests.
+ *
+ * - build everything with `mvn install`
+ * - build the example container: `cd examples/sample-container; docker build -t sample-agent-container-image .`
+ * - build the runtime platform docker image: `cd ../../jiacpp-platform; docker build -t jiacpp-platform .`
+ * - start the runtime platform(s): `docker-compose up`
+ *
+ * NOTE: execution of the Runtime Platform in docker-compose does not work properly yet;
+ * for now, just run it directly: `java -jar target/jiacpp-platform-0.1-SNAPSHOT.jar`
+ *
+ * Some tests depend on each others, so best always execute all tests. (That's also the reason
+ * for the numbers in the method names, so don't remove those and stay consistent when adding more tests!)
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class PlatformTests {
 
-    private String PLATFORM_A = "http://localhost:8001";
-    private String PLATFORM_B = "http://localhost:8002";
+    private final String PLATFORM_A = "http://localhost:8001";
+    private final String PLATFORM_B = "http://localhost:8002";
 
     private static String containerId = null;
 
@@ -37,97 +48,118 @@ public class PlatformTests {
      * call info, make sure platform is up
      */
     @Test
-    public void test10Platform() throws Exception {
+    public void test1Platform() throws Exception {
         var con = request(PLATFORM_A, "GET", "/info", null);
         Assert.assertEquals(200, con.getResponseCode());
         var info = result(con, RuntimePlatform.class);
         Assert.assertNotNull(info);
-        System.out.println(info);
     }
 
     /**
      * deploy sample container
      */
     @Test
-    public void test20Deploy() throws Exception {
+    public void test2Deploy() throws Exception {
         var container = new AgentContainerImage();
         container.setImageName("sample-agent-container-image");
         var con = request(PLATFORM_A, "POST", "/containers", container);
         Assert.assertEquals(200, con.getResponseCode());
-        containerId = new String(con.getInputStream().readAllBytes());
-        System.out.println(containerId);
+        containerId = result(con);
 
         Thread.sleep(2000);
 
         con = request(PLATFORM_A, "GET", "/containers", null);
         var lst = result(con, List.class);
         Assert.assertEquals(1, lst.size());
-        System.out.println(lst.size());
     }
 
     /**
      * get container info
      */
     @Test
-    public void test30GetInfo() throws Exception {
-
-        System.out.println(containerId);
-
-        var con = request(PLATFORM_A, "GET", "/containers", null);
+    public void test3GetInfo() throws Exception {
+        var con = request(PLATFORM_A, "GET", "/containers/" + containerId, null);
         Assert.assertEquals(200, con.getResponseCode());
-        List res = result(con, List.class);
-        System.out.println(res);
-        System.out.println(res.size());
-        System.out.println(res.get(0).getClass());
-
-
+        var res = result(con, AgentContainer.class);
+        Assert.assertEquals(containerId, res.getContainerId());
     }
 
+    /**
+     * call invoke, check result
+     */
+    @Test
+    public void test4Invoke() throws Exception {
+        var params = Map.of("x", 23, "y", 42);
+        var con = request(PLATFORM_A, "POST", "/invoke/Add", params);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Integer.class);
+        Assert.assertEquals(65L, res.longValue());
+    }
 
+    // TODO call invoke with agent, check result
 
+    /**
+     * call send, check that it arrived via another invoke
+     */
+    @Test
+    public void test5Send() throws Exception {
+        var message = Map.of("payload", "testMessage", "replyTo", "doesnotmatter");
+        var con = request(PLATFORM_A, "POST", "/send/sample", message);
+        Assert.assertEquals(200, con.getResponseCode());
 
-    // call invoke, check result
-    // call invoke with agent, check result
-    // call send, check that it arrived via another invoke
-    // call broadcast, check that it arrived via another invoke
-    // connect to second platform, check that both are connected
-    // repeat above tests, but with redirect to second platform
-    // disconnect platforms, check that both are disconnected
+        con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+        Assert.assertEquals("testMessage", res.get("lastMessage"));
+    }
+
+    /**
+     * call broadcast, check that it arrived via another invoke
+     */
+    @Test
+    public void test5Broadcast() throws Exception {
+        var message = Map.of("payload", "testBroadcast", "replyTo", "doesnotmatter");
+        var con = request(PLATFORM_A, "POST", "/broadcast/topic", message);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+        Assert.assertEquals("testBroadcast", res.get("lastBroadcast"));
+    }
+
+    // TODO connect to second platform, check that both are connected
+    // TODO repeat above tests, but with redirect to second platform
+    // TODO disconnect platforms, check that both are disconnected
 
     /**
      * undeploy container, check that it's gone
      */
     @Test
-    public void test90Undeploy() throws Exception {
-
-        System.out.println(containerId);
-
+    public void test9Undeploy() throws Exception {
         var con = request(PLATFORM_A, "DELETE", "/containers/" + containerId, null);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Boolean.class);
-        System.out.println(res);
         Assert.assertTrue(res);
 
-        Thread.sleep(1000);
+        Thread.sleep(2000);
 
         con = request(PLATFORM_A, "GET", "/containers", null);
         var lst = result(con, List.class);
         Assert.assertEquals(0, lst.size());
-        System.out.println(lst.size());
     }
-
 
     /*
      * TEST HOW STUFF FAILS
      */
 
-    // try to invoke unknown action
-    // try to send message to unknown agent
-    // try to call route with mismatched payload format?
-    // try to deploy unknown container
-    // try to undeploy unknown container
-    // try to connect unknown platform
-    // try to disconnect unknown platform
+    // TODO try to invoke unknown action
+    // TODO try to send message to unknown agent
+    // TODO try to call route with mismatched payload format?
+    // TODO try to deploy unknown container
+    // TODO try to undeploy unknown container
+    // TODO try to connect unknown platform
+    // TODO try to disconnect unknown platform
 
     /*
      * HELPER METHODS
@@ -151,6 +183,10 @@ public class PlatformTests {
             connection.connect();
         }
         return connection;
+    }
+
+    public String result(HttpURLConnection connection) throws IOException {
+        return new String(connection.getInputStream().readAllBytes());
     }
 
     public <T> T result(HttpURLConnection connection, Class<T> type) throws IOException {
