@@ -164,14 +164,57 @@ public class PlatformTests {
      * TEST HOW STUFF FAILS
      */
 
-    // TODO try to invoke unknown action
-    // TODO try to send message to unknown agent
+    /**
+     * try to invoke unknown action
+     * -> 404 (not found)
+     */
+    @Test
+    public void test6unknownAction() throws Exception {
+        var con = request(PLATFORM_A, "POST", "/invoke/UnknownAction", Map.of());
+        Assert.assertEquals(404, con.getResponseCode());
+
+        con = request(PLATFORM_A, "POST", "/invoke/Add/unknownagent", Map.of());
+        Assert.assertEquals(404, con.getResponseCode());
+    }
+
+    /**
+     * try to send message to unknown agent
+     * -> 404 (not found)
+     */
+    @Test
+    public void test6UnknownSend() throws Exception {
+        var message = Map.of("payload", "testMessage", "replyTo", "doesnotmatter");
+        var con = request(PLATFORM_A, "POST", "/send/unknownagent", message);
+        Assert.assertEquals(404, con.getResponseCode());
+    }
+
     // TODO try to call route with mismatched payload format?
+    //  -> should be handled by Spring Boot, probably 412 or similar
+
     // TODO try to deploy unknown container
+    //  -> 404 should make sense here
+
     // TODO try to deploy wrong type of container (just hello-world or similar)
-    // TODO try to undeploy unknown container
+    //  -> now _this_ is interesting... deploy will work without error, but then all subsequent calls will fail
+    //     maybe deploy should wait until the container is online, and raise an exception after some time otherwise?
+
+    /**
+     * try to undeploy unknown container
+     * -> false (not really an error, afterwards the container _is_ gone...)
+     */
+    @Test
+    public void test6UnknownUndeploy() throws Exception {
+        var con = request(PLATFORM_A, "DELETE", "/containers/somerandomcontainerid", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Boolean.class);
+        Assert.assertFalse(res);
+    }
+
     // TODO try to connect unknown platform
+    //  -> what error? 404? or return false? or something like 502 bad gateway?
+
     // TODO try to disconnect unknown platform
+    //  -> false (not really an error, afterwards the platform _is_ disconnected...)
 
     /*
      * HELPER METHODS
