@@ -96,7 +96,18 @@ public class PlatformTests {
         Assert.assertEquals(65L, res.longValue());
     }
 
-    // TODO call invoke with agent, check result
+    /**
+     * call invoke with agent, check result
+     */
+    @Test
+    public void test4InvokeNamed() throws Exception {
+        for (String name : List.of("sample1", "sample2")) {
+            var con = request(PLATFORM_A, "POST", "/invoke/GetInfo/" + name, Map.of());
+            var res = result(con, Map.class);
+            Assert.assertEquals(name, res.get("name"));
+        }
+    }
+
 
     /**
      * call send, check that it arrived via another invoke
@@ -104,10 +115,10 @@ public class PlatformTests {
     @Test
     public void test5Send() throws Exception {
         var message = Map.of("payload", "testMessage", "replyTo", "doesnotmatter");
-        var con = request(PLATFORM_A, "POST", "/send/sample", message);
+        var con = request(PLATFORM_A, "POST", "/send/sample1", message);
         Assert.assertEquals(200, con.getResponseCode());
 
-        con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample", Map.of());
+        con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample1", Map.of());
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
         Assert.assertEquals("testMessage", res.get("lastMessage"));
@@ -122,7 +133,7 @@ public class PlatformTests {
         var con = request(PLATFORM_A, "POST", "/broadcast/topic", message);
         Assert.assertEquals(200, con.getResponseCode());
 
-        con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample", Map.of());
+        con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample1", Map.of());
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
         Assert.assertEquals("testBroadcast", res.get("lastBroadcast"));
@@ -157,6 +168,7 @@ public class PlatformTests {
     // TODO try to send message to unknown agent
     // TODO try to call route with mismatched payload format?
     // TODO try to deploy unknown container
+    // TODO try to deploy wrong type of container (just hello-world or similar)
     // TODO try to undeploy unknown container
     // TODO try to connect unknown platform
     // TODO try to disconnect unknown platform
