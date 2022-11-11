@@ -28,6 +28,7 @@ import java.util.Map;
  *
  * NOTE: execution of the Runtime Platform in docker-compose does not work properly yet;
  * for now, just run it directly: `java -jar target/jiacpp-platform-0.1-SNAPSHOT.jar`
+ * (for the connection-tests, repeat this for two platforms with ports 8001 and 8002 respectively)
  *
  * Some tests depend on each others, so best always execute all tests. (That's also the reason
  * for the numbers in the method names, so don't remove those and stay consistent when adding more tests!)
@@ -39,6 +40,7 @@ public class PlatformTests {
     private final String PLATFORM_B = "http://localhost:8002";
 
     private static String containerId = null;
+    private static String platformABaseUrl = null;
 
     /*
      * TEST THAT STUFF WORKS
@@ -53,6 +55,7 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         var info = result(con, RuntimePlatform.class);
         Assert.assertNotNull(info);
+        platformABaseUrl = info.getBaseUrl();
     }
 
     /**
@@ -139,9 +142,46 @@ public class PlatformTests {
         Assert.assertEquals("testBroadcast", res.get("lastBroadcast"));
     }
 
-    // TODO connect to second platform, check that both are connected
-    // TODO repeat above tests, but with redirect to second platform
-    // TODO disconnect platforms, check that both are disconnected
+    /**
+     * connect to second platform, check that both are connected
+     */
+    @Test
+    public void test6Connect() throws Exception {
+        var con = request(PLATFORM_B, "POST", "/connections", platformABaseUrl);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Boolean.class);
+        Assert.assertTrue(res);
+
+        con = request(PLATFORM_A, "GET", "/connections", null);
+        var lst1 = result(con, List.class);
+        Assert.assertEquals(1, lst1.size());
+        Assert.assertEquals(platformABaseUrl.replace(":8001", ":8002"), lst1.get(0));
+        con = request(PLATFORM_B, "GET", "/connections", null);
+        var lst2 = result(con, List.class);
+        Assert.assertEquals(1, lst2.size());
+        Assert.assertEquals(platformABaseUrl, lst2.get(0));
+    }
+
+    // repeat above tests, but with redirect to second platform
+
+    /**
+     * disconnect platforms, check that both are disconnected
+     */
+    @Test
+    public void test8Disconnect() throws Exception {
+        var con = request(PLATFORM_B, "DELETE", "/connections", platformABaseUrl);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Boolean.class);
+        Assert.assertTrue(res);
+
+        con = request(PLATFORM_A, "GET", "/connections", null);
+        var lst1 = result(con, List.class);
+        Assert.assertTrue(lst1.isEmpty());
+        con = request(PLATFORM_B, "GET", "/connections", null);
+        var lst2 = result(con, List.class);
+        Assert.assertTrue(lst2.isEmpty());
+    }
+
 
     /**
      * undeploy container, check that it's gone
