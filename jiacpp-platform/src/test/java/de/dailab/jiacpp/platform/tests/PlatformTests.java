@@ -310,6 +310,8 @@ public class PlatformTests {
         Assert.assertEquals(404, con.getResponseCode());
     }
 
+    // TODO invoke and send to known agent that does not respond on target container... needs actually faulty container
+
     // TODO try to call route with mismatched payload format?
     //  -> should be handled by Spring Boot, probably 412 or similar
 

@@ -6,6 +6,8 @@ import de.dailab.jiacpp.model.*;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
@@ -13,6 +15,7 @@ import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 
 /**
@@ -58,6 +61,22 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	/*
+	 * GENERIC/AUTOMATIC EXCEPTION HANDLING
+	 */
+
+	@ExceptionHandler(value=NoSuchElementException.class)
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	public ResponseEntity<String> handleNotFound(NoSuchElementException e) {
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+	}
+
+	@ExceptionHandler(value=IOException.class)
+	@ResponseStatus(HttpStatus.BAD_GATEWAY)
+	public ResponseEntity<String> handleIoException(IOException e) {
+		return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(e.getMessage());
+	}
+
+	/*
 	 * INFO ROUTES
 	 */
 
@@ -98,7 +117,6 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@PathVariable String agentId,
 			@RequestBody Message message
 	) throws IOException {
-		// TODO handle IO exception, element not found exception
 		log.info(String.format("SEND: %s, %s", agentId, message));
 		implementation.send(agentId, message);
 	}
@@ -110,7 +128,6 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@PathVariable String channel,
 			@RequestBody Message message
 	) throws IOException {
-		// TODO handle IO exception
 		log.info(String.format("BROADCAST: %s, %s", channel, message));
 		implementation.broadcast(channel, message);
 	}
@@ -122,7 +139,6 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters
 	) throws IOException {
-		// TODO handle IO exception, element not found exception
 		log.info(String.format("INVOKE: %s, %s", action, parameters));
 		return implementation.invoke(action, parameters);
 	}
@@ -135,7 +151,6 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters
 	) throws IOException {
-		// TODO handle IO exception, element not found exception
 		log.info(String.format("INVOKE: %s, %s, %s", action, agentId, parameters));
 		return implementation.invoke(agentId, action, parameters);
 	}
