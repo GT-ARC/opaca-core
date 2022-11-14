@@ -23,6 +23,8 @@ import java.util.Map;
 @RestController
 public class PlatformRestController implements RuntimePlatformApi {
 
+	// TODO add explicit routes for updating/refreshing specific containers, instead of regular auto-updates?
+
 	@Autowired
 	PlatformConfig config;
 
@@ -96,6 +98,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@PathVariable String agentId,
 			@RequestBody Message message
 	) throws IOException {
+		// TODO handle IO exception, element not found exception
 		log.info(String.format("SEND: %s, %s", agentId, message));
 		implementation.send(agentId, message);
 	}
@@ -107,6 +110,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@PathVariable String channel,
 			@RequestBody Message message
 	) throws IOException {
+		// TODO handle IO exception
 		log.info(String.format("BROADCAST: %s, %s", channel, message));
 		implementation.broadcast(channel, message);
 	}
@@ -118,6 +122,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters
 	) throws IOException {
+		// TODO handle IO exception, element not found exception
 		log.info(String.format("INVOKE: %s, %s", action, parameters));
 		return implementation.invoke(action, parameters);
 	}
@@ -130,6 +135,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters
 	) throws IOException {
+		// TODO handle IO exception, element not found exception
 		log.info(String.format("INVOKE: %s, %s, %s", action, agentId, parameters));
 		return implementation.invoke(agentId, action, parameters);
 	}
@@ -144,6 +150,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public String addContainer(
 			@RequestBody AgentContainerImage container
 	) throws IOException {
+		// TODO handle "failed to start container" error (tbd)
 		log.info(String.format("ADD CONTAINER: %s", container));
 		return implementation.addContainer(container);
 	}
@@ -186,6 +193,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public boolean connectPlatform(
 			@RequestBody String url
 	) throws IOException {
+		// TODO handle IO Exception (platform not found or does not respond, could be either 404 or 502)
 		log.info(String.format("CONNECT PLATFORM: %s", url));
 		return implementation.connectPlatform(url);
 	}

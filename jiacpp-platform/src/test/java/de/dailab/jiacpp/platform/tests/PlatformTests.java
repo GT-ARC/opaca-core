@@ -2,6 +2,7 @@ package de.dailab.jiacpp.platform.tests;
 
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
+import de.dailab.jiacpp.model.AgentDescription;
 import de.dailab.jiacpp.model.RuntimePlatform;
 import de.dailab.jiacpp.util.RestHelper;
 import org.junit.Assert;
@@ -85,6 +86,22 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, AgentContainer.class);
         Assert.assertEquals(containerId, res.getContainerId());
+    }
+
+    @Test
+    public void test3GetAgents() throws Exception {
+        var con = request(PLATFORM_A, "GET", "/agents", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, List.class);
+        Assert.assertEquals(2, res.size());
+    }
+
+    @Test
+    public void test3GetAgent() throws Exception {
+        var con = request(PLATFORM_A, "GET", "/agents/sample1", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, AgentDescription.class);
+        Assert.assertEquals("sample1", res.getAgentId());
     }
 
     /**
@@ -261,12 +278,20 @@ public class PlatformTests {
      * TEST HOW STUFF FAILS
      */
 
+    @Test
+    public void testXGetUnknownAgent() throws Exception {
+        var con = request(PLATFORM_A, "GET", "/agents/unknown", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con);
+        System.out.println("###"+res+"###");
+    }
+
     /**
      * try to invoke unknown action
      * -> 404 (not found)
      */
     @Test
-    public void test6unknownAction() throws Exception {
+    public void testXunknownAction() throws Exception {
         var con = request(PLATFORM_A, "POST", "/invoke/UnknownAction", Map.of());
         Assert.assertEquals(404, con.getResponseCode());
 
@@ -279,7 +304,7 @@ public class PlatformTests {
      * -> 404 (not found)
      */
     @Test
-    public void test6UnknownSend() throws Exception {
+    public void testXUnknownSend() throws Exception {
         var message = Map.of("payload", "testMessage", "replyTo", "doesnotmatter");
         var con = request(PLATFORM_A, "POST", "/send/unknownagent", message);
         Assert.assertEquals(404, con.getResponseCode());
@@ -300,7 +325,7 @@ public class PlatformTests {
      * -> false (not really an error, afterwards the container _is_ gone...)
      */
     @Test
-    public void test6UnknownUndeploy() throws Exception {
+    public void testXUnknownUndeploy() throws Exception {
         var con = request(PLATFORM_A, "DELETE", "/containers/somerandomcontainerid", null);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Boolean.class);
