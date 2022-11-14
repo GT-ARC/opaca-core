@@ -67,12 +67,14 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@ExceptionHandler(value=NoSuchElementException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public ResponseEntity<String> handleNotFound(NoSuchElementException e) {
+		log.warning(e.getMessage());  // probably a user error
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
 	}
 
 	@ExceptionHandler(value=IOException.class)
 	@ResponseStatus(HttpStatus.BAD_GATEWAY)
 	public ResponseEntity<String> handleIoException(IOException e) {
+		log.severe(e.getMessage());  // should not happen
 		return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(e.getMessage());
 	}
 

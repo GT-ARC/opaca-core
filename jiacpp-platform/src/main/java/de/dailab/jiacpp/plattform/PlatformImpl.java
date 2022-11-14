@@ -136,7 +136,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             log.info("Forwarding /send to " + client.baseUrl);
             client.post(String.format("/send/%s", agentId), message, null);
         } else {
-            throw new NoSuchElementException(String.format("Not found: agent %s", agentId));
+            throw new NoSuchElementException(String.format("Not found: agent '%s'", agentId));
         }
     }
 
@@ -165,7 +165,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                     : String.format("/invoke/%s/%s", action, agentId);
             return client.post(url, parameters, JsonNode.class);
         } else {
-            throw new NoSuchElementException(String.format("Not found: action %s @ agent %s", action, agentId));
+            throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s'", action, agentId));
         }
     }
 
@@ -327,11 +327,11 @@ public class PlatformImpl implements RuntimePlatformApi {
      * Check if Container ID matches and has matching agent and/or action.
      */
     private boolean matches(AgentContainer container, String containerId, String agentId, String action) {
-        return (containerId == null || container.getContainerId().equals(containerId) &&
+        return (containerId == null || container.getContainerId().equals(containerId)) &&
                 container.getAgents().stream()
                         .anyMatch(a -> (agentId == null || a.getAgentId().equals(agentId))
                                 && (action == null || a.getActions().stream()
-                                .anyMatch(x -> x.getName().equals(action)))));
+                                .anyMatch(x -> x.getName().equals(action))));
     }
 
     private RestHelper getClient(AgentContainer container) {
