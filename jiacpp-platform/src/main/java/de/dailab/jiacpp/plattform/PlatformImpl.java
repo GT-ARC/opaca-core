@@ -34,10 +34,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     // TODO properly describe the different routes and their expected behaviour somewhere,
     //  including error cases (not found?), forwarding to containers and remote platforms, etc.
 
-    // TODO if not found on own AgentContainers, all the Container Routes should
-    //  also check connected platforms next... not just forward the request to connected platforms,
-    //  but check which platform actually has the desired agent or action and then send it there
-
     // TODO make sure agent IDs are globally unique? extend agent-ids with platform-hash or similar?
     //  e.g. optionally allow "agentId@containerId" to be passed in place of agentId for all routes?
 
@@ -132,15 +128,12 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public void send(String agentId, Message message) throws IOException {
-        updateContainers();
-        var container = runningContainers.values().stream()
-                .filter(c -> c.getAgents().stream()
-                        .anyMatch(a -> a.getAgentId().equals(agentId)))
-                .findAny().orElse(null);
-        if (container != null) {
-            getClient(container).post(String.format("/send/%s", agentId), message, null);
+        var client = getClient(null, agentId, null);
+        if (client != null) {
+            log.info("Forwarding /send to " + client.baseUrl);
+            client.post(String.format("/send/%s", agentId), message, null);
         } else {
-            // TODO check connected platforms
+            throw new NoSuchElementException(String.format("Not found: agent %s", agentId));
         }
     }
 
@@ -160,25 +153,16 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters) throws IOException {
-        updateContainers();
-        // TODO check that parameters match
-        var container = runningContainers.values().stream()
-                .filter(c -> c.getAgents().stream()
-                        .anyMatch(a -> (agentId == null || a.getAgentId().equals(agentId)) &&
-                                a.getActions().stream().anyMatch(x -> x.getName().equals(action))))
-                .findAny().orElse(null);
-        if (container != null) {
-            if (agentId == null) {
-                return getClient(container).post(String.format("/invoke/%s", action),
-                        parameters, JsonNode.class);
-            } else {
-                return getClient(container).post(String.format("/invoke/%s/%s", action, agentId),
-                        parameters, JsonNode.class);
-            }
+        var client = getClient(null, agentId, action);
+        if (client != null) {
+            log.info("Forwarding /invoke to " + client.baseUrl);
+            var url = agentId == null
+                    ? String.format("/invoke/%s", action)
+                    : String.format("/invoke/%s/%s", action, agentId);
+            return client.post(url, parameters, JsonNode.class);
         } else {
-            // TODO check connected platforms
+            throw new NoSuchElementException(String.format("Not found: action %s @ agent %s", action, agentId));
         }
-        return null;
     }
 
     /*
@@ -247,24 +231,23 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public boolean connectPlatform(String url) throws IOException {
-        // TODO not yet tested
-        if (pendingConnections.contains(url)) {
+        url = normalizeUrl(url);
+        if (url.equals(getOwnBaseUrl()) || connectedPlatforms.containsKey(url)) {
+            return false;
+        } else if (pendingConnections.contains(url)) {
             // callback from remote platform following our own request for connection
             return true;
         } else {
             pendingConnections.add(url);
             var client = new RestHelper(url);
-            var res = client.post("/connections", url, Boolean.class);
+            var res = client.post("/connections", getOwnBaseUrl(), Boolean.class);
             if (res) {
                 pendingConnections.remove(url);
                 var info = client.get("/info", RuntimePlatform.class);
-                if (info != null) {
-                    connectedPlatforms.put(url, info);
-                    return true;
-                }
+                connectedPlatforms.put(url, info);
             }
+            return true;
         }
-        return false;
     }
 
     @Override
@@ -274,9 +257,10 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public boolean disconnectPlatform(String url) throws IOException {
-        if (connectedPlatforms.containsKey(url)) {
+        url = normalizeUrl(url);
+        if (connectedPlatforms.remove(url) != null) {
             var client = new RestHelper(url);
-            var res = client.delete("/connections", url, Boolean.class);
+            var res = client.delete("/connections", getOwnBaseUrl(), Boolean.class);
             log.info(String.format("Disconnected from %s: %s", url, res));
             return true;
         }
@@ -292,6 +276,9 @@ public class PlatformImpl implements RuntimePlatformApi {
      * Adapted from https://stackoverflow.com/a/38342964/1639625
      */
     private String getOwnBaseUrl() {
+        if (config.publicUrl != null) {
+            return config.publicUrl;
+        }
         try (DatagramSocket socket = new DatagramSocket()) {
             socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
             String host = socket.getLocalAddress().getHostAddress();
@@ -299,6 +286,45 @@ public class PlatformImpl implements RuntimePlatformApi {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Get client for send or invoke to specific agent, in a specific container, for a specific action.
+     * All those parameters are optional (e.g. for "send" or "invoke" without agentId), but obviously
+     * _some_ should be set, otherwise it does not make much sense to call the method.
+     */
+    private RestHelper getClient(String containerId, String agentId, String action) throws IOException {
+        // TODO for /invoke: also check that action parameters match, or just the name?
+        // check own containers
+        updateContainers();
+        var container = runningContainers.values().stream()
+                .filter(c -> matches(c, containerId, agentId, action))
+                .findFirst();
+        if (container.isPresent()) {
+            System.out.println("FOUND IN CONTAINER: " + container.get().getContainerId());
+            return getClient(container.get());
+        }
+        // check containers on connected platforms
+        updatePlatforms();
+        var platform = connectedPlatforms.values().stream()
+                .filter(p -> p.getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action)))
+                .findFirst();
+        if (platform.isPresent()) {
+            System.out.println("FOUND ON PLATFORM: " + platform.get().getBaseUrl());
+            return new RestHelper(platform.get().getBaseUrl());
+        }
+        return null;
+    }
+
+    /**
+     * Check if Container ID matches and has matching agent and/or action.
+     */
+    private boolean matches(AgentContainer container, String containerId, String agentId, String action) {
+        return (containerId == null || container.getContainerId().equals(containerId) &&
+                container.getAgents().stream()
+                        .anyMatch(a -> (agentId == null || a.getAgentId().equals(agentId))
+                                && (action == null || a.getActions().stream()
+                                .anyMatch(x -> x.getName().equals(action)))));
     }
 
     private RestHelper getClient(AgentContainer container) {
@@ -318,6 +344,15 @@ public class PlatformImpl implements RuntimePlatformApi {
                 runningContainers.put(id, container);
             }
         }
+    }
+
+    private void updatePlatforms() throws IOException {
+        // TODO analogous to updateContainers, but for connected platforms...
+    }
+
+    private String normalizeUrl(String url) {
+        // string payload may or may not be enclosed in quotes -> normalize
+        return url.trim().replaceAll("^\"|\"$", "");
     }
 
 }
