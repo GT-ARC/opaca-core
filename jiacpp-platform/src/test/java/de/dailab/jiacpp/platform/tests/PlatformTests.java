@@ -256,7 +256,6 @@ public class PlatformTests {
         Assert.assertTrue(lst2.isEmpty());
     }
 
-
     /**
      * undeploy container, check that it's gone
      */
@@ -279,11 +278,25 @@ public class PlatformTests {
      */
 
     @Test
+    public void testXUnknownRoute() throws Exception {
+        var con = request(PLATFORM_A, "GET", "/unknown", null);
+        // this is actually a simple client-side error
+        Assert.assertEquals(404, con.getResponseCode());
+    }
+
+    @Test
+    public void testXWrongPayload() throws Exception {
+        var msg = Map.of("unknown", "attributes");
+        var con = request(PLATFORM_A, "GET", "/broadcast/topic", msg);
+        Assert.assertEquals(422, con.getResponseCode());
+    }
+
+    @Test
     public void testXGetUnknownAgent() throws Exception {
         var con = request(PLATFORM_A, "GET", "/agents/unknown", null);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con);
-        System.out.println("###"+res+"###");
+        Assert.assertTrue(res.isEmpty());
     }
 
     /**
@@ -310,10 +323,8 @@ public class PlatformTests {
         Assert.assertEquals(404, con.getResponseCode());
     }
 
-    // TODO invoke and send to known agent that does not respond on target container... needs actually faulty container
-
-    // TODO try to call route with mismatched payload format?
-    //  -> should be handled by Spring Boot, probably 412 or similar
+    // TODO invoke and send to known agent that does not respond on target container...
+    //  needs actually faulty container; manually tested by stopping container outside of platform
 
     // TODO try to deploy unknown container
     //  -> 404 should make sense here

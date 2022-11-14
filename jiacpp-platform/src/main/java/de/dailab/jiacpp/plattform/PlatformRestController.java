@@ -1,5 +1,6 @@
 package de.dailab.jiacpp.plattform;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
@@ -69,6 +70,13 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public ResponseEntity<String> handleNotFound(NoSuchElementException e) {
 		log.warning(e.getMessage());  // probably a user error
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+	}
+
+	@ExceptionHandler(value=JsonProcessingException.class)
+	@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+	public ResponseEntity<String> handleJsonException(JsonProcessingException e) {
+		log.warning(e.getMessage());  // user error
+		return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getMessage());
 	}
 
 	@ExceptionHandler(value=IOException.class)
