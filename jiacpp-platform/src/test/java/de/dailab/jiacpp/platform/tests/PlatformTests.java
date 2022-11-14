@@ -345,11 +345,21 @@ public class PlatformTests {
         Assert.assertFalse(res);
     }
 
-    // TODO try to connect unknown platform
-    //  -> what error? 404? or return false? or something like 502 bad gateway?
+    @Test
+    public void testXConnect() throws Exception {
+        var con = request(PLATFORM_A, "POST", "/connections", "http://flsflsfsjfkj.com");
+        Assert.assertEquals(502, con.getResponseCode());
+    }
 
-    // TODO try to disconnect unknown platform
-    //  -> false (not really an error, afterwards the platform _is_ disconnected...)
+    @Test
+    public void testXDisconnect() throws Exception {
+        var con = request(PLATFORM_A, "DELETE", "/connections", "http://flsflsfsjfkj.com");
+        Assert.assertEquals(200, con.getResponseCode());
+        // not really an error... afterwards, the platform _is_ disconnected, it just never was connected, thus false
+        // TODO case is different if the platform _is_ connected, but does not respond to disconnect -> 502?
+        var res = result(con, Boolean.class);
+        Assert.assertFalse(res);
+    }
 
     /*
      * HELPER METHODS

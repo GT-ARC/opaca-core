@@ -244,15 +244,19 @@ public class PlatformImpl implements RuntimePlatformApi {
             // callback from remote platform following our own request for connection
             return true;
         } else {
-            pendingConnections.add(url);
-            var client = new RestHelper(url);
-            var res = client.post("/connections", getOwnBaseUrl(), Boolean.class);
-            if (res) {
+            try {
+                pendingConnections.add(url);
+                var client = new RestHelper(url);
+                var res = client.post("/connections", getOwnBaseUrl(), Boolean.class);
+                if (res) {
+                    var info = client.get("/info", RuntimePlatform.class);
+                    connectedPlatforms.put(url, info);
+                }
+                return true;
+            } finally {
+                // also remove from pending in case client.post fails
                 pendingConnections.remove(url);
-                var info = client.get("/info", RuntimePlatform.class);
-                connectedPlatforms.put(url, info);
             }
-            return true;
         }
     }
 
