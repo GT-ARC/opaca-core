@@ -326,12 +326,34 @@ public class PlatformTests {
     // TODO invoke and send to known agent that does not respond on target container...
     //  needs actually faulty container; manually tested by stopping container outside of platform
 
-    // TODO try to deploy unknown container
-    //  -> 404 should make sense here
+    /**
+     * try to deploy unknown container
+     *   -> 404 (not found)
+     */
+    @Test
+    public void testXDeployUnknown() throws Exception {
+        var container = new AgentContainerImage();
+        container.setImageName("does-not-exist-container-image");
+        var con = request(PLATFORM_A, "POST", "/containers", container);
+        Assert.assertEquals(404, con.getResponseCode());
+    }
 
-    // TODO try to deploy wrong type of container (just hello-world or similar)
-    //  -> now _this_ is interesting... deploy will work without error, but then all subsequent calls will fail
-    //     maybe deploy should wait until the container is online, and raise an exception after some time otherwise?
+    /**
+     * try to deploy wrong type of container (just hello-world or similar)
+     * deploy will work without error, but then all subsequent calls will fail
+     *   -> 502 (bad gateway, after timeout)
+     */
+    @Test
+    public void testXDeployInvalid() throws Exception {
+        var container = new AgentContainerImage();
+        container.setImageName("hello-world");
+        var con = request(PLATFORM_A, "POST", "/containers", container);
+        Assert.assertEquals(502, con.getResponseCode());
+
+        con = request(PLATFORM_A, "GET", "/containers", null);
+        var lst = result(con, List.class);
+        Assert.assertEquals(0, lst.size());
+    }
 
     /**
      * try to undeploy unknown container
