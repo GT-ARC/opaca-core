@@ -1,6 +1,7 @@
 package de.dailab.jiacpp.plattform;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.plattform.containerclient.ContainerClient;
@@ -21,8 +22,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     // TODO make sure agent IDs are globally unique? extend agent-ids with platform-hash or similar?
     //  e.g. optionally allow "agentId@containerId" to be passed in place of agentId for all routes?
-
-    // TODO later, move all docker-specific stuff to separate class
 
     final PlatformConfig config;
 
@@ -264,7 +263,8 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     private RestHelper getClient(String containerId) {
-        return containerClient.getClient(containerId);
+        var ip = containerClient.getIP(containerId);
+        return new RestHelper(String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT));
     }
 
     private String normalizeUrl(String url) {

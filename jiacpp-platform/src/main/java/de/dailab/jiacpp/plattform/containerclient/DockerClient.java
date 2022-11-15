@@ -11,7 +11,6 @@ import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.plattform.PlatformConfig;
-import de.dailab.jiacpp.util.RestHelper;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.java.Log;
@@ -22,6 +21,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+/**
+ * Container Client for running Agent Containers in Docker, possibly on a remote host.
+ *
+ * Some documentation:
+ * - https://github.com/docker-java/docker-java/blob/master/docs/getting_started.md
+ * - https://www.baeldung.com/docker-java-api
+ */
 @Log
 public class DockerClient implements ContainerClient {
 
@@ -114,9 +120,8 @@ public class DockerClient implements ContainerClient {
     }
 
     @Override
-    public RestHelper getClient(String containerId) {
-        var ip = dockerContainers.get(containerId).getInternalIp();
-        return new RestHelper(String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT));
+    public String getIP(String containerId) {
+        return dockerContainers.get(containerId).getInternalIp();
     }
 
 }
