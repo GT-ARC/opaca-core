@@ -38,8 +38,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     // TODO later, move all docker-specific stuff to separate class
 
-    // TODO do not always refresh containers/connected platforms, as that might cause problems with calls
-    //  that are not related to those platforms at all?
     // TODO configurable
     final long DOCKER_START_TIMEOUT = 10 * 1000;
 
@@ -100,7 +98,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public RuntimePlatform getInfo() throws IOException {
-        updateContainers();
         return new RuntimePlatform(
                 getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),
@@ -115,7 +112,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public List<AgentDescription> getAgents() throws IOException {
-        updateContainers();
         return runningContainers.values().stream()
                 .flatMap(c -> c.getAgents().stream())
                 .collect(Collectors.toList());
@@ -123,7 +119,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public AgentDescription getAgent(String agentId) throws IOException {
-        updateContainers();
         return runningContainers.values().stream()
                 .flatMap(c -> c.getAgents().stream())
                 .filter(a -> a.getAgentId().equals(agentId))
@@ -143,7 +138,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public void broadcast(String channel, Message message) throws IOException {
-        updateContainers();
         for (AgentContainer container : runningContainers.values()) {
             getClient(container).post(String.format("/broadcast/%s", channel), message, null);
         }
@@ -236,19 +230,16 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public List<AgentContainer> getContainers() throws IOException {
-        updateContainers();
         return List.copyOf(runningContainers.values());
     }
 
     @Override
     public AgentContainer getContainer(String containerId) throws IOException {
-        updateContainers();
         return runningContainers.get(containerId);
     }
 
     @Override
     public boolean removeContainer(String containerId) throws IOException {
-        updateContainers();
         AgentContainer container = runningContainers.get(containerId);
         if (container != null) {
             var dockerId = dockerContainers.get(containerId).getContainerId();
@@ -338,7 +329,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     private RestHelper getClient(String containerId, String agentId, String action) throws IOException {
         // TODO for /invoke: also check that action parameters match, or just the name?
         // check own containers
-        updateContainers();
         var container = runningContainers.values().stream()
                 .filter(c -> matches(c, containerId, agentId, action))
                 .findFirst();
@@ -347,7 +337,6 @@ public class PlatformImpl implements RuntimePlatformApi {
             return getClient(container.get());
         }
         // check containers on connected platforms
-        updatePlatforms();
         var platform = connectedPlatforms.values().stream()
                 .filter(p -> p.getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action)))
                 .findFirst();
@@ -376,20 +365,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     private RestHelper getClient(String containerId) {
         var ip = dockerContainers.get(containerId).getInternalIp();
         return new RestHelper(String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT));
-    }
-
-    private void updateContainers() throws IOException {
-        // TODO check last update time for all containers, get new info after some time
-        for (String id : runningContainers.keySet()) {
-            if (runningContainers.get(id) == null) {
-                var container = getClient(id).get("/info", AgentContainer.class);
-                runningContainers.put(id, container);
-            }
-        }
-    }
-
-    private void updatePlatforms() throws IOException {
-        // TODO analogous to updateContainers, but for connected platforms...
     }
 
     private String normalizeUrl(String url) {
