@@ -31,9 +31,6 @@ import java.util.stream.Collectors;
 @Log
 public class PlatformImpl implements RuntimePlatformApi {
 
-    // TODO properly describe the different routes and their expected behaviour somewhere,
-    //  including error cases (not found?), forwarding to containers and remote platforms, etc.
-
     // TODO make sure agent IDs are globally unique? extend agent-ids with platform-hash or similar?
     //  e.g. optionally allow "agentId@containerId" to be passed in place of agentId for all routes?
 

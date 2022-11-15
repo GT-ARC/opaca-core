@@ -111,7 +111,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	@RequestMapping(value="/agents/{agentId}", method=RequestMethod.GET)
-	@Operation(summary="Get Description of a single Agent", tags={"agents"})
+	@Operation(summary="Get Description of a single Agent; null if agent not found", tags={"agents"})
 	@Override
 	public AgentDescription getAgent(
 			@PathVariable String agentId
@@ -189,7 +189,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	@RequestMapping(value="/containers/{containerId}", method=RequestMethod.GET)
-	@Operation(summary="Get details on one specific Agent Container running on this platform", tags={"containers"})
+	@Operation(summary="Get details on one specific Agent Container running on this platform; null if not found", tags={"containers"})
 	@Override
 	public AgentContainer getContainer(
 			@PathVariable String containerId
@@ -199,7 +199,8 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	@RequestMapping(value="/containers/{containerId}", method=RequestMethod.DELETE)
-	@Operation(summary="Stop and remove Agent Container running on this platform", tags={"containers"})
+	@Operation(summary="Stop and remove Agent Container running on this platform; " +
+			"return false if container not found or already stopped", tags={"containers"})
 	@Override
 	public boolean removeContainer(
 			@PathVariable String containerId
@@ -213,7 +214,8 @@ public class PlatformRestController implements RuntimePlatformApi {
 	 */
 
 	@RequestMapping(value="/connections", method=RequestMethod.POST)
-	@Operation(summary="Establish connection to another Runtime Platform", tags={"connections"})
+	@Operation(summary="Establish connection to another Runtime Platform; " +
+			"return false if platform already connected", tags={"connections"})
 	@Override
 	public boolean connectPlatform(
 			@RequestBody String url
