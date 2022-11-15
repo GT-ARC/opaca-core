@@ -1,29 +1,14 @@
 package de.dailab.jiacpp.plattform;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.command.CreateContainerResponse;
-import com.github.dockerjava.api.command.InspectContainerResponse;
-import com.github.dockerjava.api.command.PullImageResultCallback;
-import com.github.dockerjava.api.exception.DockerException;
-import com.github.dockerjava.api.exception.NotFoundException;
-import com.github.dockerjava.core.DefaultDockerClientConfig;
-import com.github.dockerjava.core.DockerClientConfig;
-import com.github.dockerjava.core.DockerClientImpl;
-import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
-import com.github.dockerjava.transport.DockerHttpClient;
-import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
+import de.dailab.jiacpp.plattform.containerclient.ContainerClient;
+import de.dailab.jiacpp.plattform.containerclient.DockerClient;
 import de.dailab.jiacpp.util.RestHelper;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.extern.java.Log;
 
 import java.io.IOException;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -41,12 +26,10 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     final PlatformConfig config;
 
+    final ContainerClient containerClient;
 
     /** Currently running Agent Containers, mapping container ID to description */
     private final Map<String, AgentContainer> runningContainers = new HashMap<>();
-
-    /** additional Docker-specific information on agent containers */
-    private final Map<String, DockerContainerInfo> dockerContainers = new HashMap<>();
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
     private final Map<String, RuntimePlatform> connectedPlatforms = new HashMap<>();
@@ -55,48 +38,16 @@ public class PlatformImpl implements RuntimePlatformApi {
     private final Set<String> pendingConnections = new HashSet<>();
 
 
-    /** Client for accessing (remote) Docker runtime */
-    private final DockerClient dockerClient;
-
-
-    @Data @AllArgsConstructor
-    static class DockerContainerInfo {
-        String containerId;
-        String internalIp;
-    }
-
-
     public PlatformImpl(PlatformConfig config) {
         this.config = config;
-
-        // TODO get config/settings, e.g.
-        //  - docker settings, e.g. remote docker, gpu support, ...
-
-        DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
-                .withDockerHost("unix:///var/run/docker.sock")
-                //.withDockerTlsVerify(true)
-                //.withDockerCertPath("/home/user/.docker")
-                //.withRegistryUsername(registryUser)
-                //.withRegistryPassword(registryPass)
-                //.withRegistryEmail(registryMail)
-                //.withRegistryUrl(registryUrl)
-                .build();
-
-        DockerHttpClient dockerHttpClient = new ApacheDockerHttpClient.Builder()
-                .dockerHost(dockerConfig.getDockerHost())
-                .sslConfig(dockerConfig.getSSLConfig())
-                .maxConnections(100)
-                .connectionTimeout(Duration.ofSeconds(30))
-                .responseTimeout(Duration.ofSeconds(45))
-                .build();
-
-        dockerClient = DockerClientImpl.getInstance(dockerConfig, dockerHttpClient);
+        this.containerClient = new DockerClient();
+        this.containerClient.initialize(config);
     }
 
     @Override
     public RuntimePlatform getInfo() throws IOException {
         return new RuntimePlatform(
-                getOwnBaseUrl(),
+                config.getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),
                 List.of(), // TODO "provides" pf platform?
                 List.copyOf(connectedPlatforms.keySet())
@@ -169,45 +120,18 @@ public class PlatformImpl implements RuntimePlatformApi {
     public String addContainer(AgentContainerImage image) throws IOException {
         String agentContainerId = UUID.randomUUID().toString();
 
-        try {
-            // pull image if not present
-            if (dockerClient.listImagesCmd().withImageNameFilter(image.getImageName()).exec().isEmpty()) {
-                log.info("Pulling Image..." + image.getImageName());
-                try {
-                    dockerClient.pullImageCmd(image.getImageName()).exec(new PullImageResultCallback())
-                            .awaitCompletion();
-                } catch (InterruptedException e) {
-                    log.warning(e.getMessage());
-                }
-            }
+        // start container... this may raise an Exception, but otherwise has no result
+        containerClient.startContainer(agentContainerId, image.getImageName());
 
-            log.info("Creating Container...");
-            CreateContainerResponse res = dockerClient.createContainerCmd(image.getImageName())
-                    .withEnv(
-                            String.format("%s=%s", AgentContainerApi.ENV_CONTAINER_ID, agentContainerId),
-                            String.format("%s=%s", AgentContainerApi.ENV_PLATFORM_URL, getOwnBaseUrl()))
-                    .exec();
-            log.info(String.format("Result: %s", res));
-
-            log.info("Starting Container...");
-            dockerClient.startContainerCmd(res.getId()).exec();
-
-            // TODO get internal IP... why is this deprecated?
-            InspectContainerResponse info = dockerClient.inspectContainerCmd(res.getId()).exec();
-            dockerContainers.put(agentContainerId, new DockerContainerInfo(res.getId(), info.getNetworkSettings().getIpAddress()));
-
-        } catch (NotFoundException e) {
-            log.warning("Image not found: " + image.getImageName());
-            throw new NoSuchElementException("Image not found: " + image.getImageName());
-        }
-
+        // wait until container is up and running...
         var start = System.currentTimeMillis();
         var client = getClient(agentContainerId);
         while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000) {
             try {
                 var container = client.get("/info", AgentContainer.class);
                 runningContainers.put(agentContainerId, container);
-                break;
+                log.info("Container started: " + agentContainerId);
+                return agentContainerId;
             } catch (IOException e) {
                 // this is normal... waiting for container to start and provide services
             }
@@ -218,18 +142,13 @@ public class PlatformImpl implements RuntimePlatformApi {
             }
         }
 
-        if (runningContainers.containsKey(agentContainerId)) {
-            log.info("Container started: " + agentContainerId);
-            return agentContainerId;
-        } else {
-            try {
-                var dockerId = dockerContainers.get(agentContainerId).getContainerId();
-                dockerClient.stopContainerCmd(dockerId).exec();
-            } catch (DockerException e) {
-                log.warning("Failed to stop container: " + e.getMessage());
-            }
-            throw new IOException("Container did not respond to API calls in time; stopped.");
+        // if we reach this point, container did not start in time or does not provide /info route
+        try {
+            containerClient.stopContainer(agentContainerId);
+        } catch (Exception e) {
+            log.warning("Failed to stop container: " + e.getMessage());
         }
+        throw new IOException("Container did not respond to API calls in time; stopped.");
     }
 
     @Override
@@ -246,12 +165,8 @@ public class PlatformImpl implements RuntimePlatformApi {
     public boolean removeContainer(String containerId) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
         if (container != null) {
-            var dockerId = dockerContainers.get(containerId).getContainerId();
-            dockerClient.stopContainerCmd(dockerId).exec();
+            containerClient.stopContainer(containerId);
             runningContainers.remove(containerId);
-            // TODO get result, check if and when it is finally stopped?
-            // TODO handle case of container already being terminated (due to error or similar)
-            // TODO possibly that the container refuses being stopped? call "kill" instead? how to test this?
             return true;
         }
         return false;
@@ -264,7 +179,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public boolean connectPlatform(String url) throws IOException {
         url = normalizeUrl(url);
-        if (url.equals(getOwnBaseUrl()) || connectedPlatforms.containsKey(url)) {
+        if (url.equals(config.getOwnBaseUrl()) || connectedPlatforms.containsKey(url)) {
             return false;
         } else if (pendingConnections.contains(url)) {
             // callback from remote platform following our own request for connection
@@ -273,7 +188,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             try {
                 pendingConnections.add(url);
                 var client = new RestHelper(url);
-                var res = client.post("/connections", getOwnBaseUrl(), Boolean.class);
+                var res = client.post("/connections", config.getOwnBaseUrl(), Boolean.class);
                 if (res) {
                     var info = client.get("/info", RuntimePlatform.class);
                     connectedPlatforms.put(url, info);
@@ -296,7 +211,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         url = normalizeUrl(url);
         if (connectedPlatforms.remove(url) != null) {
             var client = new RestHelper(url);
-            var res = client.delete("/connections", getOwnBaseUrl(), Boolean.class);
+            var res = client.delete("/connections", config.getOwnBaseUrl(), Boolean.class);
             log.info(String.format("Disconnected from %s: %s", url, res));
             // TODO how to handle IO Exception here? other platform still there but refuses to disconnect?
             return true;
@@ -308,22 +223,6 @@ public class PlatformImpl implements RuntimePlatformApi {
      * HELPER METHODS
      */
 
-    /**
-     * Get Host IP address. Should return preferred outbound address.
-     * Adapted from https://stackoverflow.com/a/38342964/1639625
-     */
-    private String getOwnBaseUrl() {
-        if (config.publicUrl != null) {
-            return config.publicUrl;
-        }
-        try (DatagramSocket socket = new DatagramSocket()) {
-            socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
-            String host = socket.getLocalAddress().getHostAddress();
-            return "http://" + host + ":" + config.serverPort;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     /**
      * Get client for send or invoke to specific agent, in a specific container, for a specific action.
@@ -365,8 +264,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     private RestHelper getClient(String containerId) {
-        var ip = dockerContainers.get(containerId).getInternalIp();
-        return new RestHelper(String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT));
+        return containerClient.getClient(containerId);
     }
 
     private String normalizeUrl(String url) {
