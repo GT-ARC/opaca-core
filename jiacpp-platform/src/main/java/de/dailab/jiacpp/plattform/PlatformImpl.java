@@ -38,9 +38,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     // TODO later, move all docker-specific stuff to separate class
 
-    // TODO configurable
-    final long DOCKER_START_TIMEOUT = 10 * 1000;
-
     final PlatformConfig config;
 
 
@@ -199,7 +196,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
         var start = System.currentTimeMillis();
         var client = getClient(agentContainerId);
-        while (System.currentTimeMillis() < start + DOCKER_START_TIMEOUT) {
+        while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000) {
             try {
                 var container = client.get("/info", AgentContainer.class);
                 runningContainers.put(agentContainerId, container);

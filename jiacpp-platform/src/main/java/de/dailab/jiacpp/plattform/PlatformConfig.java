@@ -17,6 +17,9 @@ public class PlatformConfig {
     @Value("${public_url}")
     String publicUrl;
 
+    @Value("${container_timeout_sec}")
+    Integer containerTimeoutSec;
+
 
     // TODO
     //  docker registries and logins
