@@ -70,8 +70,6 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         containerId = result(con);
 
-        Thread.sleep(2000);
-
         con = request(PLATFORM_A, "GET", "/containers", null);
         var lst = result(con, List.class);
         Assert.assertEquals(1, lst.size());
@@ -265,8 +263,6 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Boolean.class);
         Assert.assertTrue(res);
-
-        Thread.sleep(2000);
 
         con = request(PLATFORM_A, "GET", "/containers", null);
         var lst = result(con, List.class);

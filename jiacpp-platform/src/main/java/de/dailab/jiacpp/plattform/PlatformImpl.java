@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.InspectContainerResponse;
+import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
@@ -69,7 +70,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         this.config = config;
 
         // TODO get config/settings, e.g.
-        //  - time before updating containers or remote platforms
         //  - docker settings, e.g. remote docker, gpu support, ...
 
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
@@ -98,8 +98,8 @@ public class PlatformImpl implements RuntimePlatformApi {
         return new RuntimePlatform(
                 getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),
-                List.of("nothing"),
-                List.of()
+                List.of(), // TODO "provides" pf platform?
+                List.copyOf(connectedPlatforms.keySet())
         );
     }
 
@@ -167,13 +167,20 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public String addContainer(AgentContainerImage image) throws IOException {
-        // TODO pull image if not present
-        //log.info("Pulling Image...");
-        //dockerClient.pullImageCmd(container.getImageName()).start();
-
         String agentContainerId = UUID.randomUUID().toString();
 
         try {
+            // pull image if not present
+            if (dockerClient.listImagesCmd().withImageNameFilter(image.getImageName()).exec().isEmpty()) {
+                log.info("Pulling Image..." + image.getImageName());
+                try {
+                    dockerClient.pullImageCmd(image.getImageName()).exec(new PullImageResultCallback())
+                            .awaitCompletion();
+                } catch (InterruptedException e) {
+                    log.warning(e.getMessage());
+                }
+            }
+
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(image.getImageName())
                     .withEnv(
@@ -202,7 +209,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 runningContainers.put(agentContainerId, container);
                 break;
             } catch (IOException e) {
-                log.warning("NOT YET STARTED " + e.getClass().getName() + " " + e.getMessage());
+                // this is normal... waiting for container to start and provide services
             }
             try {
                 Thread.sleep(1000);
@@ -330,7 +337,6 @@ public class PlatformImpl implements RuntimePlatformApi {
                 .filter(c -> matches(c, containerId, agentId, action))
                 .findFirst();
         if (container.isPresent()) {
-            System.out.println("FOUND IN CONTAINER: " + container.get().getContainerId());
             return getClient(container.get());
         }
         // check containers on connected platforms
@@ -338,7 +344,6 @@ public class PlatformImpl implements RuntimePlatformApi {
                 .filter(p -> p.getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action)))
                 .findFirst();
         if (platform.isPresent()) {
-            System.out.println("FOUND ON PLATFORM: " + platform.get().getBaseUrl());
             return new RestHelper(platform.get().getBaseUrl());
         }
         return null;
