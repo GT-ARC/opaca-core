@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.InspectContainerResponse;
+import com.github.dockerjava.api.exception.DockerException;
+import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
@@ -38,6 +40,8 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     // TODO do not always refresh containers/connected platforms, as that might cause problems with calls
     //  that are not related to those platforms at all?
+    // TODO configurable
+    final long DOCKER_START_TIMEOUT = 10 * 1000;
 
     final PlatformConfig config;
 
@@ -171,33 +175,63 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     @Override
-    public String addContainer(AgentContainerImage container) throws IOException {
+    public String addContainer(AgentContainerImage image) throws IOException {
+        // TODO pull image if not present
         //log.info("Pulling Image...");
         //dockerClient.pullImageCmd(container.getImageName()).start();
 
         String agentContainerId = UUID.randomUUID().toString();
 
-        log.info("Creating Container...");
-        CreateContainerResponse res = dockerClient.createContainerCmd(container.getImageName())
-                .withEnv(
-                        String.format("%s=%s", AgentContainerApi.ENV_CONTAINER_ID, agentContainerId),
-                        String.format("%s=%s", AgentContainerApi.ENV_PLATFORM_URL, getOwnBaseUrl()))
-                .exec();
-        log.info(String.format("Result: %s", res));
+        try {
+            log.info("Creating Container...");
+            CreateContainerResponse res = dockerClient.createContainerCmd(image.getImageName())
+                    .withEnv(
+                            String.format("%s=%s", AgentContainerApi.ENV_CONTAINER_ID, agentContainerId),
+                            String.format("%s=%s", AgentContainerApi.ENV_PLATFORM_URL, getOwnBaseUrl()))
+                    .exec();
+            log.info(String.format("Result: %s", res));
 
-        log.info("Starting Container...");
-        dockerClient.startContainerCmd(res.getId()).exec();
+            log.info("Starting Container...");
+            dockerClient.startContainerCmd(res.getId()).exec();
 
-        // TODO get internal IP... why is this deprecated?
-        InspectContainerResponse info = dockerClient.inspectContainerCmd(res.getId()).exec();
-        dockerContainers.put(agentContainerId, new DockerContainerInfo(res.getId(), info.getNetworkSettings().getIpAddress()));
-        runningContainers.put(agentContainerId, null); // to be updated later
+            // TODO get internal IP... why is this deprecated?
+            InspectContainerResponse info = dockerClient.inspectContainerCmd(res.getId()).exec();
+            dockerContainers.put(agentContainerId, new DockerContainerInfo(res.getId(), info.getNetworkSettings().getIpAddress()));
 
-        // TODO should this wait until the container is up and running?
-        // TODO wait in loop, regularly try to call /info route on container
-        //  raise error after some time or if container is terminated
+        } catch (NotFoundException e) {
+            log.warning("Image not found: " + image.getImageName());
+            throw new NoSuchElementException("Image not found: " + image.getImageName());
+        }
 
-        return agentContainerId;
+        var start = System.currentTimeMillis();
+        var client = getClient(agentContainerId);
+        while (System.currentTimeMillis() < start + DOCKER_START_TIMEOUT) {
+            try {
+                var container = client.get("/info", AgentContainer.class);
+                runningContainers.put(agentContainerId, container);
+                break;
+            } catch (IOException e) {
+                log.warning("NOT YET STARTED " + e.getClass().getName() + " " + e.getMessage());
+            }
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                log.severe(e.getMessage());
+            }
+        }
+
+        if (runningContainers.containsKey(agentContainerId)) {
+            log.info("Container started: " + agentContainerId);
+            return agentContainerId;
+        } else {
+            try {
+                var dockerId = dockerContainers.get(agentContainerId).getContainerId();
+                dockerClient.stopContainerCmd(dockerId).exec();
+            } catch (DockerException e) {
+                log.warning("Failed to stop container: " + e.getMessage());
+            }
+            throw new IOException("Container did not respond to API calls in time; stopped.");
+        }
     }
 
     @Override
