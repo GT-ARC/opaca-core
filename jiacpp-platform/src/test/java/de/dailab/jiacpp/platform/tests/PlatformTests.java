@@ -2,6 +2,7 @@ package de.dailab.jiacpp.platform.tests;
 
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
+import de.dailab.jiacpp.model.AgentDescription;
 import de.dailab.jiacpp.model.RuntimePlatform;
 import de.dailab.jiacpp.util.RestHelper;
 import org.junit.Assert;
@@ -85,6 +86,22 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, AgentContainer.class);
         Assert.assertEquals(containerId, res.getContainerId());
+    }
+
+    @Test
+    public void test3GetAgents() throws Exception {
+        var con = request(PLATFORM_A, "GET", "/agents", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, List.class);
+        Assert.assertEquals(2, res.size());
+    }
+
+    @Test
+    public void test3GetAgent() throws Exception {
+        var con = request(PLATFORM_A, "GET", "/agents/sample1", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, AgentDescription.class);
+        Assert.assertEquals("sample1", res.getAgentId());
     }
 
     /**
@@ -239,7 +256,6 @@ public class PlatformTests {
         Assert.assertTrue(lst2.isEmpty());
     }
 
-
     /**
      * undeploy container, check that it's gone
      */
@@ -261,14 +277,89 @@ public class PlatformTests {
      * TEST HOW STUFF FAILS
      */
 
-    // TODO try to invoke unknown action
-    // TODO try to send message to unknown agent
-    // TODO try to call route with mismatched payload format?
+    @Test
+    public void testXUnknownRoute() throws Exception {
+        var con = request(PLATFORM_A, "GET", "/unknown", null);
+        // this is actually a simple client-side error
+        Assert.assertEquals(404, con.getResponseCode());
+    }
+
+    @Test
+    public void testXWrongPayload() throws Exception {
+        var msg = Map.of("unknown", "attributes");
+        var con = request(PLATFORM_A, "GET", "/broadcast/topic", msg);
+        Assert.assertEquals(422, con.getResponseCode());
+    }
+
+    @Test
+    public void testXGetUnknownAgent() throws Exception {
+        var con = request(PLATFORM_A, "GET", "/agents/unknown", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con);
+        Assert.assertTrue(res.isEmpty());
+    }
+
+    /**
+     * try to invoke unknown action
+     * -> 404 (not found)
+     */
+    @Test
+    public void testXunknownAction() throws Exception {
+        var con = request(PLATFORM_A, "POST", "/invoke/UnknownAction", Map.of());
+        Assert.assertEquals(404, con.getResponseCode());
+
+        con = request(PLATFORM_A, "POST", "/invoke/Add/unknownagent", Map.of());
+        Assert.assertEquals(404, con.getResponseCode());
+    }
+
+    /**
+     * try to send message to unknown agent
+     * -> 404 (not found)
+     */
+    @Test
+    public void testXUnknownSend() throws Exception {
+        var message = Map.of("payload", "testMessage", "replyTo", "doesnotmatter");
+        var con = request(PLATFORM_A, "POST", "/send/unknownagent", message);
+        Assert.assertEquals(404, con.getResponseCode());
+    }
+
+    // TODO invoke and send to known agent that does not respond on target container...
+    //  needs actually faulty container; manually tested by stopping container outside of platform
+
     // TODO try to deploy unknown container
+    //  -> 404 should make sense here
+
     // TODO try to deploy wrong type of container (just hello-world or similar)
-    // TODO try to undeploy unknown container
-    // TODO try to connect unknown platform
-    // TODO try to disconnect unknown platform
+    //  -> now _this_ is interesting... deploy will work without error, but then all subsequent calls will fail
+    //     maybe deploy should wait until the container is online, and raise an exception after some time otherwise?
+
+    /**
+     * try to undeploy unknown container
+     * -> false (not really an error, afterwards the container _is_ gone...)
+     */
+    @Test
+    public void testXUnknownUndeploy() throws Exception {
+        var con = request(PLATFORM_A, "DELETE", "/containers/somerandomcontainerid", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Boolean.class);
+        Assert.assertFalse(res);
+    }
+
+    @Test
+    public void testXConnect() throws Exception {
+        var con = request(PLATFORM_A, "POST", "/connections", "http://flsflsfsjfkj.com");
+        Assert.assertEquals(502, con.getResponseCode());
+    }
+
+    @Test
+    public void testXDisconnect() throws Exception {
+        var con = request(PLATFORM_A, "DELETE", "/connections", "http://flsflsfsjfkj.com");
+        Assert.assertEquals(200, con.getResponseCode());
+        // not really an error... afterwards, the platform _is_ disconnected, it just never was connected, thus false
+        // TODO case is different if the platform _is_ connected, but does not respond to disconnect -> 502?
+        var res = result(con, Boolean.class);
+        Assert.assertFalse(res);
+    }
 
     /*
      * HELPER METHODS

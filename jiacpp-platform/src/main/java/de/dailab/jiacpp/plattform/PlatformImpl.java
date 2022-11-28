@@ -31,13 +31,13 @@ import java.util.stream.Collectors;
 @Log
 public class PlatformImpl implements RuntimePlatformApi {
 
-    // TODO properly describe the different routes and their expected behaviour somewhere,
-    //  including error cases (not found?), forwarding to containers and remote platforms, etc.
-
     // TODO make sure agent IDs are globally unique? extend agent-ids with platform-hash or similar?
     //  e.g. optionally allow "agentId@containerId" to be passed in place of agentId for all routes?
 
     // TODO later, move all docker-specific stuff to separate class
+
+    // TODO do not always refresh containers/connected platforms, as that might cause problems with calls
+    //  that are not related to those platforms at all?
 
     final PlatformConfig config;
 
@@ -133,7 +133,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             log.info("Forwarding /send to " + client.baseUrl);
             client.post(String.format("/send/%s", agentId), message, null);
         } else {
-            throw new NoSuchElementException(String.format("Not found: agent %s", agentId));
+            throw new NoSuchElementException(String.format("Not found: agent '%s'", agentId));
         }
     }
 
@@ -143,6 +143,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         for (AgentContainer container : runningContainers.values()) {
             getClient(container).post(String.format("/broadcast/%s", channel), message, null);
         }
+        // TODO how to handle IO Exception forwarding to a single container/platform, if broadcast to all others worked?
         // TODO broadcast to other platforms... how to prevent infinite loops? optional flag parameter?
     }
 
@@ -161,7 +162,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                     : String.format("/invoke/%s/%s", action, agentId);
             return client.post(url, parameters, JsonNode.class);
         } else {
-            throw new NoSuchElementException(String.format("Not found: action %s @ agent %s", action, agentId));
+            throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s'", action, agentId));
         }
     }
 
@@ -193,6 +194,8 @@ public class PlatformImpl implements RuntimePlatformApi {
         runningContainers.put(agentContainerId, null); // to be updated later
 
         // TODO should this wait until the container is up and running?
+        // TODO wait in loop, regularly try to call /info route on container
+        //  raise error after some time or if container is terminated
 
         return agentContainerId;
     }
@@ -206,9 +209,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public AgentContainer getContainer(String containerId) throws IOException {
         updateContainers();
-        return runningContainers.values().stream()
-                .filter(c -> c.getContainerId().equals(containerId))
-                .findAny().orElse(null);
+        return runningContainers.get(containerId);
     }
 
     @Override
@@ -220,6 +221,8 @@ public class PlatformImpl implements RuntimePlatformApi {
             dockerClient.stopContainerCmd(dockerId).exec();
             runningContainers.remove(containerId);
             // TODO get result, check if and when it is finally stopped?
+            // TODO handle case of container already being terminated (due to error or similar)
+            // TODO possibly that the container refuses being stopped? call "kill" instead? how to test this?
             return true;
         }
         return false;
@@ -238,15 +241,19 @@ public class PlatformImpl implements RuntimePlatformApi {
             // callback from remote platform following our own request for connection
             return true;
         } else {
-            pendingConnections.add(url);
-            var client = new RestHelper(url);
-            var res = client.post("/connections", getOwnBaseUrl(), Boolean.class);
-            if (res) {
+            try {
+                pendingConnections.add(url);
+                var client = new RestHelper(url);
+                var res = client.post("/connections", getOwnBaseUrl(), Boolean.class);
+                if (res) {
+                    var info = client.get("/info", RuntimePlatform.class);
+                    connectedPlatforms.put(url, info);
+                }
+                return true;
+            } finally {
+                // also remove from pending in case client.post fails
                 pendingConnections.remove(url);
-                var info = client.get("/info", RuntimePlatform.class);
-                connectedPlatforms.put(url, info);
             }
-            return true;
         }
     }
 
@@ -262,6 +269,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             var client = new RestHelper(url);
             var res = client.delete("/connections", getOwnBaseUrl(), Boolean.class);
             log.info(String.format("Disconnected from %s: %s", url, res));
+            // TODO how to handle IO Exception here? other platform still there but refuses to disconnect?
             return true;
         }
         return false;
@@ -320,11 +328,11 @@ public class PlatformImpl implements RuntimePlatformApi {
      * Check if Container ID matches and has matching agent and/or action.
      */
     private boolean matches(AgentContainer container, String containerId, String agentId, String action) {
-        return (containerId == null || container.getContainerId().equals(containerId) &&
+        return (containerId == null || container.getContainerId().equals(containerId)) &&
                 container.getAgents().stream()
                         .anyMatch(a -> (agentId == null || a.getAgentId().equals(agentId))
                                 && (action == null || a.getActions().stream()
-                                .anyMatch(x -> x.getName().equals(action)))));
+                                .anyMatch(x -> x.getName().equals(action))));
     }
 
     private RestHelper getClient(AgentContainer container) {

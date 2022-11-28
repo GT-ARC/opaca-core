@@ -1,11 +1,14 @@
 package de.dailab.jiacpp.plattform;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
@@ -13,6 +16,7 @@ import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 
 /**
@@ -22,6 +26,8 @@ import java.util.Map;
 @Log
 @RestController
 public class PlatformRestController implements RuntimePlatformApi {
+
+	// TODO add explicit routes for updating/refreshing specific containers, instead of regular auto-updates?
 
 	@Autowired
 	PlatformConfig config;
@@ -56,6 +62,31 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	/*
+	 * GENERIC/AUTOMATIC EXCEPTION HANDLING
+	 */
+
+	@ExceptionHandler(value=NoSuchElementException.class)
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	public ResponseEntity<String> handleNotFound(NoSuchElementException e) {
+		log.warning(e.getMessage());  // probably a user error
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+	}
+
+	@ExceptionHandler(value=JsonProcessingException.class)
+	@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+	public ResponseEntity<String> handleJsonException(JsonProcessingException e) {
+		log.warning(e.getMessage());  // user error
+		return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getMessage());
+	}
+
+	@ExceptionHandler(value=IOException.class)
+	@ResponseStatus(HttpStatus.BAD_GATEWAY)
+	public ResponseEntity<String> handleIoException(IOException e) {
+		log.severe(e.getMessage());  // should not happen
+		return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(e.getMessage());
+	}
+
+	/*
 	 * INFO ROUTES
 	 */
 
@@ -80,7 +111,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	@RequestMapping(value="/agents/{agentId}", method=RequestMethod.GET)
-	@Operation(summary="Get Description of a single Agent", tags={"agents"})
+	@Operation(summary="Get Description of a single Agent; null if agent not found", tags={"agents"})
 	@Override
 	public AgentDescription getAgent(
 			@PathVariable String agentId
@@ -144,6 +175,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public String addContainer(
 			@RequestBody AgentContainerImage container
 	) throws IOException {
+		// TODO handle "failed to start container" error (tbd)
 		log.info(String.format("ADD CONTAINER: %s", container));
 		return implementation.addContainer(container);
 	}
@@ -157,7 +189,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	@RequestMapping(value="/containers/{containerId}", method=RequestMethod.GET)
-	@Operation(summary="Get details on one specific Agent Container running on this platform", tags={"containers"})
+	@Operation(summary="Get details on one specific Agent Container running on this platform; null if not found", tags={"containers"})
 	@Override
 	public AgentContainer getContainer(
 			@PathVariable String containerId
@@ -167,7 +199,8 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	@RequestMapping(value="/containers/{containerId}", method=RequestMethod.DELETE)
-	@Operation(summary="Stop and remove Agent Container running on this platform", tags={"containers"})
+	@Operation(summary="Stop and remove Agent Container running on this platform; " +
+			"return false if container not found or already stopped", tags={"containers"})
 	@Override
 	public boolean removeContainer(
 			@PathVariable String containerId
@@ -181,11 +214,13 @@ public class PlatformRestController implements RuntimePlatformApi {
 	 */
 
 	@RequestMapping(value="/connections", method=RequestMethod.POST)
-	@Operation(summary="Establish connection to another Runtime Platform", tags={"connections"})
+	@Operation(summary="Establish connection to another Runtime Platform; " +
+			"return false if platform already connected", tags={"connections"})
 	@Override
 	public boolean connectPlatform(
 			@RequestBody String url
 	) throws IOException {
+		// TODO handle IO Exception (platform not found or does not respond, could be either 404 or 502)
 		log.info(String.format("CONNECT PLATFORM: %s", url));
 		return implementation.connectPlatform(url);
 	}
