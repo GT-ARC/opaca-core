@@ -192,6 +192,8 @@ public class PlatformImpl implements RuntimePlatformApi {
         dockerContainers.put(agentContainerId, new DockerContainerInfo(res.getId(), info.getNetworkSettings().getIpAddress()));
         runningContainers.put(agentContainerId, null); // to be updated later
 
+        // TODO should this wait until the container is up and running?
+
         return agentContainerId;
     }
 
@@ -216,6 +218,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (container != null) {
             var dockerId = dockerContainers.get(containerId).getContainerId();
             dockerClient.stopContainerCmd(dockerId).exec();
+            runningContainers.remove(containerId);
             // TODO get result, check if and when it is finally stopped?
             return true;
         }
