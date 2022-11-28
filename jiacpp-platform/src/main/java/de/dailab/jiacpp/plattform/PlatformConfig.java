@@ -3,6 +3,9 @@ package de.dailab.jiacpp.plattform;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+
 /**
  * Settings for the Runtime Platform. This is not a part of the JIAC++ model since
  * most of these settings are platform specific and might be different for different
@@ -17,6 +20,9 @@ public class PlatformConfig {
     @Value("${public_url}")
     String publicUrl;
 
+    @Value("${container_timeout_sec}")
+    Integer containerTimeoutSec;
+
 
     // TODO
     //  docker registries and logins
@@ -27,4 +33,21 @@ public class PlatformConfig {
     // TODO or define "ContainerClient" similar to JES with different implementations for
     //  Docker and Kubernetes, each with its own settings?
 
+
+    /**
+     * Get Host IP address. Should return preferred outbound address.
+     * Adapted from https://stackoverflow.com/a/38342964/1639625
+     */
+    public String getOwnBaseUrl() {
+        if (publicUrl != null) {
+            return publicUrl;
+        }
+        try (DatagramSocket socket = new DatagramSocket()) {
+            socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
+            String host = socket.getLocalAddress().getHostAddress();
+            return "http://" + host + ":" + serverPort;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
