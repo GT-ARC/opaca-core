@@ -14,14 +14,14 @@ import java.util.NoSuchElementException;
 public interface ContainerClient {
 
     /**
-     * Initialize the client using properties in the given configuraiton file. Different clients may
+     * Initialize the client using properties in the given configuration file. Different clients may
      * require different attributes.
      */
     void initialize(PlatformConfig config);
 
     /**
      * Start a container with the given container ID (for later reference) and image name. If all goes well,
-     * return nothing, otherwise raise an apropriate exception.
+     * return nothing, otherwise raise an appropriate exception.
      */
     void startContainer(String containerId, String imageName) throws IOException, NoSuchElementException;
 

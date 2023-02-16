@@ -18,7 +18,7 @@ public interface RuntimePlatformApi extends CommonApi {
     // TODO REST routes are still preliminary
 
     /**
-     * Get full information on the Runtime Platform, including all running Agent Containrs and
+     * Get full information on the Runtime Platform, including all running Agent Containers and
      * Agents, connected other platforms, etc.
      *
      * REST Route: GET /info
@@ -63,7 +63,7 @@ public interface RuntimePlatformApi extends CommonApi {
      * REST: DELETE /containers/{id}
      *
      * @param containerId ID of the container
-     * @return Removal successul?
+     * @return Removal successful?
      */
     boolean removeContainer(String containerId) throws IOException;
 

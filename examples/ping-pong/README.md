@@ -7,7 +7,7 @@ The general flow of messages is as follows:
 
 * in regular intervals, Ping agent sends a Broadcast message to all Pong agents
 * Pong agents reply with an offer (just a random number) in a Directed message
-* Ping agent evaluates all offers and sends an Invoke message to the Pong agent with the best offer
+* Ping agent evaluates all offers and sends an `Invoke` message to the Pong agent with the best offer
 
 With this, all three messaging mechanisms -- directed, broadcast, and invoke -- can be tested in different scenarios:
 
@@ -15,7 +15,7 @@ With this, all three messaging mechanisms -- directed, broadcast, and invoke -- 
 * Ping and Pong in different AgentContainers under the same RuntimePlatform
 * Ping and Pong in different AgentContainers under different RuntimePlatform
 
-## Starting process for distributed Ping Pong:
+## Starting process for distributed Ping-Pong:
 
 * run `mvn install`
 * start runtime platform

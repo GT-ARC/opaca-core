@@ -5,7 +5,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Description of the Runtime Platform, including deployed Agent Containers.
@@ -16,7 +15,7 @@ public class RuntimePlatform {
     /** the external base URL where to reach this platform */
     String baseUrl;
 
-    /** Agetn Containers managed by this platform */
+    /** Agent Containers managed by this platform */
     List<AgentContainer> containers;
 
     /** List of capabilities this platform provides, e.g. "gpu-support"; format to be specified */

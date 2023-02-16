@@ -1,7 +1,6 @@
 package de.dailab.jiacpp.api;
 
 import de.dailab.jiacpp.model.AgentContainer;
-import de.dailab.jiacpp.model.Initialize;
 
 import java.io.IOException;
 

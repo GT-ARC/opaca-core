@@ -1,7 +1,6 @@
 package de.dailab.jiacpp.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentDescription;
 import de.dailab.jiacpp.model.Message;
 
@@ -10,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * API for both, Agent Containers and Runtime Platform. In fact, those are primarilly the
+ * API for both, Agent Containers and Runtime Platform. In fact, those are primarily the
  * Agent Container functions, but separated here, since the Agent Container will also have
  * a specific "info" route.
  */
@@ -34,7 +33,7 @@ public interface CommonApi {
      * REST: GET /agents/{id}
      *
      * @param agentId ID of the agent
-     * @return Descripiton of that agent
+     * @return Description of that agent
      */
     AgentDescription getAgent(String agentId) throws IOException;
 
@@ -51,7 +50,7 @@ public interface CommonApi {
     /**
      * Send message to a group of agents, or channel.
      *
-     * REST: POST /broadcase/{channel}
+     * REST: POST /broadcast/{channel}
      *
      * @param channel Name of the group or channel
      * @param message The message envelope

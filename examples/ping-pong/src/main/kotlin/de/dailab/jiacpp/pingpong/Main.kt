@@ -11,13 +11,13 @@ fun main(args: Array<String>) {
     if (args.isEmpty())
         throw IllegalArgumentException("Please provide 'ping' or 'pong' as command line parameter!")
 
-    val image_config = when (args[0]) {
+    val imageConfig = when (args[0]) {
         "ping" -> "/ping-container.json"
         "pong" -> "/pong-container.json"
         else -> throw IllegalArgumentException("Argument must be 'ping' or 'pong'!")
     }
 
-    val image = ConfigLoader.loadContainerImageFromResources(image_config)
+    val image = ConfigLoader.loadContainerImageFromResources(imageConfig)
     agentSystem(image.imageName) {
         enable(LocalBroker)
         agents {
