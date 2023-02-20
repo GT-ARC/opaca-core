@@ -130,6 +130,10 @@ public class PlatformImpl implements RuntimePlatformApi {
                 var container = client.get("/info", AgentContainer.class);
                 runningContainers.put(agentContainerId, container);
                 log.info("Container started: " + agentContainerId);
+                if (! container.getContainerId().equals(agentContainerId)) {
+                    log.warning("Agent Container ID does not match: Expected " +
+                            agentContainerId + ", but found " + container.getContainerId());
+                }
                 return agentContainerId;
             } catch (IOException e) {
                 // this is normal... waiting for container to start and provide services
