@@ -3,7 +3,9 @@ package de.dailab.jiacpp.plattform.containerclient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.command.PullImageResultCallback;
+import com.github.dockerjava.api.exception.InternalServerErrorException;
 import com.github.dockerjava.api.exception.NotFoundException;
+import com.github.dockerjava.api.model.AuthConfig;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
@@ -20,6 +22,9 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Container Client for running Agent Containers in Docker, possibly on a remote host.
@@ -38,6 +43,9 @@ public class DockerClient implements ContainerClient {
 
     /** additional Docker-specific information on agent containers */
     private Map<String, DockerContainerInfo> dockerContainers;
+
+    /** Available Docker Auth */
+    private Map<String, AuthConfig> auth;
 
     @Data
     @AllArgsConstructor
@@ -71,6 +79,7 @@ public class DockerClient implements ContainerClient {
                 .build();
 
         this.config = config;
+        this.auth = loadDockerAuth();
         this.dockerClient = DockerClientImpl.getInstance(dockerConfig, dockerHttpClient);
         this.dockerContainers = new HashMap<>();
     }
@@ -79,13 +88,19 @@ public class DockerClient implements ContainerClient {
     public void startContainer(String containerId, String imageName) throws IOException, NoSuchElementException {
         try {
             // pull image if not present
-            if (dockerClient.listImagesCmd().withImageNameFilter(imageName).exec().isEmpty()) {
+            if (! isImagePresent(imageName)) {
                 log.info("Pulling Image..." + imageName);
                 try {
-                    dockerClient.pullImageCmd(imageName).exec(new PullImageResultCallback())
+                    var registry = imageName.split("/")[0];
+                    dockerClient.pullImageCmd(imageName)
+                            .withAuthConfig(this.auth.get(registry))
+                            .exec(new PullImageResultCallback())
                             .awaitCompletion();
                 } catch (InterruptedException e) {
                     log.warning(e.getMessage());
+                } catch (InternalServerErrorException e) {
+                    log.severe("Pull Image failed: " + e.getMessage());
+                    throw new NoSuchElementException("Failed to Pull image: " + e.getMessage());
                 }
             }
 
@@ -124,4 +139,38 @@ public class DockerClient implements ContainerClient {
         return dockerContainers.get(containerId).getInternalIp();
     }
 
+    private boolean isImagePresent(String imageName) {
+        try {
+            this.dockerClient.inspectImageCmd(imageName).exec();
+            return true;
+        } catch (NotFoundException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get Dict mapping Docker registries to auth credentials from settings.
+     * Adapted from EMPAIA Job Execution Service
+     */
+    private Map<String, AuthConfig> loadDockerAuth() {
+        if (config.registryNames.isEmpty()) {
+            return Map.of();
+        }
+        var sep = config.registrySeparator;
+        var registries = config.registryNames.split(sep);
+        var logins = config.registryLogins.split(sep);
+        var passwords = config.registryPasswords.split(sep);
+
+        if (registries.length != logins.length || registries.length != passwords.length) {
+            log.warning("Number of Registry Names does not match Login Usernames and Passwords");
+            return Map.of();
+        } else {
+            return IntStream.range(0, registries.length)
+                    .mapToObj(i -> new AuthConfig()
+                            .withRegistryAddress(registries[i])
+                            .withUsername(logins[i])
+                            .withPassword(passwords[i]))
+                    .collect(Collectors.toMap(AuthConfig::getRegistryAddress, Function.identity()));
+        }
+    }
 }
