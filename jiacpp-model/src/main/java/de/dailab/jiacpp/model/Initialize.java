@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 /**
  * Sent to the Agent Container on initialization, to notify them of their own
  * container ID and how to reach their parent Runtime Platform.
+ *
+ * @deprecated not used
  */
 @Data @NoArgsConstructor @AllArgsConstructor
 public class Initialize {

@@ -25,7 +25,7 @@ public interface RuntimePlatformApi extends CommonApi {
      *
      * @return Extensive information on the platform and its containers and agents.
      */
-    RuntimePlatform getInfo() throws IOException;
+    RuntimePlatform getPlatformInfo() throws IOException;
 
     /**
      * Deploy a container to the runtime Platform. Check requirements, get actual docker image, and

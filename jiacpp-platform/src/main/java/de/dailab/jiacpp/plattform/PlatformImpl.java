@@ -6,7 +6,7 @@ import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.plattform.containerclient.ContainerClient;
 import de.dailab.jiacpp.plattform.containerclient.DockerClient;
-import de.dailab.jiacpp.util.RestHelper;
+import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
 
 import java.io.IOException;
@@ -44,7 +44,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public RuntimePlatform getInfo() throws IOException {
+    public RuntimePlatform getPlatformInfo() throws IOException {
         return new RuntimePlatform(
                 config.getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),
@@ -77,7 +77,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         var client = getClient(null, agentId, null);
         if (client != null) {
             log.info("Forwarding /send to " + client.baseUrl);
-            client.post(String.format("/send/%s", agentId), message, null);
+            client.send(agentId, message);
         } else {
             throw new NoSuchElementException(String.format("Not found: agent '%s'", agentId));
         }
@@ -86,7 +86,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public void broadcast(String channel, Message message) throws IOException {
         for (AgentContainer container : runningContainers.values()) {
-            getClient(container).post(String.format("/broadcast/%s", channel), message, null);
+            getClient(container).broadcast(channel, message);
         }
         // TODO how to handle IO Exception forwarding to a single container/platform, if broadcast to all others worked?
         // TODO broadcast to other platforms... how to prevent infinite loops? optional flag parameter?
@@ -102,10 +102,9 @@ public class PlatformImpl implements RuntimePlatformApi {
         var client = getClient(null, agentId, action);
         if (client != null) {
             log.info("Forwarding /invoke to " + client.baseUrl);
-            var url = agentId == null
-                    ? String.format("/invoke/%s", action)
-                    : String.format("/invoke/%s/%s", action, agentId);
-            return client.post(url, parameters, JsonNode.class);
+            return agentId == null
+                    ? client.invoke(action, parameters)
+                    : client.invoke(agentId, action, parameters);
         } else {
             throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s'", action, agentId));
         }
@@ -127,7 +126,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         var client = getClient(agentContainerId);
         while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000) {
             try {
-                var container = client.get("/info", AgentContainer.class);
+                var container = client.getContainerInfo();
                 runningContainers.put(agentContainerId, container);
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
@@ -190,10 +189,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         } else {
             try {
                 pendingConnections.add(url);
-                var client = new RestHelper(url);
-                var res = client.post("/connections", config.getOwnBaseUrl(), Boolean.class);
+                var client = new ApiProxy(url);
+                var res = client.connectPlatform(config.getOwnBaseUrl());
                 if (res) {
-                    var info = client.get("/info", RuntimePlatform.class);
+                    var info = client.getPlatformInfo();
                     connectedPlatforms.put(url, info);
                 }
                 return true;
@@ -213,8 +212,8 @@ public class PlatformImpl implements RuntimePlatformApi {
     public boolean disconnectPlatform(String url) throws IOException {
         url = normalizeUrl(url);
         if (connectedPlatforms.remove(url) != null) {
-            var client = new RestHelper(url);
-            var res = client.delete("/connections", config.getOwnBaseUrl(), Boolean.class);
+            var client = new ApiProxy(url);
+            var res = client.disconnectPlatform(config.getOwnBaseUrl());
             log.info(String.format("Disconnected from %s: %s", url, res));
             // TODO how to handle IO Exception here? other platform still there but refuses to disconnect?
             return true;
@@ -232,7 +231,7 @@ public class PlatformImpl implements RuntimePlatformApi {
      * All those parameters are optional (e.g. for "send" or "invoke" without agentId), but obviously
      * _some_ should be set, otherwise it does not make much sense to call the method.
      */
-    private RestHelper getClient(String containerId, String agentId, String action) throws IOException {
+    private ApiProxy getClient(String containerId, String agentId, String action) throws IOException {
         // TODO for /invoke: also check that action parameters match, or just the name?
         // check own containers
         var container = runningContainers.values().stream()
@@ -246,7 +245,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 .filter(p -> p.getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action)))
                 .findFirst();
         if (platform.isPresent()) {
-            return new RestHelper(platform.get().getBaseUrl());
+            return new ApiProxy(platform.get().getBaseUrl());
         }
         return null;
     }
@@ -262,13 +261,13 @@ public class PlatformImpl implements RuntimePlatformApi {
                                 .anyMatch(x -> x.getName().equals(action))));
     }
 
-    private RestHelper getClient(AgentContainer container) {
+    private ApiProxy getClient(AgentContainer container) {
         return getClient(container.getContainerId());
     }
 
-    private RestHelper getClient(String containerId) {
+    private ApiProxy getClient(String containerId) {
         var ip = containerClient.getIP(containerId);
-        return new RestHelper(String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT));
+        return new ApiProxy(String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT));
     }
 
     private String normalizeUrl(String url) {

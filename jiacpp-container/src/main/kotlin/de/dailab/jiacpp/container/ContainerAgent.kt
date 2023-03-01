@@ -50,7 +50,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
             val info = Regex("^/info$").find(path)
             if (info != null) {
-                val res = impl.info
+                val res = impl.containerInfo
                 response.writer.write(RestHelper.writeJson(res))
             }
 
@@ -160,7 +160,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
      */
     private val impl = object : AgentContainerApi {
 
-        override fun getInfo(): AgentContainer {
+        override fun getContainerInfo(): AgentContainer {
             log.info("GET INFO")
             return AgentContainer(containerId, image, agents, startedAt)
         }
