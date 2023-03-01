@@ -93,9 +93,9 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@RequestMapping(value="/info", method=RequestMethod.GET)
 	@Operation(summary="Get information on this Runtime Platform", tags={"info"})
 	@Override
-	public RuntimePlatform getInfo() throws IOException {
+	public RuntimePlatform getPlatformInfo() throws IOException {
 		log.info("Get Info");
-		return implementation.getInfo();
+		return implementation.getPlatformInfo();
 	}
 
 	/*

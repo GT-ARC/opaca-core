@@ -44,7 +44,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public RuntimePlatform getInfo() throws IOException {
+    public RuntimePlatform getPlatformInfo() throws IOException {
         return new RuntimePlatform(
                 config.getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),

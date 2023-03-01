@@ -26,6 +26,6 @@ public interface AgentContainerApi extends CommonApi{
      *
      * @return  Information on the started container
      */
-    AgentContainer getInfo() throws IOException;
+    AgentContainer getContainerInfo() throws IOException;
 
 }
