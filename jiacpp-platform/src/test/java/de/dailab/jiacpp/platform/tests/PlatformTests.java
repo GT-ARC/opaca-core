@@ -40,6 +40,8 @@ public class PlatformTests {
     private final String PLATFORM_A = "http://localhost:8001";
     private final String PLATFORM_B = "http://localhost:8002";
 
+    private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container";
+
     private static String containerId = null;
     private static String platformABaseUrl = null;
 
@@ -65,7 +67,7 @@ public class PlatformTests {
     @Test
     public void test2Deploy() throws Exception {
         var container = new AgentContainerImage();
-        container.setImageName("sample-agent-container-image");
+        container.setImageName(TEST_IMAGE);
         var con = request(PLATFORM_A, "POST", "/containers", container);
         Assert.assertEquals(200, con.getResponseCode());
         containerId = result(con);
