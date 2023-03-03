@@ -249,6 +249,13 @@ public class PlatformImpl implements RuntimePlatformApi {
      * HELPER METHODS
      */
 
+    /**
+     * Whenever there is a change in this platform's Agent Containers (added, removed, or updated),
+     * call the /notify route of all connected Runtime Platforms, so they can pull the updated /info
+     */
+    private void notifyConnectedPlatforms() {
+        // TODO
+    }
 
     /**
      * Get client for send or invoke to specific agent, in a specific container, for a specific action.
