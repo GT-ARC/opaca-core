@@ -222,6 +222,17 @@ public class PlatformImpl implements RuntimePlatformApi {
         return false;
     }
 
+    @Override
+    public void notifyPlatform(String containerId) {
+        try {
+            var client = this.getClient(containerId); // can throw NullPointerException when containerId is invalid
+            var container = client.get("/info", AgentContainer.class); // can throw IOException on timeout
+            runningContainers.put(containerId, container);
+        } catch (Exception e) {
+            log.warning("Could not update container info for container: " + containerId);
+        }
+    }
+
     /*
      * HELPER METHODS
      */

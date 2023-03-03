@@ -131,4 +131,9 @@ public class ApiProxy implements RuntimePlatformApi {
         System.out.println(url);
         return client.delete("/connections", url, Boolean.class);
     }
+
+    @Override
+    public void notifyPlatform(String uuid) {
+        System.out.println("NOTIFY: " + uuid);
+    }
 }

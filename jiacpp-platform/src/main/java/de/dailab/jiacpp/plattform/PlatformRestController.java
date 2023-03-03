@@ -242,4 +242,14 @@ public class PlatformRestController implements RuntimePlatformApi {
 		log.info(String.format("DISCONNECT PLATFORM: %s", url));
 		return implementation.disconnectPlatform(url);
 	}
+
+
+	@RequestMapping(value="/notify", method=RequestMethod.POST)
+	@Operation(summary="Notify Platform about updates", tags={"containers"})
+	@Override
+	public void notifyPlatform(@RequestBody String containerId) {
+		log.info(String.format("NOTIFY: %s", containerId));
+		implementation.notifyPlatform(containerId);
+	}
+
 }

@@ -99,4 +99,13 @@ public interface RuntimePlatformApi extends CommonApi {
      */
     boolean disconnectPlatform(String url) throws IOException;
 
+    /**
+     * Notify a platform about changes in either a container or another platform.
+     *
+     * REST: POST /notify
+     *
+     * @param uuid UUID of the container/platform that changed.
+     */
+    void notifyPlatform(String uuid);
+
 }

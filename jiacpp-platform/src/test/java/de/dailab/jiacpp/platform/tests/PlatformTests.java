@@ -4,11 +4,24 @@ import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
 import de.dailab.jiacpp.model.AgentDescription;
 import de.dailab.jiacpp.model.RuntimePlatform;
+import de.dailab.jiacpp.plattform.Application;
 import de.dailab.jiacpp.util.RestHelper;
-import org.junit.Assert;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.util.MimeTypeUtils;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -34,6 +47,10 @@ import java.util.Map;
  * Some tests depend on each others, so best always execute all tests. (That's also the reason
  * for the numbers in the method names, so don't remove those and stay consistent when adding more tests!)
  */
+// @RunWith(SpringRunner.class)
+// @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK, classes = Application.class)
+// @AutoConfigureMockMvc
+// @TestPropertySource(locations = "classpath:application-1.properties")
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class PlatformTests {
 
@@ -42,6 +59,31 @@ public class PlatformTests {
 
     private static String containerId = null;
     private static String platformABaseUrl = null;
+
+    private static SpringApplicationBuilder applicationTestServer1;
+    private static SpringApplicationBuilder applicationTestServer2;
+
+    /**
+     *
+     */
+    @BeforeClass
+    public static void setupPlatform() {
+        System.out.println("BEFORE TESTS");
+
+        applicationTestServer1 = new SpringApplicationBuilder(Application.class)
+                .properties("server.port=${PORT:8001}",
+                        "public_url=${PUBLIC_URL:#{null}}",
+                        "container_timeout_sec=${CONTAINER_TIMEOUT_SEC:10}");
+        applicationTestServer1.run();
+
+        applicationTestServer2 = new SpringApplicationBuilder(Application.class)
+                .properties("server.port=${PORT:8002}",
+                        "public_url=${PUBLIC_URL:#{null}}",
+                        "container_timeout_sec=${CONTAINER_TIMEOUT_SEC:10}");
+        applicationTestServer2.run();
+
+        System.out.println("BEFORE TESTS - DONE");
+    }
 
     /*
      * TEST THAT STUFF WORKS
@@ -412,3 +454,5 @@ public class PlatformTests {
     }
 
 }
+
+
