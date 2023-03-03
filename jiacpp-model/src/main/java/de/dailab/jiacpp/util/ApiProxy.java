@@ -133,7 +133,19 @@ public class ApiProxy implements RuntimePlatformApi {
     }
 
     @Override
-    public void notifyPlatform(String uuid) {
-        System.out.println("NOTIFY: " + uuid);
+    public boolean notifyUpdateContainer(Message message) {
+        System.out.println("NOTIFY: " + message);
+
+        // todo: client call
+        return true;
     }
+
+    @Override
+    public boolean notifyUpdatePlatform(Message message) {
+        System.out.println("NOTIFY: " + message);
+
+        // todo: client call
+        return true;
+    }
+
 }

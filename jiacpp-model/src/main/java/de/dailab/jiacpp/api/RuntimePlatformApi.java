@@ -2,6 +2,7 @@ package de.dailab.jiacpp.api;
 
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
+import de.dailab.jiacpp.model.Message;
 import de.dailab.jiacpp.model.RuntimePlatform;
 
 import java.io.IOException;
@@ -100,12 +101,13 @@ public interface RuntimePlatformApi extends CommonApi {
     boolean disconnectPlatform(String url) throws IOException;
 
     /**
-     * Notify a platform about changes in either a container or another platform.
      *
-     * REST: POST /notify
-     *
-     * @param uuid UUID of the container/platform that changed.
      */
-    void notifyPlatform(String uuid);
+    boolean notifyUpdateContainer(Message message);
+
+    /**
+     *
+     */
+    boolean notifyUpdatePlatform(Message message);
 
 }

@@ -1,16 +1,11 @@
 package de.dailab.jiacpp.platform.tests;
 
-import de.dailab.jiacpp.model.AgentContainer;
-import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.model.AgentDescription;
-import de.dailab.jiacpp.model.RuntimePlatform;
+import com.fasterxml.jackson.databind.JsonNode;
+import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.plattform.Application;
 import de.dailab.jiacpp.util.RestHelper;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.runners.MethodSorters;
 
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -42,8 +37,11 @@ import java.util.Map;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class PlatformTests {
 
-    private final String PLATFORM_A = "http://localhost:8001";
-    private final String PLATFORM_B = "http://localhost:8002";
+    private static final String PLATFORM_A_PORT = "8001";
+    private static final String PLATFORM_B_PORT = "8002";
+
+    private final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
+    private final String PLATFORM_B = "http://localhost:" + PLATFORM_B_PORT;
 
     private static String containerId = null;
     private static String platformABaseUrl = null;
@@ -56,21 +54,23 @@ public class PlatformTests {
      * on ports 8001 and 8002
      */
     @BeforeClass
-    public static void setupPlatform() {
+    public static void setupPlatforms() {
         System.out.println("STARTING TEST SERVERS");
 
-        String serverPort1 = "8001";
-        String serverPort2 = "8002";
-
-        System.out.println("STARTING TEST SERVER 1 ON PORT " + serverPort1);
+        System.out.println("STARTING TEST SERVER 1 ON PORT " + PLATFORM_A_PORT);
         applicationTestServer1 = new SpringApplicationBuilder(Application.class);
-        applicationTestServer1.run("--server.port=" + serverPort1);
+        applicationTestServer1.run("--server.port=" + PLATFORM_A_PORT);
 
-        System.out.println("STARTING TEST SERVER 2 ON PORT " + serverPort2);
+        System.out.println("STARTING TEST SERVER 2 ON PORT " + PLATFORM_B_PORT);
         applicationTestServer2 = new SpringApplicationBuilder(Application.class);
-        applicationTestServer2.run("--server.port=" + serverPort2);
+        applicationTestServer2.run("--server.port=" + PLATFORM_B_PORT);
 
         System.out.println("STARTED TEST SERVERS SUCCESSFULLY");
+    }
+
+    @AfterClass
+    public static void cleanupPlatforms() {
+        // todo: anything to do here? shut down the platforms?
     }
 
     /*
@@ -407,6 +407,17 @@ public class PlatformTests {
         // TODO case is different if the platform _is_ connected, but does not respond to disconnect -> 502?
         var res = result(con, Boolean.class);
         Assert.assertFalse(res);
+    }
+
+    @Test
+    public void testXNotify() throws Exception {
+        // todo: update container somehow
+
+        var message = Map.of("payload", containerId, "replyTo", "");
+        var con = request(PLATFORM_A, "POST", "/notify", message);
+
+        // todo: check if container info is updated
+        Assert.assertTrue(true);
     }
 
     /*

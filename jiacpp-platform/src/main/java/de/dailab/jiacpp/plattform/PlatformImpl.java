@@ -223,14 +223,27 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public void notifyPlatform(String containerId) {
+    public boolean notifyUpdateContainer(Message message) {
+        var containerId = message.getPayload().toString();
         try {
             var client = this.getClient(containerId); // can throw NullPointerException when containerId is invalid
             var container = client.get("/info", AgentContainer.class); // can throw IOException on timeout
             runningContainers.put(containerId, container);
+            return true;
         } catch (Exception e) {
             log.warning("Could not update container info for container: " + containerId);
         }
+        return false;
+    }
+
+    @Override
+    public boolean notifyUpdatePlatform(Message message) {
+        var platformUrl = message.getPayload().toString();
+
+        // todo: update platform info
+
+        return true;
+
     }
 
     /*
