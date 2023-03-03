@@ -1,6 +1,7 @@
 package de.dailab.jiacpp.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 
@@ -13,21 +14,28 @@ import java.util.Map;
  * Can be used for e.g. calling routes of a connected Runtime Platform, or a container's
  * parent Runtime Platform, or just for testing.
  */
-public class ApiProxy implements RuntimePlatformApi {
+public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
 
+    public final String baseUrl;
     private final RestHelper client;
 
     public ApiProxy(String baseUrl) {
-         this.client = new RestHelper(baseUrl);
+        this.baseUrl = baseUrl;
+        this.client = new RestHelper(baseUrl);
     }
 
     // INFO ROUTES
 
     @Override
-    public RuntimePlatform getInfo() throws IOException {
+    public RuntimePlatform getPlatformInfo() throws IOException {
         System.out.println("GET INFO");
-        AgentContainer container = client.get("/info", AgentContainer.class);
-        return new RuntimePlatform(null, List.of(container), null, null);
+        return client.get("/info", RuntimePlatform.class);
+    }
+
+    @Override
+    public AgentContainer getContainerInfo() throws IOException {
+        System.out.println("GET INFO");
+        return client.get("/info", AgentContainer.class);
     }
 
     // AGENT ROUTES
