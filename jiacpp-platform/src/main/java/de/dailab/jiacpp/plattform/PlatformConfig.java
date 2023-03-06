@@ -15,17 +15,30 @@ import java.net.InetAddress;
 public class PlatformConfig {
 
     @Value("${server.port}")
-    String serverPort;
+    public String serverPort;
 
     @Value("${public_url}")
-    String publicUrl;
+    public String publicUrl;
+
 
     @Value("${container_timeout_sec}")
-    Integer containerTimeoutSec;
+    public Integer containerTimeoutSec;
+
+
+    @Value("${registry_separator}")
+    public String registrySeparator;
+
+    @Value("${registry_names}")
+    public String registryNames;
+
+    @Value("${registry_logins}")
+    public String registryLogins;
+
+    @Value("${registry_passwords}")
+    public String registryPasswords;
 
 
     // TODO
-    //  docker registries and logins
     //  (remote) docker host
     //  auth stuff for platform itself? tbd
     //  GPU support and other "features" of this specific platform
