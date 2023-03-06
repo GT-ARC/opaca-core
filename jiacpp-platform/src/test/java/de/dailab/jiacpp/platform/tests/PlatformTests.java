@@ -412,14 +412,11 @@ public class PlatformTests {
     }
 
     @Test
-    public void testXNotify() throws Exception {
-        // todo: update container somehow
-
-        var message = Map.of("payload", containerId, "replyTo", "");
-        var con = request(PLATFORM_A, "POST", "/notify", message);
-
-        // todo: check if container info is updated
-        Assert.assertTrue(true);
+    public void testXRequestNotify() throws Exception {
+        var con1 = request(PLATFORM_A, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con1.getResponseCode());
+        var con2 = request(PLATFORM_A, "POST", "/connections/notify", platformABaseUrl);
+        Assert.assertEquals(200, con2.getResponseCode());
     }
 
     /*

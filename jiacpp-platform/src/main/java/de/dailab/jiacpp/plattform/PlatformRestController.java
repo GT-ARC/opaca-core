@@ -252,7 +252,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 			log.info(String.format("NOTIFY: %s", containerId));
 			return implementation.notifyUpdateContainer(containerId);
 		} catch (Exception e) {
-			log.severe(String.format("Invalid NOTIFY message: %s", containerId));
+			log.severe(String.format("Invalid NOTIFY containerId: %s", containerId));
 			return false;
 		}
 	}
@@ -265,7 +265,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 			log.info(String.format("NOTIFY: %s", platformUrl));
 			return implementation.notifyUpdatePlatform(platformUrl);
 		} catch (Exception e) {
-			log.severe(String.format("Invalid NOTIFY message: %s", platformUrl));
+			log.severe(String.format("Invalid NOTIFY platformUrl: %s", platformUrl));
 		}
 		return false;
 	}

@@ -236,10 +236,19 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public boolean notifyUpdatePlatform(String platformUrl) {
-        // todo: update platform info
-
-        return true;
-
+        platformUrl = normalizeUrl(platformUrl);
+        if (platformUrl.equals(config.getOwnBaseUrl()) || !connectedPlatforms.containsKey(platformUrl)) {
+            return false;
+        }
+        try {
+            var client = new ApiProxy(platformUrl);
+            var platformInfo = client.getPlatformInfo();
+            connectedPlatforms.put(platformUrl, platformInfo);
+            return true;
+        } catch (Exception e) {
+            log.warning("Could not update platform info for platform: " + platformUrl);
+        }
+        return false;
     }
 
     /*
@@ -251,7 +260,9 @@ public class PlatformImpl implements RuntimePlatformApi {
      * call the /notify route of all connected Runtime Platforms, so they can pull the updated /info
      */
     private void notifyConnectedPlatforms() {
-        // TODO
+        for (String platformUrl : connectedPlatforms.keySet()) {
+            notifyUpdatePlatform(platformUrl);
+        }
     }
 
     /**
