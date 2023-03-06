@@ -223,7 +223,11 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public boolean notifyUpdateContainer(String containerId) {
+        containerId = normalizeUrl(containerId); // remove " - also usable here?
         try {
+            System.out.println(containerId);
+            System.out.println(runningContainers);
+
             var client = this.getClient(containerId); // can throw NullPointerException when containerId is invalid
             var container = client.getContainerInfo(); // can throw IOException on timeout
             runningContainers.put(containerId, container);

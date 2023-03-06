@@ -247,27 +247,27 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@RequestMapping(value="/containers/notify", method=RequestMethod.POST)
 	@Operation(summary="Notify Platform about updates", tags={"containers"})
 	@Override
-	public boolean notifyUpdateContainer(@RequestBody String containerId) {
-		try {
-			log.info(String.format("NOTIFY: %s", containerId));
-			return implementation.notifyUpdateContainer(containerId);
-		} catch (Exception e) {
-			log.severe(String.format("Invalid NOTIFY containerId: %s", containerId));
-			return false;
+	public boolean notifyUpdateContainer(@RequestBody String containerId) throws IOException {
+		log.info(String.format("NOTIFY: %s", containerId));
+		if (implementation.notifyUpdateContainer(containerId)) {
+			return true;
 		}
+		String errorMsg = String.format("Invalid containerId: %s", containerId);
+		log.severe(errorMsg);
+		throw new IOException(errorMsg);
 	}
 
 	@RequestMapping(value="/connections/notify", method=RequestMethod.POST)
 	@Operation(summary="Notify Platform about updates", tags={"connections"})
 	@Override
-	public boolean notifyUpdatePlatform(@RequestBody String platformUrl) {
-		try {
-			log.info(String.format("NOTIFY: %s", platformUrl));
-			return implementation.notifyUpdatePlatform(platformUrl);
-		} catch (Exception e) {
-			log.severe(String.format("Invalid NOTIFY platformUrl: %s", platformUrl));
+	public boolean notifyUpdatePlatform(@RequestBody String platformUrl) throws IOException {
+		log.info(String.format("NOTIFY: %s", platformUrl));
+		if (implementation.notifyUpdatePlatform(platformUrl)) {
+			return true;
 		}
-		return false;
+		String errorMsg = String.format("Invalid platformUrl: %s", platformUrl);
+		log.severe(errorMsg);
+		throw new IOException(errorMsg);
 	}
 
 }

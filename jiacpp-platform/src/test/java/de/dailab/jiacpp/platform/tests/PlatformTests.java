@@ -412,13 +412,26 @@ public class PlatformTests {
     }
 
     @Test
-    public void testXRequestNotify() throws Exception {
-        var con1 = request(PLATFORM_A, "POST", "/containers/notify", containerId);
-        Assert.assertEquals(200, con1.getResponseCode());
-        var con2 = request(PLATFORM_A, "POST", "/connections/notify", platformABaseUrl);
+    public void test7RequestNotify() throws Exception {
+        // valid container
+        var con2 = request(PLATFORM_A, "POST", "/containers/notify", containerId);
         Assert.assertEquals(200, con2.getResponseCode());
+
+        // valid platform
+        var con4 = request(PLATFORM_B, "POST", "/connections/notify", platformABaseUrl);
+        Assert.assertEquals(200, con4.getResponseCode());
     }
 
+    @Test
+    public void test7RequestInvalidNotify() throws Exception {
+        // invalid container
+        var con1 = request(PLATFORM_A, "POST", "/containers/notify", "container-does-not-exist");
+        Assert.assertEquals(502, con1.getResponseCode());
+
+        // invalid platform
+        var con3 = request(PLATFORM_A, "POST", "/connections/notify", "platform-does-not-exist");
+        Assert.assertEquals(502, con3.getResponseCode());
+    }
     /*
      * HELPER METHODS
      */
