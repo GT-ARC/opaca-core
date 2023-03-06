@@ -247,12 +247,12 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@RequestMapping(value="/containers/notify", method=RequestMethod.POST)
 	@Operation(summary="Notify Platform about updates", tags={"containers"})
 	@Override
-	public boolean notifyUpdateContainer(@RequestBody Message message) {
+	public boolean notifyUpdateContainer(@RequestBody String containerId) {
 		try {
-			log.info(String.format("NOTIFY: %s", message.getPayload().toString()));
-			return implementation.notifyUpdateContainer(message);
+			log.info(String.format("NOTIFY: %s", containerId));
+			return implementation.notifyUpdateContainer(containerId);
 		} catch (Exception e) {
-			log.severe(String.format("Invalid NOTIFY message: %s)", message.toString()));
+			log.severe(String.format("Invalid NOTIFY message: %s", containerId));
 			return false;
 		}
 	}
@@ -260,12 +260,12 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@RequestMapping(value="/connections/notify", method=RequestMethod.POST)
 	@Operation(summary="Notify Platform about updates", tags={"connections"})
 	@Override
-	public boolean notifyUpdatePlatform(@RequestBody Message message) {
+	public boolean notifyUpdatePlatform(@RequestBody String platformUrl) {
 		try {
-			log.info(String.format("NOTIFY: %s", message.getPayload().toString()));
-			return implementation.notifyUpdatePlatform(message);
+			log.info(String.format("NOTIFY: %s", platformUrl));
+			return implementation.notifyUpdatePlatform(platformUrl);
 		} catch (Exception e) {
-			log.severe(String.format("Invalid NOTIFY message: %s)", message.toString()));
+			log.severe(String.format("Invalid NOTIFY message: %s", platformUrl));
 		}
 		return false;
 	}

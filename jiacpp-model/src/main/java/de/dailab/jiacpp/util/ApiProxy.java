@@ -141,16 +141,16 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
-    public boolean notifyUpdateContainer(Message message) {
-        System.out.println("NOTIFY: " + message);
+    public boolean notifyUpdateContainer(String containerId) {
+        System.out.println("NOTIFY - CONTAINER: " + containerId);
 
         // todo: client call
         return true;
     }
 
     @Override
-    public boolean notifyUpdatePlatform(Message message) {
-        System.out.println("NOTIFY: " + message);
+    public boolean notifyUpdatePlatform(String platformUrl) {
+        System.out.println("NOTIFY - PLATFORM: " + platformUrl);
 
         // todo: client call
         return true;

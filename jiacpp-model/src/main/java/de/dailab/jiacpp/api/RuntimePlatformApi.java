@@ -103,11 +103,11 @@ public interface RuntimePlatformApi extends CommonApi {
     /**
      *
      */
-    boolean notifyUpdateContainer(Message message);
+    boolean notifyUpdateContainer(String containerId);
 
     /**
      *
      */
-    boolean notifyUpdatePlatform(Message message);
+    boolean notifyUpdatePlatform(String platformUrl);
 
 }

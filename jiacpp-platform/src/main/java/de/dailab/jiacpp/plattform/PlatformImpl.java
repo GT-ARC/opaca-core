@@ -222,8 +222,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public boolean notifyUpdateContainer(Message message) {
-        var containerId = message.getPayload().toString();
+    public boolean notifyUpdateContainer(String containerId) {
         try {
             var client = this.getClient(containerId); // can throw NullPointerException when containerId is invalid
             var container = client.getContainerInfo(); // can throw IOException on timeout
@@ -236,9 +235,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public boolean notifyUpdatePlatform(Message message) {
-        var platformUrl = message.getPayload().toString();
-
+    public boolean notifyUpdatePlatform(String platformUrl) {
         // todo: update platform info
 
         return true;
