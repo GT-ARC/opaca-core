@@ -70,3 +70,14 @@ and first tests in order to find out what of this makes sense etc.
 * platform B replies to original request, both platforms call "info" on each other
 
 ![Platform Connection Protocol](doc/connect-platform.png)
+
+### Protocol for notifying about updated Containers or connected Platforms
+
+* container/platform calls `/containers/notify` or `/connections/notify` with own ID/URL respectively
+* the idea behind "notify, then pull info" instead of "push info" is to make sure that the info does actually come from the container/platform in question and not someone else
+* receiving platform calls `/info` for that container/platform, stores updated information
+* if container/platform are not reachable, their information is removed from the platform
+* can be called if container's agents/actions change, if container is about to die, or at any time by the user
+* update in containers (via add/remove or update) automatically triggers notification of connected platforms
+
+![Notify/Update Protocol](doc/notify-update.png)
