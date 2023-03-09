@@ -133,6 +133,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                     log.warning("Agent Container ID does not match: Expected " +
                             agentContainerId + ", but found " + container.getContainerId());
                 }
+                notifyConnectedPlatforms();
                 return agentContainerId;
             } catch (IOException e) {
                 // this is normal... waiting for container to start and provide services
@@ -169,6 +170,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (container != null) {
             containerClient.stopContainer(containerId);
             runningContainers.remove(containerId);
+            notifyConnectedPlatforms();
             return true;
         }
         return false;
@@ -233,6 +235,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             var client = this.getClient(containerId);
             var containerInfo = client.getContainerInfo();
             runningContainers.put(containerId, containerInfo);
+            notifyConnectedPlatforms();
             return true;
         } catch (IOException e) {
             // todo: container timed out --> remove from container map?
@@ -273,6 +276,8 @@ public class PlatformImpl implements RuntimePlatformApi {
      * call the /notify route of all connected Runtime Platforms, so they can pull the updated /info
      */
     private void notifyConnectedPlatforms() {
+        // TODO this method is called when something about the containers changes... can we make this
+        //  asynchronous (without too much fuzz) so it does not block those other calls?
         for (String platformUrl : connectedPlatforms.keySet()) {
             var client = new ApiProxy(platformUrl);
             try {
