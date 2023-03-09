@@ -8,7 +8,7 @@ import de.dailab.jiacpp.util.RestHelper;
 import org.junit.*;
 import org.junit.runners.MethodSorters;
 
-import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.SpringApplication;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -48,9 +48,6 @@ public class PlatformTests {
     private static String containerId = null;
     private static String platformABaseUrl = null;
 
-    private static SpringApplicationBuilder applicationTestServer1;
-    private static SpringApplicationBuilder applicationTestServer2;
-
     /**
      * Before executing any of the tests, 2 test servers are started
      * on ports 8001 and 8002
@@ -60,14 +57,10 @@ public class PlatformTests {
         System.out.println("STARTING TEST SERVERS");
 
         System.out.println("STARTING TEST SERVER 1 ON PORT " + PLATFORM_A_PORT);
-        applicationTestServer1 = new SpringApplicationBuilder(Application.class);
-        applicationTestServer1.run("--server.port=" + PLATFORM_A_PORT);
+        SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT);
 
         System.out.println("STARTING TEST SERVER 2 ON PORT " + PLATFORM_B_PORT);
-        applicationTestServer2 = new SpringApplicationBuilder(Application.class);
-        applicationTestServer2.run("--server.port=" + PLATFORM_B_PORT);
-
-        System.out.println("STARTED TEST SERVERS SUCCESSFULLY");
+        SpringApplication.run(Application.class, "--server.port=" + PLATFORM_B_PORT);
     }
 
     @AfterClass
@@ -414,12 +407,12 @@ public class PlatformTests {
     @Test
     public void test7RequestNotify() throws Exception {
         // valid container
-        var con2 = request(PLATFORM_A, "POST", "/containers/notify", containerId);
-        Assert.assertEquals(200, con2.getResponseCode());
+        var con1 = request(PLATFORM_A, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con1.getResponseCode());
 
         // valid platform
-        var con4 = request(PLATFORM_B, "POST", "/connections/notify", platformABaseUrl);
-        Assert.assertEquals(200, con4.getResponseCode());
+        var con2 = request(PLATFORM_B, "POST", "/connections/notify", platformABaseUrl);
+        Assert.assertEquals(200, con2.getResponseCode());
     }
 
     @Test
@@ -429,9 +422,10 @@ public class PlatformTests {
         Assert.assertEquals(502, con1.getResponseCode());
 
         // invalid platform
-        var con3 = request(PLATFORM_A, "POST", "/connections/notify", "platform-does-not-exist");
-        Assert.assertEquals(502, con3.getResponseCode());
+        var con2 = request(PLATFORM_A, "POST", "/connections/notify", "platform-does-not-exist");
+        Assert.assertEquals(502, con2.getResponseCode());
     }
+
     /*
      * HELPER METHODS
      */
