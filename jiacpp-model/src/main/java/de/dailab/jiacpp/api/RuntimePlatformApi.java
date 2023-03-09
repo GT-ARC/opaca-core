@@ -2,7 +2,6 @@ package de.dailab.jiacpp.api;
 
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.model.Message;
 import de.dailab.jiacpp.model.RuntimePlatform;
 
 import java.io.IOException;
