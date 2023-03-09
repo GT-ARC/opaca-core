@@ -225,15 +225,16 @@ public class PlatformImpl implements RuntimePlatformApi {
     public boolean notifyUpdateContainer(String containerId) {
         containerId = normalizeUrl(containerId); // remove " - also usable here?
         try {
-            System.out.println(containerId);
-            System.out.println(runningContainers);
-
-            var client = this.getClient(containerId); // can throw NullPointerException when containerId is invalid
-            var container = client.getContainerInfo(); // can throw IOException on timeout
+            var client = this.getClient(containerId);
+            var container = client.getContainerInfo();
             runningContainers.put(containerId, container);
             return true;
-        } catch (Exception e) {
-            log.warning("Could not update container info for container: " + containerId);
+        } catch (NullPointerException e) {
+            // todo: invalid containerId --> what to return?
+            log.warning("Container did not exist: " + containerId);
+        } catch (IOException e) {
+            // todo: container timed out --> remove from container map?
+            log.warning("Container timed out: " + containerId);
         }
         return false;
     }
@@ -241,7 +242,12 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public boolean notifyUpdatePlatform(String platformUrl) {
         platformUrl = normalizeUrl(platformUrl);
-        if (platformUrl.equals(config.getOwnBaseUrl()) || !connectedPlatforms.containsKey(platformUrl)) {
+        if (platformUrl.equals(config.getOwnBaseUrl())) {
+            log.warning("Cannot request update for self.");
+            return false;
+        }
+        if (!connectedPlatforms.containsKey(platformUrl)) {
+            log.warning("Platform did not exist: " + platformUrl);
             return false;
         }
         try {
@@ -249,8 +255,9 @@ public class PlatformImpl implements RuntimePlatformApi {
             var platformInfo = client.getPlatformInfo();
             connectedPlatforms.put(platformUrl, platformInfo);
             return true;
-        } catch (Exception e) {
-            log.warning("Could not update platform info for platform: " + platformUrl);
+        } catch (IOException e) {
+            // todo: platform timed out: remove platform from connected platforms map?
+            log.warning("Platform timed out: " + platformUrl);
         }
         return false;
     }
@@ -265,7 +272,13 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
     private void notifyConnectedPlatforms() {
         for (String platformUrl : connectedPlatforms.keySet()) {
-            notifyUpdatePlatform(platformUrl);
+            var client = new ApiProxy(platformUrl);
+            try {
+                client.notifyUpdatePlatform(config.getOwnBaseUrl());
+            } catch (IOException e) {
+                // todo: remove platform from connected platforms map in this case?
+                log.warning("Platform timed out: " + platformUrl);
+            }
         }
     }
 
