@@ -224,14 +224,16 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public boolean notifyUpdateContainer(String containerId) {
         containerId = normalizeUrl(containerId); // remove " - also usable here?
-        try {
-            var client = this.getClient(containerId);
-            var container = client.getContainerInfo();
-            runningContainers.put(containerId, container);
-            return true;
-        } catch (NullPointerException e) {
+        if (! runningContainers.containsKey(containerId)) {
             // todo: invalid containerId --> what to return?
             log.warning("Container did not exist: " + containerId);
+            return false;  // TODO or NoSuchElementException?
+        }
+        try {
+            var client = this.getClient(containerId);
+            var containerInfo = client.getContainerInfo();
+            runningContainers.put(containerId, containerInfo);
+            return true;
         } catch (IOException e) {
             // todo: container timed out --> remove from container map?
             log.warning("Container timed out: " + containerId);
