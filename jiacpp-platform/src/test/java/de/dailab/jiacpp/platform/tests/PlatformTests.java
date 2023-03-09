@@ -415,6 +415,8 @@ public class PlatformTests {
         Assert.assertEquals(200, con2.getResponseCode());
     }
 
+    // TODO improve notify-test by actually having the sample container update its information (requires some extensions in the sample-container-agent code, though)
+
     @Test
     public void test7RequestInvalidNotify() throws Exception {
         // invalid container
