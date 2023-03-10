@@ -12,6 +12,7 @@ import lombok.extern.java.Log;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * This class provides the actual implementation of the API routes. Might also be split up
@@ -75,17 +76,17 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public void send(String agentId, Message message) throws NoSuchElementException {
         var clients = getClients(null, agentId, null);
-        if (clients.isEmpty()) {
-            throw new NoSuchElementException(String.format("Not found: agent '%s'", agentId));
-        }
-        for (ApiProxy client: clients) {
+
+        for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             log.info("Forwarding /send to " + client.baseUrl);
             try {
                 client.send(agentId, message);
+                return;
             } catch (IOException e) {
                 log.warning("Failed to forward /send to " + client.baseUrl);
             }
         }
+        throw new NoSuchElementException(String.format("Not found: agent '%s'", agentId));
     }
 
     @Override
@@ -106,7 +107,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters) throws NoSuchElementException {
         var clients = getClients(null, agentId, action);
 
-        for (ApiProxy client: clients) {
+        for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {
                 return agentId == null
                         ? client.invoke(action, parameters)
@@ -270,20 +271,18 @@ public class PlatformImpl implements RuntimePlatformApi {
      * @param action name of the action that should be invoked
      * @return list of clients to send requests to these valid containers/platforms
      */
-    private List<ApiProxy> getClients(String containerId, String agentId, String action) {
+    private Stream<ApiProxy> getClients(String containerId, String agentId, String action) {
         // local containers
-        var clients = runningContainers.values().stream()
+        var containerClients = runningContainers.values().stream()
                 .filter(c -> matches(c, containerId, agentId, action))
-                .map(c -> getClient(c.getContainerId()))
-                .collect(Collectors.toList());
+                .map(c -> getClient(c.getContainerId()));
 
         // remote platforms
-        clients.addAll(connectedPlatforms.values().stream()
+        var platformClient = connectedPlatforms.values().stream()
                 .filter(p -> p.getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action)))
-                .map(p -> new ApiProxy(p.getBaseUrl()))
-                .collect(Collectors.toList()));
+                .map(p -> new ApiProxy(p.getBaseUrl()));
 
-        return clients;
+        return Stream.concat(containerClients, platformClient);
     }
 
     /**
