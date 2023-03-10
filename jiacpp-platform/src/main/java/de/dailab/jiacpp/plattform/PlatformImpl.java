@@ -278,11 +278,11 @@ public class PlatformImpl implements RuntimePlatformApi {
                 .map(c -> getClient(c.getContainerId()));
 
         // remote platforms
-        var platformClient = connectedPlatforms.values().stream()
+        var platformClients = connectedPlatforms.values().stream()
                 .filter(p -> p.getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action)))
                 .map(p -> new ApiProxy(p.getBaseUrl()));
 
-        return Stream.concat(containerClients, platformClient);
+        return Stream.concat(containerClients, platformClients);
     }
 
     /**
