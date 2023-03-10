@@ -271,13 +271,11 @@ public class PlatformImpl implements RuntimePlatformApi {
      * @return list of clients to send requests to these valid containers/platforms
      */
     private List<ApiProxy> getClients(String containerId, String agentId, String action) {
-        var clients = new LinkedList<ApiProxy>();
-
         // local containers
-        clients.addAll(runningContainers.values().stream()
+        var clients = runningContainers.values().stream()
                 .filter(c -> matches(c, containerId, agentId, action))
                 .map(c -> getClient(c.getContainerId()))
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList());
 
         // remote platforms
         clients.addAll(connectedPlatforms.values().stream()
