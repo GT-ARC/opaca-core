@@ -37,6 +37,9 @@ public class PlatformConfig {
     @Value("${registry_passwords}")
     public String registryPasswords;
 
+    @Value("${default_images:}")
+    public String defaultImages;
+
 
     // TODO
     //  (remote) docker host

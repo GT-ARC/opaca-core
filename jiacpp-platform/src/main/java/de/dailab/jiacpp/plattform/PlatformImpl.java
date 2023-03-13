@@ -41,6 +41,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         this.config = config;
         this.containerClient = new DockerClient();
         this.containerClient.initialize(config);
+        this.startDefaultImages();
     }
 
     @Override
@@ -273,6 +274,22 @@ public class PlatformImpl implements RuntimePlatformApi {
     private String normalizeUrl(String url) {
         // string payload may or may not be enclosed in quotes -> normalize
         return url.trim().replaceAll("^\"|\"$", "");
+    }
+
+    private void startDefaultImages() {
+        if (config.defaultImages.isBlank()) return;
+        var sep = config.registrySeparator;
+        var imageNames = config.defaultImages.split(sep);
+        for (String imageName: imageNames) {
+            log.info("Starting default container image: " + imageName);
+            AgentContainerImage image = new AgentContainerImage();
+            image.setImageName(imageName);
+            try {
+                this.addContainer(image);
+            } catch (IOException e) {
+                log.warning("Failed to start default container image: " + imageName);
+            }
+        }
     }
 
 }
