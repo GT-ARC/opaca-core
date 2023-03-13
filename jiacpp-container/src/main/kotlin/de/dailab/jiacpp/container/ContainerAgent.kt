@@ -178,6 +178,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         override fun send(agentId: String, message: Message) {
             log.info("SEND: $agentId $message")
             // TODO ref not found? does this raise an exception? is this okay?
+            // TODO same as for invoke, check if agent is actually in registeredAgents before forwarding message!
             val ref = system.resolve(agentId)
             ref tell message
         }
@@ -210,6 +211,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
             val result = AtomicReference<Any>()
 
+            // TODO this actually bypasses the JIAC++ Agents and Action description and allows to send an Invoke
+            //  to ANY agent in the agent system! check in registeredAgents first!
             val ref = system.resolve(agentId)
             ref invoke ask<Any>(Invoke(action, parameters)) {
                 log.info("GOT RESULT $it")
