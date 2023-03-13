@@ -241,17 +241,27 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
      */
     override fun behaviour() = act {
 
-        respond<AgentDescription, String?> {
-            // agents may register with the container agent, publishing their ID and actions
-            log.info("Registering $it")
-            if (!registeredAgents.containsKey(it.agentId)) {
-                registeredAgents[it.agentId] = it
-                runtimePlatformUrl
-            } else {
-                null
-            }
+        // agents may register with the container agent, publishing their ID and actions
+        respond<Register, String?> {
+            log.info("Registering ${it.description}")
+            registeredAgents[it.description.agentId] = it.description
+            notifyPlatform()
+            runtimePlatformUrl
         }
 
+        // in case agents want to de-register themselves before the container as a whole terminates
+        on<DeRegister> {
+            log.info("De-Registering ${it.agentId}")
+            registeredAgents.remove(it.agentId)
+            notifyPlatform()
+        }
+
+    }
+
+    private fun notifyPlatform() {
+        // TODO notify parent platform (or connected platform, if that's implemented) of changes in this container
+        //  keep track of last time /info route was invoked to reduce unnecessary calls? won't work for multiple
+        //  connected platforms. Or just send the notify with a short delay (1 second?)
     }
 
 }
