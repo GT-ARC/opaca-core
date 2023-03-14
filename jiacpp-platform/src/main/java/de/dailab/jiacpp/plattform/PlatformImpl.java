@@ -12,6 +12,7 @@ import lombok.extern.java.Log;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * This class provides the actual implementation of the API routes. Might also be split up
@@ -73,14 +74,19 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public void send(String agentId, Message message) throws IOException {
-        var client = getClient(null, agentId, null);
-        if (client != null) {
+    public void send(String agentId, Message message) throws NoSuchElementException {
+        var clients = getClients(null, agentId, null);
+
+        for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             log.info("Forwarding /send to " + client.baseUrl);
-            client.send(agentId, message);
-        } else {
-            throw new NoSuchElementException(String.format("Not found: agent '%s'", agentId));
+            try {
+                client.send(agentId, message);
+                return;
+            } catch (IOException e) {
+                log.warning("Failed to forward /send to " + client.baseUrl);
+            }
         }
+        throw new NoSuchElementException(String.format("Not found: agent '%s'", agentId));
     }
 
     @Override
@@ -98,16 +104,23 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters) throws IOException {
-        var client = getClient(null, agentId, action);
-        if (client != null) {
-            log.info("Forwarding /invoke to " + client.baseUrl);
-            return agentId == null
-                    ? client.invoke(action, parameters)
-                    : client.invoke(agentId, action, parameters);
-        } else {
-            throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s'", action, agentId));
+    public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters) throws NoSuchElementException {
+        var clients = getClients(null, agentId, action);
+
+        for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
+            try {
+                return agentId == null
+                        ? client.invoke(action, parameters)
+                        : client.invoke(agentId, action, parameters);
+            } catch (IOException e) {
+                // todo: different warning in case of faulty parameters?
+                log.warning(String.format("Failed to invoke action %s @ agent %s and client %s",
+                        action, agentId, client.baseUrl));
+            }
         }
+
+        // iterated over all clients, no valid client found
+        throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s'", action, agentId));
     }
 
     /*
@@ -248,6 +261,28 @@ public class PlatformImpl implements RuntimePlatformApi {
             return new ApiProxy(platform.get().getBaseUrl());
         }
         return null;
+    }
+
+    /**
+     * get a list of clients for all containers/platforms that fulfill the given agent/action requirements.
+     *
+     * @param containerId container on which should be searched for valid agents/actions
+     * @param agentId ID of the agent on which the action should be invoked or to which a message should be sent
+     * @param action name of the action that should be invoked
+     * @return list of clients to send requests to these valid containers/platforms
+     */
+    private Stream<ApiProxy> getClients(String containerId, String agentId, String action) {
+        // local containers
+        var containerClients = runningContainers.values().stream()
+                .filter(c -> matches(c, containerId, agentId, action))
+                .map(c -> getClient(c.getContainerId()));
+
+        // remote platforms
+        var platformClients = connectedPlatforms.values().stream()
+                .filter(p -> p.getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action)))
+                .map(p -> new ApiProxy(p.getBaseUrl()));
+
+        return Stream.concat(containerClients, platformClients);
     }
 
     /**
