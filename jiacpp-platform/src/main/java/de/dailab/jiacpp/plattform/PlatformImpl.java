@@ -91,11 +91,16 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public void broadcast(String channel, Message message) throws IOException {
+    public void broadcast(String channel, Message message) {
         for (AgentContainer container : runningContainers.values()) {
-            getClient(container).broadcast(channel, message);
+            try {
+                getClient(container).broadcast(channel, message);
+            } catch (IOException e) {
+                log.warning("Failed to forward /broadcast to Container " + container.getContainerId());
+            }
         }
-        // TODO how to handle IO Exception forwarding to a single container/platform, if broadcast to all others worked?
+        // TODO should this raise an IOException if there was one for any of the clients?
+        //  (after broadcasting to all other reachable clients!)
         // TODO broadcast to other platforms... how to prevent infinite loops? optional flag parameter?
     }
 
