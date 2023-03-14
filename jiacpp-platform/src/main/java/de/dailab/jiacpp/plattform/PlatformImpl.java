@@ -22,7 +22,7 @@ import java.util.stream.Stream;
 public class PlatformImpl implements RuntimePlatformApi {
 
     // TODO make sure agent IDs are globally unique? extend agent-ids with platform-hash or similar?
-    //  e.g. optionally allow "agentId@containerId" to be passed in place of agentId for all routes?
+    //  e.g. optionally allow "agentId@containerId" to be passed in place of agentId for all routes? (Issue #10)
 
     final PlatformConfig config;
 
@@ -49,7 +49,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         return new RuntimePlatform(
                 config.getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),
-                List.of(), // TODO "provides" pf platform?
+                List.of(), // TODO "provides" pf platform? read from config? issue #42
                 List.copyOf(connectedPlatforms.keySet())
         );
     }

@@ -11,8 +11,6 @@ import java.io.IOException;
  */
 public interface AgentContainerApi extends CommonApi{
 
-    // TODO REST routes are still preliminary
-
     String ENV_CONTAINER_ID = "CONTAINER_ID";
 
     String ENV_PLATFORM_URL = "PLATFORM_URL";

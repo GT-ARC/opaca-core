@@ -43,9 +43,6 @@ public class PlatformConfig {
     //  auth stuff for platform itself? tbd
     //  GPU support and other "features" of this specific platform
 
-    // TODO or define "ContainerClient" similar to JES with different implementations for
-    //  Docker and Kubernetes, each with its own settings?
-
 
     /**
      * Get Host IP address. Should return preferred outbound address.

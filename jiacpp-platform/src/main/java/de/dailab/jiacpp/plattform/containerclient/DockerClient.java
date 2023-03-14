@@ -57,17 +57,8 @@ public class DockerClient implements ContainerClient {
     @Override
     public void initialize(PlatformConfig config) {
 
-        // TODO get config/settings, e.g.
-        //  - docker settings, e.g. remote docker, gpu support, ...
-
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
                 .withDockerHost("unix:///var/run/docker.sock")
-                //.withDockerTlsVerify(true)
-                //.withDockerCertPath("/home/user/.docker")
-                //.withRegistryUsername(registryUser)
-                //.withRegistryPassword(registryPass)
-                //.withRegistryEmail(registryMail)
-                //.withRegistryUrl(registryUrl)
                 .build();
 
         DockerHttpClient dockerHttpClient = new ApacheDockerHttpClient.Builder()

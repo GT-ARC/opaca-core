@@ -14,9 +14,6 @@ import java.util.List;
  */
 public interface RuntimePlatformApi extends CommonApi {
 
-    // TODO use boolean for results, or just void + Exception?
-    // TODO REST routes are still preliminary
-
     /**
      * Get full information on the Runtime Platform, including all running Agent Containers and
      * Agents, connected other platforms, etc.
@@ -89,8 +86,6 @@ public interface RuntimePlatformApi extends CommonApi {
 
     /**
      * Disconnect a previously connected Platform, in both directions.
-     *
-     * TODO how to pass URL, as path parameter? does that work? or as body?
      *
      * REST: DELETE /connections
      *

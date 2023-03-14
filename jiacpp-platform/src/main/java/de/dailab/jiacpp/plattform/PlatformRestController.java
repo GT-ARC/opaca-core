@@ -27,8 +27,6 @@ import java.util.NoSuchElementException;
 @RestController
 public class PlatformRestController implements RuntimePlatformApi {
 
-	// TODO add explicit routes for updating/refreshing specific containers, instead of regular auto-updates?
-
 	@Autowired
 	PlatformConfig config;
 
