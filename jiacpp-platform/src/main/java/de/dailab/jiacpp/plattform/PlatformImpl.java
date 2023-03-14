@@ -45,7 +45,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public RuntimePlatform getPlatformInfo() throws IOException {
+    public RuntimePlatform getPlatformInfo() {
         return new RuntimePlatform(
                 config.getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),
@@ -59,14 +59,14 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     @Override
-    public List<AgentDescription> getAgents() throws IOException {
+    public List<AgentDescription> getAgents() {
         return runningContainers.values().stream()
                 .flatMap(c -> c.getAgents().stream())
                 .collect(Collectors.toList());
     }
 
     @Override
-    public AgentDescription getAgent(String agentId) throws IOException {
+    public AgentDescription getAgent(String agentId) {
         return runningContainers.values().stream()
                 .flatMap(c -> c.getAgents().stream())
                 .filter(a -> a.getAgentId().equals(agentId))
@@ -86,6 +86,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 log.warning("Failed to forward /send to " + client.baseUrl);
             }
         }
+        // TODO should this throw the last IO-Exception if there was any?
         throw new NoSuchElementException(String.format("Not found: agent '%s'", agentId));
     }
 
@@ -99,7 +100,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters) throws IOException {
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters) throws NoSuchElementException {
         return invoke(null, action, parameters);
     }
 
@@ -118,7 +119,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                         action, agentId, client.baseUrl));
             }
         }
-
+        // TODO should this throw the last IO-Exception if there was any?
         // iterated over all clients, no valid client found
         throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s'", action, agentId));
     }
@@ -167,12 +168,12 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public List<AgentContainer> getContainers() throws IOException {
+    public List<AgentContainer> getContainers() {
         return List.copyOf(runningContainers.values());
     }
 
     @Override
-    public AgentContainer getContainer(String containerId) throws IOException {
+    public AgentContainer getContainer(String containerId) {
         return runningContainers.get(containerId);
     }
 
@@ -180,6 +181,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     public boolean removeContainer(String containerId) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
         if (container != null) {
+            // TODO handle exception from docker client
             containerClient.stopContainer(containerId);
             runningContainers.remove(containerId);
             return true;
