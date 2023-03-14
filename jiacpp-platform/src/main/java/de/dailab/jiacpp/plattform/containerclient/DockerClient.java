@@ -5,6 +5,7 @@ import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.exception.InternalServerErrorException;
 import com.github.dockerjava.api.exception.NotFoundException;
+import com.github.dockerjava.api.exception.NotModifiedException;
 import com.github.dockerjava.api.model.AuthConfig;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientConfig;
@@ -114,15 +115,21 @@ public class DockerClient implements ContainerClient {
             log.warning("Image not found: " + imageName);
             throw new NoSuchElementException("Image not found: " + imageName);
         }
+        // TODO handle error trying to connect to Docker (only relevant when Remote Docker is supported, issue #23)
     }
 
     @Override
     public void stopContainer(String containerId) throws IOException {
-        var dockerId = dockerContainers.get(containerId).getContainerId();
-        dockerClient.stopContainerCmd(dockerId).exec();
-        // TODO get result, check if and when it is finally stopped?
-        // TODO handle case of container already being terminated (due to error or similar)
+        try {
+            var dockerId = dockerContainers.get(containerId).getContainerId();
+            dockerClient.stopContainerCmd(dockerId).exec();
+        } catch (NotModifiedException e) {
+            var msg = "Could not stop Container " + containerId + "; already stopped?";
+            log.warning(msg);
+            throw new NoSuchElementException(msg);
+        }
         // TODO possibly that the container refuses being stopped? call "kill" instead? how to test this?
+        // TODO handle error trying to connect to Docker (only relevant when Remote Docker is supported, issue #23)
     }
 
     @Override

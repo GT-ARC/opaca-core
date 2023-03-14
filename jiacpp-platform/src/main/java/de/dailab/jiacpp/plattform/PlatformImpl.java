@@ -186,9 +186,8 @@ public class PlatformImpl implements RuntimePlatformApi {
     public boolean removeContainer(String containerId) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
         if (container != null) {
-            // TODO handle exception from docker client
-            containerClient.stopContainer(containerId);
             runningContainers.remove(containerId);
+            containerClient.stopContainer(containerId);
             return true;
         }
         return false;
