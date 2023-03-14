@@ -177,10 +177,12 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         override fun send(agentId: String, message: Message) {
             log.info("SEND: $agentId $message")
-            // TODO ref not found? does this raise an exception? is this okay?
-            // TODO same as for invoke, check if agent is actually in registeredAgents before forwarding message!
-            val ref = system.resolve(agentId)
-            ref tell message
+            val agent = findRegisteredAgent(agentId, action=null)
+            if (agent != null) {
+                val ref = system.resolve(agent)
+                ref tell message
+            }
+            // TODO raise exception if not found?
         }
 
         override fun broadcast(channel: String, message: Message) {
@@ -190,51 +192,35 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         override fun invoke(action: String, parameters: Map<String, JsonNode>): JsonNode? {
             log.info("INVOKE ACTION: $action $parameters")
-
-            val agent = registeredAgents.values.find { ag -> ag.actions.any { ac -> ac.name == action } }
-            return if (agent != null) {
-                invoke(agent.agentId, action, parameters)
-            } else {
-                null
-            }
+            return invoke(null, action, parameters)
         }
 
-        override fun invoke(agentId: String, action: String, parameters: Map<String, JsonNode>): JsonNode? {
+        override fun invoke(agentId: String?, action: String, parameters: Map<String, JsonNode>): JsonNode? {
             log.info("INVOKE ACTION OF AGENT: $agentId $action $parameters")
-            // TODO check if agent has action and parameters match description
-            // NOTE when called through the HTTP Handler, this method (and all the other "impl" methods)
-            //      will run in the HTTP handler's thread (a new thread for each request), but the callback
-            //      in "invoke ask" runs in the Container Agent's own thread...
 
-            val lock = Semaphore(1)
-            lock.acquireUninterruptibly()
+            val agent = findRegisteredAgent(agentId, action)
+            if (agent != null) {
+                val lock = Semaphore(0) // needs to be released once before it can be acquired
+                val result = AtomicReference<Any>() // holder for action result
+                val ref = system.resolve(agent)
+                ref invoke ask<Any>(Invoke(action, parameters)) {
+                    log.info("GOT RESULT $it")
+                    result.set(it)
+                    lock.release()
+                }.error {
+                    log.error("ERROR $it")
+                    lock.release()
+                }
+                // TODO handle timeout?
 
-            val result = AtomicReference<Any>()
+                log.debug("waiting for action result...")
+                lock.acquireUninterruptibly()
 
-            // TODO this actually bypasses the JIAC++ Agents and Action description and allows to send an Invoke
-            //  to ANY agent in the agent system! check in registeredAgents first!
-            val ref = system.resolve(agentId)
-            ref invoke ask<Any>(Invoke(action, parameters)) {
-                log.info("GOT RESULT $it")
-                result.set(it)
-                lock.release()
-
-            }.error {
-                log.error("ERROR $it")
-                lock.release()
+                // TODO handle error case here... raise exception or return null?
+                return RestHelper.mapper.valueToTree(result.get())
             }
-            // TODO handle timeout?
-
-            // TODO does this block the agent or the entire system?
-            //  nope, seems to work as intended, but test some more...
-            //  Container Agent still reacts to REST calls, e.g. SEND, or another INVOKE...
-            //  but when calling the action again on the same agent, it only starts when the first finished
-            //  (same thread used for all ask-respond invocations of same agent?
-            log.info("waiting...")
-            lock.acquireUninterruptibly()
-
-            // TODO handle error case here... raise exception or return null?
-            return RestHelper.mapper.valueToTree(result.get())
+            // TODO raise exception if not found?
+            return null
         }
     }
 
@@ -246,6 +232,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         // agents may register with the container agent, publishing their ID and actions
         respond<Register, String?> {
+            // TODO should Register message contain the agent's internal name, or is that always equal to the agentId?
             log.info("Registering ${it.description}")
             registeredAgents[it.description.agentId] = it.description
             notifyPlatform()
@@ -265,6 +252,15 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         // TODO notify parent platform (or connected platform, if that's implemented) of changes in this container
         //  keep track of last time /info route was invoked to reduce unnecessary calls? won't work for multiple
         //  connected platforms. Or just send the notify with a short delay (1 second?)
+    }
+
+    private fun findRegisteredAgent(agentId: String?, action: String?): String? {
+        return registeredAgents.values
+            .filter { agt -> agentId == null || agt.agentId == agentId }
+            .filter { agt -> action == null || agt.actions.any { act -> act.name == action } }
+            // TODO also check action parameters?
+            .map { it.agentId }
+            .firstOrNull()
     }
 
 }
