@@ -227,9 +227,9 @@ public class PlatformImpl implements RuntimePlatformApi {
     public boolean notifyUpdateContainer(String containerId) {
         containerId = normalizeUrl(containerId); // remove " - also usable here?
         if (! runningContainers.containsKey(containerId)) {
-            // todo: invalid containerId --> what to return?
-            log.warning("Container did not exist: " + containerId);
-            return false;  // TODO or NoSuchElementException?
+            var msg = String.format("Container did not exist: %s", containerId);
+            log.warning(msg);
+            throw new NoSuchElementException(msg);
         }
         try {
             var client = this.getClient(containerId);
@@ -238,10 +238,10 @@ public class PlatformImpl implements RuntimePlatformApi {
             notifyConnectedPlatforms();
             return true;
         } catch (IOException e) {
-            // todo: container timed out --> remove from container map?
-            log.warning("Container timed out: " + containerId);
+            log.warning("Container did not respond: " + containerId);
+            runningContainers.remove(containerId);
+            return false;
         }
-        return false;
     }
 
     @Override
@@ -252,8 +252,9 @@ public class PlatformImpl implements RuntimePlatformApi {
             return false;
         }
         if (!connectedPlatforms.containsKey(platformUrl)) {
-            log.warning("Platform did not exist: " + platformUrl);
-            return false;
+            var msg = String.format("Platform did not exist: %s", platformUrl);
+            log.warning(msg);
+            throw new NoSuchElementException(msg);
         }
         try {
             var client = new ApiProxy(platformUrl);
@@ -261,10 +262,10 @@ public class PlatformImpl implements RuntimePlatformApi {
             connectedPlatforms.put(platformUrl, platformInfo);
             return true;
         } catch (IOException e) {
-            // todo: platform timed out: remove platform from connected platforms map?
-            log.warning("Platform timed out: " + platformUrl);
+            log.warning("Platform did not respond: " + platformUrl);
+            connectedPlatforms.remove(platformUrl);
+            return false;
         }
-        return false;
     }
 
     /*
@@ -274,17 +275,18 @@ public class PlatformImpl implements RuntimePlatformApi {
     /**
      * Whenever there is a change in this platform's Agent Containers (added, removed, or updated),
      * call the /notify route of all connected Runtime Platforms, so they can pull the updated /info
+     *
+     * TODO this method is called when something about the containers changes... can we make this
+     *      asynchronous (without too much fuzz) so it does not block those other calls?
      */
     private void notifyConnectedPlatforms() {
-        // TODO this method is called when something about the containers changes... can we make this
-        //  asynchronous (without too much fuzz) so it does not block those other calls?
         for (String platformUrl : connectedPlatforms.keySet()) {
             var client = new ApiProxy(platformUrl);
             try {
                 client.notifyUpdatePlatform(config.getOwnBaseUrl());
             } catch (IOException e) {
-                // todo: remove platform from connected platforms map in this case?
-                log.warning("Platform timed out: " + platformUrl);
+                log.warning("Platform did not respond: " + platformUrl);
+                connectedPlatforms.remove(platformUrl);
             }
         }
     }
