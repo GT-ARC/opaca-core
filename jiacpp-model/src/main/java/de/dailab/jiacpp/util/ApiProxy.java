@@ -63,28 +63,31 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
-    public void broadcast(String channel, Message message) throws IOException {
+    public void broadcast(String channel, Message message, boolean forward) throws IOException {
         System.out.println("BROADCAST");
         System.out.println(channel);
         System.out.println(message);
-        client.post(String.format("/broadcast/%s", channel), message, null);
+        System.out.println(forward);
+        client.post(String.format("/broadcast/%s?forward=%s", channel, forward), message, null);
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters) throws IOException {
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, boolean forward) throws IOException {
         System.out.println("INVOKE");
         System.out.println(action);
         System.out.println(parameters);
-        return client.post(String.format("/invoke/%s", action), parameters, JsonNode.class);
+        System.out.println(forward);
+        return client.post(String.format("/invoke/%s?forward=%s", action, forward), parameters, JsonNode.class);
     }
 
     @Override
-    public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters) throws IOException {
+    public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters, boolean forward) throws IOException {
         System.out.println("INVOKE");
         System.out.println(action);
         System.out.println(agentId);
         System.out.println(parameters);
-        return client.post(String.format("/invoke/%s/%s", action, agentId), parameters, JsonNode.class);
+        System.out.println(forward);
+        return client.post(String.format("/invoke/%s/%s?forward=%s", action, agentId, forward), parameters, JsonNode.class);
     }
 
     // CONTAINER ROUTES

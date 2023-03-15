@@ -90,34 +90,54 @@ public class PlatformImpl implements RuntimePlatformApi {
         throw new NoSuchElementException(String.format("Not found: agent '%s'", agentId));
     }
 
+    /**
+     *
+     * TODO should this raise an IOException if there was one for any of the clients?
+     *      (after broadcasting to all other reachable clients!)
+     *
+     * @param channel Name of the group or channel
+     * @param message The message envelope
+     * @param forward flag whether to forward the message to connected platforms
+     */
     @Override
-    public void broadcast(String channel, Message message) {
+    public void broadcast(String channel, Message message, boolean forward) {
         for (AgentContainer container : runningContainers.values()) {
             try {
-                getClient(container).broadcast(channel, message);
+                getClient(container).broadcast(channel, message, forward);
             } catch (IOException e) {
                 log.warning("Failed to forward /broadcast to Container " + container.getContainerId());
             }
         }
-        // TODO should this raise an IOException if there was one for any of the clients?
-        //  (after broadcasting to all other reachable clients!)
-        // TODO broadcast to other platforms... how to prevent infinite loops? optional flag parameter?
+
+        if (!forward) return;
+
+        for (RuntimePlatform platform : connectedPlatforms.values()) {
+            try {
+                var client = new ApiProxy(platform.getBaseUrl());
+                client.broadcast(channel, message, false);
+            } catch (IOException e) {
+                log.warning("Failed to forward /broadcast to Platform " + platform.getBaseUrl());
+            }
+        }
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters) throws NoSuchElementException {
-        return invoke(null, action, parameters);
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, boolean forward) throws NoSuchElementException {
+        return invoke(null, action, parameters, forward);
     }
 
     @Override
-    public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters) throws NoSuchElementException {
+    public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters, boolean forward) throws NoSuchElementException {
         var clients = getClients(null, agentId, action);
 
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
+
+            // todo: skip for platform clients...
+
             try {
                 return agentId == null
-                        ? client.invoke(action, parameters)
-                        : client.invoke(agentId, action, parameters);
+                        ? client.invoke(action, parameters, false)
+                        : client.invoke(agentId, action, parameters, false);
             } catch (IOException e) {
                 // todo: different warning in case of faulty parameters?
                 log.warning(String.format("Failed to invoke action %s @ agent %s and client %s",
