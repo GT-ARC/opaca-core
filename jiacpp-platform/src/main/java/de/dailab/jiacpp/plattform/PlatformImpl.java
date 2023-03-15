@@ -22,7 +22,7 @@ import java.util.stream.Stream;
 public class PlatformImpl implements RuntimePlatformApi {
 
     // TODO make sure agent IDs are globally unique? extend agent-ids with platform-hash or similar?
-    //  e.g. optionally allow "agentId@containerId" to be passed in place of agentId for all routes?
+    //  e.g. optionally allow "agentId@containerId" to be passed in place of agentId for all routes? (Issue #10)
 
     final PlatformConfig config;
 
@@ -45,11 +45,11 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public RuntimePlatform getPlatformInfo() throws IOException {
+    public RuntimePlatform getPlatformInfo() {
         return new RuntimePlatform(
                 config.getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),
-                List.of(), // TODO "provides" pf platform?
+                List.of(), // TODO "provides" pf platform? read from config? issue #42
                 List.copyOf(connectedPlatforms.keySet())
         );
     }
@@ -59,14 +59,14 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     @Override
-    public List<AgentDescription> getAgents() throws IOException {
+    public List<AgentDescription> getAgents() {
         return runningContainers.values().stream()
                 .flatMap(c -> c.getAgents().stream())
                 .collect(Collectors.toList());
     }
 
     @Override
-    public AgentDescription getAgent(String agentId) throws IOException {
+    public AgentDescription getAgent(String agentId) {
         return runningContainers.values().stream()
                 .flatMap(c -> c.getAgents().stream())
                 .filter(a -> a.getAgentId().equals(agentId))
@@ -86,20 +86,26 @@ public class PlatformImpl implements RuntimePlatformApi {
                 log.warning("Failed to forward /send to " + client.baseUrl);
             }
         }
+        // TODO should this throw the last IO-Exception if there was any?
         throw new NoSuchElementException(String.format("Not found: agent '%s'", agentId));
     }
 
     @Override
-    public void broadcast(String channel, Message message) throws IOException {
+    public void broadcast(String channel, Message message) {
         for (AgentContainer container : runningContainers.values()) {
-            getClient(container).broadcast(channel, message);
+            try {
+                getClient(container).broadcast(channel, message);
+            } catch (IOException e) {
+                log.warning("Failed to forward /broadcast to Container " + container.getContainerId());
+            }
         }
-        // TODO how to handle IO Exception forwarding to a single container/platform, if broadcast to all others worked?
+        // TODO should this raise an IOException if there was one for any of the clients?
+        //  (after broadcasting to all other reachable clients!)
         // TODO broadcast to other platforms... how to prevent infinite loops? optional flag parameter?
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters) throws IOException {
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters) throws NoSuchElementException {
         return invoke(null, action, parameters);
     }
 
@@ -118,7 +124,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                         action, agentId, client.baseUrl));
             }
         }
-
+        // TODO should this throw the last IO-Exception if there was any?
         // iterated over all clients, no valid client found
         throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s'", action, agentId));
     }
@@ -167,12 +173,12 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public List<AgentContainer> getContainers() throws IOException {
+    public List<AgentContainer> getContainers() {
         return List.copyOf(runningContainers.values());
     }
 
     @Override
-    public AgentContainer getContainer(String containerId) throws IOException {
+    public AgentContainer getContainer(String containerId) {
         return runningContainers.get(containerId);
     }
 
@@ -180,8 +186,8 @@ public class PlatformImpl implements RuntimePlatformApi {
     public boolean removeContainer(String containerId) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
         if (container != null) {
-            containerClient.stopContainer(containerId);
             runningContainers.remove(containerId);
+            containerClient.stopContainer(containerId);
             return true;
         }
         return false;
