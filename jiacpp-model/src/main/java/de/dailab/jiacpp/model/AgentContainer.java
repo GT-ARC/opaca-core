@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Information on a running Agent Container, combining information on image with runtime data.
@@ -25,4 +26,24 @@ public class AgentContainer {
     /** when the container was started */
     LocalDateTime runningSince;
 
+    /** where the port where the container provides the JIAC++ API is mapped to */
+    Integer apiPortMapping;
+
+    /** where additional ports exposed by the container are mapped to */
+    Map<String, PortMappingDescription> extraPortMappings;
+
+
+    @Data @AllArgsConstructor @NoArgsConstructor
+    public static class PortMappingDescription {
+
+        /** the original port inside the container this port is mapped to */
+        Integer originalPort;
+
+        /** the protocol that is served via this port */
+        String protocol;
+
+        /** human readable description of the service */
+        String description;
+
+    }
 }

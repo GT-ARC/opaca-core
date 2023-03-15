@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Description of an Agent Container Image to be started on a Runtime Platform.
@@ -28,6 +29,12 @@ public class AgentContainerImage {
     /** special features provided by this container */
     List<String> provides;
 
+    /** the port where the container provides the JIAC++ API; by default this is 8082 but another may be used */
+    Integer apiPort;
+
+    /** additional ports exposed by the container and the protocols and services those provide */
+    Map<String, PortDescription> extraPorts;
+
     // OPTIONAL attributes for description of the container (e.g. in a repository, or of the container itself)
 
     /** short readable name of this Agent Container */
@@ -38,5 +45,16 @@ public class AgentContainerImage {
 
     /** provider of the container, e.g. institute or researcher */
     String provider;
+
+    @Data @AllArgsConstructor @NoArgsConstructor
+    public static class PortDescription {
+
+        /** the protocol that is served via this port */
+        String protocol;
+
+        /** human readable description of the service */
+        String description;
+
+    }
 
 }

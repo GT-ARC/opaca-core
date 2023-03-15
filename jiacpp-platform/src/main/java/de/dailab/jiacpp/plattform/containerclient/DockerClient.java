@@ -96,6 +96,8 @@ public class DockerClient implements ContainerClient {
                 }
             }
 
+            // TODO port mappings
+
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
                     .withEnv(
