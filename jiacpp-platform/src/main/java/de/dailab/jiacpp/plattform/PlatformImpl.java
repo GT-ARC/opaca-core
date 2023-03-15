@@ -238,7 +238,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             notifyConnectedPlatforms();
             return true;
         } catch (IOException e) {
-            log.warning("Container did not respond: " + containerId);
+            log.warning(String.format("Container did not respond: %s; removing...", containerId));
             runningContainers.remove(containerId);
             return false;
         }
@@ -252,7 +252,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             return false;
         }
         if (!connectedPlatforms.containsKey(platformUrl)) {
-            var msg = String.format("Platform did not exist: %s", platformUrl);
+            var msg = String.format("Platform was not connected: %s", platformUrl);
             log.warning(msg);
             throw new NoSuchElementException(msg);
         }
@@ -262,7 +262,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             connectedPlatforms.put(platformUrl, platformInfo);
             return true;
         } catch (IOException e) {
-            log.warning("Platform did not respond: " + platformUrl);
+            log.warning(String.format("Platform did not respond: %s; removing...", platformUrl));
             connectedPlatforms.remove(platformUrl);
             return false;
         }
@@ -285,6 +285,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             try {
                 client.notifyUpdatePlatform(config.getOwnBaseUrl());
             } catch (IOException e) {
+                // io exception in case platform does not respond at all
                 log.warning("Platform did not respond: " + platformUrl);
                 connectedPlatforms.remove(platformUrl);
             }
