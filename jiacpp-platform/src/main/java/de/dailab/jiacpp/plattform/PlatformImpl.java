@@ -46,6 +46,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         this.config = config;
         this.containerClient = new DockerClient();
         this.containerClient.initialize(config);
+        // TODO add list of known used ports to config (e.g. the port of the RP itself, or others)
     }
 
     @Override
@@ -315,6 +316,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         //  - if api port, set it
         //  - else get matching port descriptor from image
         //  - add port and set in container's description
+        //  - what about publicUrl? or wrap all that into another nested class/object and have addContainer return it?
         return info;
     }
 

@@ -127,6 +127,7 @@ public class DockerClient implements ContainerClient {
         try {
             var dockerId = dockerContainers.get(containerId).getContainerId();
             dockerClient.stopContainerCmd(dockerId).exec();
+            // TODO free up ports used by this container
         } catch (NotModifiedException e) {
             var msg = "Could not stop Container " + containerId + "; already stopped?";
             log.warning(msg);
@@ -135,6 +136,8 @@ public class DockerClient implements ContainerClient {
         // TODO possibly that the container refuses being stopped? call "kill" instead? how to test this?
         // TODO handle error trying to connect to Docker (only relevant when Remote Docker is supported, issue #23)
     }
+
+    // TODO helper method to get next free port (starting from some number) considering already used ports
 
     @Override
     public String getIP(String containerId) {

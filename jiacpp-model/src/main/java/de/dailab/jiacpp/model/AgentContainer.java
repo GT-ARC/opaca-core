@@ -26,6 +26,11 @@ public class AgentContainer {
     /** when the container was started */
     LocalDateTime runningSince;
 
+    // TODO move those attributes to another nested class/object so they can be easier returned by ContainerClient?
+
+    /** this container's public URL (e.g. the URL of the Runtime Platform, Docker Host, or Kubernetes Node */
+    String publicUrl;
+
     /** where the port where the container provides the JIAC++ API is mapped to */
     Integer apiPortMapping;
 
