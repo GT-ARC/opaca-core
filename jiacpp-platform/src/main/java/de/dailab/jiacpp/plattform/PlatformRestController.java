@@ -141,7 +141,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@RequestBody Message message,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("BROADCAST: %s, %s", channel, message));
+		log.info(String.format("BROADCAST: %s, %s, %s", channel, message, forward));
 		implementation.broadcast(channel, message, forward);
 	}
 

@@ -75,7 +75,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public void send(String agentId, Message message) throws NoSuchElementException {
-        var clients = getClients(null, agentId, null);
+        var clients = getClients(null, agentId, null, false);
 
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             log.info("Forwarding /send to " + client.baseUrl);
@@ -101,22 +101,17 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
     @Override
     public void broadcast(String channel, Message message, boolean forward) {
-        for (AgentContainer container : runningContainers.values()) {
-            try {
-                getClient(container).broadcast(channel, message, forward);
-            } catch (IOException e) {
-                log.warning("Failed to forward /broadcast to Container " + container.getContainerId());
-            }
-        }
+        var clients = forward
+                ? getClients(null, null, null)
+                : getClients(null, null, null, false);
 
-        if (!forward) return;
-
-        for (RuntimePlatform platform : connectedPlatforms.values()) {
+        for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
+            log.info("Forwarding /broadcast to " + client.baseUrl);
             try {
-                var client = new ApiProxy(platform.getBaseUrl());
                 client.broadcast(channel, message, false);
+                return;
             } catch (IOException e) {
-                log.warning("Failed to forward /broadcast to Platform " + platform.getBaseUrl());
+                log.warning("Failed to forward /broadcast to " + client.baseUrl);
             }
         }
     }
@@ -128,12 +123,11 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters, boolean forward) throws NoSuchElementException {
-        var clients = getClients(null, agentId, action);
+        var clients = forward
+                ? getClients(null, agentId, action)
+                : getClients(null, agentId, action, false);
 
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
-
-            // todo: skip for platform clients...
-
             try {
                 return agentId == null
                         ? client.invoke(action, parameters, false)
@@ -298,10 +292,16 @@ public class PlatformImpl implements RuntimePlatformApi {
      * @return list of clients to send requests to these valid containers/platforms
      */
     private Stream<ApiProxy> getClients(String containerId, String agentId, String action) {
+        return getClients(containerId, agentId, action, true);
+    }
+
+    private Stream<ApiProxy> getClients(String containerId, String agentId, String action, boolean includeConnected) {
         // local containers
         var containerClients = runningContainers.values().stream()
                 .filter(c -> matches(c, containerId, agentId, action))
                 .map(c -> getClient(c.getContainerId()));
+
+        if (!includeConnected) return containerClients;
 
         // remote platforms
         var platformClients = connectedPlatforms.values().stream()
