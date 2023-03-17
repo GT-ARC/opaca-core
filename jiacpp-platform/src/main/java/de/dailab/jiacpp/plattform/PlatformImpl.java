@@ -9,6 +9,7 @@ import de.dailab.jiacpp.plattform.containerclient.DockerClient;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
 
+import javax.validation.metadata.ContainerDescriptor;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -37,6 +38,9 @@ public class PlatformImpl implements RuntimePlatformApi {
     /** Set of remote Runtime Platform URLs with a pending connection request */
     private final Set<String> pendingConnections = new HashSet<>();
 
+    /** Port mappings of currently running containers */
+    private final Map<String, Map<Integer, Integer>> portMappings = new HashMap<>();
+    // TODO remember to also remove those after failed to fetch /info in notify/update
 
     public PlatformImpl(PlatformConfig config) {
         this.config = config;
@@ -138,7 +142,8 @@ public class PlatformImpl implements RuntimePlatformApi {
         String agentContainerId = UUID.randomUUID().toString();
 
         // start container... this may raise an Exception, but otherwise has no result
-        containerClient.startContainer(agentContainerId, image.getImageName());
+        var portMap = containerClient.startContainer(agentContainerId, image.getImageName());
+        portMappings.put(agentContainerId, portMap);
 
         // wait until container is up and running...
         var start = System.currentTimeMillis();
@@ -187,6 +192,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         AgentContainer container = runningContainers.get(containerId);
         if (container != null) {
             runningContainers.remove(containerId);
+            portMappings.remove(containerId);
             containerClient.stopContainer(containerId);
             return true;
         }
@@ -300,6 +306,16 @@ public class PlatformImpl implements RuntimePlatformApi {
                         .anyMatch(a -> (agentId == null || a.getAgentId().equals(agentId))
                                 && (action == null || a.getActions().stream()
                                 .anyMatch(x -> x.getName().equals(action))));
+    }
+
+    // TODO remember to also call this after calling /info in notify/update
+    private AgentContainer withPortMappings(AgentContainer info) {
+        // TODO add port mappings to container
+        //  - iterate port in port mappings
+        //  - if api port, set it
+        //  - else get matching port descriptor from image
+        //  - add port and set in container's description
+        return info;
     }
 
     private ApiProxy getClient(AgentContainer container) {

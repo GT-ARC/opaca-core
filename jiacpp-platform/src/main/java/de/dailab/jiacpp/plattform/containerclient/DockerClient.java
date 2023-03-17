@@ -77,7 +77,7 @@ public class DockerClient implements ContainerClient {
     }
 
     @Override
-    public void startContainer(String containerId, String imageName) throws IOException, NoSuchElementException {
+    public Map<Integer, Integer> startContainer(String containerId, String imageName) throws IOException, NoSuchElementException {
         try {
             // pull image if not present
             if (! isImagePresent(imageName)) {
@@ -112,6 +112,8 @@ public class DockerClient implements ContainerClient {
             // TODO get internal IP... why is this deprecated?
             InspectContainerResponse info = dockerClient.inspectContainerCmd(res.getId()).exec();
             dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), info.getNetworkSettings().getIpAddress()));
+
+            return Map.of(); // TODO return port mappings
 
         } catch (NotFoundException e) {
             log.warning("Image not found: " + imageName);

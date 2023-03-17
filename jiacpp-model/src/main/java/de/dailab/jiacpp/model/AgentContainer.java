@@ -42,7 +42,7 @@ public class AgentContainer {
         /** the protocol that is served via this port */
         String protocol;
 
-        /** human readable description of the service */
+        /** human-readable description of the service */
         String description;
 
     }
