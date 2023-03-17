@@ -421,11 +421,11 @@ public class PlatformTests {
     public void test7RequestInvalidNotify() throws Exception {
         // invalid container
         var con1 = request(PLATFORM_A, "POST", "/containers/notify", "container-does-not-exist");
-        Assert.assertEquals(502, con1.getResponseCode());
+        Assert.assertEquals(404, con1.getResponseCode());
 
         // invalid platform
         var con2 = request(PLATFORM_A, "POST", "/connections/notify", "platform-does-not-exist");
-        Assert.assertEquals(502, con2.getResponseCode());
+        Assert.assertEquals(404, con2.getResponseCode());
     }
 
     /*
