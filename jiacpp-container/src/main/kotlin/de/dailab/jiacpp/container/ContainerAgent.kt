@@ -162,7 +162,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         override fun getContainerInfo(): AgentContainer {
             log.info("GET INFO")
-            return AgentContainer(containerId, image, agents, startedAt)
+            return AgentContainer(containerId, image, agents, startedAt, null, null)
         }
 
         override fun getAgents(): List<AgentDescription> {

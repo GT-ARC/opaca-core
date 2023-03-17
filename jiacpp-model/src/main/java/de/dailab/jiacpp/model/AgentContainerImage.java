@@ -15,9 +15,6 @@ public class AgentContainerImage {
 
     // TODO what does a container actually "provide", besides its agents and their actions? (Issue #42)
 
-    // TODO additional ports to be exposed and services those provide, e.g. for streaming API?
-    //  otherwise, agent containers are _only_ reachable through the here defined API... (Issue #27)
-
     // REQUIRED attributes for starting a container
 
     /** full path of the (Docker) Container, including repository and version */
@@ -28,6 +25,8 @@ public class AgentContainerImage {
 
     /** special features provided by this container */
     List<String> provides;
+
+    // PORT MAPPING SET BY THE RUNTIME PLATFORM, NOT THE CONTAINER ITSELF
 
     /** the port where the container provides the JIAC++ API; by default this is 8082 but another may be used */
     Integer apiPort;
