@@ -15,9 +15,6 @@ import java.util.Map;
  */
 public interface CommonApi {
 
-    // TODO move receiver into message envelope and combine send and broadcast methods?
-    // TODO REST routes are still preliminary
-
     /**
      * Get list of Agents running in this Agent Container.
      *

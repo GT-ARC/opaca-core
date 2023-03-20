@@ -139,4 +139,19 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         System.out.println(url);
         return client.delete("/connections", url, Boolean.class);
     }
+
+    @Override
+    public boolean notifyUpdateContainer(String containerId) throws IOException {
+        System.out.println("NOTIFY - CONTAINER");
+        System.out.println(containerId);
+        return client.post("/containers/notify", containerId, Boolean.class);
+    }
+
+    @Override
+    public boolean notifyUpdatePlatform(String platformUrl) throws IOException {
+        System.out.println("NOTIFY - PLATFORM");
+        System.out.println(platformUrl);
+        return client.post("/connections/notify", platformUrl, Boolean.class);
+    }
+
 }

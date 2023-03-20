@@ -14,9 +14,6 @@ import java.util.List;
  */
 public interface RuntimePlatformApi extends CommonApi {
 
-    // TODO use boolean for results, or just void + Exception?
-    // TODO REST routes are still preliminary
-
     /**
      * Get full information on the Runtime Platform, including all running Agent Containers and
      * Agents, connected other platforms, etc.
@@ -90,13 +87,33 @@ public interface RuntimePlatformApi extends CommonApi {
     /**
      * Disconnect a previously connected Platform, in both directions.
      *
-     * TODO how to pass URL, as path parameter? does that work? or as body?
-     *
      * REST: DELETE /connections
      *
      * @param url The base-URL of the platform to disconnect.
      * @return Disconnect successful?
      */
     boolean disconnectPlatform(String url) throws IOException;
+
+    /**
+     * Notify Platform of changes in one of its own containers, triggering an update by calling the /info route.
+     * Can be called by the container itself, or by some other entity or the user.
+     *
+     * REST: POST /containers/notify
+     *
+     * @param containerId The ID of the container to update.
+     * @return true/false depending on whether the update was successful (false = container not reachable, removed)
+     */
+    boolean notifyUpdateContainer(String containerId) throws IOException;
+
+    /**
+     * Notify Platform of changes in a connected Platform, triggering an update by calling the /info route.
+     * Can be called by the platform itself, or by some other entity or the user.
+     *
+     * REST: POST /connections/notify
+     *
+     * @param platformUrl The URL of the platform to update.
+     * @return true/false depending on whether the update was successful (false = platform not reachable, removed)
+     */
+    boolean notifyUpdatePlatform(String platformUrl) throws IOException;
 
 }

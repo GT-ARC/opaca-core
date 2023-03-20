@@ -1,0 +1,23 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+participant "Container" as C
+participant "RuntimePlatform" as A
+collections "Connected Platforms" as B
+
+title Protocol for Updating Container and Platform Info
+
+C -> A: /containers/notify (self)
+A -> C: /info
+C --> A: updated ContainerInfo
+
+A -> B: /connections/notify (self)
+B -> A: /info
+A --> B: updated PlatformInfo
+B --> A: true
+
+A --> C: true
+
+
+@enduml

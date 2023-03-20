@@ -246,6 +246,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             notifyPlatform()
         }
 
+        // TODO allow agent to de-register from the container -> #41
+
     }
 
     private fun notifyPlatform() {

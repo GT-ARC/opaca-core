@@ -12,10 +12,10 @@ import java.util.List;
 @Data @AllArgsConstructor @NoArgsConstructor
 public class AgentContainerImage {
 
-    // TODO what does a container actually "provide", besides its agents and their actions?
+    // TODO what does a container actually "provide", besides its agents and their actions? (Issue #42)
 
     // TODO additional ports to be exposed and services those provide, e.g. for streaming API?
-    //  otherwise, agent containers are _only_ reachable through the here defined API...
+    //  otherwise, agent containers are _only_ reachable through the here defined API... (Issue #27)
 
     // REQUIRED attributes for starting a container
 
