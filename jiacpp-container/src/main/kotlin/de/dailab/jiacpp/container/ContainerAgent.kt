@@ -73,7 +73,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             val path = request.pathInfo
             val body: String = request.reader.lines().collect(Collectors.joining())
 
-            val send = Regex("^/send/([^/?]+)").find(path)
+            val send = Regex("^/send/([^/?]+)(?:\\?.*)?$").find(path)
             if (send != null) {
                 val id = send.groupValues[1]
                 val message = RestHelper.readObject(body, Message::class.java)
@@ -81,7 +81,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 response.writer.write(RestHelper.writeJson(res))
             }
 
-            val broadcast = Regex("^/broadcast/([^/?]+)").find(path)
+            val broadcast = Regex("^/broadcast/([^/?]+)(?:\\?.*)?$").find(path)
             if (broadcast != null) {
                 val channel = broadcast.groupValues[1]
                 val message = RestHelper.readObject(body, Message::class.java)
@@ -89,7 +89,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 response.writer.write(RestHelper.writeJson(res))
             }
 
-            val invokeAct = Regex("^/invoke/([^/?]+)").find(path)
+            val invokeAct = Regex("^/invoke/([^/?]+)(?:\\?.*)?$").find(path)
             if (invokeAct != null) {
                 val action = invokeAct.groupValues[1]
                 val parameters = RestHelper.readMap(body)
@@ -97,7 +97,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 response.writer.write(RestHelper.writeJson(res))
             }
 
-            val invokeActOf = Regex("^/invoke/([^/?]+)/([^/?]+)").find(path)
+            val invokeActOf = Regex("^/invoke/([^/?]+)/([^/?]+)(?:\\?.*)?$").find(path)
             if (invokeActOf != null) {
                 val action = invokeActOf.groupValues[1]
                 val agentId = invokeActOf.groupValues[2]
