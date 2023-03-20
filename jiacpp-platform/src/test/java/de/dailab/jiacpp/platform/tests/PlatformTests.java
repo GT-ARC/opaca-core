@@ -239,6 +239,14 @@ public class PlatformTests {
     }
 
     /**
+     *
+     */
+    @Test
+    public void test7UpdateContainerInfo() {
+        
+    }
+
+    /**
      * disconnect platforms, check that both are disconnected
      */
     @Test
