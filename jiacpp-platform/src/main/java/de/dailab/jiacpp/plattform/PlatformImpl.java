@@ -74,13 +74,13 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public void send(String agentId, Message message) throws NoSuchElementException {
+    public void send(String agentId, Message message, boolean forward) throws NoSuchElementException {
         var clients = getClients(null, agentId, null, true);
 
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             log.info("Forwarding /send to " + client.baseUrl);
             try {
-                client.send(agentId, message);
+                client.send(agentId, message, false);
                 return;
             } catch (IOException e) {
                 log.warning("Failed to forward /send to " + client.baseUrl);

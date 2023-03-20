@@ -55,11 +55,12 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
-    public void send(String agentId, Message message) throws IOException {
+    public void send(String agentId, Message message, boolean forward) throws IOException {
         System.out.println("SEND");
         System.out.println(agentId);
         System.out.println(message);
-        client.post(String.format("/send/%s", agentId), message, null);
+        System.out.println(forward);
+        client.post(String.format("/send/%s?forward=%s", agentId, forward), message, null);
     }
 
     @Override

@@ -127,10 +127,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public void send(
 			@PathVariable String agentId,
-			@RequestBody Message message
+			@RequestBody Message message,
+			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("SEND: %s, %s", agentId, message));
-		implementation.send(agentId, message);
+		implementation.send(agentId, message, forward);
 	}
 
 	@RequestMapping(value="/broadcast/{channel}", method=RequestMethod.POST)

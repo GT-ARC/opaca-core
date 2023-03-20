@@ -43,7 +43,7 @@ public interface CommonApi {
      * @param message The message envelope
      * @param forward flag whether to forward the message to connected platforms
      */
-    void send(String agentId, Message message) throws IOException;
+    void send(String agentId, Message message, boolean forward) throws IOException;
 
     /**
      * Send message to a group of agents, or channel.
