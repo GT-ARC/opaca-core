@@ -101,9 +101,7 @@ public interface RuntimePlatformApi extends CommonApi {
      * REST: POST /containers/notify
      *
      * @param containerId The ID of the container to update.
-     * @return true/false depending on whether the update was successful
-     *
-     * TODO clarify when to return false, and when to raise an error
+     * @return true/false depending on whether the update was successful (false = container not reachable, removed)
      */
     boolean notifyUpdateContainer(String containerId) throws IOException;
 
@@ -114,9 +112,7 @@ public interface RuntimePlatformApi extends CommonApi {
      * REST: POST /connections/notify
      *
      * @param platformUrl The URL of the platform to update.
-     * @return true/false depending on whether the update was successful
-     *
-     * TODO clarify when to return false, and when to raise an error
+     * @return true/false depending on whether the update was successful (false = platform not reachable, removed)
      */
     boolean notifyUpdatePlatform(String platformUrl) throws IOException;
 

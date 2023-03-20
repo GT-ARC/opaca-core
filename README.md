@@ -76,6 +76,7 @@ and first tests in order to find out what of this makes sense etc.
 * container/platform calls `/containers/notify` or `/connections/notify` with own ID/URL respectively
 * the idea behind "notify, then pull info" instead of "push info" is to make sure that the info does actually come from the container/platform in question and not someone else
 * receiving platform calls `/info` for that container/platform, stores updated information
+* return `true` if update successful, `false` if not reachable (see below) and 404 if unknown/not in list
 * if container/platform are not reachable, their information is removed from the platform
 * can be called if container's agents/actions change, if container is about to die, or at any time by the user
 * update in containers (via add/remove or update) automatically triggers notification of connected platforms

@@ -304,9 +304,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             try {
                 client.notifyUpdatePlatform(config.getOwnBaseUrl());
             } catch (IOException e) {
-                // io exception in case platform does not respond at all
-                log.warning("Platform did not respond: " + platformUrl);
-                connectedPlatforms.remove(platformUrl);
+                log.warning("Failed to forward update to Platform " + platformUrl);
             }
         }
     }
