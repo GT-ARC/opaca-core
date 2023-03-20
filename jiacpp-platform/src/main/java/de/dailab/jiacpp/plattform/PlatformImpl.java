@@ -107,7 +107,6 @@ public class PlatformImpl implements RuntimePlatformApi {
             log.info("Forwarding /broadcast to " + client.baseUrl);
             try {
                 client.broadcast(channel, message, false);
-                return;
             } catch (IOException e) {
                 log.warning("Failed to forward /broadcast to " + client.baseUrl);
             }
@@ -130,7 +129,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                         : client.invoke(agentId, action, parameters, false);
             } catch (IOException e) {
                 // todo: different warning in case of faulty parameters?
-                log.warning(String.format("Failed to invoke action %s @ agent %s and client %s",
+                log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s'",
                         action, agentId, client.baseUrl));
             }
         }
