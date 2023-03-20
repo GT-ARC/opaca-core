@@ -75,7 +75,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public void send(String agentId, Message message) throws NoSuchElementException {
-        var clients = getClients(null, agentId, null, false);
+        var clients = getClients(null, agentId, null, true);
 
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             log.info("Forwarding /send to " + client.baseUrl);
@@ -101,9 +101,7 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
     @Override
     public void broadcast(String channel, Message message, boolean forward) {
-        var clients = forward
-                ? getClients(null, null, null)
-                : getClients(null, null, null, false);
+        var clients = getClients(null, null, null, forward);
 
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             log.info("Forwarding /broadcast to " + client.baseUrl);
@@ -123,9 +121,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters, boolean forward) throws NoSuchElementException {
-        var clients = forward
-                ? getClients(null, agentId, action)
-                : getClients(null, agentId, action, false);
+        var clients = getClients(null, agentId, action, forward);
 
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {
