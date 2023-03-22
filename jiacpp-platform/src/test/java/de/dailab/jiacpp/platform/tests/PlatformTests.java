@@ -452,6 +452,10 @@ public class PlatformTests {
         // try to invoke the new action, which should now succeed
         con1 = request(PLATFORM_A, "POST", "/invoke/TemporaryTestAction/sample1", Map.of());
         Assert.assertEquals(200, con1.getResponseCode());
+
+        // platform A has also already notified platform B about its changes
+        con1 = request(PLATFORM_B, "POST", "/invoke/TemporaryTestAction", Map.of());
+        Assert.assertEquals(200, con1.getResponseCode());
     }
 
     /*
