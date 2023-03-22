@@ -90,15 +90,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         throw new NoSuchElementException(String.format("Not found: agent '%s'", agentId));
     }
 
-    /**
-     *
-     * TODO should this raise an IOException if there was one for any of the clients?
-     *      (after broadcasting to all other reachable clients!)
-     *
-     * @param channel Name of the group or channel
-     * @param message The message envelope
-     * @param forward flag whether to forward the message to connected platforms
-     */
     @Override
     public void broadcast(String channel, Message message, boolean forward) {
         var clients = getClients(null, null, null, forward);
@@ -348,12 +339,9 @@ public class PlatformImpl implements RuntimePlatformApi {
      * @param containerId container on which should be searched for valid agents/actions
      * @param agentId ID of the agent on which the action should be invoked or to which a message should be sent
      * @param action name of the action that should be invoked
+     * @param includeConnected Whether to also forward to connected Runtime Platforms
      * @return list of clients to send requests to these valid containers/platforms
      */
-    private Stream<ApiProxy> getClients(String containerId, String agentId, String action) {
-        return getClients(containerId, agentId, action, true);
-    }
-
     private Stream<ApiProxy> getClients(String containerId, String agentId, String action, boolean includeConnected) {
         // local containers
         var containerClients = runningContainers.values().stream()

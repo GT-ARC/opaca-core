@@ -73,6 +73,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             val path = request.pathInfo
             val body: String = request.reader.lines().collect(Collectors.joining())
 
+            // TODO interpretation of "forward"? currently ignored; escalate to RP if AC is addressed directly?
+
             val send = Regex("^/send/([^/?]+)(?:\\?.*)?$").find(path)
             if (send != null) {
                 val id = send.groupValues[1]
@@ -183,9 +185,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
 
         override fun broadcast(channel: String, message: Message, forward: Boolean) {
-            // todo: is there any way to disregard the forward parameter? containers cant forward to connected platforms
-            //      anyway. or use it as a flag to forward to the container's platform in case the container is addressed
-            //      directly?
             log.info("BROADCAST: $channel $message")
             broker.publish(channel, message)
         }

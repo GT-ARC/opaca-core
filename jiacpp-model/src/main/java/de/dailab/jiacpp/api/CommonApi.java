@@ -63,6 +63,7 @@ public interface CommonApi {
      *
      * @param action Name of the action
      * @param parameters Map of Parameters
+     * @param forward flag whether to forward the message to connected platforms
      * @return Action result
      */
     JsonNode invoke(String action, Map<String, JsonNode> parameters, boolean forward) throws IOException;
@@ -74,6 +75,7 @@ public interface CommonApi {
      *
      * @param action Name of the action
      * @param parameters Map of Parameters
+     * @param forward flag whether to forward the message to connected platforms
      * @return Action result
      */
     JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters, boolean forward) throws IOException;
