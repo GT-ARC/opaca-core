@@ -126,10 +126,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public void send(
 			@PathVariable String agentId,
-			@RequestBody Message message
+			@RequestBody Message message,
+			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("SEND: %s, %s", agentId, message));
-		implementation.send(agentId, message);
+		implementation.send(agentId, message, forward);
 	}
 
 	@RequestMapping(value="/broadcast/{channel}", method=RequestMethod.POST)
@@ -137,10 +138,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public void broadcast(
 			@PathVariable String channel,
-			@RequestBody Message message
+			@RequestBody Message message,
+			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("BROADCAST: %s, %s", channel, message));
-		implementation.broadcast(channel, message);
+		log.info(String.format("BROADCAST: %s, %s, %s", channel, message, forward));
+		implementation.broadcast(channel, message, forward);
 	}
 
 	@RequestMapping(value="/invoke/{action}", method=RequestMethod.POST)
@@ -148,10 +150,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public JsonNode invoke(
 			@PathVariable String action,
-			@RequestBody Map<String, JsonNode> parameters
+			@RequestBody Map<String, JsonNode> parameters,
+			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("INVOKE: %s, %s", action, parameters));
-		return implementation.invoke(action, parameters);
+		return implementation.invoke(action, parameters, forward);
 	}
 
 	@RequestMapping(value="/invoke/{action}/{agentId}", method=RequestMethod.POST)
@@ -160,10 +163,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public JsonNode invoke(
 			@PathVariable String agentId,
 			@PathVariable String action,
-			@RequestBody Map<String, JsonNode> parameters
+			@RequestBody Map<String, JsonNode> parameters,
+			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("INVOKE: %s, %s, %s", action, agentId, parameters));
-		return implementation.invoke(agentId, action, parameters);
+		return implementation.invoke(agentId, action, parameters, forward);
 	}
 
 	/*
