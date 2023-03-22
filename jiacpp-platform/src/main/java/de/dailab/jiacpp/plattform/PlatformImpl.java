@@ -161,6 +161,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                     log.warning("Agent Container ID does not match: Expected " +
                             agentContainerId + ", but found " + container.getContainerId());
                 }
+                notifyConnectedPlatforms();
                 return agentContainerId;
             } catch (IOException e) {
                 // this is normal... waiting for container to start and provide services
@@ -197,6 +198,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (container != null) {
             runningContainers.remove(containerId);
             containerClient.stopContainer(containerId);
+            notifyConnectedPlatforms();
             return true;
         }
         return false;
@@ -249,10 +251,72 @@ public class PlatformImpl implements RuntimePlatformApi {
         return false;
     }
 
+    @Override
+    public boolean notifyUpdateContainer(String containerId) {
+        containerId = normalizeUrl(containerId); // remove " - also usable here?
+        if (! runningContainers.containsKey(containerId)) {
+            var msg = String.format("Container did not exist: %s", containerId);
+            log.warning(msg);
+            throw new NoSuchElementException(msg);
+        }
+        try {
+            var client = this.getClient(containerId);
+            var containerInfo = client.getContainerInfo();
+            runningContainers.put(containerId, containerInfo);
+            notifyConnectedPlatforms();
+            return true;
+        } catch (IOException e) {
+            log.warning(String.format("Container did not respond: %s; removing...", containerId));
+            runningContainers.remove(containerId);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean notifyUpdatePlatform(String platformUrl) {
+        platformUrl = normalizeUrl(platformUrl);
+        if (platformUrl.equals(config.getOwnBaseUrl())) {
+            log.warning("Cannot request update for self.");
+            return false;
+        }
+        if (!connectedPlatforms.containsKey(platformUrl)) {
+            var msg = String.format("Platform was not connected: %s", platformUrl);
+            log.warning(msg);
+            throw new NoSuchElementException(msg);
+        }
+        try {
+            var client = new ApiProxy(platformUrl);
+            var platformInfo = client.getPlatformInfo();
+            connectedPlatforms.put(platformUrl, platformInfo);
+            return true;
+        } catch (IOException e) {
+            log.warning(String.format("Platform did not respond: %s; removing...", platformUrl));
+            connectedPlatforms.remove(platformUrl);
+            return false;
+        }
+    }
+
     /*
      * HELPER METHODS
      */
 
+    /**
+     * Whenever there is a change in this platform's Agent Containers (added, removed, or updated),
+     * call the /notify route of all connected Runtime Platforms, so they can pull the updated /info
+     *
+     * TODO this method is called when something about the containers changes... can we make this
+     *      asynchronous (without too much fuzz) so it does not block those other calls?
+     */
+    private void notifyConnectedPlatforms() {
+        for (String platformUrl : connectedPlatforms.keySet()) {
+            var client = new ApiProxy(platformUrl);
+            try {
+                client.notifyUpdatePlatform(config.getOwnBaseUrl());
+            } catch (IOException e) {
+                log.warning("Failed to forward update to Platform " + platformUrl);
+            }
+        }
+    }
 
     /**
      * Get client for send or invoke to specific agent, in a specific container, for a specific action.

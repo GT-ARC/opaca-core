@@ -247,6 +247,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         respond<AgentDescription, String?> {
             // agents may register with the container agent, publishing their ID and actions
             log.info("Registering $it")
+            // TODO allow for agent to re-register with updated info -> #41
             if (!registeredAgents.containsKey(it.agentId)) {
                 registeredAgents[it.agentId] = it
                 runtimePlatformUrl
@@ -254,6 +255,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 null
             }
         }
+
+        // TODO allow agent to de-register from the container -> #41
 
     }
 

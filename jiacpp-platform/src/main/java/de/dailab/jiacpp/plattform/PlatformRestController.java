@@ -248,4 +248,32 @@ public class PlatformRestController implements RuntimePlatformApi {
 		log.info(String.format("DISCONNECT PLATFORM: %s", url));
 		return implementation.disconnectPlatform(url);
 	}
+
+
+	@RequestMapping(value="/containers/notify", method=RequestMethod.POST)
+	@Operation(summary="Notify Platform about updates", tags={"containers"})
+	@Override
+	public boolean notifyUpdateContainer(@RequestBody String containerId) throws IOException {
+		log.info(String.format("NOTIFY: %s", containerId));
+		if (implementation.notifyUpdateContainer(containerId)) {
+			return true;
+		}
+		String errorMsg = String.format("Invalid containerId: %s", containerId);
+		log.severe(errorMsg);
+		throw new IOException(errorMsg);
+	}
+
+	@RequestMapping(value="/connections/notify", method=RequestMethod.POST)
+	@Operation(summary="Notify Platform about updates", tags={"connections"})
+	@Override
+	public boolean notifyUpdatePlatform(@RequestBody String platformUrl) throws IOException {
+		log.info(String.format("NOTIFY: %s", platformUrl));
+		if (implementation.notifyUpdatePlatform(platformUrl)) {
+			return true;
+		}
+		String errorMsg = String.format("Invalid platformUrl: %s", platformUrl);
+		log.severe(errorMsg);
+		throw new IOException(errorMsg);
+	}
+
 }
