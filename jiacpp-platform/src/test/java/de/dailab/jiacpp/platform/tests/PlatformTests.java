@@ -43,7 +43,7 @@ public class PlatformTests {
     private final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
     private final String PLATFORM_B = "http://localhost:" + PLATFORM_B_PORT;
 
-    private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container";
+    private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v3";
 
     private static String containerId = null;
     private static String platformABaseUrl = null;
@@ -89,9 +89,8 @@ public class PlatformTests {
      */
     @Test
     public void test2Deploy() throws Exception {
-        var container = new AgentContainerImage();
-        container.setImageName(TEST_IMAGE);
-        var con = request(PLATFORM_A, "POST", "/containers", container);
+        var image = getSampleContainerImage();
+        var con = request(PLATFORM_A, "POST", "/containers", image);
         Assert.assertEquals(200, con.getResponseCode());
         containerId = result(con);
 
@@ -181,13 +180,64 @@ public class PlatformTests {
         Assert.assertEquals("testBroadcast", res.get("lastBroadcast"));
     }
 
-    /*
-     * TODO test exposed ports
-     *  - test that two containers get a different API port
-     *  - test that container's /info route can be accessed via that port
-     *  - test exposed extra port (has to be provided in sample image)
-     *  - test that connectivity info is still there after /notify
+    /**
+     * test that two containers get a different API port
      */
+    @Test
+    public void test5FreePort() throws Exception {
+        var image = getSampleContainerImage();
+        var con = request(PLATFORM_A, "POST", "/containers", image);
+        Assert.assertEquals(200, con.getResponseCode());
+        var newContainerId = result(con);
+
+        con = request(PLATFORM_A, "GET", "/containers/" + newContainerId, null);
+        var res = result(con, AgentContainer.class);
+        Assert.assertEquals(8083, (int) res.getConnectivity().getApiPortMapping());
+
+        con = request(PLATFORM_A, "DELETE", "/containers/" + newContainerId, null);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    /**
+     * test that container's /info route can be accessed via that port
+     */
+    @Test
+    public void test5ApiPort() throws Exception {
+        var con = request(PLATFORM_A, "GET", "/containers/" + containerId, null);
+        var res = result(con, AgentContainer.class).getConnectivity();
+
+        // access /info route through exposed port
+        var url = String.format("%s:%s", res.getPublicUrl(), res.getApiPortMapping());
+        System.out.println(url);
+        con = request(url, "GET", "/info", null);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    /**
+     * test exposed extra port (has to be provided in sample image)
+     */
+    @Test
+    public void test5ExtraPort() throws Exception {
+        var con = request(PLATFORM_A, "GET", "/containers/" + containerId, null);
+        var res = result(con, AgentContainer.class).getConnectivity();
+
+        var url = String.format("%s:%s", res.getPublicUrl(), res.getExtraPortMappings().keySet().iterator().next());
+        con = request(url, "GET", "/", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("It Works!", result(con));
+    }
+
+    /**
+     * test that connectivity info is still there after /notify
+     */
+    @Test
+    public void test5NotifyConnectivity() throws Exception {
+        var con = request(PLATFORM_A, "POST", "/containers/notify", containerId);
+
+        con = request(PLATFORM_A, "GET", "/containers/" + containerId, null);
+        var res = result(con, AgentContainer.class);
+        Assert.assertNotNull(res.getConnectivity());
+    }
 
     /**
      * connect to second platform, check that both are connected
@@ -475,6 +525,13 @@ public class PlatformTests {
     /*
      * HELPER METHODS
      */
+
+    public AgentContainerImage getSampleContainerImage() {
+        var image = new AgentContainerImage();
+        image.setImageName(TEST_IMAGE);
+        image.setExtraPorts(Map.of(8888, new AgentContainerImage.PortDescription()));
+        return image;
+    }
 
     public HttpURLConnection request(String host, String method, String path, Object payload) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(host + path).openConnection();
