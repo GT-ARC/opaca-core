@@ -6,7 +6,7 @@ import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.exception.InternalServerErrorException;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.exception.NotModifiedException;
-import com.github.dockerjava.api.model.AuthConfig;
+import com.github.dockerjava.api.model.*;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
@@ -26,6 +26,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * Container Client for running Agent Containers in Docker, possibly on a remote host.
@@ -83,8 +84,8 @@ public class DockerClient implements ContainerClient {
 
     @Override
     public AgentContainer.Connectivity startContainer(String containerId, AgentContainerImage image) throws IOException, NoSuchElementException {
-        String imageName = image.getImageName();
-        Map<Integer, AgentContainerImage.PortDescription> extraPorts = image.getExtraPorts() == null ? Map.of() : image.getExtraPorts();
+        var imageName = image.getImageName();
+        var extraPorts = image.getExtraPorts();
         try {
             // pull image if not present
             if (! isImagePresent(imageName)) {
@@ -103,17 +104,23 @@ public class DockerClient implements ContainerClient {
                 }
             }
 
-            // TODO port mappings
-            var apiPortMapping = reserveNextFreePort(image.getApiPort());
-            Map<Integer, Integer> portMapping = extraPorts.entrySet().stream()
-                    .collect(Collectors.toMap(Map.Entry::getKey, e -> reserveNextFreePort(e.getKey())));
-
+            // port mappings
+            Map<Integer, Integer> portMap = Stream.concat(Stream.of(image.getApiPort()), extraPorts.keySet().stream())
+                    .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
 
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
                     .withEnv(
                             String.format("%s=%s", AgentContainerApi.ENV_CONTAINER_ID, containerId),
                             String.format("%s=%s", AgentContainerApi.ENV_PLATFORM_URL, config.getOwnBaseUrl()))
+                    .withHostConfig(HostConfig.newHostConfig()
+                            .withPortBindings(portMap.entrySet().stream().map(
+                                    // TODO format, then parse is kind of silly... is there a better way?
+                                    e -> PortBinding.parse(String.format("%s:%s", e.getValue(), e.getKey()))
+                            ).collect(Collectors.toList()))
+                    )
+                    // TODO why do we need this? DO we need this??
+                    .withExposedPorts(portMap.values().stream().map(ExposedPort::tcp).collect(Collectors.toList()))
                     .exec();
             log.info(String.format("Result: %s", res));
 
@@ -122,10 +129,9 @@ public class DockerClient implements ContainerClient {
 
             // create connectivity object
             var connectivity = new AgentContainer.Connectivity(
-                    config.getOwnBaseUrl(),  // TODO change to remote docker host
-                    apiPortMapping,
-                    extraPorts.entrySet().stream()
-                            .collect(Collectors.toMap(e -> portMapping.get(e.getKey()),Map.Entry::getValue))
+                    config.getOwnBaseUrl().replaceAll(":\\d+$", ""),  // TODO change to remote docker host once implemented (#23)
+                    portMap.get(image.getApiPort()),
+                    extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );
 
             // TODO get internal IP... why is this deprecated?
