@@ -13,8 +13,7 @@ fun main() {
             add(ContainerAgent(image))
             add(SampleAgent("sample1"))
             add(SampleAgent("sample2"))
-            // TODO add another agent hosting a VERY simple web page on some exposed port
-            // TODO also add those ports to the container.json file
+            add(SimpleUIAgent())
         }
     }.start()
 }

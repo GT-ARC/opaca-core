@@ -121,7 +121,7 @@ public class DockerClient implements ContainerClient {
                             ).collect(Collectors.toList()))
                     )
                     // TODO why do we need this? DO we need this??
-                    .withExposedPorts(portMap.values().stream().map(ExposedPort::tcp).collect(Collectors.toList()))
+                    .withExposedPorts(portMap.keySet().stream().map(ExposedPort::tcp).collect(Collectors.toList()))
                     .exec();
             log.info(String.format("Result: %s", res));
 
