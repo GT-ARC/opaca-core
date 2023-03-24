@@ -186,6 +186,7 @@ public class PlatformTests {
      *  - test that two containers get a different API port
      *  - test that container's /info route can be accessed via that port
      *  - test exposed extra port (has to be provided in sample image)
+     *  - test that connectivity info is still there after /notify
      */
 
     /**

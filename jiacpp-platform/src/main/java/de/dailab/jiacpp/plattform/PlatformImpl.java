@@ -37,9 +37,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     /** Set of remote Runtime Platform URLs with a pending connection request */
     private final Set<String> pendingConnections = new HashSet<>();
 
-    ///** Port mappings of currently running containers */
-    //private final Map<String, Map<Integer, Integer>> portMappings = new HashMap<>();
-    // TODO remember to also remove those after failed to fetch /info in notify/update
 
     public PlatformImpl(PlatformConfig config) {
         this.config = config;
@@ -258,6 +255,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         try {
             var client = this.getClient(containerId);
             var containerInfo = client.getContainerInfo();
+            containerInfo.setConnectivity(runningContainers.get(containerId).getConnectivity());
             runningContainers.put(containerId, containerInfo);
             notifyConnectedPlatforms();
             return true;
@@ -372,13 +370,6 @@ public class PlatformImpl implements RuntimePlatformApi {
                         .anyMatch(a -> (agentId == null || a.getAgentId().equals(agentId))
                                 && (action == null || a.getActions().stream()
                                 .anyMatch(x -> x.getName().equals(action))));
-    }
-
-    // TODO remember to also call this after calling /info in notify/update
-    private AgentContainer withPortMappings(AgentContainer info) {
-        var connectivity = runningContainers.get(info.getContainerId()).getConnectivity();
-        info.setConnectivity(connectivity);
-        return info;
     }
 
     private ApiProxy getClient(AgentContainer container) {
