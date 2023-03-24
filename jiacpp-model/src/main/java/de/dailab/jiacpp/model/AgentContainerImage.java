@@ -32,7 +32,7 @@ public class AgentContainerImage {
     Integer apiPort;
 
     /** additional ports exposed by the container and the protocols and services those provide */
-    Map<String, PortDescription> extraPorts;
+    Map<Integer, PortDescription> extraPorts;
 
     // OPTIONAL attributes for description of the container (e.g. in a repository, or of the container itself)
 

@@ -26,29 +26,21 @@ public class AgentContainer {
     /** when the container was started */
     LocalDateTime runningSince;
 
-    // TODO move those attributes to another nested class/object so they can be easier returned by ContainerClient?
-
-    /** this container's public URL (e.g. the URL of the Runtime Platform, Docker Host, or Kubernetes Node */
-    String publicUrl;
-
-    /** where the port where the container provides the JIAC++ API is mapped to */
-    Integer apiPortMapping;
-
-    /** where additional ports exposed by the container are mapped to */
-    Map<String, PortMappingDescription> extraPortMappings;
-
+    /** connectivity information */
+    Connectivity connectivity;
 
     @Data @AllArgsConstructor @NoArgsConstructor
-    public static class PortMappingDescription {
+    public static class Connectivity {
 
-        /** the original port inside the container this port is mapped to */
-        Integer originalPort;
+        /** this container's public URL (e.g. the URL of the Runtime Platform, Docker Host, or Kubernetes Node */
+        String publicUrl;
 
-        /** the protocol that is served via this port */
-        String protocol;
+        /** where the port where the container provides the JIAC++ API is mapped to */
+        Integer apiPortMapping;
 
-        /** human-readable description of the service */
-        String description;
+        /** where additional ports exposed by the container are mapped to */
+        Map<Integer, AgentContainerImage.PortDescription> extraPortMappings;
 
     }
+
 }
