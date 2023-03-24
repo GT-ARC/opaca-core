@@ -9,7 +9,6 @@ import de.dailab.jiacpp.plattform.containerclient.DockerClient;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
 
-import javax.validation.metadata.ContainerDescriptor;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -38,8 +37,8 @@ public class PlatformImpl implements RuntimePlatformApi {
     /** Set of remote Runtime Platform URLs with a pending connection request */
     private final Set<String> pendingConnections = new HashSet<>();
 
-    /** Port mappings of currently running containers */
-    private final Map<String, Map<Integer, Integer>> portMappings = new HashMap<>();
+    ///** Port mappings of currently running containers */
+    //private final Map<String, Map<Integer, Integer>> portMappings = new HashMap<>();
     // TODO remember to also remove those after failed to fetch /info in notify/update
 
     public PlatformImpl(PlatformConfig config) {
@@ -142,9 +141,8 @@ public class PlatformImpl implements RuntimePlatformApi {
     public String addContainer(AgentContainerImage image) throws IOException {
         String agentContainerId = UUID.randomUUID().toString();
 
-        // start container... this may raise an Exception, but otherwise has no result
-        var portMap = containerClient.startContainer(agentContainerId, image.getImageName());
-        portMappings.put(agentContainerId, portMap);
+        // start container... this may raise an Exception, or returns the connectivty info
+        var connectivity = containerClient.startContainer(agentContainerId, image);
 
         // wait until container is up and running...
         var start = System.currentTimeMillis();
@@ -152,6 +150,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000) {
             try {
                 var container = client.getContainerInfo();
+                container.setConnectivity(connectivity);
                 runningContainers.put(agentContainerId, container);
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
@@ -193,7 +192,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         AgentContainer container = runningContainers.get(containerId);
         if (container != null) {
             runningContainers.remove(containerId);
-            portMappings.remove(containerId);
             containerClient.stopContainer(containerId);
             return true;
         }
@@ -311,12 +309,8 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     // TODO remember to also call this after calling /info in notify/update
     private AgentContainer withPortMappings(AgentContainer info) {
-        // TODO add port mappings to container
-        //  - iterate port in port mappings
-        //  - if api port, set it
-        //  - else get matching port descriptor from image
-        //  - add port and set in container's description
-        //  - what about publicUrl? or wrap all that into another nested class/object and have addContainer return it?
+        var connectivity = runningContainers.get(info.getContainerId()).getConnectivity();
+        info.setConnectivity(connectivity);
         return info;
     }
 
