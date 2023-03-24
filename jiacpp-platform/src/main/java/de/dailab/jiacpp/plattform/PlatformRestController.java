@@ -126,10 +126,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public void send(
 			@PathVariable String agentId,
-			@RequestBody Message message
+			@RequestBody Message message,
+			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("SEND: %s, %s", agentId, message));
-		implementation.send(agentId, message);
+		implementation.send(agentId, message, forward);
 	}
 
 	@RequestMapping(value="/broadcast/{channel}", method=RequestMethod.POST)
@@ -137,10 +138,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public void broadcast(
 			@PathVariable String channel,
-			@RequestBody Message message
+			@RequestBody Message message,
+			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("BROADCAST: %s, %s", channel, message));
-		implementation.broadcast(channel, message);
+		log.info(String.format("BROADCAST: %s, %s, %s", channel, message, forward));
+		implementation.broadcast(channel, message, forward);
 	}
 
 	@RequestMapping(value="/invoke/{action}", method=RequestMethod.POST)
@@ -148,10 +150,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public JsonNode invoke(
 			@PathVariable String action,
-			@RequestBody Map<String, JsonNode> parameters
+			@RequestBody Map<String, JsonNode> parameters,
+			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("INVOKE: %s, %s", action, parameters));
-		return implementation.invoke(action, parameters);
+		return implementation.invoke(action, parameters, forward);
 	}
 
 	@RequestMapping(value="/invoke/{action}/{agentId}", method=RequestMethod.POST)
@@ -160,10 +163,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public JsonNode invoke(
 			@PathVariable String agentId,
 			@PathVariable String action,
-			@RequestBody Map<String, JsonNode> parameters
+			@RequestBody Map<String, JsonNode> parameters,
+			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("INVOKE: %s, %s, %s", action, agentId, parameters));
-		return implementation.invoke(agentId, action, parameters);
+		return implementation.invoke(agentId, action, parameters, forward);
 	}
 
 	/*
@@ -243,4 +247,32 @@ public class PlatformRestController implements RuntimePlatformApi {
 		log.info(String.format("DISCONNECT PLATFORM: %s", url));
 		return implementation.disconnectPlatform(url);
 	}
+
+
+	@RequestMapping(value="/containers/notify", method=RequestMethod.POST)
+	@Operation(summary="Notify Platform about updates", tags={"containers"})
+	@Override
+	public boolean notifyUpdateContainer(@RequestBody String containerId) throws IOException {
+		log.info(String.format("NOTIFY: %s", containerId));
+		if (implementation.notifyUpdateContainer(containerId)) {
+			return true;
+		}
+		String errorMsg = String.format("Invalid containerId: %s", containerId);
+		log.severe(errorMsg);
+		throw new IOException(errorMsg);
+	}
+
+	@RequestMapping(value="/connections/notify", method=RequestMethod.POST)
+	@Operation(summary="Notify Platform about updates", tags={"connections"})
+	@Override
+	public boolean notifyUpdatePlatform(@RequestBody String platformUrl) throws IOException {
+		log.info(String.format("NOTIFY: %s", platformUrl));
+		if (implementation.notifyUpdatePlatform(platformUrl)) {
+			return true;
+		}
+		String errorMsg = String.format("Invalid platformUrl: %s", platformUrl);
+		log.severe(errorMsg);
+		throw new IOException(errorMsg);
+	}
+
 }

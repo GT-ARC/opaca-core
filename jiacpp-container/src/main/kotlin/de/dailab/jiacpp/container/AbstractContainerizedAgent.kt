@@ -57,8 +57,8 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         val jsonParameters = parameters.entries
             .associate { Pair<String, JsonNode>(it.key, RestHelper.mapper.valueToTree(it.value)) }
         val res = when (agentId) {
-            null -> parentProxy.invoke(action, jsonParameters)
-            else -> parentProxy.invoke(agentId, action, jsonParameters)
+            null -> parentProxy.invoke(action, jsonParameters, true)
+            else -> parentProxy.invoke(agentId, action, jsonParameters, true)
         }
         return RestHelper.mapper.treeToValue(res, type)
     }
@@ -70,7 +70,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
     fun sendOutboundBroadcast(channel: String, message: Any) {
         log.info("Outbound Broadcast: $message @ $channel")
         val payload: JsonNode = RestHelper.mapper.valueToTree(message)
-        parentProxy.broadcast(channel, Message(payload, name))
+        parentProxy.broadcast(channel, Message(payload, name), true)
     }
 
     /**
@@ -80,7 +80,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
     fun sendOutboundMessage(agentId: String, message: Any) {
         log.info("Outbound Message: $message @ $agentId")
         val payload: JsonNode = RestHelper.mapper.valueToTree(message)
-        parentProxy.send(agentId, Message(payload, name))
+        parentProxy.send(agentId, Message(payload, name), true)
     }
 
 }

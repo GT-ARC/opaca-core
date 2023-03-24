@@ -78,13 +78,13 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public void send(String agentId, Message message) throws NoSuchElementException {
-        var clients = getClients(null, agentId, null);
+    public void send(String agentId, Message message, boolean forward) throws NoSuchElementException {
+        var clients = getClients(null, agentId, null, forward);
 
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             log.info("Forwarding /send to " + client.baseUrl);
             try {
-                client.send(agentId, message);
+                client.send(agentId, message, false);
                 return;
             } catch (IOException e) {
                 log.warning("Failed to forward /send to " + client.baseUrl);
@@ -95,36 +95,36 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public void broadcast(String channel, Message message) {
-        for (AgentContainer container : runningContainers.values()) {
+    public void broadcast(String channel, Message message, boolean forward) {
+        var clients = getClients(null, null, null, forward);
+
+        for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
+            log.info("Forwarding /broadcast to " + client.baseUrl);
             try {
-                getClient(container).broadcast(channel, message);
+                client.broadcast(channel, message, false);
             } catch (IOException e) {
-                log.warning("Failed to forward /broadcast to Container " + container.getContainerId());
+                log.warning("Failed to forward /broadcast to " + client.baseUrl);
             }
         }
-        // TODO should this raise an IOException if there was one for any of the clients?
-        //  (after broadcasting to all other reachable clients!)
-        // TODO broadcast to other platforms... how to prevent infinite loops? optional flag parameter?
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters) throws NoSuchElementException {
-        return invoke(null, action, parameters);
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, boolean forward) throws NoSuchElementException {
+        return invoke(null, action, parameters, forward);
     }
 
     @Override
-    public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters) throws NoSuchElementException {
-        var clients = getClients(null, agentId, action);
+    public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters, boolean forward) throws NoSuchElementException {
+        var clients = getClients(null, agentId, action, forward);
 
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {
                 return agentId == null
-                        ? client.invoke(action, parameters)
-                        : client.invoke(agentId, action, parameters);
+                        ? client.invoke(action, parameters, false)
+                        : client.invoke(agentId, action, parameters, false);
             } catch (IOException e) {
                 // todo: different warning in case of faulty parameters?
-                log.warning(String.format("Failed to invoke action %s @ agent %s and client %s",
+                log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s'",
                         action, agentId, client.baseUrl));
             }
         }
@@ -157,6 +157,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                     log.warning("Agent Container ID does not match: Expected " +
                             agentContainerId + ", but found " + container.getContainerId());
                 }
+                notifyConnectedPlatforms();
                 return agentContainerId;
             } catch (IOException e) {
                 // this is normal... waiting for container to start and provide services
@@ -193,6 +194,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (container != null) {
             runningContainers.remove(containerId);
             containerClient.stopContainer(containerId);
+            notifyConnectedPlatforms();
             return true;
         }
         return false;
@@ -245,10 +247,72 @@ public class PlatformImpl implements RuntimePlatformApi {
         return false;
     }
 
+    @Override
+    public boolean notifyUpdateContainer(String containerId) {
+        containerId = normalizeUrl(containerId); // remove " - also usable here?
+        if (! runningContainers.containsKey(containerId)) {
+            var msg = String.format("Container did not exist: %s", containerId);
+            log.warning(msg);
+            throw new NoSuchElementException(msg);
+        }
+        try {
+            var client = this.getClient(containerId);
+            var containerInfo = client.getContainerInfo();
+            runningContainers.put(containerId, containerInfo);
+            notifyConnectedPlatforms();
+            return true;
+        } catch (IOException e) {
+            log.warning(String.format("Container did not respond: %s; removing...", containerId));
+            runningContainers.remove(containerId);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean notifyUpdatePlatform(String platformUrl) {
+        platformUrl = normalizeUrl(platformUrl);
+        if (platformUrl.equals(config.getOwnBaseUrl())) {
+            log.warning("Cannot request update for self.");
+            return false;
+        }
+        if (!connectedPlatforms.containsKey(platformUrl)) {
+            var msg = String.format("Platform was not connected: %s", platformUrl);
+            log.warning(msg);
+            throw new NoSuchElementException(msg);
+        }
+        try {
+            var client = new ApiProxy(platformUrl);
+            var platformInfo = client.getPlatformInfo();
+            connectedPlatforms.put(platformUrl, platformInfo);
+            return true;
+        } catch (IOException e) {
+            log.warning(String.format("Platform did not respond: %s; removing...", platformUrl));
+            connectedPlatforms.remove(platformUrl);
+            return false;
+        }
+    }
+
     /*
      * HELPER METHODS
      */
 
+    /**
+     * Whenever there is a change in this platform's Agent Containers (added, removed, or updated),
+     * call the /notify route of all connected Runtime Platforms, so they can pull the updated /info
+     *
+     * TODO this method is called when something about the containers changes... can we make this
+     *      asynchronous (without too much fuzz) so it does not block those other calls?
+     */
+    private void notifyConnectedPlatforms() {
+        for (String platformUrl : connectedPlatforms.keySet()) {
+            var client = new ApiProxy(platformUrl);
+            try {
+                client.notifyUpdatePlatform(config.getOwnBaseUrl());
+            } catch (IOException e) {
+                log.warning("Failed to forward update to Platform " + platformUrl);
+            }
+        }
+    }
 
     /**
      * Get client for send or invoke to specific agent, in a specific container, for a specific action.
@@ -280,13 +344,16 @@ public class PlatformImpl implements RuntimePlatformApi {
      * @param containerId container on which should be searched for valid agents/actions
      * @param agentId ID of the agent on which the action should be invoked or to which a message should be sent
      * @param action name of the action that should be invoked
+     * @param includeConnected Whether to also forward to connected Runtime Platforms
      * @return list of clients to send requests to these valid containers/platforms
      */
-    private Stream<ApiProxy> getClients(String containerId, String agentId, String action) {
+    private Stream<ApiProxy> getClients(String containerId, String agentId, String action, boolean includeConnected) {
         // local containers
         var containerClients = runningContainers.values().stream()
                 .filter(c -> matches(c, containerId, agentId, action))
                 .map(c -> getClient(c.getContainerId()));
+
+        if (!includeConnected) return containerClients;
 
         // remote platforms
         var platformClients = connectedPlatforms.values().stream()

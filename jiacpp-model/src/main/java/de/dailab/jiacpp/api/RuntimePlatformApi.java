@@ -94,4 +94,26 @@ public interface RuntimePlatformApi extends CommonApi {
      */
     boolean disconnectPlatform(String url) throws IOException;
 
+    /**
+     * Notify Platform of changes in one of its own containers, triggering an update by calling the /info route.
+     * Can be called by the container itself, or by some other entity or the user.
+     *
+     * REST: POST /containers/notify
+     *
+     * @param containerId The ID of the container to update.
+     * @return true/false depending on whether the update was successful (false = container not reachable, removed)
+     */
+    boolean notifyUpdateContainer(String containerId) throws IOException;
+
+    /**
+     * Notify Platform of changes in a connected Platform, triggering an update by calling the /info route.
+     * Can be called by the platform itself, or by some other entity or the user.
+     *
+     * REST: POST /connections/notify
+     *
+     * @param platformUrl The URL of the platform to update.
+     * @return true/false depending on whether the update was successful (false = platform not reachable, removed)
+     */
+    boolean notifyUpdatePlatform(String platformUrl) throws IOException;
+
 }

@@ -71,15 +71,17 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         override fun doPost(request: HttpServletRequest, response: HttpServletResponse) {
             log.info("received POST $request")
-            val path = request.pathInfo
+            val path = request.pathInfo  // NOTE: queryParams (?...) go to request.queryString
             val body: String = request.reader.lines().collect(Collectors.joining())
             response.contentType = "application/json"
+
+            // TODO interpretation of "forward"? currently ignored; escalate to RP if AC is addressed directly?
 
             val send = Regex("^/send/([^/]+)$").find(path)
             if (send != null) {
                 val id = send.groupValues[1]
                 val message = RestHelper.readObject(body, Message::class.java)
-                val res = impl.send(id, message)
+                val res = impl.send(id, message, false)
                 response.writer.write(RestHelper.writeJson(res))
             }
 
@@ -87,7 +89,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             if (broadcast != null) {
                 val channel = broadcast.groupValues[1]
                 val message = RestHelper.readObject(body, Message::class.java)
-                val res = impl.broadcast(channel, message)
+                val res = impl.broadcast(channel, message, false)
                 response.writer.write(RestHelper.writeJson(res))
             }
 
@@ -95,7 +97,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             if (invokeAct != null) {
                 val action = invokeAct.groupValues[1]
                 val parameters = RestHelper.readMap(body)
-                val res = impl.invoke(action, parameters)
+                val res = impl.invoke(action, parameters, false)
                 response.writer.write(RestHelper.writeJson(res))
             }
 
@@ -104,7 +106,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 val action = invokeActOf.groupValues[1]
                 val agentId = invokeActOf.groupValues[2]
                 val parameters = RestHelper.readMap(body)
-                val res = impl.invoke(agentId, action, parameters)
+                val res = impl.invoke(agentId, action, parameters, false)
                 response.writer.write(RestHelper.writeJson(res))
             }
         }
@@ -177,30 +179,30 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             return registeredAgents[agentId]
         }
 
-        override fun send(agentId: String, message: Message) {
+        override fun send(agentId: String, message: Message, forward: Boolean) {
             log.info("SEND: $agentId $message")
             // TODO ref not found? does this raise an exception? is this okay?
             val ref = system.resolve(agentId)
             ref tell message
         }
 
-        override fun broadcast(channel: String, message: Message) {
+        override fun broadcast(channel: String, message: Message, forward: Boolean) {
             log.info("BROADCAST: $channel $message")
             broker.publish(channel, message)
         }
 
-        override fun invoke(action: String, parameters: Map<String, JsonNode>): JsonNode? {
+        override fun invoke(action: String, parameters: Map<String, JsonNode>, forward: Boolean): JsonNode? {
             log.info("INVOKE ACTION: $action $parameters")
 
             val agent = registeredAgents.values.find { ag -> ag.actions.any { ac -> ac.name == action } }
             return if (agent != null) {
-                invoke(agent.agentId, action, parameters)
+                invoke(agent.agentId, action, parameters, forward)
             } else {
                 null
             }
         }
 
-        override fun invoke(agentId: String, action: String, parameters: Map<String, JsonNode>): JsonNode? {
+        override fun invoke(agentId: String, action: String, parameters: Map<String, JsonNode>, forward: Boolean): JsonNode? {
             log.info("INVOKE ACTION OF AGENT: $agentId $action $parameters")
             // TODO check if agent has action and parameters match description
             // NOTE when called through the HTTP Handler, this method (and all the other "impl" methods)
@@ -246,6 +248,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         respond<AgentDescription, String?> {
             // agents may register with the container agent, publishing their ID and actions
             log.info("Registering $it")
+            // TODO allow for agent to re-register with updated info -> #41
             if (!registeredAgents.containsKey(it.agentId)) {
                 registeredAgents[it.agentId] = it
                 runtimePlatformUrl
@@ -253,6 +256,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 null
             }
         }
+
+        // TODO allow agent to de-register from the container -> #41
 
     }
 
