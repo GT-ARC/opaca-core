@@ -1,5 +1,6 @@
 package de.dailab.jiacpp.model;
 
+import de.dailab.jiacpp.api.AgentContainerApi;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -56,4 +57,11 @@ public class AgentContainerImage {
 
     }
 
+    public Integer getApiPort() {
+        return apiPort != null ? apiPort : AgentContainerApi.DEFAULT_PORT;
+    }
+
+    public Map<Integer, PortDescription> getExtraPorts() {
+        return extraPorts != null ? extraPorts : Map.of();
+    }
 }

@@ -87,6 +87,7 @@ public class DockerClient implements ContainerClient {
         var imageName = image.getImageName();
         var extraPorts = image.getExtraPorts();
         try {
+            // TODO move this to a separate method?
             // pull image if not present
             if (! isImagePresent(imageName)) {
                 log.info("Pulling Image..." + imageName);
@@ -177,6 +178,7 @@ public class DockerClient implements ContainerClient {
      */
     private int reserveNextFreePort(int port) {
         while (usedPorts.contains(port)) {
+            // TODO how to handle ports blocked by other containers or applications? just ping ports?
             port++;
         }
         usedPorts.add(port);

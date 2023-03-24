@@ -47,6 +47,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         override fun doGet(request: HttpServletRequest, response: HttpServletResponse) {
             log.info("received GET $request")
             val path = request.pathInfo
+            response.contentType = "application/json"
 
             val info = Regex("^/info$").find(path)
             if (info != null) {
@@ -72,6 +73,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             log.info("received POST $request")
             val path = request.pathInfo
             val body: String = request.reader.lines().collect(Collectors.joining())
+            response.contentType = "application/json"
 
             val send = Regex("^/send/([^/]+)$").find(path)
             if (send != null) {
