@@ -261,6 +261,42 @@ public class PlatformTests {
         Assert.assertEquals("testBroadcast", res.get("lastBroadcast"));
     }
 
+    // repeat tests again, with second platform, but disallowing forwarding
+
+    /**
+     * invoke method of connected platform, but disallow forwarding
+     */
+    @Test
+    public void test7NoForwardInvoke() throws Exception {
+        var params = Map.of("x", 23, "y", 42);
+        var con = request(PLATFORM_B, "POST", "/invoke/Add?forward=false", params);
+        Assert.assertEquals(404, con.getResponseCode());
+    }
+
+    /**
+     * send to agent at connected platform, but disallow forwarding
+     */
+    @Test
+    public void test7NoForwardSend() throws Exception {
+        var message = Map.of("payload", "testMessage", "replyTo", "doesnotmatter");
+        var con = request(PLATFORM_B, "POST", "/send/sample1?forward=false", message);
+        Assert.assertEquals(404, con.getResponseCode());
+    }
+
+    /**
+     * broadcast, but disallow forwarding
+     */
+    @Test
+    public void test7NoForwardBroadcast() throws Exception {
+        var message = Map.of("payload", "testBroadcastNoForward", "replyTo", "doesnotmatter");
+        var con = request(PLATFORM_B, "POST", "/broadcast/topic?forward=false", message);
+        Assert.assertEquals(200, con.getResponseCode());
+        // no error, but message was not forwarded
+        con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample1", Map.of());
+        var res = result(con, Map.class);
+        Assert.assertNotEquals("testBroadcastNoForward", res.get("lastBroadcast"));
+    }
+
     /**
      *
      */
