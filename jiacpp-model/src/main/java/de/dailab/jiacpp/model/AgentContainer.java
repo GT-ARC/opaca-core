@@ -26,7 +26,7 @@ public class AgentContainer {
     /** when the container was started */
     LocalDateTime runningSince;
 
-    /** connectivity information */
+    /** connectivity information; NOTE: this is not set by the AgentContainer itself, but by the RuntimePlatform! */
     Connectivity connectivity;
 
     @Data @AllArgsConstructor @NoArgsConstructor

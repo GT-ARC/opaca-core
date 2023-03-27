@@ -27,14 +27,6 @@ public class AgentContainerImage {
     /** special features provided by this container */
     List<String> provides;
 
-    // PORT MAPPING SET BY THE RUNTIME PLATFORM, NOT THE CONTAINER ITSELF
-
-    /** the port where the container provides the JIAC++ API; by default this is 8082 but another may be used */
-    Integer apiPort;
-
-    /** additional ports exposed by the container and the protocols and services those provide */
-    Map<Integer, PortDescription> extraPorts;
-
     // OPTIONAL attributes for description of the container (e.g. in a repository, or of the container itself)
 
     /** short readable name of this Agent Container */
@@ -46,6 +38,14 @@ public class AgentContainerImage {
     /** provider of the container, e.g. institute or researcher */
     String provider;
 
+    // OPTIONAL attributes for API port (if not default) and extra ports (if any)
+
+    /** the port where the container provides the JIAC++ API; by default this is 8082 but another may be used */
+    Integer apiPort;
+
+    /** additional ports exposed by the container and the protocols and services those provide */
+    Map<Integer, PortDescription> extraPorts;
+
     @Data @AllArgsConstructor @NoArgsConstructor
     public static class PortDescription {
 
@@ -56,6 +56,8 @@ public class AgentContainerImage {
         String description;
 
     }
+
+    // helper methods allowing the port-attributes to be empty without hassle in other modules
 
     public Integer getApiPort() {
         return apiPort != null ? apiPort : AgentContainerApi.DEFAULT_PORT;
