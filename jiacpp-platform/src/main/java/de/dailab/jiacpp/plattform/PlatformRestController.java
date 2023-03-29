@@ -252,27 +252,17 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@RequestMapping(value="/containers/notify", method=RequestMethod.POST)
 	@Operation(summary="Notify Platform about updates", tags={"containers"})
 	@Override
-	public boolean notifyUpdateContainer(@RequestBody String containerId) throws IOException {
+	public boolean notifyUpdateContainer(@RequestBody String containerId) {
 		log.info(String.format("NOTIFY: %s", containerId));
-		if (implementation.notifyUpdateContainer(containerId)) {
-			return true;
-		}
-		String errorMsg = String.format("Invalid containerId: %s", containerId);
-		log.severe(errorMsg);
-		throw new IOException(errorMsg);
+		return implementation.notifyUpdateContainer(containerId);
 	}
 
 	@RequestMapping(value="/connections/notify", method=RequestMethod.POST)
 	@Operation(summary="Notify Platform about updates", tags={"connections"})
 	@Override
-	public boolean notifyUpdatePlatform(@RequestBody String platformUrl) throws IOException {
+	public boolean notifyUpdatePlatform(@RequestBody String platformUrl) {
 		log.info(String.format("NOTIFY: %s", platformUrl));
-		if (implementation.notifyUpdatePlatform(platformUrl)) {
-			return true;
-		}
-		String errorMsg = String.format("Invalid platformUrl: %s", platformUrl);
-		log.severe(errorMsg);
-		throw new IOException(errorMsg);
+		return implementation.notifyUpdatePlatform(platformUrl);
 	}
 
 }
