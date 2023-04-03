@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 
 /**
  * REST controller for the JIAC++ Runtime Platform API. This class only defines the REST endpoints,
@@ -30,8 +31,10 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Autowired
 	PlatformConfig config;
 
-	PlatformImpl implementation;
+	@Autowired
+	InterceptorRegistry interceptorRegistry;
 
+	PlatformImpl implementation;
 
 	/*
 	 * LIFECYCLE
@@ -41,6 +44,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public void postConstruct() {
 		log.info("In Post-Construct");
 		implementation = new PlatformImpl(config);
+	}
+
+	@Autowired
+	public PlatformRestController(InterceptorRegistry interceptorRegistry) {
+		this.interceptorRegistry = interceptorRegistry;
 	}
 
 	@PreDestroy
@@ -266,3 +274,4 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 }
+
