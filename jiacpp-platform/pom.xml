@@ -59,6 +59,13 @@
 			<version>3.2.13</version>
 		</dependency>
 
+		<dependency>
+			<groupId>cglib</groupId>
+			<artifactId>cglib</artifactId>
+			<version>3.3.0</version>
+		</dependency>
+
+
 		<!-- for testing -->
 		<dependency>
 			<groupId>junit</groupId>
