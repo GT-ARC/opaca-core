@@ -7,14 +7,18 @@ import java.util.List;
 // TODO
 // 1. Truncating the history after a certain time, after a certain number of entries or similar
 
-public class LoggingContext {
-    private static final LoggingContext INSTANCE = new LoggingContext();
+/**
+ * This class provides the Logging History.
+ */
+
+public class LoggingHistory {
+    private static final LoggingHistory INSTANCE = new LoggingHistory();
     private final List<LogEntry> logEntries = Collections.synchronizedList(new LinkedList<>());
 
-    private LoggingContext() {
+    private LoggingHistory() {
     }
 
-    public static LoggingContext getInstance() {
+    public static LoggingHistory getInstance() {
         return INSTANCE;
     }
 

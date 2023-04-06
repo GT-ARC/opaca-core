@@ -10,8 +10,13 @@ import java.util.List;
 import de.dailab.jiacpp.plattform.LogEntry;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import de.dailab.jiacpp.plattform.LoggingContext;
+import de.dailab.jiacpp.plattform.LoggingHistory;
 
+
+/**
+ * This class provides the Logging Proxy. Whenever a API method is called, it is passed.
+ * through the proxy, before getting executed.
+ */
 
 public class LoggingProxy<T> implements InvocationHandler {
     private final T target;
@@ -20,10 +25,12 @@ public class LoggingProxy<T> implements InvocationHandler {
         this.target = target;
     }
 
+    // List for methods that should be skipped for log history, such as getHistory()
     public List<String> skipMethods = Arrays.asList("getHistory");
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+
         if (skipMethods.contains(method.getName())) {
             // Skip logging for this method
             return method.invoke(target, args);
@@ -60,8 +67,8 @@ public class LoggingProxy<T> implements InvocationHandler {
             resultEntry.setEventType("APIError");
             throw e;
         } finally {
-            LoggingContext.getInstance().addLogEntry(resultEntry);
-            LoggingContext.getInstance().addLogEntry(callEntry);
+            LoggingHistory.getInstance().addLogEntry(resultEntry);
+            LoggingHistory.getInstance().addLogEntry(callEntry);
         }
 
         return result;

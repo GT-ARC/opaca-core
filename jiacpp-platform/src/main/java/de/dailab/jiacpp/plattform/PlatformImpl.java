@@ -9,7 +9,7 @@ import de.dailab.jiacpp.plattform.containerclient.DockerClient;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import de.dailab.jiacpp.plattform.LoggingContext;
+import de.dailab.jiacpp.plattform.LoggingHistory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.io.IOException;
@@ -96,7 +96,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public JsonNode getHistory() {
         ObjectMapper objectMapper = new ObjectMapper();
-        List<LogEntry> logEntries = LoggingContext.getInstance().getLogEntries();
+        List<LogEntry> logEntries = LoggingHistory.getInstance().getLogEntries();
         try {
             String json = objectMapper.writeValueAsString(logEntries);
             System.out.println(json);
