@@ -1,8 +1,9 @@
-package de.dailab.jiacpp.plattform;
+package de.dailab.jiacpp.util;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import de.dailab.jiacpp.model.Event;
 
 // TODO
 // 1. Truncating the history after a certain time, after a certain number of entries or similar
@@ -13,7 +14,7 @@ import java.util.List;
 
 public class LoggingHistory {
     private static final LoggingHistory INSTANCE = new LoggingHistory();
-    private final List<LogEntry> logEntries = Collections.synchronizedList(new LinkedList<>());
+    private final List<Event> events = Collections.synchronizedList(new LinkedList<>());
 
     private LoggingHistory() {
     }
@@ -22,14 +23,14 @@ public class LoggingHistory {
         return INSTANCE;
     }
 
-    public void addLogEntry(LogEntry entry) {
+    public void addEvent(Event entry) {
         if (entry != null) {
-            logEntries.add(entry);
+            events.add(entry);
         }
     }
 
-    public List<LogEntry> getLogEntries() {
-        return logEntries;
+    public List<Event> getEvents() {
+        return events;
     }
 }
 

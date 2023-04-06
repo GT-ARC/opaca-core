@@ -8,8 +8,8 @@ import de.dailab.jiacpp.plattform.containerclient.ContainerClient;
 import de.dailab.jiacpp.plattform.containerclient.DockerClient;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import de.dailab.jiacpp.plattform.LoggingHistory;
+import de.dailab.jiacpp.util.LoggingHistory;
+import de.dailab.jiacpp.model.Event;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.io.IOException;
@@ -94,19 +94,10 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public JsonNode getHistory() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        List<LogEntry> logEntries = LoggingHistory.getInstance().getLogEntries();
-        try {
-            String json = objectMapper.writeValueAsString(logEntries);
-            System.out.println(json);
-            return objectMapper.readTree(json);
-        } catch (JsonProcessingException e) {
-            System.out.println("Error converting log entries to JSON: " + e.getMessage());
-        }  catch (IOException e) {
-            // ...
-        }
-        return null;
+    public List<Event> getHistory() {
+        List<Event> events = LoggingHistory.getInstance().getEvents();
+        System.out.println(events);
+        return events;
     }
 
     @Override

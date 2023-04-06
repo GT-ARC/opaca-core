@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
+import de.dailab.jiacpp.util.*;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -106,7 +107,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@RequestMapping(value="/history", method=RequestMethod.GET)
 	@Operation(summary="Get history on this Runtime Platform", tags={"info"})
 	@Override
-	public JsonNode getHistory() throws IOException {
+	public List<Event> getHistory() throws IOException {
 		log.info("Get History");
 		return implementation.getHistory();
 	}

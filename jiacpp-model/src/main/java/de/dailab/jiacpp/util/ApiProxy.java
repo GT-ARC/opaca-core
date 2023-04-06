@@ -33,9 +33,9 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
-    public JsonNode getHistory() throws IOException {
+    public List<Event> getHistory() throws IOException {
         System.out.println("GET HISTORY");
-        return client.get("/history", JsonNode.class);
+        return client.get("/history", List.class);
     }
 
     @Override
