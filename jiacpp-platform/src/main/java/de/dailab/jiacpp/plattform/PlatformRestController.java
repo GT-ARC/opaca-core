@@ -103,6 +103,14 @@ public class PlatformRestController implements RuntimePlatformApi {
 		return implementation.getPlatformInfo();
 	}
 
+	@RequestMapping(value="/history", method=RequestMethod.GET)
+	@Operation(summary="Get history on this Runtime Platform", tags={"info"})
+	@Override
+	public JsonNode getHistory() throws IOException {
+		log.info("Get History");
+		return implementation.getHistory();
+	}
+
 	/*
 	 * AGENTS ROUTES
 	 */

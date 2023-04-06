@@ -8,6 +8,9 @@ import de.dailab.jiacpp.plattform.containerclient.ContainerClient;
 import de.dailab.jiacpp.plattform.containerclient.DockerClient;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import de.dailab.jiacpp.plattform.LoggingContext;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.io.IOException;
 import java.util.*;
@@ -88,6 +91,22 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
         // TODO should this throw the last IO-Exception if there was any?
         throw new NoSuchElementException(String.format("Not found: agent '%s'", agentId));
+    }
+
+    @Override
+    public JsonNode getHistory() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        List<LogEntry> logEntries = LoggingContext.getInstance().getLogEntries();
+        try {
+            String json = objectMapper.writeValueAsString(logEntries);
+            System.out.println(json);
+            return objectMapper.readTree(json);
+        } catch (JsonProcessingException e) {
+            System.out.println("Error converting log entries to JSON: " + e.getMessage());
+        }  catch (IOException e) {
+            // ...
+        }
+        return null;
     }
 
     @Override

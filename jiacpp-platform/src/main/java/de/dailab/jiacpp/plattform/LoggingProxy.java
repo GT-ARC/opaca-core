@@ -20,8 +20,15 @@ public class LoggingProxy<T> implements InvocationHandler {
         this.target = target;
     }
 
+    public List<String> skipMethods = Arrays.asList("getHistory");
+
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        if (skipMethods.contains(method.getName())) {
+            // Skip logging for this method
+            return method.invoke(target, args);
+        }
+        
         LogEntry callEntry = new LogEntry();
         LogEntry resultEntry = new LogEntry();
 
@@ -39,7 +46,6 @@ public class LoggingProxy<T> implements InvocationHandler {
         Object result = null;
         try {
             result = method.invoke(target, args);
-            callEntry.setResult("APICall done.");
 
             // create a new LogEntry for the result
             resultEntry.setEventType("APIResult");
