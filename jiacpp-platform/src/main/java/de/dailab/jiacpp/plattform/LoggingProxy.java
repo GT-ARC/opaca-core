@@ -28,7 +28,7 @@ public class LoggingProxy<T> implements InvocationHandler {
             // Skip logging for this method
             return method.invoke(target, args);
         }
-        
+
         LogEntry callEntry = new LogEntry();
         LogEntry resultEntry = new LogEntry();
 
@@ -63,22 +63,8 @@ public class LoggingProxy<T> implements InvocationHandler {
             LoggingContext.getInstance().addLogEntry(resultEntry);
             LoggingContext.getInstance().addLogEntry(callEntry);
         }
-        // Trigger the function to print the log object as JSON
-        printLogEntryJson();
 
         return result;
-    }
-
-
-    private void printLogEntryJson() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        List<LogEntry> logEntries = LoggingContext.getInstance().getLogEntries();
-        try {
-            String json = objectMapper.writeValueAsString(logEntries);
-            System.out.println(json);
-        } catch (JsonProcessingException e) {
-            System.out.println("Error converting log entries to JSON: " + e.getMessage());
-        }
     }
 
     @SuppressWarnings("unchecked")
