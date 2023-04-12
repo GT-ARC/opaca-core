@@ -24,6 +24,8 @@ public class PlatformConfig {
     @Value("${container_timeout_sec}")
     public Integer containerTimeoutSec;
 
+    @Value("${remote_docker_host}")
+    public String remoteDockerHost;
 
     @Value("${registry_separator}")
     public String registrySeparator;
@@ -39,7 +41,6 @@ public class PlatformConfig {
 
 
     // TODO
-    //  (remote) docker host
     //  auth stuff for platform itself? tbd
     //  GPU support and other "features" of this specific platform
 

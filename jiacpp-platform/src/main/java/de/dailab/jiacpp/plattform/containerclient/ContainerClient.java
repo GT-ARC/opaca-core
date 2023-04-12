@@ -36,8 +36,8 @@ public interface ContainerClient {
     void stopContainer(String containerId) throws IOException;
 
     /**
-     * Get the IP address where the container can be reached for forwarding requests.
+     * Get the URL where the container can be reached for forwarding requests.
      */
-    String getIP(String containerId);
+    String getUrl(String containerId);
 
 }

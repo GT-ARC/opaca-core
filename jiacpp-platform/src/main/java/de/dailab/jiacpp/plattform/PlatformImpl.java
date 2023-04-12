@@ -377,8 +377,9 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     private ApiProxy getClient(String containerId) {
-        var ip = containerClient.getIP(containerId);
-        return new ApiProxy(String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT));
+        var url = containerClient.getUrl(containerId);
+        System.out.println("URL " + url);
+        return new ApiProxy(url);
     }
 
     private String normalizeUrl(String url) {

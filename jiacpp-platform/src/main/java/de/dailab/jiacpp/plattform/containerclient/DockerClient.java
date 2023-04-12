@@ -12,6 +12,7 @@ import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
+import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
@@ -56,15 +57,18 @@ public class DockerClient implements ContainerClient {
     @AllArgsConstructor
     static class DockerContainerInfo {
         String containerId;
-        String internalIp;
         AgentContainer.Connectivity connectivity;
     }
 
     @Override
     public void initialize(PlatformConfig config) {
 
+        var dockerHost = Strings.isNullOrEmpty(config.remoteDockerHost)
+                ? "unix:///var/run/docker.sock"
+                : config.remoteDockerHost;
+
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
-                .withDockerHost("unix:///var/run/docker.sock")
+                .withDockerHost(dockerHost)
                 .build();
 
         DockerHttpClient dockerHttpClient = new ApacheDockerHttpClient.Builder()
@@ -129,16 +133,13 @@ public class DockerClient implements ContainerClient {
             dockerClient.startContainerCmd(res.getId()).exec();
 
             // create connectivity object
+            var containerUrl = Optional.of(config.remoteDockerHost).orElseGet(config::getOwnBaseUrl);
             var connectivity = new AgentContainer.Connectivity(
-                    config.getOwnBaseUrl().replaceAll(":\\d+$", ""),  // TODO change to remote docker host once implemented (#23)
+                    getDockerUrl(),
                     portMap.get(image.getApiPort()),
                     extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );
-
-            // TODO get internal IP... why is this deprecated?
-            // TODO internal IP is not really needed any longer, is it?
-            InspectContainerResponse info = dockerClient.inspectContainerCmd(res.getId()).exec();
-            dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), info.getNetworkSettings().getIpAddress(), connectivity));
+            dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), connectivity));
 
             return connectivity;
 
@@ -169,8 +170,15 @@ public class DockerClient implements ContainerClient {
     }
 
     @Override
-    public String getIP(String containerId) {
-        return dockerContainers.get(containerId).getInternalIp();
+    public String getUrl(String containerId) {
+        var conn = dockerContainers.get(containerId).connectivity;
+        return conn.getPublicUrl() + ":" + conn.getApiPortMapping();
+    }
+
+    private String getDockerUrl() {
+        return Strings.isNullOrEmpty(config.remoteDockerHost)
+                ? config.getOwnBaseUrl().replaceAll(":\\d+$", "")
+                : config.remoteDockerHost; // TODO nope, this is not the proper url but something like tcp://host:port
     }
 
     /**
