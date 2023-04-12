@@ -91,22 +91,8 @@ public class DockerClient implements ContainerClient {
         var imageName = image.getImageName();
         var extraPorts = image.getExtraPorts();
         try {
-            // TODO move this to a separate method?
-            // pull image if not present
             if (! isImagePresent(imageName)) {
-                log.info("Pulling Image..." + imageName);
-                try {
-                    var registry = imageName.split("/")[0];
-                    dockerClient.pullImageCmd(imageName)
-                            .withAuthConfig(this.auth.get(registry))
-                            .exec(new PullImageResultCallback())
-                            .awaitCompletion();
-                } catch (InterruptedException e) {
-                    log.warning(e.getMessage());
-                } catch (InternalServerErrorException e) {
-                    log.severe("Pull Image failed: " + e.getMessage());
-                    throw new NoSuchElementException("Failed to Pull image: " + e.getMessage());
-                }
+                pullDockerImage(imageName);
             }
 
             // port mappings
@@ -133,7 +119,6 @@ public class DockerClient implements ContainerClient {
             dockerClient.startContainerCmd(res.getId()).exec();
 
             // create connectivity object
-            var containerUrl = Optional.of(config.remoteDockerHost).orElseGet(config::getOwnBaseUrl);
             var connectivity = new AgentContainer.Connectivity(
                     getDockerUrl(),
                     portMap.get(image.getApiPort()),
@@ -144,10 +129,12 @@ public class DockerClient implements ContainerClient {
             return connectivity;
 
         } catch (NotFoundException e) {
+            // TODO this should never happen after pulling the image... can we just ignore this?
             log.warning("Image not found: " + imageName);
             throw new NoSuchElementException("Image not found: " + imageName);
         }
         // TODO handle error trying to connect to Docker (only relevant when Remote Docker is supported, issue #23)
+        //  would this error happen here, or when initializing the class, or both? what if connectivity is lost later?
     }
 
     @Override
@@ -178,7 +165,29 @@ public class DockerClient implements ContainerClient {
     private String getDockerUrl() {
         return Strings.isNullOrEmpty(config.remoteDockerHost)
                 ? config.getOwnBaseUrl().replaceAll(":\\d+$", "")
-                : config.remoteDockerHost; // TODO nope, this is not the proper url but something like tcp://host:port
+                : config.remoteDockerHost;
+        // TODO nope, this is not the proper url but something like tcp://host:port
+        //  also, remote docker host may open the docker port, but nothing else... what then?
+    }
+
+    /**
+     * Try to pull the Docker image from registry where it can be found (according to image name).
+     * Raise NoSuchElementException if image can not be pulled for whatever reason.
+     */
+    private void pullDockerImage(String imageName) {
+        log.info("Pulling Image..." + imageName);
+        try {
+            var registry = imageName.split("/")[0];
+            dockerClient.pullImageCmd(imageName)
+                    .withAuthConfig(this.auth.get(registry))
+                    .exec(new PullImageResultCallback())
+                    .awaitCompletion();
+        } catch (InterruptedException e) {
+            log.warning(e.getMessage());
+        } catch (InternalServerErrorException e) {
+            log.severe("Pull Image failed: " + e.getMessage());
+            throw new NoSuchElementException("Failed to Pull image: " + e.getMessage());
+        }
     }
 
     /**
