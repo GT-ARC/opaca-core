@@ -1,6 +1,7 @@
 package de.dailab.jiacpp.platform.tests;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.plattform.Application;
 import de.dailab.jiacpp.util.RestHelper;
@@ -10,8 +11,7 @@ import org.junit.runners.MethodSorters;
 
 import org.springframework.boot.SpringApplication;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -43,7 +43,7 @@ public class PlatformTests {
     private final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
     private final String PLATFORM_B = "http://localhost:" + PLATFORM_B_PORT;
 
-    private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container";
+    private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v2";
 
     private static String containerId = null;
     private static String platformABaseUrl = null;
@@ -451,8 +451,6 @@ public class PlatformTests {
         Assert.assertEquals(200, con2.getResponseCode());
     }
 
-    // TODO improve notify-test by actually having the sample container update its information (requires some extensions in the sample-container-agent code, though)
-
     @Test
     public void test7RequestInvalidNotify() throws Exception {
         // invalid container
@@ -462,6 +460,48 @@ public class PlatformTests {
         // invalid platform
         var con2 = request(PLATFORM_A, "POST", "/connections/notify", "platform-does-not-exist");
         Assert.assertEquals(404, con2.getResponseCode());
+    }
+
+    @Test
+    public void test7AddNewAction() throws Exception {
+        // create new agent action
+        var con = request(PLATFORM_A, "POST", "/invoke/CreateAction/sample1", Map.of("name", "TemporaryTestAction"));
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // new action has been created, but platform has not yet been notified --> action is unknown
+        con = request(PLATFORM_A, "POST", "/invoke/TemporaryTestAction/sample1", Map.of());
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // notify platform about updates in container, after which the new action is known
+        con = request(PLATFORM_A, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // try to invoke the new action, which should now succeed
+        con = request(PLATFORM_A, "POST", "/invoke/TemporaryTestAction/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // platform A has also already notified platform B about its changes
+        con = request(PLATFORM_B, "POST", "/invoke/TemporaryTestAction", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    @Test
+    public void test8DeregisterAgent() throws Exception {
+        // deregister agent "sample2"
+        var con = request(PLATFORM_A, "POST", "/invoke/Deregister/sample2", Map.of("name", "TemporaryTestAction"));
+        Assert.assertEquals(200, con.getResponseCode());
+        con = request(PLATFORM_A, "GET", "/agents", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var agentsList = result(con, List.class);
+        Assert.assertEquals(2, agentsList.size());
+
+        // notify --> agent should no longer be known
+        con = request(PLATFORM_A, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con.getResponseCode());
+        con = request(PLATFORM_A, "GET", "/agents", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        agentsList = result(con, List.class);
+        Assert.assertEquals(1, agentsList.size());
     }
 
     /*
