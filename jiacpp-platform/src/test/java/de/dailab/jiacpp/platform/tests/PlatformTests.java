@@ -43,7 +43,7 @@ public class PlatformTests {
     private final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
     private final String PLATFORM_B = "http://localhost:" + PLATFORM_B_PORT;
 
-    private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container";
+    private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v2";
 
     private static String containerId = null;
     private static String platformABaseUrl = null;
@@ -295,14 +295,6 @@ public class PlatformTests {
         con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample1", Map.of());
         var res = result(con, Map.class);
         Assert.assertNotEquals("testBroadcastNoForward", res.get("lastBroadcast"));
-    }
-
-    /**
-     *
-     */
-    @Test
-    public void test7UpdateContainerInfo() {
-        
     }
 
     /**
