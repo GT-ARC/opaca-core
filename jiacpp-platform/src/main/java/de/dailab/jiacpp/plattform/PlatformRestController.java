@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+
 /**
  * REST controller for the JIAC++ Runtime Platform API. This class only defines the REST endpoints,
  * handles security etc. (once that's implemented); the actual logic is implemented elsewhere.
@@ -30,8 +31,8 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Autowired
 	PlatformConfig config;
 
-
 	PlatformImpl implementation;
+
 
 	/*
 	 * LIFECYCLE
