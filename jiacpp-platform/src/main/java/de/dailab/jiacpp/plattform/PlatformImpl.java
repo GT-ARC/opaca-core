@@ -10,7 +10,6 @@ import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.dailab.jiacpp.util.LoggingHistory;
 import de.dailab.jiacpp.model.Event;
-import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.io.IOException;
 import java.util.*;
@@ -57,6 +56,11 @@ public class PlatformImpl implements RuntimePlatformApi {
         );
     }
 
+    @Override
+    public List<Event> getHistory() {
+        return LoggingHistory.getInstance().getEvents();
+    }
+
     /*
      * AGENTS ROUTES
      */
@@ -91,13 +95,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
         // TODO should this throw the last IO-Exception if there was any?
         throw new NoSuchElementException(String.format("Not found: agent '%s'", agentId));
-    }
-
-    @Override
-    public List<Event> getHistory() {
-        List<Event> events = LoggingHistory.getInstance().getEvents();
-        System.out.println(events);
-        return events;
     }
 
     @Override

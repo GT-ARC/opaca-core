@@ -11,7 +11,6 @@ import de.dailab.jiacpp.model.Event;
 /**
  * This class provides the Logging History.
  */
-
 public class LoggingHistory {
     private static final LoggingHistory INSTANCE = new LoggingHistory();
     private final List<Event> events = Collections.synchronizedList(new LinkedList<>());
@@ -30,7 +29,7 @@ public class LoggingHistory {
     }
 
     public List<Event> getEvents() {
-        return events;
+        return List.copyOf(events);
     }
 }
 

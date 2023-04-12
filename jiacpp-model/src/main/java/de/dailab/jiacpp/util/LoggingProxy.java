@@ -11,21 +11,30 @@ import java.util.List;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 
-
 /**
- * This class provides the Logging Proxy. Whenever a API method is called, it is passed.
+ * This class provides the Logging Proxy. Whenever an API method is called, it is passed
  * through the proxy, before getting executed.
  */
-
 public class LoggingProxy<T> implements InvocationHandler {
+
+    /** the object whose method invocations to log */
     private final T target;
 
-    public LoggingProxy(T target) {
+    /** List for methods that should be skipped for log history, such as getHistory() */
+    public List<String> skipMethods = List.of("getHistory");
+
+
+    private LoggingProxy(T target) {
         this.target = target;
     }
 
-    // List for methods that should be skipped for log history, such as getHistory()
-    public List<String> skipMethods = Arrays.asList("getHistory");
+    @SuppressWarnings("unchecked")
+    public static <T> T create(T target) {
+        return (T) Proxy.newProxyInstance(
+                target.getClass().getClassLoader(),
+                target.getClass().getInterfaces(),
+                new LoggingProxy<>(target));
+    }
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
@@ -47,7 +56,6 @@ public class LoggingProxy<T> implements InvocationHandler {
         String relatedId = UUID.randomUUID().toString();
         resultEvent.setRelatedId(relatedId);
         callEvent.setRelatedId(relatedId);
-
 
         Object result = null;
         try {
@@ -73,11 +81,4 @@ public class LoggingProxy<T> implements InvocationHandler {
         return result;
     }
 
-    @SuppressWarnings("unchecked")
-    public static <T> T create(T target) {
-        return (T) Proxy.newProxyInstance(
-                target.getClass().getClassLoader(),
-                target.getClass().getInterfaces(),
-                new LoggingProxy<>(target));
-    }
 }

@@ -10,11 +10,25 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Event {
-    private String methodName;
-    private Object[] inputParams;
-    private Object result;
-    private final long timestamp = System.currentTimeMillis();
-    private final String uniqueId = UUID.randomUUID().toString(); // ID to make every entry unique
-    private String eventType;
-    private String relatedId; // ID to map events that relate to each other
+
+    /** name of the API method that was called */
+    String methodName;
+
+    /** input parameters of the API method */
+    Object[] inputParams;
+
+    /** result of the API call, if any */
+    Object result;
+
+    /** time when this event was created */
+    final Long timestamp = System.currentTimeMillis();
+
+    /** unique ID of this event */
+    final String uniqueId = UUID.randomUUID().toString();
+
+    String eventType;
+
+    /** optional ID of a different event this event relates to */
+    String relatedId;
+
 }
