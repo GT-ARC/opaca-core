@@ -13,61 +13,53 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 
 /**
- * This class provides the Logging Proxy. Whenever a API method is called, it is passed.
+ * This class provides the Event Proxy. Whenever a API method is called, it is passed.
  * through the proxy, before getting executed.
  */
 
-public class LoggingProxy<T> implements InvocationHandler {
+public class EventProxy<T> implements InvocationHandler {
     private final T target;
 
-    public LoggingProxy(T target) {
+    public EventProxy(T target) {
         this.target = target;
     }
-
-    // List for methods that should be skipped for log history, such as getHistory()
-    public List<String> skipMethods = Arrays.asList("getHistory");
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
-        if (skipMethods.contains(method.getName())) {
+        if (method.getName().startsWith("get")) {
             // Skip logging for this method
             return method.invoke(target, args);
         }
 
-        Event callEvent = new Event();
-        Event resultEvent = new Event();
-
         // entry for API call
+        Event callEvent = new Event();
         callEvent.setMethodName(method.getName());
         callEvent.setInputParams(args);
-        callEvent.setEventType("APICall");
+        callEvent.setEventType(Event.EventType.APICALL);
 
-        // ID for mapping the related events
-        String relatedId = UUID.randomUUID().toString();
-        resultEvent.setRelatedId(relatedId);
-        callEvent.setRelatedId(relatedId);
-
+        Event resultEvent = new Event();
+        resultEvent.setRelatedId(callEvent.getUniqueId());
 
         Object result = null;
         try {
             result = method.invoke(target, args);
 
             // create a new Event for the result
-            resultEvent.setEventType("APIResult");
+            resultEvent.setEventType(Event.EventType.APIRESULT);
             resultEvent.setResult(result);
 
         } catch (InvocationTargetException e) {
             resultEvent.setResult(e.getCause().getMessage());
-            resultEvent.setEventType("APIError");
+            resultEvent.setEventType(Event.EventType.APIERROR);
             throw e.getCause();
         } catch (Exception e) {
             resultEvent.setResult(e.getMessage());
-            resultEvent.setEventType("APIError");
+            resultEvent.setEventType(Event.EventType.APIERROR);
             throw e;
         } finally {
-            LoggingHistory.getInstance().addEvent(resultEvent);
-            LoggingHistory.getInstance().addEvent(callEvent);
+            EventHistory.getInstance().addEvent(resultEvent);
+            EventHistory.getInstance().addEvent(callEvent);
         }
 
         return result;
@@ -78,6 +70,6 @@ public class LoggingProxy<T> implements InvocationHandler {
         return (T) Proxy.newProxyInstance(
                 target.getClass().getClassLoader(),
                 target.getClass().getInterfaces(),
-                new LoggingProxy<>(target));
+                new EventProxy<>(target));
     }
 }

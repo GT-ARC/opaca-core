@@ -9,17 +9,17 @@ import de.dailab.jiacpp.model.Event;
 // 1. Truncating the history after a certain time, after a certain number of entries or similar
 
 /**
- * This class provides the Logging History.
+ * This class provides the Event History.
  */
 
-public class LoggingHistory {
-    private static final LoggingHistory INSTANCE = new LoggingHistory();
+public class EventHistory {
+    private static final EventHistory INSTANCE = new EventHistory();
     private final List<Event> events = Collections.synchronizedList(new LinkedList<>());
 
-    private LoggingHistory() {
+    private EventHistory() {
     }
 
-    public static LoggingHistory getInstance() {
+    public static EventHistory getInstance() {
         return INSTANCE;
     }
 

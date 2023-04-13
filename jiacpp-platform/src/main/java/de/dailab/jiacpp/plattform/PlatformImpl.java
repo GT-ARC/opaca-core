@@ -8,7 +8,7 @@ import de.dailab.jiacpp.plattform.containerclient.ContainerClient;
 import de.dailab.jiacpp.plattform.containerclient.DockerClient;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
-import de.dailab.jiacpp.util.LoggingHistory;
+import de.dailab.jiacpp.util.EventHistory;
 import de.dailab.jiacpp.model.Event;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
@@ -95,7 +95,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public List<Event> getHistory() {
-        List<Event> events = LoggingHistory.getInstance().getEvents();
+        List<Event> events = EventHistory.getInstance().getEvents();
         System.out.println(events);
         return events;
     }

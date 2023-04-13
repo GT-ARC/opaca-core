@@ -43,7 +43,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public void postConstruct() {
 		log.info("In Post-Construct");
 		PlatformImpl implementationProxy = new PlatformImpl(config);
-		implementation = LoggingProxy.create(implementationProxy);
+		implementation = EventProxy.create(implementationProxy);
 	}
 
 

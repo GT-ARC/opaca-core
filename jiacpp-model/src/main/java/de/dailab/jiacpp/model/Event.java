@@ -15,6 +15,23 @@ public class Event {
     private Object result;
     private final long timestamp = System.currentTimeMillis();
     private final String uniqueId = UUID.randomUUID().toString(); // ID to make every entry unique
-    private String eventType;
+    private EventType eventType;
     private String relatedId; // ID to map events that relate to each other
+
+    // Nested EventType enum
+    public enum EventType {
+        APICALL("APICall"),
+        APIRESULT("APIResult"),
+        APIERROR("APIError");
+
+        private final String label;
+
+        EventType(String label) {
+            this.label = label;
+        }
+
+        public String getLabel() {
+            return label;
+        }
+    }
 }
