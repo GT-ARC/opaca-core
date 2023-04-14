@@ -1,15 +1,26 @@
 package de.dailab.jiacpp.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.NoArgsConstructor;
 
 /**
  * This class provides the model for all events logged in our Logging History.
  */
-@Data
+@Data @AllArgsConstructor @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Event {
+
+    /** unique ID of this event */
+    final String id = UUID.randomUUID().toString();
+
+    /** time when this event was created */
+    final Long timestamp = System.currentTimeMillis();
+
+    /** to differentiate certain types of events */
+    EventType eventType;
 
     /** name of the API method that was called */
     String methodName;
@@ -19,14 +30,6 @@ public class Event {
 
     /** result of the API call, if any */
     Object result;
-
-    /** time when this event was created */
-    final Long timestamp = System.currentTimeMillis();
-
-    /** unique ID of this event */
-    final String uniqueId = UUID.randomUUID().toString();
-
-    EventType eventType;
 
     /** optional ID of a different event this event relates to */
     String relatedId;

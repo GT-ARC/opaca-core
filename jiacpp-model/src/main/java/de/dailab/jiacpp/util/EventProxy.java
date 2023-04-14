@@ -5,10 +5,6 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.Arrays;
-import java.util.UUID;
-import java.util.List;
-import com.fasterxml.jackson.core.JsonProcessingException;
 
 
 /**
@@ -35,41 +31,43 @@ public class EventProxy<T> implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-
+        // read-only routes like "info" or "history" itself should not generate events
         if (method.getName().startsWith("get")) {
-            // Skip logging for this method
+            // also, get-methods should return null, not "No Such Element", so no need for Ex-handling here
             return method.invoke(target, args);
         }
 
         // entry for API call
-        Event callEvent = new Event();
-        callEvent.setMethodName(method.getName());
-        callEvent.setInputParams(args);
-        callEvent.setEventType(Event.EventType.API_CALL);
-
-        Event resultEvent = new Event();
-        resultEvent.setRelatedId(callEvent.getUniqueId());
+        Event callEvent = createCallEvent(method.getName(), args);
+        addEvent(callEvent);
 
         try {
             Object result = method.invoke(target, args);
-
-            // create a new Event for the result
-            resultEvent.setEventType(Event.EventType.API_RESULT);
-            resultEvent.setResult(result);
-
+            addEvent(createResultEvent(callEvent, result));
             return result;
-        } catch (InvocationTargetException e) {
-            resultEvent.setResult(e.getCause().getMessage());
-            resultEvent.setEventType(Event.EventType.API_ERROR);
+        } catch (InvocationTargetException e) { // wraps exception raised by target method
+            addEvent(createErrorEvent(callEvent, e.getCause().getMessage()));
             throw e.getCause();
-        } catch (Exception e) {
-            resultEvent.setResult(e.getMessage());
-            resultEvent.setEventType(Event.EventType.API_ERROR);
+        } catch (ReflectiveOperationException e) { // should never happen
+            addEvent(createErrorEvent(callEvent, e.getMessage()));
             throw e;
-        } finally {
-            EventHistory.getInstance().addEvent(resultEvent);
-            EventHistory.getInstance().addEvent(callEvent);
         }
+    }
+
+    private void addEvent(Event event) {
+        EventHistory.getInstance().addEvent(event);
+    }
+
+    private Event createCallEvent(String method, Object[] params) {
+        return new Event(Event.EventType.API_CALL, method, params, null, null);
+    }
+
+    private Event createResultEvent(Event related, Object result) {
+        return new Event(Event.EventType.API_RESULT, null, null, result, related.getId());
+    }
+
+    private Event createErrorEvent(Event related, Object error) {
+        return new Event(Event.EventType.API_ERROR, null, null, error, related.getId());
     }
 
 }
