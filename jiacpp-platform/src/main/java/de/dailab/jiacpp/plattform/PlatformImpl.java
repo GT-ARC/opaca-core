@@ -44,6 +44,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         this.config = config;
         this.containerClient = new DockerClient();
         this.containerClient.initialize(config);
+        // TODO add list of known used ports to config (e.g. the port of the RP itself, or others)
     }
 
     @Override
@@ -144,8 +145,8 @@ public class PlatformImpl implements RuntimePlatformApi {
     public String addContainer(AgentContainerImage image) throws IOException {
         String agentContainerId = UUID.randomUUID().toString();
 
-        // start container... this may raise an Exception, but otherwise has no result
-        containerClient.startContainer(agentContainerId, image.getImageName());
+        // start container... this may raise an Exception, or returns the connectivty info
+        var connectivity = containerClient.startContainer(agentContainerId, image);
 
         // wait until container is up and running...
         var start = System.currentTimeMillis();
@@ -153,6 +154,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000) {
             try {
                 var container = client.getContainerInfo();
+                container.setConnectivity(connectivity);
                 runningContainers.put(agentContainerId, container);
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
@@ -260,6 +262,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         try {
             var client = this.getClient(containerId);
             var containerInfo = client.getContainerInfo();
+            containerInfo.setConnectivity(runningContainers.get(containerId).getConnectivity());
             runningContainers.put(containerId, containerInfo);
             notifyConnectedPlatforms();
             return true;
