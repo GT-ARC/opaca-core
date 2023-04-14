@@ -182,6 +182,28 @@ public class PlatformTests {
     }
 
     /**
+     * Test Event Logging by issuing some calls (successful and failing),
+     * then see if the generated events match those calls.
+     */
+    @SuppressWarnings({"unchecked"})
+    @Test
+    public void test5EventLogging() throws Exception {
+        var message = Map.of("payload", "whatever", "replyTo", "");
+        request(PLATFORM_A, "POST", "/send/sample1", message);
+        Thread.sleep(1000); // make sure calls finish in order
+        request(PLATFORM_A, "POST", "/invoke/UnknownAction", Map.of());
+        Thread.sleep(1000); // wait for above calls to finish
+
+        var con = request(PLATFORM_A, "GET", "/history", null);
+        List<Map<String, Object>> res = result(con, List.class);
+        Assert.assertTrue(res.size() >= 4);
+        Assert.assertEquals("API_CALL", res.get(res.size() - 4).get("eventType"));
+        Assert.assertEquals(res.get(res.size() - 4).get("id"), res.get(res.size() - 3).get("relatedId"));
+        Assert.assertEquals("invoke", res.get(res.size() - 2).get("methodName"));
+        Assert.assertEquals("API_ERROR", res.get(res.size() - 1).get("eventType"));
+    }
+
+    /**
      * connect to second platform, check that both are connected
      */
     @Test
