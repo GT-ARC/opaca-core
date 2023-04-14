@@ -47,6 +47,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         override fun doGet(request: HttpServletRequest, response: HttpServletResponse) {
             log.info("received GET $request")
             val path = request.pathInfo
+            response.contentType = "application/json"
 
             val info = Regex("^/info$").find(path)
             if (info != null) {
@@ -72,6 +73,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             log.info("received POST $request")
             val path = request.pathInfo  // NOTE: queryParams (?...) go to request.queryString
             val body: String = request.reader.lines().collect(Collectors.joining())
+            response.contentType = "application/json"
 
             // TODO interpretation of "forward"? currently ignored; escalate to RP if AC is addressed directly?
 
@@ -164,7 +166,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         override fun getContainerInfo(): AgentContainer {
             log.info("GET INFO")
-            return AgentContainer(containerId, image, agents, startedAt)
+            return AgentContainer(containerId, image, agents, startedAt, null)
         }
 
         override fun getAgents(): List<AgentDescription> {

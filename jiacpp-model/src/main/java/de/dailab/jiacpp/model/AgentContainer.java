@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Information on a running Agent Container, combining information on image with runtime data.
@@ -24,5 +25,22 @@ public class AgentContainer {
 
     /** when the container was started */
     LocalDateTime runningSince;
+
+    /** connectivity information; NOTE: this is not set by the AgentContainer itself, but by the RuntimePlatform! */
+    Connectivity connectivity;
+
+    @Data @AllArgsConstructor @NoArgsConstructor
+    public static class Connectivity {
+
+        /** this container's public URL (e.g. the URL of the Runtime Platform, Docker Host, or Kubernetes Node */
+        String publicUrl;
+
+        /** where the port where the container provides the JIAC++ API is mapped to */
+        Integer apiPortMapping;
+
+        /** where additional ports exposed by the container are mapped to */
+        Map<Integer, AgentContainerImage.PortDescription> extraPortMappings;
+
+    }
 
 }
