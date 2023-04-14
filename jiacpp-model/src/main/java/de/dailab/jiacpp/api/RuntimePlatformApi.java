@@ -3,6 +3,7 @@ package de.dailab.jiacpp.api;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
 import de.dailab.jiacpp.model.RuntimePlatform;
+import de.dailab.jiacpp.model.Event;
 
 import java.io.IOException;
 import java.util.List;
@@ -23,6 +24,15 @@ public interface RuntimePlatformApi extends CommonApi {
      * @return Extensive information on the platform and its containers and agents.
      */
     RuntimePlatform getPlatformInfo() throws IOException;
+
+    /**
+     * Get history of "events" that occurred in this runtime platform
+     *
+     * REST: GET /history
+     *
+     * @return list of recent events, most-recent last
+     */
+    List<Event> getHistory() throws IOException;
 
     /**
      * Deploy a container to the runtime Platform. Check requirements, get actual docker image, and

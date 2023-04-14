@@ -8,6 +8,8 @@ import de.dailab.jiacpp.plattform.containerclient.ContainerClient;
 import de.dailab.jiacpp.plattform.containerclient.DockerClient;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
+import de.dailab.jiacpp.util.EventHistory;
+import de.dailab.jiacpp.model.Event;
 
 import java.io.IOException;
 import java.util.*;
@@ -53,6 +55,11 @@ public class PlatformImpl implements RuntimePlatformApi {
                 List.of(), // TODO "provides" pf platform? read from config? issue #42
                 List.copyOf(connectedPlatforms.keySet())
         );
+    }
+
+    @Override
+    public List<Event> getHistory() {
+        return EventHistory.getInstance().getEvents();
     }
 
     /*
