@@ -26,9 +26,17 @@ public class Event {
     /** unique ID of this event */
     final String uniqueId = UUID.randomUUID().toString();
 
-    String eventType;
+    EventType eventType;
 
     /** optional ID of a different event this event relates to */
     String relatedId;
 
+    /**
+     * Nested EventType enum
+     */
+    public enum EventType {
+        API_CALL,
+        API_RESULT,
+        API_ERROR
+    }
 }
