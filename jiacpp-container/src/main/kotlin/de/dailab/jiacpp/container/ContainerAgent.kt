@@ -114,7 +114,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     // information on current state of agent container
 
     /** when the Agent Container was initialized */
-    private var startedAt: LocalDateTime? = null
+    private var startedAt: String? = null
 
     /** the ID of the Agent Container itself, received on initialization */
     private var containerId: String? = null
@@ -144,7 +144,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         log.info("Setting environment...")
         containerId = System.getenv(AgentContainerApi.ENV_CONTAINER_ID)
         runtimePlatformUrl = System.getenv(AgentContainerApi.ENV_PLATFORM_URL)
-        startedAt = LocalDateTime.now()
+        startedAt = LocalDateTime.now().toString()
     }
 
     /**

@@ -23,6 +23,6 @@ public class AgentContainer {
     List<AgentDescription> agents;
 
     /** when the container was started */
-    LocalDateTime runningSince;
+    String runningSince;
 
 }

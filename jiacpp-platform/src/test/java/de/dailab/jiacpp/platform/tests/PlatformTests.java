@@ -43,7 +43,8 @@ public class PlatformTests {
     private final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
     private final String PLATFORM_B = "http://localhost:" + PLATFORM_B_PORT;
 
-    private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container";
+    private final String TEST_IMAGE = "sample-agent-container-image";
+    // private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container";
 
     private static String containerId = null;
     private static String platformABaseUrl = null;
