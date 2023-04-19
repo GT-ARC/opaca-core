@@ -5,13 +5,16 @@ import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.exception.InternalServerErrorException;
 import com.github.dockerjava.api.exception.NotFoundException;
-import com.github.dockerjava.api.model.AuthConfig;
+import com.github.dockerjava.api.exception.NotModifiedException;
+import com.github.dockerjava.api.model.*;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
 import de.dailab.jiacpp.api.AgentContainerApi;
+import de.dailab.jiacpp.model.AgentContainer;
+import de.dailab.jiacpp.model.AgentContainerImage;
 import de.dailab.jiacpp.plattform.PlatformConfig;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -19,12 +22,11 @@ import lombok.extern.java.Log;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * Container Client for running Agent Containers in Docker, possibly on a remote host.
@@ -47,27 +49,22 @@ public class DockerClient implements ContainerClient {
     /** Available Docker Auth */
     private Map<String, AuthConfig> auth;
 
+    /** Set of already used ports on target Docker host */
+    private Set<Integer> usedPorts;
+
     @Data
     @AllArgsConstructor
     static class DockerContainerInfo {
         String containerId;
         String internalIp;
+        AgentContainer.Connectivity connectivity;
     }
 
     @Override
     public void initialize(PlatformConfig config) {
 
-        // TODO get config/settings, e.g.
-        //  - docker settings, e.g. remote docker, gpu support, ...
-
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
                 .withDockerHost("unix:///var/run/docker.sock")
-                //.withDockerTlsVerify(true)
-                //.withDockerCertPath("/home/user/.docker")
-                //.withRegistryUsername(registryUser)
-                //.withRegistryPassword(registryPass)
-                //.withRegistryEmail(registryMail)
-                //.withRegistryUrl(registryUrl)
                 .build();
 
         DockerHttpClient dockerHttpClient = new ApacheDockerHttpClient.Builder()
@@ -82,11 +79,15 @@ public class DockerClient implements ContainerClient {
         this.auth = loadDockerAuth();
         this.dockerClient = DockerClientImpl.getInstance(dockerConfig, dockerHttpClient);
         this.dockerContainers = new HashMap<>();
+        this.usedPorts = new HashSet<>();
     }
 
     @Override
-    public void startContainer(String containerId, String imageName) throws IOException, NoSuchElementException {
+    public AgentContainer.Connectivity startContainer(String containerId, AgentContainerImage image) throws IOException, NoSuchElementException {
+        var imageName = image.getImageName();
+        var extraPorts = image.getExtraPorts();
         try {
+            // TODO move this to a separate method?
             // pull image if not present
             if (! isImagePresent(imageName)) {
                 log.info("Pulling Image..." + imageName);
@@ -104,39 +105,84 @@ public class DockerClient implements ContainerClient {
                 }
             }
 
+            // port mappings
+            Map<Integer, Integer> portMap = Stream.concat(Stream.of(image.getApiPort()), extraPorts.keySet().stream())
+                    .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
+
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
                     .withEnv(
                             String.format("%s=%s", AgentContainerApi.ENV_CONTAINER_ID, containerId),
                             String.format("%s=%s", AgentContainerApi.ENV_PLATFORM_URL, config.getOwnBaseUrl()))
+                    .withHostConfig(HostConfig.newHostConfig()
+                            .withPortBindings(portMap.entrySet().stream().map(
+                                    // TODO format, then parse is kind of silly... is there a better way?
+                                    e -> PortBinding.parse(String.format("%s:%s", e.getValue(), e.getKey()))
+                            ).collect(Collectors.toList()))
+                    )
+                    // TODO why do we need this? DO we need this??
+                    .withExposedPorts(portMap.keySet().stream().map(ExposedPort::tcp).collect(Collectors.toList()))
                     .exec();
             log.info(String.format("Result: %s", res));
 
             log.info("Starting Container...");
             dockerClient.startContainerCmd(res.getId()).exec();
 
+            // create connectivity object
+            var connectivity = new AgentContainer.Connectivity(
+                    config.getOwnBaseUrl().replaceAll(":\\d+$", ""),  // TODO change to remote docker host once implemented (#23)
+                    portMap.get(image.getApiPort()),
+                    extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
+            );
+
             // TODO get internal IP... why is this deprecated?
+            // TODO internal IP is not really needed any longer, is it?
             InspectContainerResponse info = dockerClient.inspectContainerCmd(res.getId()).exec();
-            dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), info.getNetworkSettings().getIpAddress()));
+            dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), info.getNetworkSettings().getIpAddress(), connectivity));
+
+            return connectivity;
 
         } catch (NotFoundException e) {
             log.warning("Image not found: " + imageName);
             throw new NoSuchElementException("Image not found: " + imageName);
         }
+        // TODO handle error trying to connect to Docker (only relevant when Remote Docker is supported, issue #23)
     }
 
     @Override
     public void stopContainer(String containerId) throws IOException {
-        var dockerId = dockerContainers.get(containerId).getContainerId();
-        dockerClient.stopContainerCmd(dockerId).exec();
-        // TODO get result, check if and when it is finally stopped?
-        // TODO handle case of container already being terminated (due to error or similar)
+        try {
+            // remove container info, stop container
+            var containerInfo = dockerContainers.remove(containerId);
+            dockerClient.stopContainerCmd(containerInfo.containerId).exec();
+            // free up ports used by this container
+            // TODO do this first, or in finally?
+            usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
+            usedPorts.removeAll(containerInfo.connectivity.getExtraPortMappings().keySet());
+        } catch (NotModifiedException e) {
+            var msg = "Could not stop Container " + containerId + "; already stopped?";
+            log.warning(msg);
+            throw new NoSuchElementException(msg);
+        }
         // TODO possibly that the container refuses being stopped? call "kill" instead? how to test this?
+        // TODO handle error trying to connect to Docker (only relevant when Remote Docker is supported, issue #23)
     }
 
     @Override
     public String getIP(String containerId) {
         return dockerContainers.get(containerId).getInternalIp();
+    }
+
+    /**
+     * Starting from the given preferred port, get and reserve the next free port.
+     */
+    private int reserveNextFreePort(int port) {
+        while (usedPorts.contains(port)) {
+            // TODO how to handle ports blocked by other containers or applications? just ping ports?
+            port++;
+        }
+        usedPorts.add(port);
+        return port;
     }
 
     private boolean isImagePresent(String imageName) {

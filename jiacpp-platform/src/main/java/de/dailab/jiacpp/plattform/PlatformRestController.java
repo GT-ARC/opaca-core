@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
+import de.dailab.jiacpp.util.*;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,8 +28,6 @@ import java.util.NoSuchElementException;
 @RestController
 public class PlatformRestController implements RuntimePlatformApi {
 
-	// TODO add explicit routes for updating/refreshing specific containers, instead of regular auto-updates?
-
 	@Autowired
 	PlatformConfig config;
 
@@ -42,22 +41,25 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@PostConstruct
 	public void postConstruct() {
 		log.info("In Post-Construct");
-		implementation = new PlatformImpl(config);
+		implementation = EventProxy.create(new PlatformImpl(config));
 	}
 
 	@PreDestroy
-	public void preDestroy() {
+	public void preDestroy() throws IOException {
 		log.info("In Destroy, stopping containers...");
-		// disconnect remote platform, undeploy agent containers
-		try {
-			for (String connection : implementation.getConnections()) {
+		for (String connection : implementation.getConnections()) {
+			try {
 				implementation.disconnectPlatform(connection);
+			} catch (Exception e) {
+				log.warning("Exception disconnecting from " + connection + ": " + e.getMessage());
 			}
-			for (AgentContainer container : implementation.getContainers()) {
+		}
+		for (AgentContainer container : implementation.getContainers()) {
+			try {
 				implementation.removeContainer(container.getContainerId());
+			} catch (Exception e) {
+				log.warning("Exception stopping container " + container.getContainerId() + ": " + e.getMessage());
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
 		}
 	}
 
@@ -98,6 +100,14 @@ public class PlatformRestController implements RuntimePlatformApi {
 		return implementation.getPlatformInfo();
 	}
 
+	@RequestMapping(value="/history", method=RequestMethod.GET)
+	@Operation(summary="Get history on this Runtime Platform", tags={"info"})
+	@Override
+	public List<Event> getHistory() throws IOException {
+		log.info("Get History");
+		return implementation.getHistory();
+	}
+
 	/*
 	 * AGENTS ROUTES
 	 */
@@ -125,10 +135,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public void send(
 			@PathVariable String agentId,
-			@RequestBody Message message
+			@RequestBody Message message,
+			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("SEND: %s, %s", agentId, message));
-		implementation.send(agentId, message);
+		implementation.send(agentId, message, forward);
 	}
 
 	@RequestMapping(value="/broadcast/{channel}", method=RequestMethod.POST)
@@ -136,10 +147,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public void broadcast(
 			@PathVariable String channel,
-			@RequestBody Message message
+			@RequestBody Message message,
+			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("BROADCAST: %s, %s", channel, message));
-		implementation.broadcast(channel, message);
+		log.info(String.format("BROADCAST: %s, %s, %s", channel, message, forward));
+		implementation.broadcast(channel, message, forward);
 	}
 
 	@RequestMapping(value="/invoke/{action}", method=RequestMethod.POST)
@@ -147,10 +159,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public JsonNode invoke(
 			@PathVariable String action,
-			@RequestBody Map<String, JsonNode> parameters
+			@RequestBody Map<String, JsonNode> parameters,
+			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("INVOKE: %s, %s", action, parameters));
-		return implementation.invoke(action, parameters);
+		return implementation.invoke(action, parameters, forward);
 	}
 
 	@RequestMapping(value="/invoke/{action}/{agentId}", method=RequestMethod.POST)
@@ -159,10 +172,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public JsonNode invoke(
 			@PathVariable String agentId,
 			@PathVariable String action,
-			@RequestBody Map<String, JsonNode> parameters
+			@RequestBody Map<String, JsonNode> parameters,
+			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("INVOKE: %s, %s, %s", action, agentId, parameters));
-		return implementation.invoke(agentId, action, parameters);
+		return implementation.invoke(agentId, action, parameters, forward);
 	}
 
 	/*
@@ -242,4 +256,22 @@ public class PlatformRestController implements RuntimePlatformApi {
 		log.info(String.format("DISCONNECT PLATFORM: %s", url));
 		return implementation.disconnectPlatform(url);
 	}
+
+
+	@RequestMapping(value="/containers/notify", method=RequestMethod.POST)
+	@Operation(summary="Notify Platform about updates", tags={"containers"})
+	@Override
+	public boolean notifyUpdateContainer(@RequestBody String containerId) throws IOException {
+		log.info(String.format("NOTIFY: %s", containerId));
+		return implementation.notifyUpdateContainer(containerId);
+	}
+
+	@RequestMapping(value="/connections/notify", method=RequestMethod.POST)
+	@Operation(summary="Notify Platform about updates", tags={"connections"})
+	@Override
+	public boolean notifyUpdatePlatform(@RequestBody String platformUrl) throws IOException {
+		log.info(String.format("NOTIFY: %s", platformUrl));
+		return implementation.notifyUpdatePlatform(platformUrl);
+	}
+
 }

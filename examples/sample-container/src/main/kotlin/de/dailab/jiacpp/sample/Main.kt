@@ -13,6 +13,7 @@ fun main() {
             add(ContainerAgent(image))
             add(SampleAgent("sample1"))
             add(SampleAgent("sample2"))
+            add(SimpleUIAgent())
         }
     }.start()
 }

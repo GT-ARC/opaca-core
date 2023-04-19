@@ -1,8 +1,11 @@
 package de.dailab.jiacpp.plattform.containerclient;
 
+import de.dailab.jiacpp.model.AgentContainer;
+import de.dailab.jiacpp.model.AgentContainerImage;
 import de.dailab.jiacpp.plattform.PlatformConfig;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 /**
@@ -22,8 +25,10 @@ public interface ContainerClient {
     /**
      * Start a container with the given container ID (for later reference) and image name. If all goes well,
      * return nothing, otherwise raise an appropriate exception.
+     *
+     * @return Port Mappings
      */
-    void startContainer(String containerId, String imageName) throws IOException, NoSuchElementException;
+    AgentContainer.Connectivity startContainer(String containerId, AgentContainerImage image) throws IOException, NoSuchElementException;
 
     /**
      * Stop the agent container with the given ID.
