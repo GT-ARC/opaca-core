@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
+import de.dailab.jiacpp.util.*;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +31,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Autowired
 	PlatformConfig config;
 
-	PlatformImpl implementation;
+	RuntimePlatformApi implementation;
 
 
 	/*
@@ -40,11 +41,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@PostConstruct
 	public void postConstruct() {
 		log.info("In Post-Construct");
-		implementation = new PlatformImpl(config);
+		implementation = EventProxy.create(new PlatformImpl(config));
 	}
 
 	@PreDestroy
-	public void preDestroy() {
+	public void preDestroy() throws IOException {
 		log.info("In Destroy, stopping containers...");
 		for (String connection : implementation.getConnections()) {
 			try {
@@ -94,9 +95,17 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@RequestMapping(value="/info", method=RequestMethod.GET)
 	@Operation(summary="Get information on this Runtime Platform", tags={"info"})
 	@Override
-	public RuntimePlatform getPlatformInfo() {
+	public RuntimePlatform getPlatformInfo() throws IOException {
 		log.info("Get Info");
 		return implementation.getPlatformInfo();
+	}
+
+	@RequestMapping(value="/history", method=RequestMethod.GET)
+	@Operation(summary="Get history on this Runtime Platform", tags={"info"})
+	@Override
+	public List<Event> getHistory() throws IOException {
+		log.info("Get History");
+		return implementation.getHistory();
 	}
 
 	/*
@@ -106,7 +115,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@RequestMapping(value="/agents", method=RequestMethod.GET)
 	@Operation(summary="Get List of Agents of all Agent Containers on this Platform", tags={"agents"})
 	@Override
-	public List<AgentDescription> getAgents() {
+	public List<AgentDescription> getAgents() throws IOException {
 		log.info("GET AGENTS");
 		return implementation.getAgents();
 	}
@@ -116,7 +125,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public AgentDescription getAgent(
 			@PathVariable String agentId
-	) {
+	) throws IOException {
 		log.info(String.format("GET AGENT: %s", agentId));
 		return implementation.getAgent(agentId);
 	}
@@ -188,7 +197,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@RequestMapping(value="/containers", method=RequestMethod.GET)
 	@Operation(summary="Get all Agent Containers running on this platform", tags={"containers"})
 	@Override
-	public List<AgentContainer> getContainers() {
+	public List<AgentContainer> getContainers() throws IOException {
 		log.info("GET CONTAINERS");
 		return implementation.getContainers();
 	}
@@ -198,7 +207,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public AgentContainer getContainer(
 			@PathVariable String containerId
-	) {
+	) throws IOException {
 		log.info(String.format("GET CONTAINER: %s", containerId));
 		return implementation.getContainer(containerId);
 	}
@@ -233,7 +242,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@RequestMapping(value="/connections", method=RequestMethod.GET)
 	@Operation(summary="Get list of connected Runtime Platforms", tags={"connections"})
 	@Override
-	public List<String> getConnections() {
+	public List<String> getConnections() throws IOException {
 		log.info("GET CONNECTIONS");
 		return implementation.getConnections();
 	}
@@ -254,12 +263,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public boolean notifyUpdateContainer(@RequestBody String containerId) throws IOException {
 		log.info(String.format("NOTIFY: %s", containerId));
-		if (implementation.notifyUpdateContainer(containerId)) {
-			return true;
-		}
-		String errorMsg = String.format("Invalid containerId: %s", containerId);
-		log.severe(errorMsg);
-		throw new IOException(errorMsg);
+		return implementation.notifyUpdateContainer(containerId);
 	}
 
 	@RequestMapping(value="/connections/notify", method=RequestMethod.POST)
@@ -267,12 +271,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public boolean notifyUpdatePlatform(@RequestBody String platformUrl) throws IOException {
 		log.info(String.format("NOTIFY: %s", platformUrl));
-		if (implementation.notifyUpdatePlatform(platformUrl)) {
-			return true;
-		}
-		String errorMsg = String.format("Invalid platformUrl: %s", platformUrl);
-		log.severe(errorMsg);
-		throw new IOException(errorMsg);
+		return implementation.notifyUpdatePlatform(platformUrl);
 	}
 
 }

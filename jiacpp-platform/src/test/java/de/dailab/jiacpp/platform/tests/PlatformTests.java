@@ -1,6 +1,5 @@
 package de.dailab.jiacpp.platform.tests;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.plattform.Application;
 import de.dailab.jiacpp.util.RestHelper;
@@ -10,8 +9,7 @@ import org.junit.runners.MethodSorters;
 
 import org.springframework.boot.SpringApplication;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -44,7 +42,7 @@ public class PlatformTests {
     private final String PLATFORM_B = "http://localhost:" + PLATFORM_B_PORT;
 
     private final String TEST_IMAGE = "sample-agent-container-image";
-    // private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container";
+    // private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v4";
 
     private static String containerId = null;
     private static String platformABaseUrl = null;
@@ -90,9 +88,8 @@ public class PlatformTests {
      */
     @Test
     public void test2Deploy() throws Exception {
-        var container = new AgentContainerImage();
-        container.setImageName(TEST_IMAGE);
-        var con = request(PLATFORM_A, "POST", "/containers", container);
+        var image = getSampleContainerImage();
+        var con = request(PLATFORM_A, "POST", "/containers", image);
         Assert.assertEquals(200, con.getResponseCode());
         containerId = result(con);
 
@@ -180,6 +177,87 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
         Assert.assertEquals("testBroadcast", res.get("lastBroadcast"));
+    }
+
+    /**
+     * Test Event Logging by issuing some calls (successful and failing),
+     * then see if the generated events match those calls.
+     */
+    @SuppressWarnings({"unchecked"})
+    @Test
+    public void test5EventLogging() throws Exception {
+        var message = Map.of("payload", "whatever", "replyTo", "");
+        request(PLATFORM_A, "POST", "/send/sample1", message);
+        Thread.sleep(1000); // make sure calls finish in order
+        request(PLATFORM_A, "POST", "/invoke/UnknownAction", Map.of());
+        Thread.sleep(1000); // wait for above calls to finish
+
+        var con = request(PLATFORM_A, "GET", "/history", null);
+        List<Map<String, Object>> res = result(con, List.class);
+        Assert.assertTrue(res.size() >= 4);
+        Assert.assertEquals("API_CALL", res.get(res.size() - 4).get("eventType"));
+        Assert.assertEquals(res.get(res.size() - 4).get("id"), res.get(res.size() - 3).get("relatedId"));
+        Assert.assertEquals("invoke", res.get(res.size() - 2).get("methodName"));
+        Assert.assertEquals("API_ERROR", res.get(res.size() - 1).get("eventType"));
+    }
+
+    /**
+     * test that two containers get a different API port
+     */
+    @Test
+    public void test5FreePort() throws Exception {
+        var image = getSampleContainerImage();
+        var con = request(PLATFORM_A, "POST", "/containers", image);
+        Assert.assertEquals(200, con.getResponseCode());
+        var newContainerId = result(con);
+
+        con = request(PLATFORM_A, "GET", "/containers/" + newContainerId, null);
+        var res = result(con, AgentContainer.class);
+        Assert.assertEquals(8083, (int) res.getConnectivity().getApiPortMapping());
+
+        con = request(PLATFORM_A, "DELETE", "/containers/" + newContainerId, null);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    /**
+     * test that container's /info route can be accessed via that port
+     */
+    @Test
+    public void test5ApiPort() throws Exception {
+        var con = request(PLATFORM_A, "GET", "/containers/" + containerId, null);
+        var res = result(con, AgentContainer.class).getConnectivity();
+
+        // access /info route through exposed port
+        var url = String.format("%s:%s", res.getPublicUrl(), res.getApiPortMapping());
+        System.out.println(url);
+        con = request(url, "GET", "/info", null);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    /**
+     * test exposed extra port (has to be provided in sample image)
+     */
+    @Test
+    public void test5ExtraPort() throws Exception {
+        var con = request(PLATFORM_A, "GET", "/containers/" + containerId, null);
+        var res = result(con, AgentContainer.class).getConnectivity();
+
+        var url = String.format("%s:%s", res.getPublicUrl(), res.getExtraPortMappings().keySet().iterator().next());
+        con = request(url, "GET", "/", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("It Works!", result(con));
+    }
+
+    /**
+     * test that connectivity info is still there after /notify
+     */
+    @Test
+    public void test5NotifyConnectivity() throws Exception {
+        var con = request(PLATFORM_A, "POST", "/containers/notify", containerId);
+
+        con = request(PLATFORM_A, "GET", "/containers/" + containerId, null);
+        var res = result(con, AgentContainer.class);
+        Assert.assertNotNull(res.getConnectivity());
     }
 
     /**
@@ -452,8 +530,6 @@ public class PlatformTests {
         Assert.assertEquals(200, con2.getResponseCode());
     }
 
-    // TODO improve notify-test by actually having the sample container update its information (requires some extensions in the sample-container-agent code, though)
-
     @Test
     public void test7RequestInvalidNotify() throws Exception {
         // invalid container
@@ -465,9 +541,58 @@ public class PlatformTests {
         Assert.assertEquals(404, con2.getResponseCode());
     }
 
+    @Test
+    public void test7AddNewAction() throws Exception {
+        // create new agent action
+        var con = request(PLATFORM_A, "POST", "/invoke/CreateAction/sample1", Map.of("name", "TemporaryTestAction"));
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // new action has been created, but platform has not yet been notified --> action is unknown
+        con = request(PLATFORM_A, "POST", "/invoke/TemporaryTestAction/sample1", Map.of());
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // notify platform about updates in container, after which the new action is known
+        con = request(PLATFORM_A, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // try to invoke the new action, which should now succeed
+        con = request(PLATFORM_A, "POST", "/invoke/TemporaryTestAction/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // platform A has also already notified platform B about its changes
+        con = request(PLATFORM_B, "POST", "/invoke/TemporaryTestAction", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    @Test
+    public void test8DeregisterAgent() throws Exception {
+        // deregister agent "sample2"
+        var con = request(PLATFORM_A, "POST", "/invoke/Deregister/sample2", Map.of("name", "TemporaryTestAction"));
+        Assert.assertEquals(200, con.getResponseCode());
+        con = request(PLATFORM_A, "GET", "/agents", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var agentsList = result(con, List.class);
+        Assert.assertEquals(2, agentsList.size());
+
+        // notify --> agent should no longer be known
+        con = request(PLATFORM_A, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con.getResponseCode());
+        con = request(PLATFORM_A, "GET", "/agents", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        agentsList = result(con, List.class);
+        Assert.assertEquals(1, agentsList.size());
+    }
+
     /*
      * HELPER METHODS
      */
+
+    public AgentContainerImage getSampleContainerImage() {
+        var image = new AgentContainerImage();
+        image.setImageName(TEST_IMAGE);
+        image.setExtraPorts(Map.of(8888, new AgentContainerImage.PortDescription()));
+        return image;
+    }
 
     public HttpURLConnection request(String host, String method, String path, Object payload) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(host + path).openConnection();
