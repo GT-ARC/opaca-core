@@ -1,6 +1,8 @@
 package de.dailab.jiacpp.plattform;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
@@ -11,7 +13,10 @@ import lombok.extern.java.Log;
 import de.dailab.jiacpp.util.EventHistory;
 import de.dailab.jiacpp.model.Event;
 
+import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -38,7 +43,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     /** Set of remote Runtime Platform URLs with a pending connection request */
     private final Set<String> pendingConnections = new HashSet<>();
-
 
     public PlatformImpl(PlatformConfig config) {
         this.config = config;
@@ -395,18 +399,39 @@ public class PlatformImpl implements RuntimePlatformApi {
         return url.trim().replaceAll("^\"|\"$", "");
     }
 
+    /*
+     * reads image config files from ./default-images
+     */
+    private Set<String> readDefaultImages() {
+        var filter = new FilenameFilter() {
+            public boolean accept(File dir, String name) {
+                return name.toLowerCase().endsWith(".json");
+            }
+        };
+        try {
+            var directory = new File("./default-images");
+            var files = directory.listFiles(filter);
+            if (files == null) return null;
+            return Stream.of(files)
+                    .filter(file -> !file.isDirectory())
+                    .map(File::getAbsolutePath)
+                    .collect(Collectors.toSet());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private void startDefaultImages() {
-        if (config.defaultImages.isBlank()) return;
-        var sep = config.registrySeparator;
-        var imageNames = config.defaultImages.split(sep);
-        for (String imageName: imageNames) {
-            log.info("Starting default container image: " + imageName);
-            AgentContainerImage image = new AgentContainerImage();
-            image.setImageName(imageName);
+        var imageFiles = readDefaultImages();
+        if (imageFiles == null) return;
+
+        for (String file: imageFiles) {
+            ObjectMapper mapper = new ObjectMapper();
             try {
+                AgentContainerImage image = mapper.readValue(Paths.get(file).toFile(), AgentContainerImage.class);
                 this.addContainer(image);
             } catch (IOException e) {
-                log.warning("Failed to start default container image: " + imageName);
+                log.warning(String.format("Failed to load image specified in file %s", file));
             }
         }
     }
