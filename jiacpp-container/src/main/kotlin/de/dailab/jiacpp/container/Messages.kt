@@ -13,6 +13,6 @@ data class Register(val description: AgentDescription)
 data class DeRegister(val agentId: String)
 
 // Message for Invoking a JIAC++ action at a containerized agent, wrapping the name of the action to call
-// and its parameters, to be handled by a invoke-ask "respond" handler.
+// and its parameters, to be handled by an invoke-ask "respond" handler.
 
 data class Invoke(val name: String, val parameters: Map<String, JsonNode>)

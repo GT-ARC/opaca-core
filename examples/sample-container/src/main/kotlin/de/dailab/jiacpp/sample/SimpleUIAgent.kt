@@ -13,7 +13,7 @@ import org.eclipse.jetty.servlet.ServletHolder
 /**
  * Agent providing a super-simple Web UI for testing exposed ports
  */
-class SimpleUIAgent(): Agent(overrideName="simple-ui-agent") {
+class SimpleUIAgent: Agent(overrideName="simple-ui-agent") {
 
     private val server = Server(8888)
 
