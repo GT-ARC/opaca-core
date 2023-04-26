@@ -25,7 +25,7 @@ public class AgentContainer {
     List<AgentDescription> agents;
 
     /** when the container was started */
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "Europe/Berlin")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "Z")
     ZonedDateTime runningSince;
 
     /** connectivity information; NOTE: this is not set by the AgentContainer itself, but by the RuntimePlatform! */

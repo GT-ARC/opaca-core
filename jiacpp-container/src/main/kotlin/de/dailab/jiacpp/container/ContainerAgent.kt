@@ -147,7 +147,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         log.info("Setting environment...")
         containerId = System.getenv(AgentContainerApi.ENV_CONTAINER_ID)
         runtimePlatformUrl = System.getenv(AgentContainerApi.ENV_PLATFORM_URL)
-        startedAt = ZonedDateTime.now(ZoneId.of("Europe/Berlin"))
+        startedAt = ZonedDateTime.now(ZoneId.of("Z"))
     }
 
     /**
