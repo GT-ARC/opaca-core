@@ -10,7 +10,6 @@ import de.dailab.jiacpp.plattform.containerclient.DockerClient;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.dailab.jiacpp.util.EventHistory;
-import de.dailab.jiacpp.model.Event;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -150,7 +149,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     public String addContainer(AgentContainerImage image) throws IOException {
         String agentContainerId = UUID.randomUUID().toString();
 
-        // start container... this may raise an Exception, or returns the connectivty info
+        // start container... this may raise an Exception, or returns the connectivity info
         var connectivity = containerClient.startContainer(agentContainerId, image);
 
         // wait until container is up and running...
@@ -258,7 +257,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public boolean notifyUpdateContainer(String containerId) {
-        containerId = normalizeUrl(containerId); // remove " - also usable here?
+        containerId = normalizeUrl(containerId); // remove '"' - also usable here?
         if (! runningContainers.containsKey(containerId)) {
             var msg = String.format("Container did not exist: %s", containerId);
             log.warning(msg);
