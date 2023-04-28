@@ -13,6 +13,7 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -38,10 +39,10 @@ public class PlatformTests {
     private static final String PLATFORM_A_PORT = "8001";
     private static final String PLATFORM_B_PORT = "8002";
 
-    private final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
-    private final String PLATFORM_B = "http://localhost:" + PLATFORM_B_PORT;
+    private static final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
+    private static final String PLATFORM_B = "http://localhost:" + PLATFORM_B_PORT;
 
-    private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v4";
+    private static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v4";
 
     private static String containerId = null;
     private static String platformABaseUrl = null;
@@ -52,18 +53,29 @@ public class PlatformTests {
      */
     @BeforeClass
     public static void setupPlatforms() {
-        System.out.println("STARTING TEST SERVERS");
 
-        System.out.println("STARTING TEST SERVER 1 ON PORT " + PLATFORM_A_PORT);
+        // creating test image file
+        var imageFile = new File("./default-images/sample.json");
+        if (!imageFile.getParentFile().exists()) imageFile.mkdirs();
+        try (var writer = new FileWriter(imageFile)) {
+            imageFile.createNewFile();
+            writer.write("{ \"imageName\": \"" + TEST_IMAGE + "\" }");
+        } catch (IOException e) {
+            System.out.println("Failed to create test image json.");
+        }
+
+        // start platform A
         SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT);
 
-        System.out.println("STARTING TEST SERVER 2 ON PORT " + PLATFORM_B_PORT);
+        // delete sample image json to not have it loaded on platform B
+        if (imageFile.exists()) imageFile.delete();
+
+        // start platform B
         SpringApplication.run(Application.class, "--server.port=" + PLATFORM_B_PORT);
     }
 
     @AfterClass
     public static void cleanupPlatforms() {
-        // todo: anything to do here? shut down the platforms?
     }
 
     /*
@@ -80,6 +92,27 @@ public class PlatformTests {
         var info = result(con, RuntimePlatform.class);
         Assert.assertNotNull(info);
         platformABaseUrl = info.getBaseUrl();
+    }
+
+    /**
+     * check if default image is loaded on platform A, then undeploy it to not mess up the following tests
+     */
+    @Test
+    public void test1DefaultImage() throws Exception {
+        var con = request(PLATFORM_A, "GET", "/containers", null);
+        var lst = result(con, List.class);
+        Assert.assertEquals(1, lst.size());
+
+        var containerId = ((LinkedHashMap<?, ?>) lst.get(0)).get("containerId");
+
+        con = request(PLATFORM_A, "DELETE", "/containers/" + containerId, null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Boolean.class);
+        Assert.assertTrue(res);
+
+        con = request(PLATFORM_A, "GET", "/containers", null);
+        lst = result(con, List.class);
+        Assert.assertEquals(0, lst.size());
     }
 
     /**

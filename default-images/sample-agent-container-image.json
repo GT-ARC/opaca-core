@@ -1,8 +1,0 @@
-{
-  "imageName": "sample-agent-container-image",
-  "requires": [],
-  "provides": ["sample-provision-0"],
-  "name": "test name",
-  "description": "test description",
-  "provider": "test provider"
-}

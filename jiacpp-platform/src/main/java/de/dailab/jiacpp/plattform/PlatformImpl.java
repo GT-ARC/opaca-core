@@ -1,6 +1,5 @@
 package de.dailab.jiacpp.plattform;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.dailab.jiacpp.api.AgentContainerApi;
@@ -426,9 +425,9 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (imageFiles == null) return;
 
         for (String file: imageFiles) {
-            ObjectMapper mapper = new ObjectMapper();
+            var mapper = new ObjectMapper();
             try {
-                AgentContainerImage image = mapper.readValue(Paths.get(file).toFile(), AgentContainerImage.class);
+                var image = mapper.readValue(Paths.get(file).toFile(), AgentContainerImage.class);
                 this.addContainer(image);
             } catch (IOException e) {
                 log.warning(String.format("Failed to load image specified in file %s", file));
