@@ -1,7 +1,6 @@
 package de.dailab.jiacpp.plattform.containerclient;
 
 import com.github.dockerjava.api.command.CreateContainerResponse;
-import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.exception.InternalServerErrorException;
 import com.github.dockerjava.api.exception.NotFoundException;
@@ -63,12 +62,8 @@ public class DockerClient implements ContainerClient {
     @Override
     public void initialize(PlatformConfig config) {
 
-        var dockerHost = Strings.isNullOrEmpty(config.remoteDockerHost)
-                ? "unix:///var/run/docker.sock"
-                : config.remoteDockerHost;
-
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
-                .withDockerHost(dockerHost)
+                .withDockerHost(getDockerhost())
                 .build();
 
         DockerHttpClient dockerHttpClient = new ApacheDockerHttpClient.Builder()
@@ -106,11 +101,9 @@ public class DockerClient implements ContainerClient {
                             String.format("%s=%s", AgentContainerApi.ENV_PLATFORM_URL, config.getOwnBaseUrl()))
                     .withHostConfig(HostConfig.newHostConfig()
                             .withPortBindings(portMap.entrySet().stream().map(
-                                    // TODO format, then parse is kind of silly... is there a better way?
                                     e -> PortBinding.parse(String.format("%s:%s", e.getValue(), e.getKey()))
                             ).collect(Collectors.toList()))
                     )
-                    // TODO why do we need this? DO we need this??
                     .withExposedPorts(portMap.keySet().stream().map(ExposedPort::tcp).collect(Collectors.toList()))
                     .exec();
             log.info(String.format("Result: %s", res));
@@ -120,7 +113,7 @@ public class DockerClient implements ContainerClient {
 
             // create connectivity object
             var connectivity = new AgentContainer.Connectivity(
-                    getDockerUrl(),
+                    getContainerBaseUrl(),
                     portMap.get(image.getApiPort()),
                     extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );
@@ -162,12 +155,16 @@ public class DockerClient implements ContainerClient {
         return conn.getPublicUrl() + ":" + conn.getApiPortMapping();
     }
 
-    private String getDockerUrl() {
+    private String getDockerhost() {
+        return Strings.isNullOrEmpty(config.remoteDockerHost)
+                ? "unix:///var/run/docker.sock"
+                : String.format("tcp://%s:%s", config.remoteDockerHost, config.remoteDockerPort);
+    }
+
+    private String getContainerBaseUrl() {
         return Strings.isNullOrEmpty(config.remoteDockerHost)
                 ? config.getOwnBaseUrl().replaceAll(":\\d+$", "")
-                : config.remoteDockerHost;
-        // TODO nope, this is not the proper url but something like tcp://host:port
-        //  also, remote docker host may open the docker port, but nothing else... what then?
+                : String.format("http://%s", config.remoteDockerHost);
     }
 
     /**
