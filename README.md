@@ -42,30 +42,30 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 * `PUBLIC_URL` (default: null) Public URL of the Runtime Platform; if not set, it will try to guess its own IP.
 * `CONTAINER_TIMEOUT_SEC` (default: 10) Timeout in seconds how long the RP will try to reach a newly started container's `/info` route before it assumes it did not start properly and stops it again.
 * `REMOTE_DOCKER_HOST` (default: null) Remote Docker host (just IP or alias, no protocol or port); if not set, RP will start containers on local Docker.
-* `REMOTE_DOCKER_PORT` (default: 2375) Port where remote Docker host exposes it's API; usually this is 2375. 
+* `REMOTE_DOCKER_PORT` (default: 2375) Port where remote Docker host exposes its API; usually this is 2375. 
 * `REGISTRY_SEPARATOR` (default: ";") Separator for the below attributes for registry credentials.
 * `REGISTRY_NAMES` (default: empty) Known Docker registry names, segment before the first `/` as it appears in image names, without protocol.
 * `REGISTRY_LOGINS` (default: empty) Login names for each of the above registries (number has to match).
 * `REGISTRY_PASSWORDS` (default: empty) Passwords for each of the above registries (number has to match).
 
-You can set those properties in the run config in your IDE, via an `.env` file, using `export` on the shell or in a `docker-compose.yml` file. Note that if you have one of those properties in e.g. your `.env` file and it does not have a value, that may still overwrite the default and set the value to `null` or the empty string.
+You can set those properties in the run config in your IDE, via an `.env` file, using `export` on the shell or in a `docker-compose.yml` file. Note that if you have one of those properties in e.g. your `.env` file, and it does not have a value, that may still overwrite the default and set the value to `null` or the empty string.
 
 
 ## Message Flows in Reference Implementation
 
 ### Runtime Platform to Agent Container
 
-* **message**: HTTP request to CA (in HTTP handler thread), send message via `agent_ref tell`
-* **broadcast**: HTTP request to CA (in HTTP handler thread), send message via `broker.publish`
-* **invoke**: HTTP request to CA (in HTTP handler thread), send `Invoke` to agent via `ask invoke` protocol, wait for response (in CA thread), reply in HTTP response
+* **message**: HTTP Request to CA (in HTTP handler thread), send message via `agent_ref tell`
+* **broadcast**: HTTP Request to CA (in HTTP handler thread), send message via `broker.publish`
+* **invoke**: HTTP Request to CA (in HTTP handler thread), send `Invoke` to agent via `ask invoke` protocol, wait for response (in CA thread), reply in HTTP response
 
 ![RP-CA Interactions](doc/messages-rp-ca.png)
 
 ### Agent Container to Runtime Platform
 
-* **message**: agent sends HTTP request to RP via helper method in super class
-* **broadcast**: agent sends HTTP request to RP via helper method in super class
-* **invoke**: agent sends HTTP request to RP via helper method in super class, waits for response in its own thread
+* **message**: agent sends HTTP Request to RP via helper method in super class
+* **broadcast**: agent sends HTTP Request to RP via helper method in super class
+* **invoke**: agent sends HTTP Request to RP via helper method in super class, waits for response in its own thread
 
 ![CA-RP Interactions](doc/messages-ca-rp.png)
 
