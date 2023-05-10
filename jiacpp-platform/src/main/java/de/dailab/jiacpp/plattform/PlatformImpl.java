@@ -1,12 +1,12 @@
 package de.dailab.jiacpp.plattform;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.plattform.containerclient.ContainerClient;
 import de.dailab.jiacpp.plattform.containerclient.DockerClient;
+import de.dailab.jiacpp.plattform.containerclient.KubernetesClient;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.dailab.jiacpp.util.EventHistory;
@@ -42,7 +42,15 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     public PlatformImpl(PlatformConfig config) {
         this.config = config;
-        this.containerClient = new DockerClient();
+        
+        if (config.environment.equals("docker")) {
+            this.containerClient = new DockerClient();
+        } else if (config.environment.equals("kubernetes")) {
+            this.containerClient = new KubernetesClient();
+        } else {
+            throw new IllegalArgumentException("Invalid environment specified");
+        }
+
         this.containerClient.initialize(config);
         // TODO add list of known used ports to config (e.g. the port of the RP itself, or others)
     }
@@ -151,12 +159,13 @@ public class PlatformImpl implements RuntimePlatformApi {
         // wait until container is up and running...
         var start = System.currentTimeMillis();
         var client = getClient(agentContainerId);
-        String extraMessage = "";
+
         while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000) {
             try {
                 var container = client.getContainerInfo();
                 container.setConnectivity(connectivity);
                 runningContainers.put(agentContainerId, container);
+                
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
                     log.warning("Agent Container ID does not match: Expected " +
@@ -164,10 +173,6 @@ public class PlatformImpl implements RuntimePlatformApi {
                 }
                 notifyConnectedPlatforms();
                 return agentContainerId;
-            } catch (MismatchedInputException e) {
-                extraMessage = "Container returned malformed /info: " + e.getMessage();
-                log.warning(extraMessage);
-                break;
             } catch (IOException e) {
                 // this is normal... waiting for container to start and provide services
             }
@@ -184,7 +189,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         } catch (Exception e) {
             log.warning("Failed to stop container: " + e.getMessage());
         }
-        throw new IOException("Container did not respond with /info in time; stopped. " + extraMessage);
+        throw new IOException("Container did not respond to API calls in time; stopped.");
     }
 
     @Override
@@ -390,6 +395,8 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     private ApiProxy getClient(String containerId) {
         var ip = containerClient.getIP(containerId);
+
+        System.out.println(String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT));
         return new ApiProxy(String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT));
     }
 

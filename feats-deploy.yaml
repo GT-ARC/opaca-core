@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: feats-platform-deployment
+  namespace: feats
+  labels:
+    app: feats-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: feats-platform
+  template:
+    metadata:
+      labels:
+        app: feats-platform
+    spec:
+      serviceAccountName: feats-platform-sa
+      imagePullSecrets:
+        - name: my-registry-key
+      containers:
+        - name: feats-platform
+          image: <registry:port>/feats-platform
+          ports:
+            - containerPort: 8000
+          imagePullPolicy: Always
+          env:
+            - name: REGISTRY_NAMES
+              value: "<registry_name:port>"
+            - name: REGISTRY_LOGINS
+              value: "<username>"
+            - name: REGISTRY_PASSWORDS
+              value: "<password>"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: feats-platform-service
+  namespace: feats
+spec:
+  selector:
+    app: feats-platform
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP

@@ -20,6 +20,11 @@ public class PlatformConfig {
     @Value("${public_url}")
     public String publicUrl;
 
+    @Value("${namespace}")
+    public String namespace;
+
+    @Value("${environment}")
+    public String environment;
 
     @Value("${container_timeout_sec}")
     public Integer containerTimeoutSec;
@@ -52,12 +57,27 @@ public class PlatformConfig {
         if (publicUrl != null) {
             return publicUrl;
         }
-        try (DatagramSocket socket = new DatagramSocket()) {
-            socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
-            String host = socket.getLocalAddress().getHostAddress();
-            return "http://" + host + ":" + serverPort;
+
+        String host = null;
+
+        try {
+            if (environment.equals("docker")) {
+                try (DatagramSocket socket = new DatagramSocket()) {
+                    socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
+                    host = socket.getLocalAddress().getHostAddress();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            } else if (environment.equals("kubernetes")) {
+                host = "feats-platform-service.feats.svc.cluster.local";
+            } else {
+                throw new RuntimeException("Error determining base URL: Unsupported environment");
+            }
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Error determining base URL", e);
         }
+
+        return "http://" + host + ":" + serverPort;
     }
+
 }

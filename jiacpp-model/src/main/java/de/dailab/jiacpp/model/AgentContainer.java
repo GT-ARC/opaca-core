@@ -1,11 +1,10 @@
 package de.dailab.jiacpp.model;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -25,8 +24,7 @@ public class AgentContainer {
     List<AgentDescription> agents;
 
     /** when the container was started */
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "Z")
-    ZonedDateTime runningSince;
+    LocalDateTime runningSince;
 
     /** connectivity information; NOTE: this is not set by the AgentContainer itself, but by the RuntimePlatform! */
     Connectivity connectivity;
