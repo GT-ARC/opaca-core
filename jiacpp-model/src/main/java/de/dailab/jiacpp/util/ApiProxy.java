@@ -32,6 +32,13 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         return client.get("/info", RuntimePlatform.class);
     }
 
+    @SuppressWarnings({"unchecked"})
+    @Override
+    public List<Event> getHistory() throws IOException {
+        System.out.println("GET HISTORY");
+        return client.get("/history", List.class);
+    }
+
     @Override
     public AgentContainer getContainerInfo() throws IOException {
         System.out.println("GET INFO");

@@ -1,6 +1,7 @@
 package de.dailab.jiacpp.plattform;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
@@ -8,6 +9,7 @@ import de.dailab.jiacpp.plattform.containerclient.ContainerClient;
 import de.dailab.jiacpp.plattform.containerclient.DockerClient;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
+import de.dailab.jiacpp.util.EventHistory;
 
 import java.io.IOException;
 import java.util.*;
@@ -53,6 +55,11 @@ public class PlatformImpl implements RuntimePlatformApi {
                 List.of(), // TODO "provides" pf platform? read from config? issue #42
                 List.copyOf(connectedPlatforms.keySet())
         );
+    }
+
+    @Override
+    public List<Event> getHistory() {
+        return EventHistory.getInstance().getEvents();
     }
 
     /*
@@ -138,12 +145,13 @@ public class PlatformImpl implements RuntimePlatformApi {
     public String addContainer(AgentContainerImage image) throws IOException {
         String agentContainerId = UUID.randomUUID().toString();
 
-        // start container... this may raise an Exception, or returns the connectivty info
+        // start container... this may raise an Exception, or returns the connectivity info
         var connectivity = containerClient.startContainer(agentContainerId, image);
 
         // wait until container is up and running...
         var start = System.currentTimeMillis();
         var client = getClient(agentContainerId);
+        String extraMessage = "";
         while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000) {
             try {
                 var container = client.getContainerInfo();
@@ -156,6 +164,10 @@ public class PlatformImpl implements RuntimePlatformApi {
                 }
                 notifyConnectedPlatforms();
                 return agentContainerId;
+            } catch (MismatchedInputException e) {
+                extraMessage = "Container returned malformed /info: " + e.getMessage();
+                log.warning(extraMessage);
+                break;
             } catch (IOException e) {
                 // this is normal... waiting for container to start and provide services
             }
@@ -172,7 +184,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         } catch (Exception e) {
             log.warning("Failed to stop container: " + e.getMessage());
         }
-        throw new IOException("Container did not respond to API calls in time; stopped.");
+        throw new IOException("Container did not respond with /info in time; stopped. " + extraMessage);
     }
 
     @Override
@@ -246,7 +258,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public boolean notifyUpdateContainer(String containerId) {
-        containerId = normalizeUrl(containerId); // remove " - also usable here?
+        containerId = normalizeUrl(containerId); // remove '"' - also usable here?
         if (! runningContainers.containsKey(containerId)) {
             var msg = String.format("Container did not exist: %s", containerId);
             log.warning(msg);

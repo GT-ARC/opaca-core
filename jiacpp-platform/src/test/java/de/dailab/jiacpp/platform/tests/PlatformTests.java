@@ -41,7 +41,7 @@ public class PlatformTests {
     private final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
     private final String PLATFORM_B = "http://localhost:" + PLATFORM_B_PORT;
 
-    private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v4";
+    private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v5";
 
     private static String containerId = null;
     private static String platformABaseUrl = null;
@@ -176,6 +176,28 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
         Assert.assertEquals("testBroadcast", res.get("lastBroadcast"));
+    }
+
+    /**
+     * Test Event Logging by issuing some calls (successful and failing),
+     * then see if the generated events match those calls.
+     */
+    @SuppressWarnings({"unchecked"})
+    @Test
+    public void test5EventLogging() throws Exception {
+        var message = Map.of("payload", "whatever", "replyTo", "");
+        request(PLATFORM_A, "POST", "/send/sample1", message);
+        Thread.sleep(1000); // make sure calls finish in order
+        request(PLATFORM_A, "POST", "/invoke/UnknownAction", Map.of());
+        Thread.sleep(1000); // wait for above calls to finish
+
+        var con = request(PLATFORM_A, "GET", "/history", null);
+        List<Map<String, Object>> res = result(con, List.class);
+        Assert.assertTrue(res.size() >= 4);
+        Assert.assertEquals("API_CALL", res.get(res.size() - 4).get("eventType"));
+        Assert.assertEquals(res.get(res.size() - 4).get("id"), res.get(res.size() - 3).get("relatedId"));
+        Assert.assertEquals("invoke", res.get(res.size() - 2).get("methodName"));
+        Assert.assertEquals("API_ERROR", res.get(res.size() - 1).get("eventType"));
     }
 
     /**

@@ -13,7 +13,8 @@ import jakarta.servlet.http.HttpServletResponse
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
-import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicReference
 import java.util.stream.Collectors
@@ -116,7 +117,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     // information on current state of agent container
 
     /** when the Agent Container was initialized */
-    private var startedAt: LocalDateTime? = null
+    private var startedAt: ZonedDateTime? = null
 
     /** the ID of the Agent Container itself, received on initialization */
     private var containerId: String? = null
@@ -146,7 +147,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         log.info("Setting environment...")
         containerId = System.getenv(AgentContainerApi.ENV_CONTAINER_ID)
         runtimePlatformUrl = System.getenv(AgentContainerApi.ENV_PLATFORM_URL)
-        startedAt = LocalDateTime.now()
+        startedAt = ZonedDateTime.now(ZoneId.of("Z"))
     }
 
     /**
@@ -249,8 +250,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             registeredAgents.remove(it.agentId)
             notifyPlatform()
         }
-
-        // TODO allow agent to de-register from the container -> #41
 
     }
 

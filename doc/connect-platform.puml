@@ -10,11 +10,11 @@ title Protocol for Connecting two Runtime Platforms
 
 hnote across: "connect"
 
-U -> A: /connect "plattform-b"
-A -> A: add "plattform-b" to pending
-A -> B: /connect "plattform-a"
-B -> B: add "plattform-a" to pending
-B -> A: /connect "plattform-b"
+U -> A: /connect "platform-b"
+A -> A: add "platform-b" to pending
+A -> B: /connect "platform-a"
+B -> B: add "platform-a" to pending
+B -> A: /connect "platform-b"
 A --> B: already in pending -> true
 B -> A: /info
 A --> B: platform-info
@@ -27,11 +27,11 @@ A --> U: true
 
 hnote across: "disconnect"
 
-U -> A: /disconnect "plattform-b"
-A -> A: remove "plattform-b" from connected
-A -> B: /disconnect "plattform-a"
-B -> B: remove "plattform-a" from connected
-B -> A: /disconnect "plattform-a"
+U -> A: /disconnect "platform-b"
+A -> A: remove "platform-b" from connected
+A -> B: /disconnect "platform-a"
+B -> B: remove "platform-a" from connected
+B -> A: /disconnect "platform-a"
 A --> B: already removed -> false
 B --> A: true
 A --> U: true
