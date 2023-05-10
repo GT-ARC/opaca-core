@@ -61,9 +61,10 @@ public class DockerClient implements ContainerClient {
 
     @Override
     public void initialize(PlatformConfig config) {
+        this.config = config;
 
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
-                .withDockerHost(getDockerhost())
+                .withDockerHost(getDockerHost())
                 .build();
 
         DockerHttpClient dockerHttpClient = new ApacheDockerHttpClient.Builder()
@@ -74,7 +75,6 @@ public class DockerClient implements ContainerClient {
                 .responseTimeout(Duration.ofSeconds(45))
                 .build();
 
-        this.config = config;
         this.auth = loadDockerAuth();
         this.dockerClient = DockerClientImpl.getInstance(dockerConfig, dockerHttpClient);
         this.dockerContainers = new HashMap<>();
@@ -155,10 +155,11 @@ public class DockerClient implements ContainerClient {
         return conn.getPublicUrl() + ":" + conn.getApiPortMapping();
     }
 
-    private String getDockerhost() {
+    private String getDockerHost() {
+        var port = Strings.isNullOrEmpty(config.remoteDockerPort) ? "2375" : config.remoteDockerHost;
         return Strings.isNullOrEmpty(config.remoteDockerHost)
                 ? "unix:///var/run/docker.sock"
-                : String.format("tcp://%s:%s", config.remoteDockerHost, config.remoteDockerPort);
+                : String.format("tcp://%s:%s", config.remoteDockerHost, port);
     }
 
     private String getContainerBaseUrl() {
