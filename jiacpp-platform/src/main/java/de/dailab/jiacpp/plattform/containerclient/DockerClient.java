@@ -23,9 +23,7 @@ import lombok.extern.java.Log;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -122,12 +120,10 @@ public class DockerClient implements ContainerClient {
             return connectivity;
 
         } catch (NotFoundException e) {
-            // TODO this should never happen after pulling the image... can we just ignore this?
+            // might theoretically happen if image is deleted between pull and run...
             log.warning("Image not found: " + imageName);
             throw new NoSuchElementException("Image not found: " + imageName);
         }
-        // TODO handle error trying to connect to Docker (only relevant when Remote Docker is supported, issue #23)
-        //  would this error happen here, or when initializing the class, or both? what if connectivity is lost later?
     }
 
     @Override
@@ -146,7 +142,6 @@ public class DockerClient implements ContainerClient {
             throw new NoSuchElementException(msg);
         }
         // TODO possibly that the container refuses being stopped? call "kill" instead? how to test this?
-        // TODO handle error trying to connect to Docker (only relevant when Remote Docker is supported, issue #23)
     }
 
     @Override
