@@ -1,9 +1,9 @@
 package de.dailab.jiacpp.plattform;
 
-import com.github.dockerjava.api.model.AuthConfig;
 import com.google.common.base.Strings;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.ToString;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -11,8 +11,6 @@ import org.springframework.context.annotation.Configuration;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -23,23 +21,24 @@ import java.util.stream.IntStream;
  */
 @Log
 @Configuration
+@ToString(exclude = {"registryPasswords"})
 public class PlatformConfig {
 
     @Value("${server.port}")
-    public String serverPort;
+    public int serverPort;
 
     @Value("${public_url}")
     public String publicUrl;
 
 
     @Value("${container_timeout_sec}")
-    public Integer containerTimeoutSec;
+    public int containerTimeoutSec;
 
     @Value("${remote_docker_host}")
     public String remoteDockerHost;
 
     @Value("${remote_docker_port}")
-    public String remoteDockerPort;
+    public int remoteDockerPort;
 
     @Value("${registry_separator}")
     public String registrySeparator;
