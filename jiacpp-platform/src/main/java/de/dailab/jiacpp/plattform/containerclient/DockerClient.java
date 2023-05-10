@@ -151,10 +151,9 @@ public class DockerClient implements ContainerClient {
     }
 
     private String getDockerHost() {
-        var port = Strings.isNullOrEmpty(config.remoteDockerPort) ? "2375" : config.remoteDockerHost;
         return Strings.isNullOrEmpty(config.remoteDockerHost)
                 ? "unix:///var/run/docker.sock"
-                : String.format("tcp://%s:%s", config.remoteDockerHost, port);
+                : String.format("tcp://%s:%s", config.remoteDockerHost, config.remoteDockerPort);
     }
 
     private String getContainerBaseUrl() {

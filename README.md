@@ -27,6 +27,29 @@ and first tests in order to find out what of this makes sense etc.
 * use the `POST send` or `POST invoke` routes to send messages to the agent (with any payload; reply-to does not matter for now), or invoke the agent's dummy action (the action takes some time to run); check the logs of the agent container; you can also invoke the action and then immediately re-send the message to check that both work concurrently
 * shut down the platform with Ctrl+C; the agent container(s) should shut down as well
 
+### API Routes and Models
+
+We will _not_ reiterate the different API routes here, as that would just be bound to become outdated and 
+inconsistent with the actual API rather sooner than later. Instead, please refer to the (mostly up to date)
+[Wiki](https://gitlab.dai-labor.de/groups/jiacpp/-/wikis/API) or, even better, consult the different Interfaces
+and Model files in the `jiacpp-model` module.
+
+### Environment Variables
+
+The values in the `PlatformConfig` file are read from the `application.properties` file, which in turn are read from similarly named environment variables or from default values if those are not set.
+
+* `PORT` (default: 8000) The port where the Runtime Platform itself exposes its API and Swagger Web UI.
+* `PUBLIC_URL` (default: null) Public URL of the Runtime Platform; if not set, it will try to guess its own IP.
+* `CONTAINER_TIMEOUT_SEC` (default: 10) Timeout in seconds how long the RP will try to reach a newly started container's `/info` route before it assumes it did not start properly and stops it again.
+* `REMOTE_DOCKER_HOST` (default: null) Remote Docker host (just IP or alias, no protocol or port); if not set, RP will start containers on local Docker.
+* `REMOTE_DOCKER_PORT` (default: 2375) Port where remote Docker host exposes it's API; usually this is 2375. 
+* `REGISTRY_SEPARATOR` (default: ";") Separator for the below attributes for registry credentials.
+* `REGISTRY_NAMES` (default: empty) Known Docker registry names, segment before the first `/` as it appears in image names, without protocol.
+* `REGISTRY_LOGINS` (default: empty) Login names for each of the above registries (number has to match).
+* `REGISTRY_PASSWORDS` (default: empty) Passwords for each of the above registries (number has to match).
+
+You can set those properties in the run config in your IDE, via an `.env` file, using `export` on the shell or in a `docker-compose.yml` file. Note that if you have one of those properties in e.g. your `.env` file and it does not have a value, that may still overwrite the default and set the value to `null` or the empty string.
+
 
 ## Message Flows in Reference Implementation
 
