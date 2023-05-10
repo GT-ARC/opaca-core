@@ -207,30 +207,13 @@ public class DockerClient implements ContainerClient {
             return false;
         }
     }
-
-    /**
-     * Get Dict mapping Docker registries to auth credentials from settings.
-     * Adapted from EMPAIA Job Execution Service
-     */
+    
     private Map<String, AuthConfig> loadDockerAuth() {
-        if (config.registryNames.isEmpty()) {
-            return Map.of();
-        }
-        var sep = config.registrySeparator;
-        var registries = config.registryNames.split(sep);
-        var logins = config.registryLogins.split(sep);
-        var passwords = config.registryPasswords.split(sep);
-
-        if (registries.length != logins.length || registries.length != passwords.length) {
-            log.warning("Number of Registry Names does not match Login Usernames and Passwords");
-            return Map.of();
-        } else {
-            return IntStream.range(0, registries.length)
-                    .mapToObj(i -> new AuthConfig()
-                            .withRegistryAddress(registries[i])
-                            .withUsername(logins[i])
-                            .withPassword(passwords[i]))
-                    .collect(Collectors.toMap(AuthConfig::getRegistryAddress, Function.identity()));
-        }
+        return config.loadDockerAuth().stream().collect(Collectors.toMap(
+                PlatformConfig.ImageRegistryAuth::getRegistry,
+                x -> new AuthConfig()
+                        .withRegistryAddress(x.getRegistry())
+                        .withUsername(x.getLogin())
+                        .withPassword(x.getLogin())));
     }
 }
