@@ -1,6 +1,7 @@
 package de.dailab.jiacpp.plattform;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
@@ -151,6 +152,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         // wait until container is up and running...
         var start = System.currentTimeMillis();
         var client = getClient(agentContainerId);
+        String extraMessage = "";
         while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000) {
             try {
                 var container = client.getContainerInfo();
@@ -163,6 +165,10 @@ public class PlatformImpl implements RuntimePlatformApi {
                 }
                 notifyConnectedPlatforms();
                 return agentContainerId;
+            } catch (MismatchedInputException e) {
+                extraMessage = "Container returned malformed /info: " + e.getMessage();
+                log.warning(extraMessage);
+                break;
             } catch (IOException e) {
                 // this is normal... waiting for container to start and provide services
             }
@@ -179,7 +185,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         } catch (Exception e) {
             log.warning("Failed to stop container: " + e.getMessage());
         }
-        throw new IOException("Container did not respond to API calls in time; stopped.");
+        throw new IOException("Container did not respond with /info in time; stopped. " + extraMessage);
     }
 
     @Override
