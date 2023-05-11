@@ -161,7 +161,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         var start = System.currentTimeMillis();
         var client = getClient(agentContainerId);
         String extraMessage = "";
-
         while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000) {
             try {
                 var container = client.getContainerInfo();

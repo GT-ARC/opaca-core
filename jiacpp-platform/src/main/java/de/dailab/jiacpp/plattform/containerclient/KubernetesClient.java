@@ -78,11 +78,7 @@ import java.util.Collections;
 import com.google.gson.reflect.TypeToken;
 
 /**
- * Container Client for running Agent Containers in Docker, possibly on a remote host.
- *
- * Some documentation:
- * - https://github.com/docker-java/docker-java/blob/master/docs/getting_started.md
- * - https://www.baeldung.com/docker-java-api
+ * Container Client for running Agent Containers in Kubernetes.
  */
 @Log
 public class KubernetesClient implements ContainerClient {
@@ -90,13 +86,13 @@ public class KubernetesClient implements ContainerClient {
     private PlatformConfig config;
     private CoreV1Api coreApi;
 
-    /** additional Docker-specific information on agent containers */
+    /** additional Kubernetes-specific information on agent containers */
     private Map<String, PodInfo> pods;
 
     /** Available Docker Auth */
     private Map<String, String> auth;
 
-    /** Set of already used ports on target Docker host */
+    /** Set of already used ports on target Kubernetes host */
     private Set<Integer> usedPorts;
 
     @Data
@@ -128,7 +124,7 @@ public class KubernetesClient implements ContainerClient {
             Configuration.setDefaultApiClient(client);
             this.coreApi = new CoreV1Api();
         } catch (IOException e) {
-            System.err.println("IOException: " + e.getMessage());
+            log.severe("IOException: " + e.getMessage());
         }
 
         this.config = config;
@@ -173,7 +169,7 @@ public class KubernetesClient implements ContainerClient {
             createdPod = coreApi.createNamespacedPod(config.namespace, pod, null, null, null);
             System.out.println("Pod created: " + createdPod.getMetadata().getName());
         } catch (ApiException e) {
-            System.err.println("Error creating pod: " + e.getMessage());
+            log.severe("Error creating pod: " + e.getMessage());
         }
 
 
@@ -186,9 +182,9 @@ public class KubernetesClient implements ContainerClient {
             try {
                 coreApi.createNamespacedService(config.namespace, service, null, null, null);
             } catch (ApiException e) {
-                System.err.println("Error creating service for port " + containerPort + ": " + e.getMessage());
+                log.severe("Error creating service for port " + containerPort + ": " + e.getMessage());
                 e.printStackTrace();
-                System.err.println("Response body: " + e.getResponseBody());
+                log.severe("Response body: " + e.getResponseBody());
             }
         }
 
@@ -212,14 +208,14 @@ public class KubernetesClient implements ContainerClient {
                     item.object.getStatus().getPhase().equalsIgnoreCase("Running") &&
                     item.object.getStatus().getPodIP() != null) {
                     podIp = item.object.getStatus().getPodIP();
-                    System.out.println("Pod IP: " + podIp);
+                    log.info("Pod IP: " + podIp);
                     break;
                 }
             }
             watch.close();
 
         } catch (ApiException e) {
-            System.err.println("ApiException: " + e.getMessage());
+            log.severe("ApiException: " + e.getMessage());
         }
 
         String podUid = createdPod.getMetadata().getUid();
@@ -246,14 +242,14 @@ public class KubernetesClient implements ContainerClient {
                 coreApi.deleteNamespacedPod(containerId, config.namespace, null, null, null, null, null, null);
                 System.out.println("Pod deleted: " + containerId);
             } catch (ApiException e) {
-                System.err.println("Error deleting pod: " + e.getMessage());
+                log.severe("Error deleting pod: " + e.getMessage());
             }
 
             // free up ports used by this container
             // TODO do this first, or in finally?
             usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
             usedPorts.removeAll(containerInfo.connectivity.getExtraPortMappings().keySet());
-        } catch (NotModifiedException e) {
+        } catch (NotModifiedException e) { // TODO docker exceptoin, can't occur here
             var msg = "Could not stop Container " + containerId + "; already stopped?";
             log.warning(msg);
             throw new NoSuchElementException(msg);
@@ -309,7 +305,7 @@ public class KubernetesClient implements ContainerClient {
         var passwords = config.registryPasswords.split(sep);
 
         if (registries.length != logins.length || registries.length != passwords.length) {
-            System.out.println("Number of Registry Names does not match Login Usernames and Passwords");
+            log.warning("Number of Registry Names does not match Login Usernames and Passwords");
             return Map.of();
         } else {
             return IntStream.range(0, registries.length)
@@ -319,26 +315,26 @@ public class KubernetesClient implements ContainerClient {
     }
 
 
-private Map.Entry<String, String> createKubernetesSecret(String registryAddress, String username, String password) {
-    String secretName = registryAddress.replaceAll("[^a-zA-Z0-9-]", "-");
+    private Map.Entry<String, String> createKubernetesSecret(String registryAddress, String username, String password) {
+        String secretName = registryAddress.replaceAll("[^a-zA-Z0-9-]", "-");
 
-    String auth = Base64.getEncoder().encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
+        String auth = Base64.getEncoder().encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
 
-    Map<String, byte[]> dockerConfigJson = new HashMap<>();
-    dockerConfigJson.put(".dockerconfigjson", ("{\"auths\": {\"" + registryAddress + "\": {\"auth\": \"" + auth + "\"}}}").getBytes(StandardCharsets.UTF_8));
+        Map<String, byte[]> dockerConfigJson = new HashMap<>();
+        dockerConfigJson.put(".dockerconfigjson", ("{\"auths\": {\"" + registryAddress + "\": {\"auth\": \"" + auth + "\"}}}").getBytes(StandardCharsets.UTF_8));
 
-    V1Secret secret = new V1Secret()
-            .metadata(new V1ObjectMeta().name(secretName).namespace(config.namespace))
-            .type("kubernetes.io/dockerconfigjson")
-            .data(dockerConfigJson);
+        V1Secret secret = new V1Secret()
+                .metadata(new V1ObjectMeta().name(secretName).namespace(config.kubernetesNamespace))
+                .type("kubernetes.io/dockerconfigjson")
+                .data(dockerConfigJson);
 
-    try {
-        this.coreApi.createNamespacedSecret(config.namespace, secret, null, null, null);
-    } catch (ApiException e) {
-        System.err.println("Exception when creating secret: " + e.getResponseBody());
+        try {
+            this.coreApi.createNamespacedSecret(config.kubernetesNamespace, secret, null, null, null);
+        } catch (ApiException e) {
+            log.severe("Exception when creating secret: " + e.getResponseBody());
+        }
+
+        return new AbstractMap.SimpleEntry<>(registryAddress, secretName);
     }
-
-    return new AbstractMap.SimpleEntry<>(registryAddress, secretName);
-}
 
 }
