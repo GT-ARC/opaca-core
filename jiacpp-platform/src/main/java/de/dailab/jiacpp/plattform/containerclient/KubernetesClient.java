@@ -96,7 +96,6 @@ public class KubernetesClient implements ContainerClient {
         this.auth = loadKubernetesSecrets();
         this.pods = new HashMap<>();
         this.usedPorts = new HashSet<>();
-
     }
 
     @Override
@@ -108,8 +107,7 @@ public class KubernetesClient implements ContainerClient {
         var extraPorts = image.getExtraPorts();
 
         Map<Integer, Integer> portMap = extraPorts.keySet().stream()
-                        .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
-
+                .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
 
         V1Pod pod = new V1Pod()
             .metadata(new V1ObjectMeta().name(containerId).labels(Collections.singletonMap("app", containerId)))
@@ -133,68 +131,28 @@ public class KubernetesClient implements ContainerClient {
         try {
             createdPod = coreApi.createNamespacedPod(config.kubernetesNamespace, pod, null, null, null);
             log.info("Pod created: " + createdPod.getMetadata().getName());
+
+            createServicesForPorts(containerId, image, portMap);
+
+            String podIp = waitForPodIP(createdPod.getMetadata().getName());
+            log.info("Pod IP: " + podIp);
+
+            String podUid = createdPod.getMetadata().getUid();
+
+            var connectivity = new AgentContainer.Connectivity(
+                    config.getOwnBaseUrl().replaceAll(":\\d+$", ""),  // TODO is this correct?
+                    portMap.get(image.getApiPort()),
+                    extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
+            );
+
+            pods.put(containerId, new PodInfo(podUid, podIp, connectivity));
+
+            return connectivity;
         } catch (ApiException e) {
             log.severe("Error creating pod: " + e.getMessage());
+            // TODO differentiate between image-not-found and e.g. connection problems?
+            throw new IOException("Failed to create Pod: " + e.getMessage());
         }
-
-
-        for (Map.Entry<Integer, Integer> entry : portMap.entrySet()) {
-            int containerPort = entry.getKey();
-            int hostPort = entry.getValue();
-            String protocol = image.getExtraPorts().get(containerPort).getProtocol();
-            V1Service service = createNodePortService(containerId, hostPort, containerPort, protocol);
-
-            try {
-                coreApi.createNamespacedService(config.kubernetesNamespace, service, null, null, null);
-            } catch (ApiException e) {
-                log.severe("Error creating service for port " + containerPort + ": " + e.getMessage());
-                e.printStackTrace();
-                log.severe("Response body: " + e.getResponseBody());
-            }
-        }
-
-
-
-        String podIp = null;
-        
-        try {
-            // Wait for the pod to be in the Running state and have an IP address assigned
-            String podName = createdPod.getMetadata().getName();
-            ApiClient apiClient = coreApi.getApiClient();
-            Watch<V1Pod> watch = Watch.createWatch(
-                apiClient,
-                coreApi.listNamespacedPodCall(config.kubernetesNamespace, null, null, null, null, null, null, null, null, null, true, null),
-                new TypeToken<Watch.Response<V1Pod>>(){}.getType());
-
-
-            
-            for (Watch.Response<V1Pod> item : watch) {
-                if (item.object.getMetadata().getName().equals(podName) &&
-                    item.object.getStatus().getPhase().equalsIgnoreCase("Running") &&
-                    item.object.getStatus().getPodIP() != null) {
-                    podIp = item.object.getStatus().getPodIP();
-                    log.info("Pod IP: " + podIp);
-                    break;
-                }
-            }
-            watch.close();
-
-        } catch (ApiException e) {
-            log.severe("ApiException: " + e.getMessage());
-        }
-
-        String podUid = createdPod.getMetadata().getUid();
-
-        var connectivity = new AgentContainer.Connectivity(
-                config.getOwnBaseUrl().replaceAll(":\\d+$", ""),  // TODO change to remote docker host once implemented (#23)
-                portMap.get(image.getApiPort()),
-                extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
-        );
-
-        pods.put(containerId, new PodInfo(podUid, podIp, connectivity));
-
-        return connectivity;
-
     }
 
 
@@ -226,6 +184,46 @@ public class KubernetesClient implements ContainerClient {
         return pods.get(podId).getInternalIp();
     }
 
+
+    /**
+     * Wait for the pod to be in the Running state and have an IP address assigned
+     */
+    private String waitForPodIP(String podName) throws ApiException, IOException {
+        ApiClient apiClient = coreApi.getApiClient();
+        try (Watch<V1Pod> watch = Watch.createWatch(
+                    apiClient,
+                    coreApi.listNamespacedPodCall(config.kubernetesNamespace, null, null, null, null, null, null, null, null, null, true, null),
+                    new TypeToken<Watch.Response<V1Pod>>(){}.getType())) {
+
+            for (Watch.Response<V1Pod> item : watch) {
+                if (item.object.getMetadata().getName().equals(podName) &&
+                        item.object.getStatus().getPhase().equalsIgnoreCase("Running") &&
+                        item.object.getStatus().getPodIP() != null) {
+                    return item.object.getStatus().getPodIP();
+                }
+            }
+        }
+        throw new IOException("Container did not start");
+    }
+
+    private void createServicesForPorts(String containerId, AgentContainerImage image, Map<Integer, Integer> portMap) {
+        for (Map.Entry<Integer, Integer> entry : portMap.entrySet()) {
+            int containerPort = entry.getKey();
+            int hostPort = entry.getValue();
+            String protocol = image.getExtraPorts().get(containerPort).getProtocol();
+            V1Service service = createNodePortService(containerId, hostPort, containerPort, protocol);
+
+            try {
+                // todo is this a non-critical error or should this abort the Container creation?
+                coreApi.createNamespacedService(config.kubernetesNamespace, service, null, null, null);
+            } catch (ApiException e) {
+                log.severe("Error creating service for port " + containerPort + ": " + e.getMessage());
+                e.printStackTrace();
+                log.severe("Response body: " + e.getResponseBody());
+            }
+        }
+    }
+
     private V1Service createNodePortService(String containerId, int port, int targetPort, String protocol) {
         String serviceName = "svc-" + containerId + "-" + port;
         return new V1Service()
@@ -242,10 +240,6 @@ public class KubernetesClient implements ContainerClient {
                 ))
             );
     }
-
-
-    
-
 
 
     /**
