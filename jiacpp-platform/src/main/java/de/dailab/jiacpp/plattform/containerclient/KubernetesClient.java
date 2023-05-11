@@ -50,6 +50,7 @@ public class KubernetesClient implements ContainerClient {
 
     private PlatformConfig config;
     private CoreV1Api coreApi;
+    private String namespace;
 
     /** additional Kubernetes-specific information on agent containers */
     private Map<String, PodInfo> pods;
@@ -90,6 +91,7 @@ public class KubernetesClient implements ContainerClient {
             log.severe("IOException: " + e.getMessage());
         }
 
+        this.namespace = config.kubernetesNamespace;
         this.config = config;
         this.auth = loadKubernetesSecrets();
         this.pods = new HashMap<>();
@@ -127,7 +129,7 @@ public class KubernetesClient implements ContainerClient {
 
         V1Pod createdPod = null;
         try {
-            createdPod = coreApi.createNamespacedPod(config.kubernetesNamespace, pod, null, null, null);
+            createdPod = coreApi.createNamespacedPod(namespace, pod, null, null, null);
             log.info("Pod created: " + createdPod.getMetadata().getName());
 
             createServicesForPorts(containerId, image, portMap);
@@ -159,7 +161,7 @@ public class KubernetesClient implements ContainerClient {
         try {
             // remove container info, stop container
             var containerInfo = pods.remove(containerId);
-            coreApi.deleteNamespacedPod(containerId, config.kubernetesNamespace, null, null, null, null, null, null);
+            coreApi.deleteNamespacedPod(containerId, namespace, null, null, null, null, null, null);
             // free up ports used by this container
             // TODO do this first, or in finally?
             usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
@@ -184,7 +186,7 @@ public class KubernetesClient implements ContainerClient {
         ApiClient apiClient = coreApi.getApiClient();
         try (Watch<V1Pod> watch = Watch.createWatch(
                     apiClient,
-                    coreApi.listNamespacedPodCall(config.kubernetesNamespace, null, null, null, null, null, null, null, null, null, true, null),
+                    coreApi.listNamespacedPodCall(namespace, null, null, null, null, null, null, null, null, null, true, null),
                     new TypeToken<Watch.Response<V1Pod>>(){}.getType())) {
 
             for (Watch.Response<V1Pod> item : watch) {
@@ -207,7 +209,7 @@ public class KubernetesClient implements ContainerClient {
 
             try {
                 // todo is this a non-critical error or should this abort the Container creation?
-                coreApi.createNamespacedService(config.kubernetesNamespace, service, null, null, null);
+                coreApi.createNamespacedService(namespace, service, null, null, null);
             } catch (ApiException e) {
                 log.severe("Error creating service for port " + containerPort + ": " + e.getMessage());
                 e.printStackTrace();
@@ -271,16 +273,15 @@ public class KubernetesClient implements ContainerClient {
 
         String auth = Base64.getEncoder().encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
 
-        Map<String, byte[]> dockerConfigJson = new HashMap<>();
-        dockerConfigJson.put(".dockerconfigjson", ("{\"auths\": {\"" + registryAddress + "\": {\"auth\": \"" + auth + "\"}}}").getBytes(StandardCharsets.UTF_8));
+        Map<String, byte[]> dockerConfigJson = Map.of(".dockerconfigjson", ("{\"auths\": {\"" + registryAddress + "\": {\"auth\": \"" + auth + "\"}}}").getBytes(StandardCharsets.UTF_8));
 
         V1Secret secret = new V1Secret()
-                .metadata(new V1ObjectMeta().name(secretName).namespace(config.kubernetesNamespace))
+                .metadata(new V1ObjectMeta().name(secretName).namespace(namespace))
                 .type("kubernetes.io/dockerconfigjson")
                 .data(dockerConfigJson);
 
         try {
-            this.coreApi.createNamespacedSecret(config.kubernetesNamespace, secret, null, null, null);
+            this.coreApi.createNamespacedSecret(namespace, secret, null, null, null);
         } catch (ApiException e) {
             log.severe("Exception when creating secret: " + e.getResponseBody());
         }

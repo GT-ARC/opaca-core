@@ -78,25 +78,19 @@ public class PlatformConfig {
             return publicUrl;
         }
 
-        String host = null;
-
-        try {
-            if (platformEnvironment == PlatformEnvironment.NATIVE) {
-                try (DatagramSocket socket = new DatagramSocket()) {
-                    socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
-                    host = socket.getLocalAddress().getHostAddress();
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            } else if (platformEnvironment == PlatformEnvironment.KUBERNETES) {
-                host = "agents-platform-service." + kubernetesNamespace + ".svc.cluster.local";
-            } else {
-                throw new RuntimeException("Error determining base URL: Unsupported environment");
+        String host;
+        if (platformEnvironment == PlatformEnvironment.NATIVE) {
+            try (DatagramSocket socket = new DatagramSocket()) {
+                socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
+                host = socket.getLocalAddress().getHostAddress();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
-        } catch (Exception e) {
-            throw new RuntimeException("Error determining base URL", e);
+        } else if (platformEnvironment == PlatformEnvironment.KUBERNETES) {
+            host = "agents-platform-service." + kubernetesNamespace + ".svc.cluster.local";
+        } else {
+            throw new RuntimeException("Error determining base URL: Unsupported environment");
         }
-
         return "http://" + host + ":" + serverPort;
     }
 
