@@ -112,7 +112,19 @@ public class KubernetesClient implements ContainerClient {
         // Initialize the Kubernetes API client
 
         try {
-            ApiClient client = Config.defaultClient();
+            ApiClient client;
+            if (config.platform_environment.equals("kubernetes")) {
+                // If running inside a pod, it will use the default service account
+                client = Config.defaultClient();
+            } else if (config.platform_environment.equals("native")) {
+                // If running locally, it will use the default kubeconfig file location
+                String kubeConfigPath = System.getProperty("user.home") + "/.kube/config";
+                client = Config.fromConfig(kubeConfigPath);
+            } else {
+                throw new RuntimeException("Invalid platform environment: " + config.platform_environment);
+            }
+
+
             Configuration.setDefaultApiClient(client);
             this.coreApi = new CoreV1Api();
         } catch (IOException e) {
@@ -158,7 +170,7 @@ public class KubernetesClient implements ContainerClient {
 
         V1Pod createdPod = null;
         try {
-            createdPod = coreApi.createNamespacedPod("feats", pod, null, null, null);
+            createdPod = coreApi.createNamespacedPod(config.namespace, pod, null, null, null);
             System.out.println("Pod created: " + createdPod.getMetadata().getName());
         } catch (ApiException e) {
             System.err.println("Error creating pod: " + e.getMessage());
@@ -172,7 +184,7 @@ public class KubernetesClient implements ContainerClient {
             V1Service service = createNodePortService(containerId, hostPort, containerPort, protocol);
 
             try {
-                coreApi.createNamespacedService("feats", service, null, null, null);
+                coreApi.createNamespacedService(config.namespace, service, null, null, null);
             } catch (ApiException e) {
                 System.err.println("Error creating service for port " + containerPort + ": " + e.getMessage());
                 e.printStackTrace();
@@ -190,7 +202,7 @@ public class KubernetesClient implements ContainerClient {
             ApiClient apiClient = coreApi.getApiClient();
             Watch<V1Pod> watch = Watch.createWatch(
                 apiClient,
-                coreApi.listNamespacedPodCall("feats", null, null, null, null, null, null, null, null, null, true, null),
+                coreApi.listNamespacedPodCall(config.namespace, null, null, null, null, null, null, null, null, null, true, null),
                 new TypeToken<Watch.Response<V1Pod>>(){}.getType());
 
 
@@ -231,7 +243,7 @@ public class KubernetesClient implements ContainerClient {
             // remove container info, stop container
             var containerInfo = pods.remove(containerId);
             try {
-                coreApi.deleteNamespacedPod(containerId, "feats", null, null, null, null, null, null);
+                coreApi.deleteNamespacedPod(containerId, config.namespace, null, null, null, null, null, null);
                 System.out.println("Pod deleted: " + containerId);
             } catch (ApiException e) {
                 System.err.println("Error deleting pod: " + e.getMessage());

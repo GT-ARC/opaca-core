@@ -1,45 +1,45 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: feats-platform-deployment
-  namespace: feats
+  name: agents-platform-deployment
+  namespace: agents
   labels:
-    app: feats-platform
+    app: agents-platform
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: feats-platform
+      app: agents-platform
   template:
     metadata:
       labels:
-        app: feats-platform
+        app: agents-platform
     spec:
-      serviceAccountName: feats-platform-sa
+      serviceAccountName: agents-platform-sa
       imagePullSecrets:
         - name: my-registry-key
       containers:
-        - name: feats-platform
-          image: <registry:port>/feats-platform
+        - name: agents-platform
+          image: <registry:port>/agents-platform
           ports:
             - containerPort: 8000
           imagePullPolicy: Always
           env:
             - name: REGISTRY_NAMES
-              value: "<registry_name:port>"
+              value: <registry:port>
             - name: REGISTRY_LOGINS
-              value: "<username>"
+              value: <login_username>
             - name: REGISTRY_PASSWORDS
-              value: "<password>"
+              value: <login_password>
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: feats-platform-service
-  namespace: feats
+  name: agents-platform-service
+  namespace: agents
 spec:
   selector:
-    app: feats-platform
+    app: agents-platform
   ports:
     - protocol: TCP
       port: 8000
