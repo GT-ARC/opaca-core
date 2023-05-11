@@ -118,7 +118,7 @@ public class KubernetesClient implements ContainerClient {
                 client = Config.defaultClient();
             } else if (config.platform_environment.equals("native")) {
                 // If running locally, it will use the default kubeconfig file location
-                String kubeConfigPath = System.getProperty("user.home") + "/.kube/config";
+                String kubeConfigPath = System.getProperty("user.home") + config.kubeconfig;
                 client = Config.fromConfig(kubeConfigPath);
             } else {
                 throw new RuntimeException("Invalid platform environment: " + config.platform_environment);

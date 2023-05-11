@@ -44,6 +44,9 @@ public class PlatformConfig {
     @Value("${registry_passwords}")
     public String registryPasswords;
 
+    @Value("${kubeconfig}")
+    public String kubeconfig;
+
 
     // TODO
     //  (remote) docker host
