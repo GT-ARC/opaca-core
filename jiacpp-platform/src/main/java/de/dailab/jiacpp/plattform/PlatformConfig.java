@@ -32,6 +32,7 @@ public class PlatformConfig {
     @Value("${container_timeout_sec}")
     public Integer containerTimeoutSec;
 
+
     @Value("${registry_separator}")
     public String registrySeparator;
 
