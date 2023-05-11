@@ -74,7 +74,7 @@ public class PlatformConfig {
                     throw new RuntimeException(e);
                 }
             } else if (platform_environment.equals("kubernetes")) {
-                host = namespace + "-platform-service." + namespace + ".svc.cluster.local";
+                host = "agents-platform-service." + namespace + ".svc.cluster.local";
             } else {
                 throw new RuntimeException("Error determining base URL: Unsupported environment");
             }
