@@ -46,7 +46,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         this.config = config;
         this.containerClient = new DockerClient();
         this.containerClient.initialize(config);
-        this.startDefaultImages();
 
         // TODO add list of known used ports to config (e.g. the port of the RP itself, or others)
     }
@@ -395,43 +394,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     private String normalizeUrl(String url) {
         // string payload may or may not be enclosed in quotes -> normalize
         return url.trim().replaceAll("^\"|\"$", "");
-    }
-
-    /*
-     * reads image config files from ./default-images
-     */
-    private Set<String> readDefaultImages() {
-        var filter = new FilenameFilter() {
-            public boolean accept(File dir, String name) {
-                return name.toLowerCase().endsWith(".json");
-            }
-        };
-        try {
-            var directory = new File("./default-images");
-            var files = directory.listFiles(filter);
-            if (files == null) return null;
-            return Stream.of(files)
-                    .filter(file -> !file.isDirectory())
-                    .map(File::getAbsolutePath)
-                    .collect(Collectors.toSet());
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private void startDefaultImages() {
-        var imageFiles = readDefaultImages();
-        if (imageFiles == null) return;
-
-        for (String file: imageFiles) {
-            var mapper = new ObjectMapper();
-            try {
-                var image = mapper.readValue(Paths.get(file).toFile(), AgentContainerImage.class);
-                this.addContainer(image);
-            } catch (IOException e) {
-                log.warning(String.format("Failed to load image specified in file %s", file));
-            }
-        }
     }
 
 }

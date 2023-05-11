@@ -2,17 +2,21 @@ package de.dailab.jiacpp.platform.tests;
 
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.plattform.Application;
+import de.dailab.jiacpp.plattform.PlatformRestController;
 import de.dailab.jiacpp.util.RestHelper;
 
+import org.apache.catalina.core.ApplicationContext;
 import org.junit.*;
 import org.junit.runners.MethodSorters;
 
 import org.springframework.boot.SpringApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,8 +48,11 @@ public class PlatformTests {
 
     private static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v4";
 
+    private static ConfigurableApplicationContext platformA = null;
+
     private static String containerId = null;
     private static String platformABaseUrl = null;
+
 
     /**
      * Before executing any of the tests, 2 test servers are started
@@ -53,8 +60,31 @@ public class PlatformTests {
      */
     @BeforeClass
     public static void setupPlatforms() {
+        platformA = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT);
+        SpringApplication.run(Application.class, "--server.port=" + PLATFORM_B_PORT);
+    }
 
-        // creating test image file
+    @AfterClass
+    public static void cleanup() {
+        // delete sample default image file after tests
+        var imageFile = new File("./default-images/sample.json");
+        if (imageFile.exists()) {
+            imageFile.delete();
+        }
+    }
+
+    /*
+     * TEST THAT STUFF WORKS
+     */
+
+    /**
+     * check if default image is loaded on platform A, then undeploy it to not mess up the following tests
+     */
+    @Test
+    public void test1DefaultImage() throws Exception {
+        var restController = ((PlatformRestController) platformA.getBean("platformRestController"));
+
+        // create image file
         var imageFile = new File("./default-images/sample.json");
         if (!imageFile.getParentFile().exists()) imageFile.mkdirs();
         try (var writer = new FileWriter(imageFile)) {
@@ -62,25 +92,13 @@ public class PlatformTests {
             writer.write("{ \"imageName\": \"" + TEST_IMAGE + "\" }");
         } catch (IOException e) {
             System.out.println("Failed to create test image json.");
+            Assert.fail();
         }
 
-        // start platform A
-        SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT);
-
-        // delete sample image json to not have it loaded on platform B
-        if (imageFile.exists()) imageFile.delete();
-
-        // start platform B
-        SpringApplication.run(Application.class, "--server.port=" + PLATFORM_B_PORT);
+        var defaultImages = restController.readDefaultImages();
+        Assert.assertEquals(defaultImages.size(), 1);
+        Assert.assertEquals(defaultImages.toArray()[0], imageFile.getAbsolutePath());
     }
-
-    @AfterClass
-    public static void cleanupPlatforms() {
-    }
-
-    /*
-     * TEST THAT STUFF WORKS
-     */
 
     /**
      * call info, make sure platform is up
@@ -92,27 +110,6 @@ public class PlatformTests {
         var info = result(con, RuntimePlatform.class);
         Assert.assertNotNull(info);
         platformABaseUrl = info.getBaseUrl();
-    }
-
-    /**
-     * check if default image is loaded on platform A, then undeploy it to not mess up the following tests
-     */
-    @Test
-    public void test1DefaultImage() throws Exception {
-        var con = request(PLATFORM_A, "GET", "/containers", null);
-        var lst = result(con, List.class);
-        Assert.assertEquals(1, lst.size());
-
-        var containerId = ((LinkedHashMap<?, ?>) lst.get(0)).get("containerId");
-
-        con = request(PLATFORM_A, "DELETE", "/containers/" + containerId, null);
-        Assert.assertEquals(200, con.getResponseCode());
-        var res = result(con, Boolean.class);
-        Assert.assertTrue(res);
-
-        con = request(PLATFORM_A, "GET", "/containers", null);
-        lst = result(con, List.class);
-        Assert.assertEquals(0, lst.size());
     }
 
     /**
