@@ -109,15 +109,15 @@ public class KubernetesClient implements ContainerClient {
 
         try {
             ApiClient client;
-            if (config.platform_environment.equals("kubernetes")) {
+            if (config.platformEnvironment.equals("kubernetes")) {
                 // If running inside a pod, it will use the default service account
                 client = Config.defaultClient();
-            } else if (config.platform_environment.equals("native")) {
+            } else if (config.platformEnvironment.equals("native")) {
                 // If running locally, it will use the default kubeconfig file location
-                String kubeConfigPath = System.getProperty("user.home") + config.kubeconfig;
+                String kubeConfigPath = System.getProperty("user.home") + config.kubernetesConfig;
                 client = Config.fromConfig(kubeConfigPath);
             } else {
-                throw new RuntimeException("Invalid platform environment: " + config.platform_environment);
+                throw new RuntimeException("Invalid platform environment: " + config.platformEnvironment);
             }
 
 
@@ -166,8 +166,8 @@ public class KubernetesClient implements ContainerClient {
 
         V1Pod createdPod = null;
         try {
-            createdPod = coreApi.createNamespacedPod(config.namespace, pod, null, null, null);
-            System.out.println("Pod created: " + createdPod.getMetadata().getName());
+            createdPod = coreApi.createNamespacedPod(config.kubernetesNamespace, pod, null, null, null);
+            log.info("Pod created: " + createdPod.getMetadata().getName());
         } catch (ApiException e) {
             log.severe("Error creating pod: " + e.getMessage());
         }
@@ -180,7 +180,7 @@ public class KubernetesClient implements ContainerClient {
             V1Service service = createNodePortService(containerId, hostPort, containerPort, protocol);
 
             try {
-                coreApi.createNamespacedService(config.namespace, service, null, null, null);
+                coreApi.createNamespacedService(config.kubernetesNamespace, service, null, null, null);
             } catch (ApiException e) {
                 log.severe("Error creating service for port " + containerPort + ": " + e.getMessage());
                 e.printStackTrace();
@@ -198,7 +198,7 @@ public class KubernetesClient implements ContainerClient {
             ApiClient apiClient = coreApi.getApiClient();
             Watch<V1Pod> watch = Watch.createWatch(
                 apiClient,
-                coreApi.listNamespacedPodCall(config.namespace, null, null, null, null, null, null, null, null, null, true, null),
+                coreApi.listNamespacedPodCall(config.kubernetesNamespace, null, null, null, null, null, null, null, null, null, true, null),
                 new TypeToken<Watch.Response<V1Pod>>(){}.getType());
 
 
@@ -239,8 +239,8 @@ public class KubernetesClient implements ContainerClient {
             // remove container info, stop container
             var containerInfo = pods.remove(containerId);
             try {
-                coreApi.deleteNamespacedPod(containerId, config.namespace, null, null, null, null, null, null);
-                System.out.println("Pod deleted: " + containerId);
+                coreApi.deleteNamespacedPod(containerId, config.kubernetesNamespace, null, null, null, null, null, null);
+                log.info("Pod deleted: " + containerId);
             } catch (ApiException e) {
                 log.severe("Error deleting pod: " + e.getMessage());
             }

@@ -14,24 +14,24 @@ import java.net.InetAddress;
 @Configuration
 public class PlatformConfig {
 
+    // GENERAL SETTINGS
+
     @Value("${server.port}")
     public String serverPort;
 
     @Value("${public_url}")
     public String publicUrl;
 
-    @Value("${namespace}")
-    public String namespace;
-
     @Value("${container_environment}")
-    public String container_environment;
+    public String containerEnvironment;
 
     @Value("${platform_environment}")
-    public String platform_environment;
+    public String platformEnvironment;
 
     @Value("${container_timeout_sec}")
     public Integer containerTimeoutSec;
 
+    // IMAGE REGISTRY CREDENTIALS
 
     @Value("${registry_separator}")
     public String registrySeparator;
@@ -45,8 +45,13 @@ public class PlatformConfig {
     @Value("${registry_passwords}")
     public String registryPasswords;
 
-    @Value("${kubeconfig}")
-    public String kubeconfig;
+    // KUBERNETES (only for container_environment = "kubernetes")
+
+    @Value("${kubernetes_namespace}")
+    public String kubernetesNamespace;
+
+    @Value("${kubernetes_config}")
+    public String kubernetesConfig;
 
 
     // TODO
@@ -67,15 +72,15 @@ public class PlatformConfig {
         String host = null;
 
         try {
-            if (platform_environment.equals("native")) {
+            if (platformEnvironment.equals("native")) {
                 try (DatagramSocket socket = new DatagramSocket()) {
                     socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
                     host = socket.getLocalAddress().getHostAddress();
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
-            } else if (platform_environment.equals("kubernetes")) {
-                host = "agents-platform-service." + namespace + ".svc.cluster.local";
+            } else if (platformEnvironment.equals("kubernetes")) {
+                host = "agents-platform-service." + kubernetesNamespace + ".svc.cluster.local";
             } else {
                 throw new RuntimeException("Error determining base URL: Unsupported environment");
             }
