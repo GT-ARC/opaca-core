@@ -1,6 +1,5 @@
 package de.dailab.jiacpp.plattform.containerclient;
 
-import com.github.dockerjava.api.exception.NotModifiedException;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
@@ -9,7 +8,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.java.Log;
 import java.util.AbstractMap;
-
 
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.Configuration;
@@ -161,18 +159,12 @@ public class KubernetesClient implements ContainerClient {
         try {
             // remove container info, stop container
             var containerInfo = pods.remove(containerId);
-            try {
-                coreApi.deleteNamespacedPod(containerId, config.kubernetesNamespace, null, null, null, null, null, null);
-                log.info("Pod deleted: " + containerId);
-            } catch (ApiException e) {
-                log.severe("Error deleting pod: " + e.getMessage());
-            }
-
+            coreApi.deleteNamespacedPod(containerId, config.kubernetesNamespace, null, null, null, null, null, null);
             // free up ports used by this container
             // TODO do this first, or in finally?
             usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
             usedPorts.removeAll(containerInfo.connectivity.getExtraPortMappings().keySet());
-        } catch (NotModifiedException e) { // TODO docker exceptoin, can't occur here
+        } catch (ApiException e) {
             var msg = "Could not stop Container " + containerId + "; already stopped?";
             log.warning(msg);
             throw new NoSuchElementException(msg);
