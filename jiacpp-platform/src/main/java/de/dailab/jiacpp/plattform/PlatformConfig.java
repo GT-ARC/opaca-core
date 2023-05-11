@@ -23,10 +23,10 @@ public class PlatformConfig {
     public String publicUrl;
 
     @Value("${container_environment}")
-    public String containerEnvironment;
+    public ContainerEnvironment containerEnvironment;
 
     @Value("${platform_environment}")
-    public String platformEnvironment;
+    public PlatformEnvironment platformEnvironment;
 
     @Value("${container_timeout_sec}")
     public Integer containerTimeoutSec;
@@ -54,6 +54,15 @@ public class PlatformConfig {
     public String kubernetesConfig;
 
 
+
+    public enum PlatformEnvironment {
+        NATIVE, KUBERNETES
+    }
+
+    public enum ContainerEnvironment {
+        DOCKER, KUBERNETES
+    }
+
     // TODO
     //  (remote) docker host
     //  auth stuff for platform itself? tbd
@@ -72,14 +81,14 @@ public class PlatformConfig {
         String host = null;
 
         try {
-            if (platformEnvironment.equals("native")) {
+            if (platformEnvironment == PlatformEnvironment.NATIVE) {
                 try (DatagramSocket socket = new DatagramSocket()) {
                     socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
                     host = socket.getLocalAddress().getHostAddress();
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
-            } else if (platformEnvironment.equals("kubernetes")) {
+            } else if (platformEnvironment == PlatformEnvironment.KUBERNETES) {
                 host = "agents-platform-service." + kubernetesNamespace + ".svc.cluster.local";
             } else {
                 throw new RuntimeException("Error determining base URL: Unsupported environment");

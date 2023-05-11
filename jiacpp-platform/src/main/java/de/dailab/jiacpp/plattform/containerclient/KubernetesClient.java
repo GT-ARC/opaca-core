@@ -1,17 +1,6 @@
 package de.dailab.jiacpp.plattform.containerclient;
 
-import com.github.dockerjava.api.command.CreateContainerResponse;
-import com.github.dockerjava.api.command.InspectContainerResponse;
-import com.github.dockerjava.api.command.PullImageResultCallback;
-import com.github.dockerjava.api.exception.InternalServerErrorException;
-import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.exception.NotModifiedException;
-import com.github.dockerjava.api.model.*;
-import com.github.dockerjava.core.DefaultDockerClientConfig;
-import com.github.dockerjava.core.DockerClientConfig;
-import com.github.dockerjava.core.DockerClientImpl;
-import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
-import com.github.dockerjava.transport.DockerHttpClient;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
@@ -20,13 +9,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.java.Log;
 import java.util.AbstractMap;
-import java.io.FileNotFoundException;
 
 
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1ContainerPort;
 import io.kubernetes.client.openapi.models.V1Pod;
@@ -41,27 +28,8 @@ import io.kubernetes.client.openapi.models.V1Service;
 import io.kubernetes.client.openapi.models.V1ServicePort;
 import io.kubernetes.client.openapi.models.V1ServiceSpec;
 import io.kubernetes.client.openapi.models.*;
-import io.kubernetes.client.openapi.models.V1Deployment;
-import io.kubernetes.client.openapi.models.V1DeploymentSpec;
-import io.kubernetes.client.openapi.models.V1LabelSelector;
-import io.kubernetes.client.openapi.models.V1LocalObjectReference;
-import io.kubernetes.client.openapi.models.V1ObjectMeta;
-import io.kubernetes.client.openapi.models.V1PodSpec;
-import io.kubernetes.client.openapi.models.V1PodTemplateSpec;
-import io.kubernetes.client.openapi.models.V1PodBuilder;
-import io.kubernetes.client.openapi.models.V1Service;
-import io.kubernetes.client.openapi.models.V1ServicePort;
-import io.kubernetes.client.openapi.models.V1ServiceSpec;
-import io.kubernetes.client.openapi.ApiClient;
-import io.kubernetes.client.openapi.ApiException;
-import io.kubernetes.client.openapi.Configuration;
-import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Secret;
-import io.kubernetes.client.util.Config;
-import io.kubernetes.client.util.KubeConfig;
 
-import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -71,7 +39,6 @@ import java.util.stream.Collectors;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 import java.util.Set;
-import java.util.stream.Stream;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.Collections;
@@ -109,18 +76,16 @@ public class KubernetesClient implements ContainerClient {
 
         try {
             ApiClient client;
-            if (config.platformEnvironment.equals("kubernetes")) {
+            if (config.platformEnvironment == PlatformConfig.PlatformEnvironment.KUBERNETES) {
                 // If running inside a pod, it will use the default service account
                 client = Config.defaultClient();
-            } else if (config.platformEnvironment.equals("native")) {
+            } else if (config.platformEnvironment == PlatformConfig.PlatformEnvironment.NATIVE) {
                 // If running locally, it will use the default kubeconfig file location
                 String kubeConfigPath = System.getProperty("user.home") + config.kubernetesConfig;
                 client = Config.fromConfig(kubeConfigPath);
             } else {
                 throw new RuntimeException("Invalid platform environment: " + config.platformEnvironment);
             }
-
-
             Configuration.setDefaultApiClient(client);
             this.coreApi = new CoreV1Api();
         } catch (IOException e) {
