@@ -80,7 +80,8 @@ public class KubernetesClient implements ContainerClient {
                 client = Config.defaultClient();
             } else if (config.platformEnvironment == PlatformConfig.PlatformEnvironment.NATIVE) {
                 // If running locally, it will use the default kubeconfig file location
-                String kubeConfigPath = System.getProperty("user.home") + config.kubernetesConfig;
+                var configPath = config.kubernetesConfig.replaceAll("^~", System.getProperty("user.home"));
+                String kubeConfigPath = configPath;
                 client = Config.fromConfig(kubeConfigPath);
             } else {
                 throw new RuntimeException("Invalid platform environment: " + config.platformEnvironment);
@@ -88,7 +89,8 @@ public class KubernetesClient implements ContainerClient {
             Configuration.setDefaultApiClient(client);
             this.coreApi = new CoreV1Api();
         } catch (IOException e) {
-            log.severe("IOException: " + e.getMessage());
+            log.severe("Could not initialize Kubernetes Client: " + e.getMessage());
+            throw new RuntimeException(e);
         }
 
         this.namespace = config.kubernetesNamespace;
@@ -200,21 +202,15 @@ public class KubernetesClient implements ContainerClient {
         throw new IOException("Container did not start");
     }
 
-    private void createServicesForPorts(String containerId, AgentContainerImage image, Map<Integer, Integer> portMap) {
+    private void createServicesForPorts(String containerId, AgentContainerImage image, Map<Integer, Integer> portMap) throws ApiException {
         for (Map.Entry<Integer, Integer> entry : portMap.entrySet()) {
             int containerPort = entry.getKey();
             int hostPort = entry.getValue();
             String protocol = image.getExtraPorts().get(containerPort).getProtocol();
             V1Service service = createNodePortService(containerId, hostPort, containerPort, protocol);
 
-            try {
-                // todo is this a non-critical error or should this abort the Container creation?
-                coreApi.createNamespacedService(namespace, service, null, null, null);
-            } catch (ApiException e) {
-                log.severe("Error creating service for port " + containerPort + ": " + e.getMessage());
-                e.printStackTrace();
-                log.severe("Response body: " + e.getResponseBody());
-            }
+            // could not expose port as service -> could not create pod
+            coreApi.createNamespacedService(namespace, service, null, null, null);
         }
     }
 
