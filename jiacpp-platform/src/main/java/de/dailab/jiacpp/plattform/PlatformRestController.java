@@ -2,6 +2,7 @@ package de.dailab.jiacpp.plattform;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.util.*;
@@ -289,12 +290,13 @@ public class PlatformRestController implements RuntimePlatformApi {
 	 * reads image config files from default container directory
 	 */
 	public List<File> readDefaultImages() {
+		if (Strings.isNullOrEmpty(config.defaultImageDirectory)) return List.of();
 		try {
 			return Files.list(Path.of(config.defaultImageDirectory))
 					.map(Path::toFile)
 					.filter(f -> f.isFile() && f.getName().toLowerCase().endsWith(".json"))
 					.collect(Collectors.toList());
-		} catch (Exception e) {
+		} catch (IOException e) {
 			log.severe("Failed to read default images: " + e);
 			return List.of();
 		}
@@ -305,8 +307,8 @@ public class PlatformRestController implements RuntimePlatformApi {
 			log.info("Auto-deploying " + file);
 			try {
 				this.addContainer(RestHelper.mapper.readValue(file, AgentContainerImage.class));
-			} catch (IOException e) {
-				log.warning(String.format("Failed to load image specified in file %s", file));
+			} catch (Exception e) {
+				log.severe(String.format("Failed to load image specified in file %s: %s", file, e));
 			}
 		}
 	}

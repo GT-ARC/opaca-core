@@ -43,10 +43,10 @@ public class PlatformTests {
     private static final String PLATFORM_A_PORT = "8001";
     private static final String PLATFORM_B_PORT = "8002";
 
-    private static final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
-    private static final String PLATFORM_B = "http://localhost:" + PLATFORM_B_PORT;
+    private final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
+    private final String PLATFORM_B = "http://localhost:" + PLATFORM_B_PORT;
 
-    private static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v5";
+    private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v5";
 
     private static ConfigurableApplicationContext platformA = null;
 
@@ -60,17 +60,9 @@ public class PlatformTests {
      */
     @BeforeClass
     public static void setupPlatforms() {
-        platformA = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT);
+        platformA = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT,
+                "--default_image_directory=./default-test-images");
         SpringApplication.run(Application.class, "--server.port=" + PLATFORM_B_PORT);
-    }
-
-    @AfterClass
-    public static void cleanup() {
-        // delete sample default image file after tests
-        var imageFile = new File("./default-images/sample.json");
-        if (imageFile.exists()) {
-            imageFile.delete();
-        }
     }
 
     /*
@@ -85,19 +77,18 @@ public class PlatformTests {
         var restController = ((PlatformRestController) platformA.getBean("platformRestController"));
 
         // create image file
-        var imageFile = new File("./default-images/sample.json");
+        var imageFile = new File("./default-test-images/sample.json");
         if (!imageFile.getParentFile().exists()) imageFile.mkdirs();
         try (var writer = new FileWriter(imageFile)) {
             imageFile.createNewFile();
             writer.write("{ \"imageName\": \"" + TEST_IMAGE + "\" }");
-        } catch (IOException e) {
-            System.out.println("Failed to create test image json.");
-            Assert.fail();
         }
 
         var defaultImages = restController.readDefaultImages();
         Assert.assertEquals(defaultImages.size(), 1);
         Assert.assertEquals(defaultImages.get(0).getAbsolutePath(), imageFile.getAbsolutePath());
+
+        imageFile.delete();
     }
 
     /**

@@ -40,6 +40,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     /** Set of remote Runtime Platform URLs with a pending connection request */
     private final Set<String> pendingConnections = new HashSet<>();
 
+
     public PlatformImpl(PlatformConfig config) {
         this.config = config;
         
@@ -54,7 +55,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
 
         this.containerClient.initialize(config);
-
         // TODO add list of known used ports to config (e.g. the port of the RP itself, or others)
     }
 
