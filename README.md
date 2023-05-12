@@ -38,15 +38,23 @@ and Model files in the `jiacpp-model` module.
 
 The values in the `PlatformConfig` file are read from the `application.properties` file, which in turn are read from similarly named environment variables or from default values if those are not set.
 
+#### General
 * `PORT` (default: 8000) The port where the Runtime Platform itself exposes its API and Swagger Web UI.
 * `PUBLIC_URL` (default: null) Public URL of the Runtime Platform; if not set, it will try to guess its own IP.
 * `CONTAINER_TIMEOUT_SEC` (default: 10) Timeout in seconds how long the RP will try to reach a newly started container's `/info` route before it assumes it did not start properly and stops it again.
-* `REMOTE_DOCKER_HOST` (default: null) Remote Docker host (just IP or alias, no protocol or port); if not set, RP will start containers on local Docker.
-* `REMOTE_DOCKER_PORT` (default: 2375) Port where remote Docker host exposes its API; usually this is 2375. 
+* `PLATFORM_ENVIRONMENT` (default: "native") The environment where the platform itself is running, which determine the way to find its own IP address and other details.
+* `CONTAINER_ENVIRONMENT` (default: "docker") The environment where the Agent Containers should be running; possible values are `docker` and `kubernetes`.
+#### Image Registry Credentials
 * `REGISTRY_SEPARATOR` (default: ";") Separator for the below attributes for registry credentials.
 * `REGISTRY_NAMES` (default: empty) Known Docker registry names, segment before the first `/` as it appears in image names, without protocol.
 * `REGISTRY_LOGINS` (default: empty) Login names for each of the above registries (number has to match).
 * `REGISTRY_PASSWORDS` (default: empty) Passwords for each of the above registries (number has to match).
+#### Docker
+* `REMOTE_DOCKER_HOST` (default: null) Remote Docker host (just IP or alias, no protocol or port); if not set, the platform will start containers on the local Docker.
+* `REMOTE_DOCKER_PORT` (default: 2375) Port where remote Docker host exposes its API; usually this is 2375.
+#### Kubernetes
+* `KUBERNETES_NAMESPACE` (default: "agents")
+* `KUBERNETES_CONFIG` (default: "~/.kube/config")
 
 You can set those properties in the run config in your IDE, via an `.env` file, using `export` on the shell or in a `docker-compose.yml` file. Note that if you have one of those properties in e.g. your `.env` file, and it does not have a value, that may still overwrite the default and set the value to `null` or the empty string.
 
