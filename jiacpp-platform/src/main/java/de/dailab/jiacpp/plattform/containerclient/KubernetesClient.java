@@ -175,8 +175,9 @@ public class KubernetesClient implements ContainerClient {
     }
 
     @Override
-    public String getIP(String podId) {
-        return pods.get(podId).getInternalIp();
+    public String getUrl(String podId) {
+        var ip = pods.get(podId).getInternalIp();
+        return String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT);
     }
 
 

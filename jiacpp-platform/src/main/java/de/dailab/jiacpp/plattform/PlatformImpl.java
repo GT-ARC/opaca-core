@@ -45,8 +45,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         this.config = config;
         
         if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.DOCKER) {
+            log.info("Using Docker on host " + config.remoteDockerHost);
             this.containerClient = new DockerClient();
         } else if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.KUBERNETES) {
+            log.info("Using Kubernetes with namespace " + config.kubernetesNamespace);
             this.containerClient = new KubernetesClient();
         } else {
             throw new IllegalArgumentException("Invalid environment specified");
@@ -398,8 +400,9 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     private ApiProxy getClient(String containerId) {
-        var ip = containerClient.getIP(containerId);
-        return new ApiProxy(String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT));
+        var url = containerClient.getUrl(containerId);
+        System.out.println("URL " + url);
+        return new ApiProxy(url);
     }
 
     private String normalizeUrl(String url) {
