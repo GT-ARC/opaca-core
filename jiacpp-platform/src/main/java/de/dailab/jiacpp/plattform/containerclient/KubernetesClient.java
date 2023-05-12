@@ -73,7 +73,6 @@ public class KubernetesClient implements ContainerClient {
     @Override
     public void initialize(PlatformConfig config) {
         // Initialize the Kubernetes API client
-
         try {
             ApiClient client;
             if (config.platformEnvironment == PlatformConfig.PlatformEnvironment.KUBERNETES) {
@@ -153,8 +152,6 @@ public class KubernetesClient implements ContainerClient {
             return connectivity;
         } catch (ApiException e) {
             log.severe("Error creating pod: " + e.getMessage());
-            
-            // TODO differentiate between image-not-found and e.g. connection problems?
             throw new IOException("Failed to create Pod: " + e.getMessage());
         }
     }
@@ -186,8 +183,7 @@ public class KubernetesClient implements ContainerClient {
     /**
      * Wait for the pod to be in the Running state and have an IP address assigned
      */
-
-    private String waitForPodIP(String podName) throws ApiException, IOException {
+    private String waitForPodIP(String podName) throws ApiException, IOException, NoSuchElementException {
         ApiClient apiClient = coreApi.getApiClient();
         try (Watch<V1Pod> watch = Watch.createWatch(
                 apiClient,
@@ -208,7 +204,7 @@ public class KubernetesClient implements ContainerClient {
                             V1ContainerState state = status.getState();
                             if (state.getWaiting() != null && "ImagePullBackOff".equals(state.getWaiting().getReason())) {
                                 coreApi.deleteNamespacedPod(podName, namespace, null, null, null, null, null, null);
-                                throw new IOException("Container image could not be pulled");
+                                throw new NoSuchElementException("Container image could not be pulled");
                             }
                         }
                     }
