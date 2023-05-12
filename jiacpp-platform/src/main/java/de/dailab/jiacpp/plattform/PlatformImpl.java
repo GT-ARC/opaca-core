@@ -45,8 +45,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         this.config = config;
         
         if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.DOCKER) {
+            log.info("Using Docker on host " + config.remoteDockerHost);
             this.containerClient = new DockerClient();
         } else if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.KUBERNETES) {
+            log.info("Using Kubernetes with namespace " + config.kubernetesNamespace);
             this.containerClient = new KubernetesClient();
         } else {
             throw new IllegalArgumentException("Invalid environment specified");
