@@ -97,7 +97,7 @@ public class PlatformTests {
 
         var defaultImages = restController.readDefaultImages();
         Assert.assertEquals(defaultImages.size(), 1);
-        Assert.assertEquals(defaultImages.toArray()[0], imageFile.getAbsolutePath());
+        Assert.assertEquals(defaultImages.get(0).getAbsolutePath(), imageFile.getAbsolutePath());
     }
 
     /**

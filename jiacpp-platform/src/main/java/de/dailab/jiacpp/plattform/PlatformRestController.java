@@ -2,7 +2,6 @@ package de.dailab.jiacpp.plattform;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.util.*;
@@ -16,15 +15,13 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 /**
@@ -283,37 +280,29 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	/*
+	 * HELPER METHODS
+	 */
+
+	/**
 	 * reads image config files from default container directory
 	 */
-	public Set<String> readDefaultImages() {
-		var filter = new FilenameFilter() {
-			public boolean accept(File dir, String name) {
-				return name.toLowerCase().endsWith(".json");
-			}
-		};
+	public List<File> readDefaultImages() {
 		try {
-			var directory = new File(config.defaultImageDirectory);
-			var files = directory.listFiles(filter);
-			if (files == null) return null;
-			return Stream.of(files)
-					.filter(file -> !file.isDirectory())
-					.map(File::getAbsolutePath)
-					.collect(Collectors.toSet());
+			return Files.list(Path.of(config.defaultImageDirectory))
+					.map(Path::toFile)
+					.filter(f -> f.isFile() && f.getName().toLowerCase().endsWith(".json"))
+					.collect(Collectors.toList());
 		} catch (Exception e) {
-			return null;
+			log.severe("Failed to read default images: " + e);
+			return List.of();
 		}
 	}
 
 	private void startDefaultImages() {
-		var imageFiles = readDefaultImages();
-		if (imageFiles == null) return;
-
-		for (String file: imageFiles) {
-			System.out.println(file);
-			var mapper = new ObjectMapper();
+		for (File file: readDefaultImages()) {
+			log.info("Auto-deploying " + file);
 			try {
-				var image = mapper.readValue(Paths.get(file).toFile(), AgentContainerImage.class);
-				this.addContainer(image);
+				this.addContainer(RestHelper.mapper.readValue(file, AgentContainerImage.class));
 			} catch (IOException e) {
 				log.warning(String.format("Failed to load image specified in file %s", file));
 			}
