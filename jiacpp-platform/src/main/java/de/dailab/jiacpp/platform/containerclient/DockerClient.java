@@ -1,4 +1,4 @@
-package de.dailab.jiacpp.plattform.containerclient;
+package de.dailab.jiacpp.platform.containerclient;
 
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.PullImageResultCallback;
@@ -15,7 +15,7 @@ import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.plattform.PlatformConfig;
+import de.dailab.jiacpp.platform.PlatformConfig;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.java.Log;

@@ -1,4 +1,4 @@
-package de.dailab.jiacpp.plattform;
+package de.dailab.jiacpp.platform;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;

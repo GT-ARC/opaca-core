@@ -1,4 +1,4 @@
-package de.dailab.jiacpp.plattform;
+package de.dailab.jiacpp.platform;
 
 import com.google.common.base.Strings;
 import lombok.AllArgsConstructor;
