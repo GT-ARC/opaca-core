@@ -45,6 +45,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@PostConstruct
 	public void postConstruct() {
 		log.info("In Post-Construct");
+		log.info("Started with Config: " + config);
 		implementation = EventProxy.create(new PlatformImpl(config));
 		this.startDefaultImages();
 	}
@@ -90,6 +91,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@ResponseStatus(HttpStatus.BAD_GATEWAY)
 	public ResponseEntity<String> handleIoException(IOException e) {
 		log.severe(e.getMessage());  // should not happen
+		e.printStackTrace();
 		return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(e.getMessage());
 	}
 

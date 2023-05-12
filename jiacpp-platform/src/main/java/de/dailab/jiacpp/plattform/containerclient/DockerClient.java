@@ -1,7 +1,6 @@
 package de.dailab.jiacpp.plattform.containerclient;
 
 import com.github.dockerjava.api.command.CreateContainerResponse;
-import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.exception.InternalServerErrorException;
 import com.github.dockerjava.api.exception.NotFoundException;
@@ -12,6 +11,7 @@ import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
+import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
@@ -23,9 +23,7 @@ import lombok.extern.java.Log;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -56,15 +54,15 @@ public class DockerClient implements ContainerClient {
     @AllArgsConstructor
     static class DockerContainerInfo {
         String containerId;
-        String internalIp;
         AgentContainer.Connectivity connectivity;
     }
 
     @Override
     public void initialize(PlatformConfig config) {
+        this.config = config;
 
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
-                .withDockerHost("unix:///var/run/docker.sock")
+                .withDockerHost(getDockerHost())
                 .build();
 
         DockerHttpClient dockerHttpClient = new ApacheDockerHttpClient.Builder()
@@ -75,7 +73,6 @@ public class DockerClient implements ContainerClient {
                 .responseTimeout(Duration.ofSeconds(45))
                 .build();
 
-        this.config = config;
         this.auth = loadDockerAuth();
         this.dockerClient = DockerClientImpl.getInstance(dockerConfig, dockerHttpClient);
         this.dockerContainers = new HashMap<>();
@@ -87,22 +84,8 @@ public class DockerClient implements ContainerClient {
         var imageName = image.getImageName();
         var extraPorts = image.getExtraPorts();
         try {
-            // TODO move this to a separate method?
-            // pull image if not present
             if (! isImagePresent(imageName)) {
-                log.info("Pulling Image..." + imageName);
-                try {
-                    var registry = imageName.split("/")[0];
-                    dockerClient.pullImageCmd(imageName)
-                            .withAuthConfig(this.auth.get(registry))
-                            .exec(new PullImageResultCallback())
-                            .awaitCompletion();
-                } catch (InterruptedException e) {
-                    log.warning(e.getMessage());
-                } catch (InternalServerErrorException e) {
-                    log.severe("Pull Image failed: " + e.getMessage());
-                    throw new NoSuchElementException("Failed to Pull image: " + e.getMessage());
-                }
+                pullDockerImage(imageName);
             }
 
             // port mappings
@@ -116,11 +99,9 @@ public class DockerClient implements ContainerClient {
                             String.format("%s=%s", AgentContainerApi.ENV_PLATFORM_URL, config.getOwnBaseUrl()))
                     .withHostConfig(HostConfig.newHostConfig()
                             .withPortBindings(portMap.entrySet().stream().map(
-                                    // TODO format, then parse is kind of silly... is there a better way?
                                     e -> PortBinding.parse(String.format("%s:%s", e.getValue(), e.getKey()))
                             ).collect(Collectors.toList()))
                     )
-                    // TODO why do we need this? DO we need this??
                     .withExposedPorts(portMap.keySet().stream().map(ExposedPort::tcp).collect(Collectors.toList()))
                     .exec();
             log.info(String.format("Result: %s", res));
@@ -130,23 +111,19 @@ public class DockerClient implements ContainerClient {
 
             // create connectivity object
             var connectivity = new AgentContainer.Connectivity(
-                    config.getOwnBaseUrl().replaceAll(":\\d+$", ""),  // TODO change to remote docker host once implemented (#23)
+                    getContainerBaseUrl(),
                     portMap.get(image.getApiPort()),
                     extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );
-
-            // TODO get internal IP... why is this deprecated?
-            // TODO internal IP is not really needed any longer, is it?
-            InspectContainerResponse info = dockerClient.inspectContainerCmd(res.getId()).exec();
-            dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), info.getNetworkSettings().getIpAddress(), connectivity));
+            dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), connectivity));
 
             return connectivity;
 
         } catch (NotFoundException e) {
+            // might theoretically happen if image is deleted between pull and run...
             log.warning("Image not found: " + imageName);
             throw new NoSuchElementException("Image not found: " + imageName);
         }
-        // TODO handle error trying to connect to Docker (only relevant when Remote Docker is supported, issue #23)
     }
 
     @Override
@@ -165,12 +142,44 @@ public class DockerClient implements ContainerClient {
             throw new NoSuchElementException(msg);
         }
         // TODO possibly that the container refuses being stopped? call "kill" instead? how to test this?
-        // TODO handle error trying to connect to Docker (only relevant when Remote Docker is supported, issue #23)
     }
 
     @Override
-    public String getIP(String containerId) {
-        return dockerContainers.get(containerId).getInternalIp();
+    public String getUrl(String containerId) {
+        var conn = dockerContainers.get(containerId).connectivity;
+        return conn.getPublicUrl() + ":" + conn.getApiPortMapping();
+    }
+
+    private String getDockerHost() {
+        return Strings.isNullOrEmpty(config.remoteDockerHost)
+                ? "unix:///var/run/docker.sock"
+                : String.format("tcp://%s:%s", config.remoteDockerHost, config.remoteDockerPort);
+    }
+
+    private String getContainerBaseUrl() {
+        return Strings.isNullOrEmpty(config.remoteDockerHost)
+                ? config.getOwnBaseUrl().replaceAll(":\\d+$", "")
+                : String.format("http://%s", config.remoteDockerHost);
+    }
+
+    /**
+     * Try to pull the Docker image from registry where it can be found (according to image name).
+     * Raise NoSuchElementException if image can not be pulled for whatever reason.
+     */
+    private void pullDockerImage(String imageName) {
+        log.info("Pulling Image..." + imageName);
+        try {
+            var registry = imageName.split("/")[0];
+            dockerClient.pullImageCmd(imageName)
+                    .withAuthConfig(this.auth.get(registry))
+                    .exec(new PullImageResultCallback())
+                    .awaitCompletion();
+        } catch (InterruptedException e) {
+            log.warning(e.getMessage());
+        } catch (InternalServerErrorException e) {
+            log.severe("Pull Image failed: " + e.getMessage());
+            throw new NoSuchElementException("Failed to Pull image: " + e.getMessage());
+        }
     }
 
     /**
@@ -193,30 +202,13 @@ public class DockerClient implements ContainerClient {
             return false;
         }
     }
-
-    /**
-     * Get Dict mapping Docker registries to auth credentials from settings.
-     * Adapted from EMPAIA Job Execution Service
-     */
+    
     private Map<String, AuthConfig> loadDockerAuth() {
-        if (config.registryNames.isEmpty()) {
-            return Map.of();
-        }
-        var sep = config.registrySeparator;
-        var registries = config.registryNames.split(sep);
-        var logins = config.registryLogins.split(sep);
-        var passwords = config.registryPasswords.split(sep);
-
-        if (registries.length != logins.length || registries.length != passwords.length) {
-            log.warning("Number of Registry Names does not match Login Usernames and Passwords");
-            return Map.of();
-        } else {
-            return IntStream.range(0, registries.length)
-                    .mapToObj(i -> new AuthConfig()
-                            .withRegistryAddress(registries[i])
-                            .withUsername(logins[i])
-                            .withPassword(passwords[i]))
-                    .collect(Collectors.toMap(AuthConfig::getRegistryAddress, Function.identity()));
-        }
+        return config.loadDockerAuth().stream().collect(Collectors.toMap(
+                PlatformConfig.ImageRegistryAuth::getRegistry,
+                x -> new AuthConfig()
+                        .withRegistryAddress(x.getRegistry())
+                        .withUsername(x.getLogin())
+                        .withPassword(x.getLogin())));
     }
 }

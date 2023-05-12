@@ -27,22 +27,53 @@ and first tests in order to find out what of this makes sense etc.
 * use the `POST send` or `POST invoke` routes to send messages to the agent (with any payload; reply-to does not matter for now), or invoke the agent's dummy action (the action takes some time to run); check the logs of the agent container; you can also invoke the action and then immediately re-send the message to check that both work concurrently
 * shut down the platform with Ctrl+C; the agent container(s) should shut down as well
 
+### API Routes and Models
+
+We will _not_ reiterate the different API routes here, as that would just be bound to become outdated and 
+inconsistent with the actual API rather sooner than later. Instead, please refer to the (mostly up to date)
+[Wiki](https://gitlab.dai-labor.de/groups/jiacpp/-/wikis/API) or, even better, consult the different Interfaces
+and Model files in the `jiacpp-model` module.
+
+### Environment Variables
+
+The values in the `PlatformConfig` file are read from the `application.properties` file, which in turn are read from similarly named environment variables or from default values if those are not set.
+
+#### General
+* `PORT` (default: 8000) The port where the Runtime Platform itself exposes its API and Swagger Web UI.
+* `PUBLIC_URL` (default: null) Public URL of the Runtime Platform; if not set, it will try to guess its own IP.
+* `CONTAINER_TIMEOUT_SEC` (default: 10) Timeout in seconds how long the RP will try to reach a newly started container's `/info` route before it assumes it did not start properly and stops it again.
+* `PLATFORM_ENVIRONMENT` (default: "native") The environment where the platform itself is running, which determine the way to find its own IP address and other details.
+* `CONTAINER_ENVIRONMENT` (default: "docker") The environment where the Agent Containers should be running; possible values are `docker` and `kubernetes`.
+#### Image Registry Credentials
+* `REGISTRY_SEPARATOR` (default: ";") Separator for the below attributes for registry credentials.
+* `REGISTRY_NAMES` (default: empty) Known Docker registry names, segment before the first `/` as it appears in image names, without protocol.
+* `REGISTRY_LOGINS` (default: empty) Login names for each of the above registries (number has to match).
+* `REGISTRY_PASSWORDS` (default: empty) Passwords for each of the above registries (number has to match).
+#### Docker
+* `REMOTE_DOCKER_HOST` (default: null) Remote Docker host (just IP or alias, no protocol or port); if not set, the platform will start containers on the local Docker.
+* `REMOTE_DOCKER_PORT` (default: 2375) Port where remote Docker host exposes its API; usually this is 2375.
+#### Kubernetes
+* `KUBERNETES_NAMESPACE` (default: "agents")
+* `KUBERNETES_CONFIG` (default: "~/.kube/config")
+
+You can set those properties in the run config in your IDE, via an `.env` file, using `export` on the shell or in a `docker-compose.yml` file. Note that if you have one of those properties in e.g. your `.env` file, and it does not have a value, that may still overwrite the default and set the value to `null` or the empty string.
+
 
 ## Message Flows in Reference Implementation
 
 ### Runtime Platform to Agent Container
 
-* **message**: HTTP request to CA (in HTTP handler thread), send message via `agent_ref tell`
-* **broadcast**: HTTP request to CA (in HTTP handler thread), send message via `broker.publish`
-* **invoke**: HTTP request to CA (in HTTP handler thread), send `Invoke` to agent via `ask invoke` protocol, wait for response (in CA thread), reply in HTTP response
+* **message**: HTTP Request to CA (in HTTP handler thread), send message via `agent_ref tell`
+* **broadcast**: HTTP Request to CA (in HTTP handler thread), send message via `broker.publish`
+* **invoke**: HTTP Request to CA (in HTTP handler thread), send `Invoke` to agent via `ask invoke` protocol, wait for response (in CA thread), reply in HTTP response
 
 ![RP-CA Interactions](doc/messages-rp-ca.png)
 
 ### Agent Container to Runtime Platform
 
-* **message**: agent sends HTTP request to RP via helper method in super class
-* **broadcast**: agent sends HTTP request to RP via helper method in super class
-* **invoke**: agent sends HTTP request to RP via helper method in super class, waits for response in its own thread
+* **message**: agent sends HTTP Request to RP via helper method in super class
+* **broadcast**: agent sends HTTP Request to RP via helper method in super class
+* **invoke**: agent sends HTTP Request to RP via helper method in super class, waits for response in its own thread
 
 ![CA-RP Interactions](doc/messages-ca-rp.png)
 
