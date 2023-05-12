@@ -14,16 +14,24 @@ import java.net.InetAddress;
 @Configuration
 public class PlatformConfig {
 
+    // GENERAL SETTINGS
+
     @Value("${server.port}")
     public String serverPort;
 
     @Value("${public_url}")
     public String publicUrl;
 
+    @Value("${container_environment}")
+    public ContainerEnvironment containerEnvironment;
+
+    @Value("${platform_environment}")
+    public PlatformEnvironment platformEnvironment;
 
     @Value("${container_timeout_sec}")
     public Integer containerTimeoutSec;
 
+    // IMAGE REGISTRY CREDENTIALS
 
     @Value("${registry_separator}")
     public String registrySeparator;
@@ -37,6 +45,23 @@ public class PlatformConfig {
     @Value("${registry_passwords}")
     public String registryPasswords;
 
+    // KUBERNETES (only for container_environment = "kubernetes")
+
+    @Value("${kubernetes_namespace}")
+    public String kubernetesNamespace;
+
+    @Value("${kubernetes_config}")
+    public String kubernetesConfig;
+
+
+
+    public enum PlatformEnvironment {
+        NATIVE, KUBERNETES
+    }
+
+    public enum ContainerEnvironment {
+        DOCKER, KUBERNETES
+    }
 
     // TODO
     //  (remote) docker host
@@ -52,12 +77,21 @@ public class PlatformConfig {
         if (publicUrl != null) {
             return publicUrl;
         }
-        try (DatagramSocket socket = new DatagramSocket()) {
-            socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
-            String host = socket.getLocalAddress().getHostAddress();
-            return "http://" + host + ":" + serverPort;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+
+        String host;
+        if (platformEnvironment == PlatformEnvironment.NATIVE) {
+            try (DatagramSocket socket = new DatagramSocket()) {
+                socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
+                host = socket.getLocalAddress().getHostAddress();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        } else if (platformEnvironment == PlatformEnvironment.KUBERNETES) {
+            host = "agents-platform-service." + kubernetesNamespace + ".svc.cluster.local";
+        } else {
+            throw new RuntimeException("Error determining base URL: Unsupported environment");
         }
+        return "http://" + host + ":" + serverPort;
     }
+
 }

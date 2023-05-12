@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agents-platform-deployment
+  namespace: agents
+  labels:
+    app: agents-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agents-platform
+  template:
+    metadata:
+      labels:
+        app: agents-platform
+    spec:
+      serviceAccountName: agents-platform-sa
+      imagePullSecrets:
+        - name: my-registry-key
+      containers:
+        - name: agents-platform
+          image: <registry:port>/agents-platform
+          ports:
+            - containerPort: 8000
+          imagePullPolicy: Always
+          env:
+            - name: REGISTRY_NAMES
+              value: <registry:port>
+            - name: REGISTRY_LOGINS
+              value: <login_username>
+            - name: REGISTRY_PASSWORDS
+              value: <login_password>
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agents-platform-service
+  namespace: agents
+spec:
+  selector:
+    app: agents-platform
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP

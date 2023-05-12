@@ -7,6 +7,7 @@ import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.plattform.containerclient.ContainerClient;
 import de.dailab.jiacpp.plattform.containerclient.DockerClient;
+import de.dailab.jiacpp.plattform.containerclient.KubernetesClient;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.dailab.jiacpp.util.EventHistory;
@@ -42,7 +43,15 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     public PlatformImpl(PlatformConfig config) {
         this.config = config;
-        this.containerClient = new DockerClient();
+        
+        if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.DOCKER) {
+            this.containerClient = new DockerClient();
+        } else if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.KUBERNETES) {
+            this.containerClient = new KubernetesClient();
+        } else {
+            throw new IllegalArgumentException("Invalid environment specified");
+        }
+
         this.containerClient.initialize(config);
         // TODO add list of known used ports to config (e.g. the port of the RP itself, or others)
     }
