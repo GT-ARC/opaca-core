@@ -41,6 +41,9 @@ public class PlatformConfig {
     @Value("${container_timeout_sec}")
     public int containerTimeoutSec;
 
+    @Value("${default_image_directory}")
+    public String defaultImageDirectory;
+
     // IMAGE REGISTRY CREDENTIALS
 
     @Value("${registry_separator}")

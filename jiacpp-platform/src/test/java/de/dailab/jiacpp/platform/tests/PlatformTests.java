@@ -2,17 +2,22 @@ package de.dailab.jiacpp.platform.tests;
 
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.plattform.Application;
+import de.dailab.jiacpp.plattform.PlatformRestController;
 import de.dailab.jiacpp.util.RestHelper;
 
+import org.apache.catalina.core.ApplicationContext;
 import org.junit.*;
 import org.junit.runners.MethodSorters;
 
 import org.springframework.boot.SpringApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -43,8 +48,11 @@ public class PlatformTests {
 
     private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v5";
 
+    private static ConfigurableApplicationContext platformA = null;
+
     private static String containerId = null;
     private static String platformABaseUrl = null;
+
 
     /**
      * Before executing any of the tests, 2 test servers are started
@@ -52,23 +60,36 @@ public class PlatformTests {
      */
     @BeforeClass
     public static void setupPlatforms() {
-        System.out.println("STARTING TEST SERVERS");
-
-        System.out.println("STARTING TEST SERVER 1 ON PORT " + PLATFORM_A_PORT);
-        SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT);
-
-        System.out.println("STARTING TEST SERVER 2 ON PORT " + PLATFORM_B_PORT);
+        platformA = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT,
+                "--default_image_directory=./default-test-images");
         SpringApplication.run(Application.class, "--server.port=" + PLATFORM_B_PORT);
-    }
-
-    @AfterClass
-    public static void cleanupPlatforms() {
-        // todo: anything to do here? shut down the platforms?
     }
 
     /*
      * TEST THAT STUFF WORKS
      */
+
+    /**
+     * check if default image is loaded on platform A, then undeploy it to not mess up the following tests
+     */
+    @Test
+    public void test1DefaultImage() throws Exception {
+        var restController = ((PlatformRestController) platformA.getBean("platformRestController"));
+
+        // create image file
+        var imageFile = new File("./default-test-images/sample.json");
+        if (!imageFile.getParentFile().exists()) imageFile.mkdirs();
+        try (var writer = new FileWriter(imageFile)) {
+            imageFile.createNewFile();
+            writer.write("{ \"imageName\": \"" + TEST_IMAGE + "\" }");
+        }
+
+        var defaultImages = restController.readDefaultImages();
+        Assert.assertEquals(defaultImages.size(), 1);
+        Assert.assertEquals(defaultImages.get(0).getAbsolutePath(), imageFile.getAbsolutePath());
+
+        imageFile.delete();
+    }
 
     /**
      * call info, make sure platform is up

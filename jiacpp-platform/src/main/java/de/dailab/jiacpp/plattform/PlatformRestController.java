@@ -2,6 +2,7 @@ package de.dailab.jiacpp.plattform;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.util.*;
@@ -14,10 +15,14 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 
 /**
@@ -43,6 +48,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 		log.info("In Post-Construct");
 		log.info("Started with Config: " + config);
 		implementation = EventProxy.create(new PlatformImpl(config));
+		this.startDefaultImages();
 	}
 
 	@PreDestroy
@@ -274,6 +280,37 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public boolean notifyUpdatePlatform(@RequestBody String platformUrl) throws IOException {
 		log.info(String.format("NOTIFY: %s", platformUrl));
 		return implementation.notifyUpdatePlatform(platformUrl);
+	}
+
+	/*
+	 * HELPER METHODS
+	 */
+
+	/**
+	 * reads image config files from default container directory
+	 */
+	public List<File> readDefaultImages() {
+		if (Strings.isNullOrEmpty(config.defaultImageDirectory)) return List.of();
+		try {
+			return Files.list(Path.of(config.defaultImageDirectory))
+					.map(Path::toFile)
+					.filter(f -> f.isFile() && f.getName().toLowerCase().endsWith(".json"))
+					.collect(Collectors.toList());
+		} catch (IOException e) {
+			log.severe("Failed to read default images: " + e);
+			return List.of();
+		}
+	}
+
+	private void startDefaultImages() {
+		for (File file: readDefaultImages()) {
+			log.info("Auto-deploying " + file);
+			try {
+				this.addContainer(RestHelper.mapper.readValue(file, AgentContainerImage.class));
+			} catch (Exception e) {
+				log.severe(String.format("Failed to load image specified in file %s: %s", file, e));
+			}
+		}
 	}
 
 }
