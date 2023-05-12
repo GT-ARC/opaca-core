@@ -1,11 +1,10 @@
 package de.dailab.jiacpp.platform.tests;
 
 import de.dailab.jiacpp.model.*;
-import de.dailab.jiacpp.plattform.Application;
-import de.dailab.jiacpp.plattform.PlatformRestController;
+import de.dailab.jiacpp.platform.Application;
+import de.dailab.jiacpp.platform.PlatformRestController;
 import de.dailab.jiacpp.util.RestHelper;
 
-import org.apache.catalina.core.ApplicationContext;
 import org.junit.*;
 import org.junit.runners.MethodSorters;
 
@@ -16,8 +15,6 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 

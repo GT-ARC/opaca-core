@@ -1,13 +1,12 @@
-package de.dailab.jiacpp.plattform;
+package de.dailab.jiacpp.platform;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
-import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
-import de.dailab.jiacpp.plattform.containerclient.ContainerClient;
-import de.dailab.jiacpp.plattform.containerclient.DockerClient;
-import de.dailab.jiacpp.plattform.containerclient.KubernetesClient;
+import de.dailab.jiacpp.platform.containerclient.ContainerClient;
+import de.dailab.jiacpp.platform.containerclient.DockerClient;
+import de.dailab.jiacpp.platform.containerclient.KubernetesClient;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.dailab.jiacpp.util.EventHistory;
