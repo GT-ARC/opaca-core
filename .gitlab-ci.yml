@@ -8,7 +8,7 @@ image: maven:3.6.3-openjdk-11
 mvn-build:
   stage: build
   script:
-    - mvn package
+    - mvn compile
 
 mvn-test:
   stage: test
