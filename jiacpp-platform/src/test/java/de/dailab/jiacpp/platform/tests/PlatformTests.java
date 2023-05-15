@@ -75,7 +75,7 @@ public class PlatformTests {
 
         // create image file
         var imageFile = new File("./default-test-images/sample.json");
-        if (!imageFile.getParentFile().exists()) imageFile.mkdirs();
+        if (!imageFile.getParentFile().exists()) imageFile.getParentFile().mkdirs();
         try (var writer = new FileWriter(imageFile)) {
             imageFile.createNewFile();
             writer.write("{ \"imageName\": \"" + TEST_IMAGE + "\" }");
