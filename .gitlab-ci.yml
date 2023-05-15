@@ -1,0 +1,24 @@
+stages:
+  - build
+  - test
+  - deploy
+
+image: maven:3.6.3-openjdk-11
+
+mvn-build:
+  stage: build
+  script:
+    - mvn package
+
+mvn-test:
+  stage: test
+  script:
+    - mvn test
+
+# deployment is skipped for now
+.mvn-deploy:
+  stage: deploy
+  only:
+    - master
+  script:
+    - mvn deploy
