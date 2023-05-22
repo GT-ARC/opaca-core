@@ -25,6 +25,9 @@ public interface RuntimePlatformApi extends CommonApi {
      */
     RuntimePlatform getPlatformInfo() throws IOException;
 
+
+    String login(String username, String password) throws IOException;
+
     /**
      * Get history of "events" that occurred in this runtime platform
      *

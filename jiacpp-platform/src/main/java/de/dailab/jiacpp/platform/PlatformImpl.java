@@ -16,6 +16,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
+
 /**
  * This class provides the actual implementation of the API routes. Might also be split up
  * further, e.g. for agent-forwarding, container-management, and linking to other platforms.
@@ -30,6 +33,8 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     final ContainerClient containerClient;
 
+    final JwtUtil jwtUtil;
+    
     /** Currently running Agent Containers, mapping container ID to description */
     private final Map<String, AgentContainer> runningContainers = new HashMap<>();
 
@@ -39,10 +44,11 @@ public class PlatformImpl implements RuntimePlatformApi {
     /** Set of remote Runtime Platform URLs with a pending connection request */
     private final Set<String> pendingConnections = new HashSet<>();
 
-
+    @Autowired
     public PlatformImpl(PlatformConfig config) {
         this.config = config;
-        
+        this.jwtUtil = new JwtUtil(config.usernamePlatform, config.passwordPlatform);
+
         if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.DOCKER) {
             log.info("Using Docker on host " + config.remoteDockerHost);
             this.containerClient = new DockerClient();
@@ -72,6 +78,15 @@ public class PlatformImpl implements RuntimePlatformApi {
         return EventHistory.getInstance().getEvents();
     }
 
+    @Override
+    public String login(String usernamePlatform, String passwordPlatform) throws IOException {
+        String token = jwtUtil.generateToken(usernamePlatform, passwordPlatform);
+        if (token != null) {
+            return token;
+        } else {
+            throw new RuntimeException("Token generation failed");
+        }
+    }
     /*
      * AGENTS ROUTES
      */

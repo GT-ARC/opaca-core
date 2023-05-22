@@ -36,6 +36,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Autowired
 	PlatformConfig config;
 
+
 	RuntimePlatformApi implementation;
 
 
@@ -186,6 +187,18 @@ public class PlatformRestController implements RuntimePlatformApi {
 		log.info(String.format("INVOKE: %s, %s, %s", action, agentId, parameters));
 		return implementation.invoke(agentId, action, parameters, forward);
 	}
+
+
+	@RequestMapping(value = "/login", method = RequestMethod.POST)
+		@Operation(summary = "Login with username and password", tags = {"authentication"})
+		@Override
+		public String login(
+				@RequestParam String username,
+				@RequestParam String password
+		) throws IOException {
+			return implementation.login(username, password);
+		}
+
 
 	/*
 	 * CONTAINERS ROUTES

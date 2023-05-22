@@ -32,6 +32,13 @@ public class PlatformConfig {
     @Value("${public_url}")
     public String publicUrl;
 
+    @Value("${username_platform}")
+    public String usernamePlatform;
+
+    @Value("${password_platform}")
+    public String passwordPlatform;
+
+
     @Value("${container_environment}")
     public ContainerEnvironment containerEnvironment;
 
