@@ -38,8 +38,9 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     
         String requestURL = request.getRequestURI();
         this.jwtUtil = new JwtUtil(usernamePatform, passwordPlatform);
-    
-        if (!requestURL.contains("/login")) {
+
+        if (!isSwagger(requestURL) && !requestURL.contains("/login") ) {
+        
             final String requestTokenHeader = request.getHeader("Authorization");
     
             String username = null;
@@ -72,4 +73,16 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         }
         chain.doFilter(request, response);
     }    
+    private boolean isSwagger(String url) {
+        return url.contains("/swagger-resources")
+            || url.contains("/v2/api-docs")
+            || url.contains("/swagger-resources/**")
+            || url.contains("/configuration/ui")
+            || url.contains("/configuration/security")
+            || url.contains("/swagger-ui.html")
+            || url.contains("/webjars/**")
+            || url.contains("/v3/api-docs/**")
+            || url.contains("/swagger-ui/**");
+    }
 }
+
