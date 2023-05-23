@@ -15,6 +15,8 @@ public interface AgentContainerApi extends CommonApi{
 
     String ENV_PLATFORM_URL = "PLATFORM_URL";
 
+    String ENV_TOKEN = "TOKEN";
+
     int DEFAULT_PORT = 8082;
 
     /**
