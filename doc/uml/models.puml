@@ -1,4 +1,4 @@
-@startuml messages
+@startuml models
 'https://plantuml.com/sequence-diagram
 
 hide empty methods
