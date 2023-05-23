@@ -51,7 +51,8 @@ public class PlatformImpl implements RuntimePlatformApi {
     public PlatformImpl(PlatformConfig config, TokenUserDetailsService tokenUserDetailsService) {
         this.config = config;
         this.tokenUserDetailsService = tokenUserDetailsService;
-        this.jwtUtil = new JwtUtil(config.usernamePlatform, config.passwordPlatform);
+        tokenUserDetailsService.addUser(config.usernamePlatform, config.passwordPlatform);
+        this.jwtUtil = new JwtUtil(tokenUserDetailsService);
 
         if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.DOCKER) {
             log.info("Using Docker on host " + config.remoteDockerHost);
@@ -85,7 +86,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public String login(String usernamePlatform, String passwordPlatform) throws IOException {
         String token = jwtUtil.generateTokenForPlatform(usernamePlatform, passwordPlatform);
-        tokenUserDetailsService.addUser(usernamePlatform, passwordPlatform);
+        
         if (token != null) {
             return token;
         } else {

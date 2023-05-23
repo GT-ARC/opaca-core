@@ -26,12 +26,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
     JwtUtil jwtUtil;
 
-    public JwtRequestFilter(@Value("${username_platform}") String usernamePlatform, 
-                            @Value("${password_platform}") String passwordPlatform) {
-        this.jwtUtil = new JwtUtil(usernamePlatform, passwordPlatform);
-    }
-    
-
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
