@@ -13,6 +13,7 @@ public class JwtUtil {
     final String password;
 
     public JwtUtil (String username, String password) {
+        System.out.println("_______JWTUTIL INIT______");
         System.out.println(username);
         System.out.println(password);
         this.username = username;
@@ -22,15 +23,12 @@ public class JwtUtil {
     private final String SECRET_KEY = "secret";
 
     public String generateToken(String username, String password) {
-        System.out.println("generate token");
-        System.out.println(username);
-        System.out.println(password);
-        System.out.println(this.username);
-        System.out.println(this.password);
         if (this.username.equals(username) && this.password.equals(password)) {
-            return Jwts.builder().setSubject(username).setIssuedAt(new Date(System.currentTimeMillis()))
+            String token = Jwts.builder().setSubject(username).setIssuedAt(new Date(System.currentTimeMillis()))
                     .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // token valid for 10 hours
                     .signWith(SignatureAlgorithm.HS256, SECRET_KEY).compact();
+            System.out.println(token);
+            return token;
         } else {
             System.out.println("TOKEN CREATION FAILED");
             return null;
