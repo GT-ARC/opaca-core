@@ -35,6 +35,9 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     final JwtUtil jwtUtil;
     
+
+    private TokenUserDetailsService tokenUserDetailsService;
+
     /** Currently running Agent Containers, mapping container ID to description */
     private final Map<String, AgentContainer> runningContainers = new HashMap<>();
 
@@ -45,8 +48,9 @@ public class PlatformImpl implements RuntimePlatformApi {
     private final Set<String> pendingConnections = new HashSet<>();
 
     @Autowired
-    public PlatformImpl(PlatformConfig config) {
+    public PlatformImpl(PlatformConfig config, TokenUserDetailsService tokenUserDetailsService) {
         this.config = config;
+        this.tokenUserDetailsService = tokenUserDetailsService;
         this.jwtUtil = new JwtUtil(config.usernamePlatform, config.passwordPlatform);
 
         if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.DOCKER) {
@@ -80,7 +84,8 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public String login(String usernamePlatform, String passwordPlatform) throws IOException {
-        String token = jwtUtil.generateToken(usernamePlatform, passwordPlatform);
+        String token = jwtUtil.generateTokenForPlatform(usernamePlatform, passwordPlatform);
+        tokenUserDetailsService.addUser(usernamePlatform, passwordPlatform);
         if (token != null) {
             return token;
         } else {
@@ -169,9 +174,10 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public String addContainer(AgentContainerImage image) throws IOException {
         String agentContainerId = UUID.randomUUID().toString();
-
+        String token = jwtUtil.generateTokenForAgentContainer(agentContainerId);
+        
         // start container... this may raise an Exception, or returns the connectivity info
-        var connectivity = containerClient.startContainer(agentContainerId, image);
+        var connectivity = containerClient.startContainer(agentContainerId, token, image);
 
         // wait until container is up and running...
         var start = System.currentTimeMillis();
@@ -182,6 +188,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 var container = client.getContainerInfo();
                 container.setConnectivity(connectivity);
                 runningContainers.put(agentContainerId, container);
+                tokenUserDetailsService.addUser(agentContainerId, null);
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
                     log.warning("Agent Container ID does not match: Expected " +

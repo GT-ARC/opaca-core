@@ -41,6 +41,8 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 	RuntimePlatformApi implementation;
 
+	@Autowired
+    private TokenUserDetailsService tokenUserDetailsService;
 
 	/*
 	 * LIFECYCLE
@@ -50,7 +52,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public void postConstruct() {
 		log.info("In Post-Construct");
 		log.info("Started with Config: " + config);
-		implementation = EventProxy.create(new PlatformImpl(config));
+		implementation = EventProxy.create(new PlatformImpl(config, tokenUserDetailsService));
 		this.startDefaultImages();
 	}
 

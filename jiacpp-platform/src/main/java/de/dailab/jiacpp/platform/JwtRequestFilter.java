@@ -28,7 +28,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
     public JwtRequestFilter(@Value("${username_platform}") String usernamePlatform, 
                             @Value("${password_platform}") String passwordPlatform) {
-        System.out.println("?");
         this.jwtUtil = new JwtUtil(usernamePlatform, passwordPlatform);
     }
     
