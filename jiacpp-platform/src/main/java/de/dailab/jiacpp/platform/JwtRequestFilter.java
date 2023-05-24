@@ -24,11 +24,14 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsService jwtUserDetailsService;
 
+    @Autowired
     JwtUtil jwtUtil;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
+        System.out.println("doFilterInteral jwtUtil");
+        System.out.println(jwtUtil);
         String requestURL = request.getRequestURI();
         System.out.println("______________");
         Enumeration<String> headerNames = request.getHeaderNames();
