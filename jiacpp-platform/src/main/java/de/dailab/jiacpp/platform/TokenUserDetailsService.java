@@ -26,7 +26,5 @@ public class TokenUserDetailsService implements UserDetailsService {
 
     public void addUser(String username, String password) {
         userCredentials.put(username, password);
-        System.out.println("CURRENT userCredentials");
-        System.out.println(userCredentials);
     }
 }

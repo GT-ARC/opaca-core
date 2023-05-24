@@ -23,24 +23,17 @@ public class JwtUtil {
     }
 
     public String generateTokenForPlatform(String username, String password) {
-        System.out.println("ÜBERHAUPT IN GENERATE TOKEN?");
         UserDetails userDetails;
         try {
-            System.out.println(tokenUserDetailsService);
             userDetails = tokenUserDetailsService.loadUserByUsername(username);
-            System.out.println("USERRETAILS");
-            System.out.println(userDetails);
         } catch (UsernameNotFoundException e) {
             System.out.println("TOKEN CREATION FAILED");
             return null;
         }
-        System.out.println(password);
         if (userDetails.getPassword().equals(password)) {
-            System.out.println("Yes it is equal password");
-            String token = Jwts.builder().setSubject(username).setIssuedAt(new Date(System.currentTimeMillis()))
+            return Jwts.builder().setSubject(username).setIssuedAt(new Date(System.currentTimeMillis()))
                     .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // token valid for 10 hours
                     .signWith(SignatureAlgorithm.HS256, SECRET_KEY).compact();
-            return token;
         } else {
             System.out.println("TOKEN CREATION FAILED");
             return null;
@@ -48,11 +41,9 @@ public class JwtUtil {
     }
 
     public String generateTokenForAgentContainer(String username) {
-        String token = Jwts.builder().setSubject(username).setIssuedAt(new Date(System.currentTimeMillis()))
+        return Jwts.builder().setSubject(username).setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // token valid for 10 hours
                 .signWith(SignatureAlgorithm.HS256, SECRET_KEY).compact();
-        System.out.println(token);
-        return token;
     }
 
     public String getUsernameFromToken(String token) {

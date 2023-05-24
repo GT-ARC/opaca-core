@@ -16,7 +16,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Enumeration;
 
 @Component
 public class JwtRequestFilter extends OncePerRequestFilter {
@@ -30,15 +29,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        System.out.println("doFilterInteral jwtUtil");
-        System.out.println(jwtUtil);
         String requestURL = request.getRequestURI();
-        System.out.println("______________");
-        Enumeration<String> headerNames = request.getHeaderNames();
-        while(headerNames.hasMoreElements()) {
-            String headerName = headerNames.nextElement();
-            System.out.println("Header Name: " + headerName + ", Value: " + request.getHeader(headerName));
-        }
     
         if (!isSwagger(requestURL) && !requestURL.contains("/login") ) {
         
