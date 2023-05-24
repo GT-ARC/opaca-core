@@ -103,6 +103,7 @@ public class KubernetesClient implements ContainerClient {
     @Override
     public AgentContainer.Connectivity startContainer(String containerId, String token, AgentContainerImage image) throws IOException, NoSuchElementException {
         
+        
         var imageName = image.getImageName();
         var registry = imageName.split("/")[0];
         String registrySecret = this.auth.get(registry);

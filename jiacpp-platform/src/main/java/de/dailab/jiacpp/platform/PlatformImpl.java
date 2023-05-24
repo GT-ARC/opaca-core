@@ -16,6 +16,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+
 import org.springframework.beans.factory.annotation.Autowired;
 
 
@@ -85,13 +86,8 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public String login(String usernamePlatform, String passwordPlatform) throws IOException {
-        String token = jwtUtil.generateTokenForPlatform(usernamePlatform, passwordPlatform);
+        return jwtUtil.generateTokenForUser(usernamePlatform, passwordPlatform);
         
-        if (token != null) {
-            return token;
-        } else {
-            throw new RuntimeException("Token generation failed");
-        }
     }
     /*
      * AGENTS ROUTES

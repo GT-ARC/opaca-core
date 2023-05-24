@@ -22,28 +22,29 @@ public class JwtUtil {
         this.tokenUserDetailsService = tokenUserDetailsService;
     }
 
-    public String generateTokenForPlatform(String username, String password) {
+    public String generateTokenForUser(String username, String password) {
         UserDetails userDetails;
         try {
             userDetails = tokenUserDetailsService.loadUserByUsername(username);
         } catch (UsernameNotFoundException e) {
-            System.out.println("TOKEN CREATION FAILED");
-            return null;
+            throw e;
         }
         if (userDetails.getPassword().equals(password)) {
             return Jwts.builder().setSubject(username).setIssuedAt(new Date(System.currentTimeMillis()))
                     .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // token valid for 10 hours
                     .signWith(SignatureAlgorithm.HS256, SECRET_KEY).compact();
         } else {
-            System.out.println("TOKEN CREATION FAILED");
-            return null;
+            throw new AuthException("wrong password", null);
         }
     }
 
     public String generateTokenForAgentContainer(String username) {
-        return Jwts.builder().setSubject(username).setIssuedAt(new Date(System.currentTimeMillis()))
+        String token = Jwts.builder().setSubject(username).setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // token valid for 10 hours
                 .signWith(SignatureAlgorithm.HS256, SECRET_KEY).compact();
+        System.out.println("TOKEN GENERATED FOR AGENT CONTAINER (generateToken method)");
+        System.out.println(token);
+        return token;
     }
 
     public String getUsernameFromToken(String token) {
