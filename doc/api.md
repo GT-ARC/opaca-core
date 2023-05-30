@@ -10,7 +10,12 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
 
 * provided by the Agent Container, and by the Runtime Platform (the latter just forwarding to the former)
 
-<!-- TODO GET /info routes missing -->
+### `GET /info`
+
+* get information about this agent container
+* input: none
+* output: `AgentContainer`
+* errors: none
 
 ### `GET /agents`
 
@@ -60,6 +65,14 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
 
 * provided by the Runtime Platform, in addition to the above routes (which are just forwarded to the Agent Container)
 * a part of those routes may also be provided by an "Agent Bundle" as an in-between of Agent Container and Runtime Platform, still t.b.d.
+
+
+### `GET /info`
+
+* get information about this runtime platform
+* input: none
+* output: `RuntimePlatform`
+* errors: none
 
 ### `GET /containers`
 
