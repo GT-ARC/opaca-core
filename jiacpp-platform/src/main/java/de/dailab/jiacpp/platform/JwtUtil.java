@@ -39,12 +39,9 @@ public class JwtUtil {
     }
 
     public String generateTokenForAgentContainer(String username) {
-        String token = Jwts.builder().setSubject(username).setIssuedAt(new Date(System.currentTimeMillis()))
+        return Jwts.builder().setSubject(username).setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // token valid for 10 hours
                 .signWith(SignatureAlgorithm.HS256, SECRET_KEY).compact();
-        System.out.println("TOKEN GENERATED FOR AGENT CONTAINER (generateToken method)");
-        System.out.println(token);
-        return token;
     }
 
     public String getUsernameFromToken(String token) {

@@ -3,6 +3,7 @@ package de.dailab.jiacpp.platform;
 import io.jsonwebtoken.MalformedJwtException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,12 +28,15 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     @Autowired
     JwtUtil jwtUtil;
 
+    @Value("${security.enableJwt}")
+    private boolean enableJwt;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String requestURL = request.getRequestURI();
-    
-        if (!isSwagger(requestURL) && !requestURL.contains("/login") ) {
+        
+        if (enableJwt && !isSwagger(requestURL) && !requestURL.contains("/login")) {
         
             final String requestTokenHeader = request.getHeader("Authorization");
             String username = null;
