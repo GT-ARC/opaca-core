@@ -3,9 +3,14 @@
 This document shows a high-level, easy-to-read, language-agnostic overview of the JIAC++ API, the different routes, etc. It _should_ be kept up to date, but might not always _be_ up to date. When in doubt, please consult the Interfaces and Model classes in the `jiacpp-model` module, or just start a Runtime Platform and check the documentation in the Swagger Web UI.
 
 
+<!-- TODO environment variables passed from TP to AC -->
+
+
 ## Agents API
 
 * provided by the Agent Container, and by the Runtime Platform (the latter just forwarding to the former)
+
+<!-- TODO GET /info routes missing -->
 
 ### `GET /agents`
 
@@ -127,7 +132,84 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
 
 ## Models
 
-The model classes used in the different API routes are depicted in the following figure:
+### RuntimePlatform
+```
+{
+    "baseUrl": URL,
+    "containers": [ AgentContainer ],
+    "provides": [ string ],
+    "connections": [ URL ]
+}
+```
+
+### AgentContainer
+
+```
+{
+    "containerId": string,
+    "image": AgentContainerImage,
+    "agents": [ AgentDescription ],
+    "runningSince": "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+    "connectivity": {
+        "publicUrl": URL,
+        "apiPortMapping": int,
+        "extraPortMappings": {
+            int: {
+                "protocol": string,
+                "description": string
+            }
+        }
+    }
+}
+```
+
+### AgentContainerImage
+```
+{
+    "imageName": string,
+    "requires": [ string ],
+    "provides": [ string ],
+    "name": string,
+    "description": string,
+    "provider": string
+    "apiPort": int, // default: 8082
+    "extraPorts": {
+        int: {
+            "protocol": string,
+            "description": string
+        }
+    }
+}
+```
+
+### AgentDescription
+
+```
+{
+    "agentId": string,
+    "agentType": string,
+    "actions": [ Action ]
+}
+```
+
+### Action
+```
+{
+    "name": string,
+    "parameters": {string: string},
+    "result": string
+}
+```
+
+### Message
+```
+{
+    "payload": any,
+    "replyTo": string
+}
+```
+
+The relations between the model classes used in the different API routes are depicted in the following figure:
 
 ![Model Classes](img/models.png)
 
