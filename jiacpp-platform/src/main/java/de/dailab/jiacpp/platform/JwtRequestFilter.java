@@ -19,19 +19,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-public class JwtRequestFilter extends OncePerRequestFilter {
+import lombok.Setter;
 
+public class JwtRequestFilter extends OncePerRequestFilter {
+    
+    @Setter
     private UserDetailsService jwtUserDetailsService;
 
+    @Setter
     private JwtUtil jwtUtil;
-
-    public void setJwtUserDetailsService(UserDetailsService jwtUserDetailsService) {
-        this.jwtUserDetailsService = jwtUserDetailsService;
-    }
-
-    public void setJwtUtil(JwtUtil jwtUtil) {
-        this.jwtUtil = jwtUtil;
-    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
