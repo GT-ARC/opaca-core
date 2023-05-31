@@ -1,5 +1,7 @@
 package de.dailab.jiacpp.platform;
 
+import javax.annotation.PostConstruct;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -19,17 +21,29 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
-    @Autowired
     private JwtRequestFilter jwtRequestFilter;
 
     @Autowired
     private UserDetailsService myUserDetailsService;
+
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
         auth.userDetailsService(myUserDetailsService);
     }
 
+    @PostConstruct
+    public void init() {
+        if(enableJwt) {
+            jwtRequestFilter = new JwtRequestFilter();
+            jwtRequestFilter.setJwtUserDetailsService(myUserDetailsService);
+            jwtRequestFilter.setJwtUtil(jwtUtil);
+        }
+    }
+    
     @Value("${security.enableJwt}")
     private boolean enableJwt;
 
@@ -53,13 +67,10 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                     .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
             http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
         } else {
-            http.authorizeRequests()
+            http.csrf().disable() 
+                .authorizeRequests()
                 .antMatchers("/**").permitAll();
         }
-    }
-
-    public boolean isEnableJwt() {
-        return enableJwt;
     }
 
     @Override

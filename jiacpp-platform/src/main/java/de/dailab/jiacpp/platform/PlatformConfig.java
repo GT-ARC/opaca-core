@@ -73,6 +73,9 @@ public class PlatformConfig {
     @Value("${remote_docker_port}")
     public String remoteDockerPort;
 
+    @Value("${security.enableJwt}")
+    public Boolean enableJwt;
+
     // KUBERNETES (only for container_environment = "kubernetes")
 
     @Value("${kubernetes_namespace}")

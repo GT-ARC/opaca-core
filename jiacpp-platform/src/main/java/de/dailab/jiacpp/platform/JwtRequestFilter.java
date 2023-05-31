@@ -19,25 +19,27 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-@Component
 public class JwtRequestFilter extends OncePerRequestFilter {
 
-    @Autowired
     private UserDetailsService jwtUserDetailsService;
 
-    @Autowired
-    JwtUtil jwtUtil;
+    private JwtUtil jwtUtil;
 
-    @Value("${security.enableJwt}")
-    private boolean enableJwt;
+    public void setJwtUserDetailsService(UserDetailsService jwtUserDetailsService) {
+        this.jwtUserDetailsService = jwtUserDetailsService;
+    }
+
+    public void setJwtUtil(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String requestURL = request.getRequestURI();
-        
-        if (enableJwt && !isSwagger(requestURL) && !requestURL.contains("/login")) {
-        
+
+        if (!isSwagger(requestURL) && !requestURL.contains("/login")) {
+
             final String requestTokenHeader = request.getHeader("Authorization");
             String username = null;
             String jwtToken = null;
