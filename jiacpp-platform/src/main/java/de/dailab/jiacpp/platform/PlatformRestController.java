@@ -91,9 +91,15 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@ExceptionHandler(value=IOException.class)
 	@ResponseStatus(HttpStatus.BAD_GATEWAY)
 	public ResponseEntity<String> handleIoException(IOException e) {
-		log.severe(e.getMessage());  // should not happen
-		e.printStackTrace();
+		log.severe(e.getMessage());  // should not happen (but can also be user error)
 		return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(e.getMessage());
+	}
+
+	@ExceptionHandler(value=IllegalArgumentException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException e) {
+		log.warning(e.getMessage());  // probably user error
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
 	}
 
 	/*
