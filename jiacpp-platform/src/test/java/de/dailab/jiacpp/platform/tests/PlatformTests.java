@@ -521,9 +521,15 @@ public class PlatformTests {
     }
 
     @Test
-    public void testXConnect() throws Exception {
+    public void testXConnectUnknown() throws Exception {
         var con = request(PLATFORM_A, "POST", "/connections", "http://flsflsfsjfkj.com");
         Assert.assertEquals(502, con.getResponseCode());
+    }
+
+    @Test
+    public void testXConnectInvalid() throws Exception {
+        var con = request(PLATFORM_A, "POST", "/connections", "not a valid url");
+        Assert.assertEquals(400, con.getResponseCode());
     }
 
     @Test
