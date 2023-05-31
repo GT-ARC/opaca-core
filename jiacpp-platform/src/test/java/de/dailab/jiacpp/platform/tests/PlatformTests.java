@@ -559,9 +559,13 @@ public class PlatformTests {
         var con1 = request(PLATFORM_A, "POST", "/containers/notify", "container-does-not-exist");
         Assert.assertEquals(404, con1.getResponseCode());
 
-        // invalid platform
-        var con2 = request(PLATFORM_A, "POST", "/connections/notify", "platform-does-not-exist");
+        // unknown platform
+        var con2 = request(PLATFORM_A, "POST", "/connections/notify", "http://platform-does-not-exist.com");
         Assert.assertEquals(404, con2.getResponseCode());
+
+        // invalid platform
+        var con3 = request(PLATFORM_A, "POST", "/connections/notify", "invalid-url");
+        Assert.assertEquals(400, con3.getResponseCode());
     }
 
     @Test
