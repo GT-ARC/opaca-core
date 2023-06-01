@@ -57,26 +57,26 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
-    public void send(String agentId, Message message, boolean forward) throws IOException {
-        var path = String.format("/send/%s?%s", agentId, buildQuery(forward));
+    public void send(String agentId, Message message, String containerId, boolean forward) throws IOException {
+        var path = String.format("/send/%s?%s", agentId, buildQuery(containerId, forward));
         client.post(path, message, null);
     }
 
     @Override
-    public void broadcast(String channel, Message message, boolean forward) throws IOException {
-        var path = String.format("/broadcast/%s?%s", channel, buildQuery(forward));
+    public void broadcast(String channel, Message message, String containerId, boolean forward) throws IOException {
+        var path = String.format("/broadcast/%s?%s", channel, buildQuery(containerId, forward));
         client.post(path, message, null);
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters, boolean forward) throws IOException {
-        var path = String.format("/invoke/%s?%s", action, buildQuery(forward));
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws IOException {
+        var path = String.format("/invoke/%s?%s", action, buildQuery(containerId, forward));
         return client.post(path, parameters, JsonNode.class);
     }
 
     @Override
-    public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters, boolean forward) throws IOException {
-        var path = String.format("/invoke/%s/%s?%s", action, agentId, buildQuery(forward));
+    public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws IOException {
+        var path = String.format("/invoke/%s/%s?%s", action, agentId, buildQuery(containerId, forward));
         return client.post(path, parameters, JsonNode.class);
     }
 
@@ -136,8 +136,11 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     /**
      * Helper method for building Query string (without initial ?); will be more useful when there are more.
      */
-    private String buildQuery(Boolean forward) {
+    private String buildQuery(String containerId, Boolean forward) {
         String result = "";
+        if (containerId != null) {
+            result += String.format("&containerId=%s", containerId);
+        }
         if (forward != null) {
             result += String.format("&forward=%s", forward);
         }

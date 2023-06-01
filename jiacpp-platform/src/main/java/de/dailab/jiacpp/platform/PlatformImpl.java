@@ -92,13 +92,13 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public void send(String agentId, Message message, boolean forward) throws NoSuchElementException {
-        var clients = getClients(null, agentId, null, forward);
+    public void send(String agentId, Message message, String containerId, boolean forward) throws NoSuchElementException {
+        var clients = getClients(containerId, agentId, null, forward);
 
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             log.info("Forwarding /send to " + client.baseUrl);
             try {
-                client.send(agentId, message, false);
+                client.send(agentId, message, containerId, false);
                 return;
             } catch (IOException e) {
                 log.warning("Failed to forward /send to " + client.baseUrl);
@@ -109,13 +109,13 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public void broadcast(String channel, Message message, boolean forward) {
-        var clients = getClients(null, null, null, forward);
+    public void broadcast(String channel, Message message, String containerId, boolean forward) {
+        var clients = getClients(containerId, null, null, forward);
 
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             log.info("Forwarding /broadcast to " + client.baseUrl);
             try {
-                client.broadcast(channel, message, false);
+                client.broadcast(channel, message, containerId, false);
             } catch (IOException e) {
                 log.warning("Failed to forward /broadcast to " + client.baseUrl);
             }
@@ -123,19 +123,19 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters, boolean forward) throws NoSuchElementException {
-        return invoke(null, action, parameters, forward);
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws NoSuchElementException {
+        return invoke(null, action, parameters, containerId, forward);
     }
 
     @Override
-    public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters, boolean forward) throws NoSuchElementException {
-        var clients = getClients(null, agentId, action, forward);
+    public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws NoSuchElementException {
+        var clients = getClients(containerId, agentId, action, forward);
 
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {
                 return agentId == null
-                        ? client.invoke(action, parameters, false)
-                        : client.invoke(agentId, action, parameters, false);
+                        ? client.invoke(action, parameters, containerId, false)
+                        : client.invoke(agentId, action, parameters, containerId, false);
             } catch (IOException e) {
                 // todo: different warning in case of faulty parameters?
                 log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s'",
