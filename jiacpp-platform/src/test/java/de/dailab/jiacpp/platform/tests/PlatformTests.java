@@ -20,19 +20,21 @@ import java.util.Map;
 
 /**
  * The unit tests in this class test all the basic functionality of the Runtime Platform as well as some
- * error cases. The tests run against a live Runtime Platform that has to be started before the tests.
- *
- * - build everything with `mvn install`
- * - build the example container: `cd examples/sample-container; docker build -t sample-agent-container-image .`
- * - build the runtime platform docker image: `cd ../../jiacpp-platform; docker build -t jiacpp-platform .`
- * - start the runtime platform(s): `docker-compose up`
- *
- * NOTE: execution of the Runtime Platform in docker-compose does not work properly yet;
- * for now, just run it directly: `java -jar target/jiacpp-platform-0.1-SNAPSHOT.jar`
- * (for the connection-tests, repeat this for two platforms with ports 8001 and 8002 respectively)
+ * error cases. The tests run against two live Runtime Platforms that are started along with the tests.
+ * The sample container image is taken from the DAI Gitlab Container Registry.
  *
  * Some tests depend on each others, so best always execute all tests. (That's also the reason
  * for the numbers in the method names, so don't remove those and stay consistent when adding more tests!)
+ *
+ * During initial setup and the first tests, two Runtime Platforms are started, a sample-container is
+ * deployed on the first one, and the two platforms are connected.
+ *
+ *   Platform A   -----------------   Platform B
+ *       |
+ *  Sample-Container-Image
+ *
+ * Thus, this is the setup that can be assumed for most tests. Individual tests may deploy additional
+ * containers needed for testing, but then they should undeploy them when they are done.
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class PlatformTests {

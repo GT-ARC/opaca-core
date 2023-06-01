@@ -34,6 +34,16 @@ public interface RuntimePlatformApi extends CommonApi {
      */
     List<Event> getHistory() throws IOException;
 
+    /*
+     * AGENT CONTAINER ROUTES
+     */
+
+    // see CommonApi.java
+
+    /*
+     * CONTAINER MANAGEMENT
+     */
+
     /**
      * Deploy a container to the runtime Platform. Check requirements, get actual docker image, and
      * deploy to Docker/Kubernetes, then return the ID of the running Agent Container.
@@ -75,6 +85,21 @@ public interface RuntimePlatformApi extends CommonApi {
     boolean removeContainer(String containerId) throws IOException;
 
     /**
+     * Notify Platform of changes in one of its own containers, triggering an update by calling the /info route.
+     * Can be called by the container itself, or by some other entity or the user.
+     *
+     * REST: POST /containers/notify
+     *
+     * @param containerId The ID of the container to update.
+     * @return true/false depending on whether the update was successful (false = container not reachable, removed)
+     */
+    boolean notifyUpdateContainer(String containerId) throws IOException;
+
+    /*
+     * CONNECTIONS MANAGEMENT
+     */
+
+    /**
      * Connect this platform to another platform, running on a different host.
      * The connection will be bi-directional.
      *
@@ -103,17 +128,6 @@ public interface RuntimePlatformApi extends CommonApi {
      * @return Disconnect successful?
      */
     boolean disconnectPlatform(String url) throws IOException;
-
-    /**
-     * Notify Platform of changes in one of its own containers, triggering an update by calling the /info route.
-     * Can be called by the container itself, or by some other entity or the user.
-     *
-     * REST: POST /containers/notify
-     *
-     * @param containerId The ID of the container to update.
-     * @return true/false depending on whether the update was successful (false = container not reachable, removed)
-     */
-    boolean notifyUpdateContainer(String containerId) throws IOException;
 
     /**
      * Notify Platform of changes in a connected Platform, triggering an update by calling the /info route.
