@@ -76,13 +76,13 @@ public interface CommonApi {
      *
      * REST: POST /invoke/{action}/{agent}?containerId={containerId}&forward={true|false}`
      *
-     * @param agentId Name of the agent
      * @param action Name of the action
      * @param parameters Map of Parameters
+     * @param agentId Name of the agent
      * @param containerId ID of the Container to use (optional)
      * @param forward flag whether to forward the message to connected platforms (optional)
      * @return Action result
      */
-    JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws IOException;
+    JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws IOException;
 
 }

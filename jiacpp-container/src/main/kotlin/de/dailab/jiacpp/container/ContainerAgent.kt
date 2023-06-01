@@ -105,7 +105,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 val action = invokeActOf.groupValues[1]
                 val agentId = invokeActOf.groupValues[2]
                 val parameters = RestHelper.readMap(body)
-                val res = impl.invoke(agentId, action, parameters, "", false)
+                val res = impl.invoke(action, parameters, agentId, "", false)
                 response.writer.write(RestHelper.writeJson(res))
             }
         }
@@ -195,10 +195,10 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         override fun invoke(action: String, parameters: Map<String, JsonNode>, containerId: String, forward: Boolean): JsonNode? {
             log.info("INVOKE ACTION: $action $parameters")
-            return invoke(null, action, parameters, containerId, forward)
+            return invoke(action, parameters, null, containerId, forward)
         }
 
-        override fun invoke(agentId: String?, action: String, parameters: Map<String, JsonNode>, containerId: String, forward: Boolean): JsonNode? {
+        override fun invoke(action: String, parameters: Map<String, JsonNode>, agentId: String?, containerId: String, forward: Boolean): JsonNode? {
             log.info("INVOKE ACTION OF AGENT: $agentId $action $parameters")
 
             val agent = findRegisteredAgent(agentId, action)

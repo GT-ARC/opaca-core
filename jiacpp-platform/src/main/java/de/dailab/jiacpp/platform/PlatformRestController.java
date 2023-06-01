@@ -181,14 +181,14 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Operation(summary="Invoke action at that specific agent", tags={"agents"})
 	@Override
 	public JsonNode invoke(
-			@PathVariable String agentId,
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters,
+			@PathVariable String agentId,
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("INVOKE: %s, %s, %s", action, agentId, parameters));
-		return implementation.invoke(agentId, action, parameters, containerId, forward);
+		return implementation.invoke(action, parameters, agentId, containerId, forward);
 	}
 
 	/*

@@ -75,7 +75,7 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
-    public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws IOException {
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws IOException {
         var path = String.format("/invoke/%s/%s?%s", action, agentId, buildQuery(containerId, forward));
         return client.post(path, parameters, JsonNode.class);
     }
