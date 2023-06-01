@@ -5,17 +5,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import lombok.AllArgsConstructor;
+import lombok.extern.java.Log;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Helper class for issuing different REST calls in Java.
  */
+@Log
 @AllArgsConstructor
 public class RestHelper {
 
@@ -38,6 +41,7 @@ public class RestHelper {
     }
 
     public <T> T request(String method, String path, Object payload, Class<T> type) throws IOException {
+        log.info(String.format("%s %s%s (%s)", method, baseUrl, path, payload));
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
         connection.setRequestMethod(method);
 
@@ -77,6 +81,23 @@ public class RestHelper {
 
     public static String writeJson(Object obj) throws IOException {
         return mapper.writeValueAsString(obj);
+    }
+
+    // based on https://stackoverflow.com/a/17472462/1639625
+    public static Map<String, String> parseQueryString(String queryString) {
+        if (queryString == null) {
+            return Map.of();
+        }
+        Map<String, String> result = new HashMap<>();
+        for (String param : queryString.split("&")) {
+            String[] entry = param.split("=");
+            if (entry.length > 1) {
+                result.put(entry[0], entry[1]);
+            } else {
+                result.put(entry[0], "");
+            }
+        }
+        return result;
     }
 
 }
