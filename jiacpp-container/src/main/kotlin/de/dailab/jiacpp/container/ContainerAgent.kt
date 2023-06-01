@@ -125,6 +125,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     /** the URL of the parent Runtime Platform, received on initialization */
     private var runtimePlatformUrl: String? = null
 
+    /** the token for accessing the parent Runtime Platform, received on initialization */
+    private var token: String? = null
+    
     /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
 
@@ -147,6 +150,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         log.info("Setting environment...")
         containerId = System.getenv(AgentContainerApi.ENV_CONTAINER_ID)
         runtimePlatformUrl = System.getenv(AgentContainerApi.ENV_PLATFORM_URL)
+        token = System.getenv(AgentContainerApi.ENV_TOKEN)
         startedAt = ZonedDateTime.now(ZoneId.of("Z"))
     }
 
@@ -236,12 +240,12 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     override fun behaviour() = act {
 
         // agents may register with the container agent, publishing their ID and actions
-        respond<Register, String?> {
+        respond<Register, Pair<String?, String?> > {
             // TODO should Register message contain the agent's internal name, or is that always equal to the agentId?
             log.info("Registering ${it.description}")
             registeredAgents[it.description.agentId] = it.description
             notifyPlatform()
-            runtimePlatformUrl
+            Pair(runtimePlatformUrl, token)
         }
 
         // in case agents want to de-register themselves before the container as a whole terminates

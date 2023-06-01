@@ -17,10 +17,18 @@ import java.util.Map;
 public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
 
     public final String baseUrl;
+    public final String token;
     private final RestHelper client;
+
+    public ApiProxy(String baseUrl, String token) {
+        this.baseUrl = baseUrl;
+        this.token = token;
+        this.client = new RestHelper(baseUrl, token);
+    }
 
     public ApiProxy(String baseUrl) {
         this.baseUrl = baseUrl;
+        this.token = null;
         this.client = new RestHelper(baseUrl);
     }
 
