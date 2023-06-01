@@ -231,12 +231,14 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         var newContainerId = result(con);
 
-        con = request(PLATFORM_A, "GET", "/containers/" + newContainerId, null);
-        var res = result(con, AgentContainer.class);
-        Assert.assertEquals(8083, (int) res.getConnectivity().getApiPortMapping());
-
-        con = request(PLATFORM_A, "DELETE", "/containers/" + newContainerId, null);
-        Assert.assertEquals(200, con.getResponseCode());
+        try {
+            con = request(PLATFORM_A, "GET", "/containers/" + newContainerId, null);
+            var res = result(con, AgentContainer.class);
+            Assert.assertEquals(8083, (int) res.getConnectivity().getApiPortMapping());
+        } finally {
+            con = request(PLATFORM_A, "DELETE", "/containers/" + newContainerId, null);
+            Assert.assertEquals(200, con.getResponseCode());
+        }
     }
 
     /**
@@ -286,35 +288,40 @@ public class PlatformTests {
      * action of the respective containers to check that the messages were delivered correctly.
      */
     @Test
-    public void testWithContainerId() throws Exception {
+    public void test5WithContainerId() throws Exception {
         // deploy a second sample container image on platform A
         var image = getSampleContainerImage();
         var con = request(PLATFORM_A, "POST", "/containers", image);
         var newContainerId = result(con);
 
-        // directed /send and /broadcast to both containers
-        var msg1 = "Message to First Container";
-        var msg2 = "Message to Second Container";
-        request(PLATFORM_A, "POST", "/broadcast?containerId=" + containerId, msg1);
-        request(PLATFORM_A, "POST", "/send?containerId=" + newContainerId, msg2);
+        try {
+            // directed /send and /broadcast to both containers
+            var msg1 = Map.of("payload", "\"Message to First Container\"", "replyTo", "");
+            var msg2 = Map.of("payload", "\"Message to Second Container\"", "replyTo", "");
+            request(PLATFORM_A, "POST", "/broadcast/topic?containerId=" + containerId, msg1);
+            request(PLATFORM_A, "POST", "/send/sample1?containerId=" + newContainerId, msg2);
+            Thread.sleep(500);
 
-        // directed /invoke of GetInfo to check last messages of first container
-        con = request(PLATFORM_B, "POST", "/invoke/GetInfo?containerId=" + containerId, Map.of());
-        var res1 = result(con, Map.class);
-        Assert.assertEquals(containerId, res1.get(AgentContainerApi.ENV_CONTAINER_ID));
-        Assert.assertEquals(msg1, res1.get("lastBroadcast"));
-        Assert.assertNotEquals(msg2, res1.get("lastMessage"));
+            // directed /invoke of GetInfo to check last messages of first container
+            con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample1?containerId=" + containerId, Map.of());
+            var res1 = result(con, Map.class);
+            System.out.println(res1);
+            Assert.assertEquals(containerId, res1.get(AgentContainerApi.ENV_CONTAINER_ID));
+            Assert.assertEquals(msg1.get("payload"), res1.get("lastBroadcast"));
+            Assert.assertNotEquals(msg2.get("payload"), res1.get("lastMessage"));
 
-        // directed /invoke of GetInfo to check last messages of second container
-        con = request(PLATFORM_B, "POST", "/invoke/GetInfo?containerId=" + newContainerId, Map.of());
-        var res2 = result(con, Map.class);
-        Assert.assertEquals(newContainerId, res2.get(AgentContainerApi.ENV_CONTAINER_ID));
-        Assert.assertNotEquals(msg1, res2.get("lastBroadcast"));
-        Assert.assertEquals(msg2, res2.get("lastMessage"));
-
-        // remove the additional sample container image from platform A
-        con = request(PLATFORM_A, "DELETE", "/containers/" + newContainerId, null);
-        Assert.assertEquals(200, con.getResponseCode());
+            // directed /invoke of GetInfo to check last messages of second container
+            con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample1?containerId=" + newContainerId, Map.of());
+            var res2 = result(con, Map.class);
+            System.out.println(res1);
+            Assert.assertEquals(newContainerId, res2.get(AgentContainerApi.ENV_CONTAINER_ID));
+            Assert.assertNotEquals(msg1.get("payload"), res2.get("lastBroadcast"));
+            Assert.assertEquals(msg2.get("payload"), res2.get("lastMessage"));
+        } finally {
+            // remove the additional sample container image from platform A
+            con = request(PLATFORM_A, "DELETE", "/containers/" + newContainerId, null);
+            Assert.assertEquals(200, con.getResponseCode());
+        }
     }
 
     /**
@@ -387,14 +394,15 @@ public class PlatformTests {
      */
     @Test
     public void test7ForwardBroadcast() throws Exception {
-        var message = Map.of("payload", "testBroadcast", "replyTo", "doesnotmatter");
+        var message = Map.of("payload", "testBroadcastForward", "replyTo", "doesnotmatter");
         var con = request(PLATFORM_B, "POST", "/broadcast/topic", message);
         Assert.assertEquals(200, con.getResponseCode());
+        Thread.sleep(500);
 
         con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample1", Map.of());
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
-        Assert.assertEquals("testBroadcast", res.get("lastBroadcast"));
+        Assert.assertEquals("testBroadcastForward", res.get("lastBroadcast"));
     }
 
     // repeat tests again, with second platform, but disallowing forwarding
