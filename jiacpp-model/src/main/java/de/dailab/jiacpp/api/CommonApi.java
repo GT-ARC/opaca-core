@@ -37,7 +37,7 @@ public interface CommonApi {
     /**
      * Send message to a single agent in the container.
      *
-     * REST: POST /send/{id}
+     * REST: POST /send/{id}?containerId={containerId}&forward={true|false}`
      *
      * @param agentId ID of the agent
      * @param message The message envelope
@@ -49,7 +49,7 @@ public interface CommonApi {
     /**
      * Send message to a group of agents, or channel.
      *
-     * REST: POST /broadcast/{channel}
+     * REST: POST /broadcast/{channel}?containerId={containerId}&forward={true|false}`
      *
      * @param channel Name of the group or channel
      * @param message The message envelope
@@ -61,7 +61,7 @@ public interface CommonApi {
     /**
      * Invoke an action provided by any agent on this container.
      *
-     * REST: POST /invoke/{action}
+     * REST: POST /invoke/{action}?containerId={containerId}&forward={true|false}`
      *
      * @param action Name of the action
      * @param parameters Map of Parameters
@@ -74,7 +74,7 @@ public interface CommonApi {
     /**
      * Invoke an action provided by a specific agent on this container.
      *
-     * REST: POST /invoke/{action}/{agent}
+     * REST: POST /invoke/{action}/{agent}?containerId={containerId}&forward={true|false}`
      *
      * @param agentId Name of the agent
      * @param action Name of the action
