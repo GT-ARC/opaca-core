@@ -23,9 +23,6 @@ import java.util.stream.Stream;
 @Log
 public class PlatformImpl implements RuntimePlatformApi {
 
-    // TODO make sure agent IDs are globally unique? extend agent-ids with platform-hash or similar?
-    //  e.g. optionally allow "agentId@containerId" to be passed in place of agentId for all routes? (Issue #10)
-
     final PlatformConfig config;
 
     final ContainerClient containerClient;
@@ -332,30 +329,6 @@ public class PlatformImpl implements RuntimePlatformApi {
                 log.warning("Failed to forward update to Platform " + platformUrl);
             }
         }
-    }
-
-    /**
-     * Get client for send or invoke to specific agent, in a specific container, for a specific action.
-     * All those parameters are optional (e.g. for "send" or "invoke" without agentId), but obviously
-     * _some_ should be set, otherwise it does not make much sense to call the method.
-     */
-    private ApiProxy getClient(String containerId, String agentId, String action) throws IOException {
-        // TODO for /invoke: also check that action parameters match, or just the name?
-        // check own containers
-        var container = runningContainers.values().stream()
-                .filter(c -> matches(c, containerId, agentId, action))
-                .findFirst();
-        if (container.isPresent()) {
-            return getClient(container.get());
-        }
-        // check containers on connected platforms
-        var platform = connectedPlatforms.values().stream()
-                .filter(p -> p.getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action)))
-                .findFirst();
-        if (platform.isPresent()) {
-            return new ApiProxy(platform.get().getBaseUrl());
-        }
-        return null;
     }
 
     /**

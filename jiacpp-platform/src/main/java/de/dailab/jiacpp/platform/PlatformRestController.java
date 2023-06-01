@@ -201,7 +201,6 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public String addContainer(
 			@RequestBody AgentContainerImage container
 	) throws IOException {
-		// TODO handle "failed to start container" error (tbd)
 		log.info(String.format("ADD CONTAINER: %s", container));
 		return implementation.addContainer(container);
 	}
