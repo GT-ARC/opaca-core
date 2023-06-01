@@ -1,5 +1,6 @@
 package de.dailab.jiacpp.platform.tests;
 
+import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.platform.Application;
 import de.dailab.jiacpp.platform.PlatformRestController;
@@ -277,6 +278,43 @@ public class PlatformTests {
         con = request(PLATFORM_A, "GET", "/containers/" + containerId, null);
         var res = result(con, AgentContainer.class);
         Assert.assertNotNull(res.getConnectivity());
+    }
+
+    /**
+     * Deploy an additional sample-container on the same platform, so there are two of the same.
+     * Then /send and /broadcast messages to one particular container, then /invoke the GetInfo
+     * action of the respective containers to check that the messages were delivered correctly.
+     */
+    @Test
+    public void testWithContainerId() throws Exception {
+        // deploy a second sample container image on platform A
+        var image = getSampleContainerImage();
+        var con = request(PLATFORM_A, "POST", "/containers", image);
+        var newContainerId = result(con);
+
+        // directed /send and /broadcast to both containers
+        var msg1 = "Message to First Container";
+        var msg2 = "Message to Second Container";
+        request(PLATFORM_A, "POST", "/broadcast?containerId=" + containerId, msg1);
+        request(PLATFORM_A, "POST", "/send?containerId=" + newContainerId, msg2);
+
+        // directed /invoke of GetInfo to check last messages of first container
+        con = request(PLATFORM_B, "POST", "/invoke/GetInfo?containerId=" + containerId, Map.of());
+        var res1 = result(con, Map.class);
+        Assert.assertEquals(containerId, res1.get(AgentContainerApi.ENV_CONTAINER_ID));
+        Assert.assertEquals(msg1, res1.get("lastBroadcast"));
+        Assert.assertNotEquals(msg2, res1.get("lastMessage"));
+
+        // directed /invoke of GetInfo to check last messages of second container
+        con = request(PLATFORM_B, "POST", "/invoke/GetInfo?containerId=" + newContainerId, Map.of());
+        var res2 = result(con, Map.class);
+        Assert.assertEquals(newContainerId, res2.get(AgentContainerApi.ENV_CONTAINER_ID));
+        Assert.assertNotEquals(msg1, res2.get("lastBroadcast"));
+        Assert.assertEquals(msg2, res2.get("lastMessage"));
+
+        // remove the additional sample container image from platform A
+        con = request(PLATFORM_A, "DELETE", "/containers/" + newContainerId, null);
+        Assert.assertEquals(200, con.getResponseCode());
     }
 
     /**
