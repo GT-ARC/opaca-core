@@ -12,6 +12,7 @@ import lombok.extern.java.Log;
 import de.dailab.jiacpp.util.EventHistory;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -222,7 +223,8 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public boolean connectPlatform(String url) throws IOException {
-        url = normalizeUrl(url);
+        url = normalizeString(url);
+        checkUrl(url);
         if (url.equals(config.getOwnBaseUrl()) || connectedPlatforms.containsKey(url)) {
             return false;
         } else if (pendingConnections.contains(url)) {
@@ -252,7 +254,8 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public boolean disconnectPlatform(String url) throws IOException {
-        url = normalizeUrl(url);
+        url = normalizeString(url);
+        checkUrl(url);
         if (connectedPlatforms.remove(url) != null) {
             var client = new ApiProxy(url);
             var res = client.disconnectPlatform(config.getOwnBaseUrl());
@@ -265,7 +268,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public boolean notifyUpdateContainer(String containerId) {
-        containerId = normalizeUrl(containerId); // remove '"' - also usable here?
+        containerId = normalizeString(containerId);
         if (! runningContainers.containsKey(containerId)) {
             var msg = String.format("Container did not exist: %s", containerId);
             log.warning(msg);
@@ -287,7 +290,8 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public boolean notifyUpdatePlatform(String platformUrl) {
-        platformUrl = normalizeUrl(platformUrl);
+        platformUrl = normalizeString(platformUrl);
+        checkUrl(platformUrl);
         if (platformUrl.equals(config.getOwnBaseUrl())) {
             log.warning("Cannot request update for self.");
             return false;
@@ -376,9 +380,17 @@ public class PlatformImpl implements RuntimePlatformApi {
         return new ApiProxy(url);
     }
 
-    private String normalizeUrl(String url) {
+    private String normalizeString(String string) {
         // string payload may or may not be enclosed in quotes -> normalize
-        return url.trim().replaceAll("^\"|\"$", "");
+        return string.trim().replaceAll("^\"|\"$", "");
+    }
+
+    private void checkUrl(String url) {
+        try {
+            new URL(url);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid URL: " + e.getMessage());
+        }
     }
 
 }
