@@ -28,10 +28,13 @@
 
 ### Runtime Platform to Runtime Platform 
 
-* not yet implemented, but basically, the same flow for all communication
-* look up other connected RP that has the target container
-* forward **message** or **invoke** to that platform
-* unclear: **broadcast**: how to prevent endlessly forwarding message back and forth? keep track of recently seen messages? or keep sender-history in each forwarded message and don't forward messages to RP in that history?
+* **send**, **broadcast** and **invoke** have optional query parameter `forward` with default value `true`
+* look up connected RP that have the target agent or action
+* **send** and **broadcast**: forward message to all valid platforms
+* **invoke**: forward invoke to first valid connected platform
+* `forward` parameter gets automatically set to `false` in the request to the connected platform to prevent endless forwarding
+
+* TODO: graphic
 
 ## Protocol for connecting two Runtime Platforms
 

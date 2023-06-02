@@ -213,6 +213,7 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
     "result": string
 }
 ```
+Note: The `parameters` key is a map of the argument names to their expected types, e.g. `"x": "Int"`. Similarly, `result` denotes the action's return type.
 
 ### Message
 ```
