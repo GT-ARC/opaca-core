@@ -3,7 +3,7 @@ package de.dailab.jiacpp.platform.tests;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.platform.Application;
 import de.dailab.jiacpp.platform.PlatformRestController;
-import de.dailab.jiacpp.util.RestHelper;
+import static de.dailab.jiacpp.platform.tests.TestUtils.*;
 
 import org.junit.*;
 import org.junit.runners.MethodSorters;
@@ -12,9 +12,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -42,8 +39,6 @@ public class PlatformTests {
 
     private final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
     private final String PLATFORM_B = "http://localhost:" + PLATFORM_B_PORT;
-
-    private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v5";
 
     private static ConfigurableApplicationContext platformA = null;
 
@@ -608,45 +603,6 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         agentsList = result(con, List.class);
         Assert.assertEquals(1, agentsList.size());
-    }
-
-    /*
-     * HELPER METHODS
-     */
-
-    public AgentContainerImage getSampleContainerImage() {
-        var image = new AgentContainerImage();
-        image.setImageName(TEST_IMAGE);
-        image.setExtraPorts(Map.of(8888, new AgentContainerImage.PortDescription()));
-        return image;
-    }
-
-    public HttpURLConnection request(String host, String method, String path, Object payload) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) new URL(host + path).openConnection();
-        connection.setRequestMethod(method);
-
-        if (payload != null) {
-            String json = RestHelper.mapper.writeValueAsString(payload);
-            byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
-            connection.setDoOutput(true);
-            connection.setFixedLengthStreamingMode(bytes.length);
-            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-            connection.connect();
-            try (OutputStream os = connection.getOutputStream()) {
-                os.write(bytes);
-            }
-        } else {
-            connection.connect();
-        }
-        return connection;
-    }
-
-    public String result(HttpURLConnection connection) throws IOException {
-        return new String(connection.getInputStream().readAllBytes());
-    }
-
-    public <T> T result(HttpURLConnection connection, Class<T> type) throws IOException {
-        return RestHelper.mapper.readValue(connection.getInputStream(), type);
     }
 
 }
