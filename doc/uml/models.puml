@@ -1,0 +1,69 @@
+@startuml models
+'https://plantuml.com/sequence-diagram
+
+hide empty methods
+hide circle
+
+
+class RuntimePlatform {
+    baseUrl: URL
+    provides: string[]
+    connections: URL[]
+}
+RuntimePlatform *- "*" AgentContainer: containers
+
+
+class AgentContainer {
+    containerId: string
+    runningSince: datetime
+}
+AgentContainer *-- "*" AgentDescription: agents
+AgentContainer *--  AgentContainerImage: image
+AgentContainer *-- Connectivity: connectivity;
+
+class Connectivity {
+    publicUrl: URL
+    apiPortMapping: integer
+}
+Connectivity *-- "*" PortDescription: extraPortMappings
+
+
+class AgentContainerImage {
+    name: string
+    description: string
+    provider: string
+    imageName: string
+    requires: string[]
+    provides: string[]
+    apiPort: integer
+}
+AgentContainerImage *-- "*" PortDescription: extraPorts
+
+class PortDescription {
+    port: integer
+    protocol: string
+    description: string
+}
+' actually "port" is not an attribute but this is refered 
+
+class AgentDescription {
+    agentId: string
+    agentType: string
+}
+AgentDescription *-- "*" Action: actions
+
+
+class Action {
+    name: string
+    paramTypes: {string: string}
+    resultType: string
+}
+' actually, the attributes are called "parameters" and "result", but adding "types" might be clearer
+
+class Message {
+    payload: json
+    replyTo: string
+}
+hide Message
+
+@enduml

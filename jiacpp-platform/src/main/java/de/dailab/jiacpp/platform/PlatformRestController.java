@@ -12,7 +12,6 @@ import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
@@ -97,11 +96,17 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@ExceptionHandler(value=IOException.class)
 	@ResponseStatus(HttpStatus.BAD_GATEWAY)
 	public ResponseEntity<String> handleIoException(IOException e) {
-		log.severe(e.getMessage());  // should not happen
-		e.printStackTrace();
+		log.severe(e.getMessage());  // should not happen (but can also be user error)
 		return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(e.getMessage());
 	}
-	
+
+	@ExceptionHandler(value=IllegalArgumentException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException e) {
+		log.warning(e.getMessage());  // probably user error
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+	}
+
 	/*
 	 * INFO ROUTES
 	 */

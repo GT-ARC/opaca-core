@@ -1,6 +1,6 @@
 # Prototype for JIAC++ API and Reference Implementation
 
-This module provides a first simple prototype/proof-of-concept for the "JIAC++" API,
+This module provides a first prototype for the "JIAC++" API,
 as well as a reference implementation in Java and an example container.
 
 This is in no way meant to be final, but rather to provide a basis for further discussions
@@ -27,90 +27,56 @@ and first tests in order to find out what of this makes sense etc.
 * use the `POST send` or `POST invoke` routes to send messages to the agent (with any payload; reply-to does not matter for now), or invoke the agent's dummy action (the action takes some time to run); check the logs of the agent container; you can also invoke the action and then immediately re-send the message to check that both work concurrently
 * shut down the platform with Ctrl+C; the agent container(s) should shut down as well
 
-### API Routes and Models
+## Getting Started / Kubernetes Environment
+* Log in to your Kubernetes (K8s) cluster.
+* Apply the document "doc/config/permission.yaml" to your cluster with `kubectl apply -f doc/config/permission.yaml`. This will create a namespace called "agents", a ServiceAccount, and the Roles associated with this ServiceAccount.
+* Set the environment variables in the "application.properties" file to "kubernetes" and run `mvn install` in the parent folder to create the JAR file for the platform.
+* Build the image for the platform by running the command `docker build -t agents-platform jiacpp-platform/.`
+* Log in to your Docker registry and push the platform image to it.
+* Also build the sample-agent-container-image with `docker build -t sample-agent-container-image examples/sample-container` and push it to your Docker registry.
+* Prepare your document "doc/config/platform-deploy.yaml." Replace the registry for the platform image with your own registry address. Also, replace the registry configurations used by the platform to deploy new agents.
+* Create a secret named "my-registry-key" for the registry that contains the platform image. Alternatively, you can use a different name, but then make sure to update the corresponding entry in the "platform-deploy.yaml" file. Use the command: `kubectl create secret docker-registry my-registry-key --docker-server=<address:port> --docker-username=<username> --docker-password='<password>' -n agents`
+* Apply the document "config/platform-deploy.yaml" to your cluster.
+* Now the pod with the platform is up and running. If you run the command `kubectl get services -n agents` you will see the IP of the service that is mapped to this pod.
+* Interact with the platform by using curl commands, such as: `curl -X POST -H "Content-Type: application/json" -d '{"imageName": "<registryAddress>:<registryPort>/sample-agent-container-image"}' http://<IP-platform-service/pod>:8000/containers` However, make sure that the port is correct. The default is 8000
 
-We will _not_ reiterate the different API routes here, as that would just be bound to become outdated and 
-inconsistent with the actual API rather sooner than later. Instead, please refer to the (mostly up to date)
-[Wiki](https://gitlab.dai-labor.de/groups/jiacpp/-/wikis/API) or, even better, consult the different Interfaces
-and Model files in the `jiacpp-model` module.
 
-### Environment Variables
+## Environment Variables
 
 The values in the `PlatformConfig` file are read from the `application.properties` file, which in turn are read from similarly named environment variables or from default values if those are not set.
 
-#### General
+### General
 * `PORT` (default: 8000) The port where the Runtime Platform itself exposes its API and Swagger Web UI.
 * `PUBLIC_URL` (default: null) Public URL of the Runtime Platform; if not set, it will try to guess its own IP.
 * `CONTAINER_TIMEOUT_SEC` (default: 10) Timeout in seconds how long the RP will try to reach a newly started container's `/info` route before it assumes it did not start properly and stops it again.
 * `PLATFORM_ENVIRONMENT` (default: "native") The environment where the platform itself is running, which determine the way to find its own IP address and other details.
 * `CONTAINER_ENVIRONMENT` (default: "docker") The environment where the Agent Containers should be running; possible values are `docker` and `kubernetes`.
 * `DEFAULT_IMAGE_DIRECTORY` (default: null) The runtime platform will try to read any JSON files from this directory containing Agent Container Image descriptions and auto-deploy those to the platform when it starts.
-#### Image Registry Credentials
+
+### Image Registry Credentials
 * `REGISTRY_SEPARATOR` (default: ";") Separator for the below attributes for registry credentials.
 * `REGISTRY_NAMES` (default: empty) Known Docker registry names, segment before the first `/` as it appears in image names, without protocol.
 * `REGISTRY_LOGINS` (default: empty) Login names for each of the above registries (number has to match).
 * `REGISTRY_PASSWORDS` (default: empty) Passwords for each of the above registries (number has to match).
-#### Docker
+
+### Docker
 * `REMOTE_DOCKER_HOST` (default: null) Remote Docker host (just IP or alias, no protocol or port); if not set, the platform will start containers on the local Docker.
 * `REMOTE_DOCKER_PORT` (default: 2375) Port where remote Docker host exposes its API; usually this is 2375.
-#### Kubernetes
+
+### Kubernetes
 * `KUBERNETES_NAMESPACE` (default: "agents")
 * `KUBERNETES_CONFIG` (default: "~/.kube/config")
 
+### Security
+* `USERNAME_PLATFORM` (default: "myUsername")
+* `USERNAME_PLATFORM` (default: "myPassword")
+
 You can set those properties in the run config in your IDE, via an `.env` file, using `export` on the shell or in a `docker-compose.yml` file. Note that if you have one of those properties in e.g. your `.env` file, and it does not have a value, that may still overwrite the default and set the value to `null` or the empty string.
 
+## Authentification 
+The RP utilizes O2Auth as its authentication mechanism, requiring users to log in using their credentials. These credentials are subsequently compared to those provided in the environmental variables, as outlined in the previous section. Upon successful validation, the user is issued a JWT (JSON Web Token) which enables interaction with the RP. To facilitate this interaction, the user must inject the JWT into the lock, visibly located in the upper right corner of the window when accessing the Swagger UI. Subsequently, the JWT is consistently included in the header of all requests sent by the endpoints. Furthermore, when an AgentContainer is initiated, it is assigned its own token as an environmental variable. This token serves as an authentication mechanism when communicating with the RP.
 
-## Message Flows in Reference Implementation
+## Additional Information
 
-### Runtime Platform to Agent Container
-
-* **message**: HTTP Request to CA (in HTTP handler thread), send message via `agent_ref tell`
-* **broadcast**: HTTP Request to CA (in HTTP handler thread), send message via `broker.publish`
-* **invoke**: HTTP Request to CA (in HTTP handler thread), send `Invoke` to agent via `ask invoke` protocol, wait for response (in CA thread), reply in HTTP response
-
-![RP-CA Interactions](doc/messages-rp-ca.png)
-
-### Agent Container to Runtime Platform
-
-* **message**: agent sends HTTP Request to RP via helper method in super class
-* **broadcast**: agent sends HTTP Request to RP via helper method in super class
-* **invoke**: agent sends HTTP Request to RP via helper method in super class, waits for response in its own thread
-
-![CA-RP Interactions](doc/messages-ca-rp.png)
-
-### Within Agent Container
-
-* **message**: using regular JIAC-VI `agent_ref tell`
-* **broadcast**: using regular JIAC-VI `broker publish`
-* **invoke**: using regular JIAC-VI `ask invoke`, either with JIAC++ `Invoke` object or any other payload
-
-![Internal Interactions](doc/messages-internal.png)
-
-### Runtime Platform to Runtime Platform 
-
-* not yet implemented, but basically, the same flow for all communication
-* look up other connected RP that has the target container
-* forward **message** or **invoke** to that platform
-* unclear: **broadcast**: how to prevent endlessly forwarding message back and forth? keep track of recently seen messages? or keep sender-history in each forwarded message and don't forward messages to RP in that history?
-
-### Protocol for connecting two Runtime Platforms
-
-* platform A receives request to connect to platform B
-* sends request to connect to platform A (itself) to platform B, adds B to "pending"
-* platform B does the same, sending another request back to A and adding A to "pending"
-* platform A recognizes the new request as already being processed and replies immediately
-* platform B replies to original request, both platforms call "info" on each other
-
-![Platform Connection Protocol](doc/connect-platform.png)
-
-### Protocol for notifying about updated Containers or connected Platforms
-
-* container/platform calls `/containers/notify` or `/connections/notify` with own ID/URL respectively
-* the idea behind "notify, then pull info" instead of "push info" is to make sure that the info does actually come from the container/platform in question and not someone else
-* receiving platform calls `/info` for that container/platform, stores updated information
-* return `true` if update successful, `false` if not reachable (see below) and 404 if unknown/not in list
-* if container/platform are not reachable, their information is removed from the platform
-* can be called if container's agents/actions change, if container is about to die, or at any time by the user
-* update in containers (via add/remove or update) automatically triggers notification of connected platforms
-
-![Notify/Update Protocol](doc/notify-update.png)
+* [API Routes and Models](doc/api.md)
+* [Protocols](doc/protocols.md)
