@@ -43,19 +43,39 @@ public class AuthTests {
         Assert.assertNotNull(token);
     }
 
-    // TODO login wrong username
+    @Test
+    public void test1LoginMissingAuth() throws Exception {
+        var con = request(PLATFORM, "POST", "/login", null);
+        Assert.assertEquals(400, con.getResponseCode());
+    }
 
-    // TODO login wrong password
+    @Test
+    public void test1LoginWrongUser() throws Exception {
+        var auth = authQuery("wrongUser", "testPwd");
+        var con = request(PLATFORM, "POST", "/login" + auth, null);
+        Assert.assertEquals(403, con.getResponseCode());
+    }
 
-    // TODO wrong token
-    
+    @Test
+    public void test1LoginWrongPwd() throws Exception {
+        var auth = authQuery("testUser", "wrongPwd");
+        var con = request(PLATFORM, "POST", "/login" + auth, null);
+        Assert.assertEquals(403, con.getResponseCode());
+    }
 
     @Test
     public void test2WithToken() throws Exception {
         var con = requestWithToken(PLATFORM, "GET", "/info", null, token);
         Assert.assertEquals(200, con.getResponseCode());
     }
-    
+
+    @Test
+    public void test2WithWrongToken() throws Exception {
+        var invalidToken = "wrong-token";
+        var con = requestWithToken(PLATFORM, "GET", "/info", null, invalidToken);
+        Assert.assertEquals(403, con.getResponseCode());
+    }
+
     @Test
     public void test2WithoutToken() throws Exception {
         var con = request(PLATFORM, "GET", "/info", null);
