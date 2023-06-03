@@ -37,6 +37,7 @@ public class JwtUtil {
     }
 
     public String generateTokenForAgentContainer(String username) {
+        // TODO expiration date of 10 hours does not work for agent containers, should be able to run for weeks
         return Jwts.builder().setSubject(username).setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // token valid for 10 hours
                 .signWith(SignatureAlgorithm.HS256, SECRET_KEY).compact();

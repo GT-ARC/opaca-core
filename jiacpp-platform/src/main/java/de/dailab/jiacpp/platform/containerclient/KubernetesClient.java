@@ -123,8 +123,8 @@ public class KubernetesClient implements ContainerClient {
                         ))
                         .env(Arrays.asList(
                             new V1EnvVar().name(AgentContainerApi.ENV_CONTAINER_ID).value(containerId),
-                            new V1EnvVar().name(AgentContainerApi.ENV_PLATFORM_URL).value(config.getOwnBaseUrl()),
-                            new V1EnvVar().name(AgentContainerApi.ENV_TOKEN).value(token)
+                            new V1EnvVar().name(AgentContainerApi.ENV_TOKEN).value(token),
+                            new V1EnvVar().name(AgentContainerApi.ENV_PLATFORM_URL).value(config.getOwnBaseUrl())
                         ))
                 ))
                 .imagePullSecrets(registrySecret == null ? null : Collections.singletonList(new V1LocalObjectReference().name(registrySecret)))

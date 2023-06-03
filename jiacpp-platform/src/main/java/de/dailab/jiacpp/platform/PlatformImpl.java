@@ -20,9 +20,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
-import org.springframework.beans.factory.annotation.Autowired;
-
-
 /**
  * This class provides the actual implementation of the API routes. Might also be split up
  * further, e.g. for agent-forwarding, container-management, and linking to other platforms.
@@ -51,7 +48,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     /** Set of remote Runtime Platform URLs with a pending connection request */
     private final Set<String> pendingConnections = new HashSet<>();
 
-    @Autowired
+
     public PlatformImpl(PlatformConfig config, TokenUserDetailsService userDetailsService, JwtUtil jwtUtil) {
         this.config = config;
         this.userDetailsService = userDetailsService;
