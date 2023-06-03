@@ -4,8 +4,8 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.Jwts;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -21,40 +21,33 @@ public class JwtUtil {
 
 
     public String generateTokenForUser(String username, String password) {
-        UserDetails userDetails;
-        try {
-            userDetails = tokenUserDetailsService.loadUserByUsername(username);
-        } catch (UsernameNotFoundException e) {
-            throw e;
-        }
+        UserDetails userDetails = tokenUserDetailsService.loadUserByUsername(username);
         if (userDetails.getPassword().equals(password)) {
-            return Jwts.builder().setSubject(username).setIssuedAt(new Date(System.currentTimeMillis()))
-                    .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // token valid for 10 hours
-                    .signWith(SignatureAlgorithm.HS256, SECRET_KEY).compact();
+            return createToken(username, 60 * 60);  // token valid for 1 hour
         } else {
-            throw new AuthException("wrong password", null);
+            throw new BadCredentialsException("Wrong password");
         }
     }
 
-    public String generateTokenForAgentContainer(String username) {
+    public String generateTokenForAgentContainer(String containerId) {
         // TODO expiration date of 10 hours does not work for agent containers, should be able to run for weeks
-        return Jwts.builder().setSubject(username).setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // token valid for 10 hours
+        return createToken(containerId, 60 * 60 * 10);  // token valid for 10 hours
+    }
+
+    private String createToken(String username, long validSeconds) {
+        return Jwts.builder().setSubject(username)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * validSeconds))
                 .signWith(SignatureAlgorithm.HS256, SECRET_KEY).compact();
+    }
+
+    public boolean validateToken(String token, UserDetails userDetails) {
+        return (getUsernameFromToken(token).equals(userDetails.getUsername()) &&
+                getExpirationDateFromToken(token).after(new Date()));
     }
 
     public String getUsernameFromToken(String token) {
         return Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token).getBody().getSubject();
-    }
-
-    public boolean validateToken(String token, UserDetails userDetails) {
-        final String username = getUsernameFromToken(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
-    }
-
-    private Boolean isTokenExpired(String token) {
-        final Date expiration = getExpirationDateFromToken(token);
-        return expiration.before(new Date());
     }
 
     private Date getExpirationDateFromToken(String token) {

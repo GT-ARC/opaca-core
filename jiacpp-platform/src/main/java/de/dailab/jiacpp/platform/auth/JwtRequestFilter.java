@@ -21,7 +21,9 @@ import java.io.IOException;
 import lombok.Setter;
 
 public class JwtRequestFilter extends OncePerRequestFilter {
-    
+
+    // TODO could this be an inner class of SecurityConfiguration? might make things simpler
+
     @Setter
     private UserDetailsService jwtUserDetailsService;
 
@@ -49,21 +51,17 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                     handleException(response, HttpStatus.BAD_REQUEST, e.getMessage());
                 }
             } else {
-                handleException(response, HttpStatus.BAD_REQUEST,"Token is not valid.");
+                handleException(response, HttpStatus.BAD_REQUEST, "Missing Token.");
             }
     
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-    
                 UserDetails userDetails = this.jwtUserDetailsService.loadUserByUsername(username);
-    
                 if (jwtUtil.validateToken(jwtToken, userDetails)) {
-                    UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
-                            userDetails, null, userDetails.getAuthorities());
-                    usernamePasswordAuthenticationToken
-                            .setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+                    var authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
                 } else {
-                    handleException(response, HttpStatus.UNAUTHORIZED, "Token is not valid."); 
+                    handleException(response, HttpStatus.UNAUTHORIZED, "Invalid Token.");
                 }
             }
         }
