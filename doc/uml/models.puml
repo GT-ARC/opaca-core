@@ -44,7 +44,7 @@ class PortDescription {
     protocol: string
     description: string
 }
-' actually "port" is not an attribute but this is referred
+' actually "port" is not an attribute but the key in a hash map
 
 class AgentDescription {
     agentId: string
