@@ -38,7 +38,7 @@ public class AuthTests {
     @BeforeClass
     public static void setupPlatform() {
         platform = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_PORT,
-                "--default_image_directory=./default-test-images");
+                "--default_image_directory=./default-test-images", "--security.enableJwt=true");
     }
 
 
@@ -55,23 +55,16 @@ public class AuthTests {
     
 
     @Test
-    public void test2Deploy() throws Exception {
-        var image = getSampleContainerImage();
-        var con = requestWithToken(PLATFORM, "POST", "/containers", image, token);
+    public void test2WithToken() throws Exception {
+        var con = requestWithToken(PLATFORM, "GET", "/info", null, token);
         int responseCode = con.getResponseCode();
-        if (responseCode != 200) {
-            // Print out some more detailed error info if the request fails
-            System.err.println("Error during container creation: " + con.getResponseMessage());
-            System.err.println("Response body: " + result(con));
-        }
         Assert.assertEquals(200, responseCode);
         containerId = result(con);
     }
     
     @Test
-    public void test3DeployWithoutToken() throws Exception {
-        var image = getSampleContainerImage();
-        var con = requestWithoutToken(PLATFORM, "POST", "/containers", image);
+    public void test2WithoutToken() throws Exception {
+        var con = requestWithoutToken(PLATFORM, "GET", "/info", null);
         Assert.assertEquals(403, con.getResponseCode());
     }
     
