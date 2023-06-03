@@ -46,8 +46,8 @@ public class PlatformConfig {
 
     // SECURITY & AUTHENTICATION
 
-    @Value("${security.enableJwt}")
-    public Boolean enableJwt;
+    @Value("${security.enableAuth}")
+    public Boolean enableAuth;
 
     @Value("${username_platform}")
     public String usernamePlatform;

@@ -41,7 +41,7 @@ and first tests in order to find out what of this makes sense etc.
 * Interact with the platform by using curl commands, such as: `curl -X POST -H "Content-Type: application/json" -d '{"imageName": "<registryAddress>:<registryPort>/sample-agent-container-image"}' http://<IP-platform-service/pod>:8000/containers` However, make sure that the port is correct. The default is 8000
 
 
-## Environment Variables
+## Environment Variables (Runtime Platform)
 
 The values in the `PlatformConfig` file are read from the `application.properties` file, which in turn are read from similarly named environment variables or from default values if those are not set.
 
@@ -67,16 +67,25 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 * `KUBERNETES_NAMESPACE` (default: "agents")
 * `KUBERNETES_CONFIG` (default: "~/.kube/config")
 
-### Security
-* `USERNAME_PLATFORM` (default: "myUsername")
-* `USERNAME_PLATFORM` (default: "myPassword")
+### Security & Authentication
+* `ENABLE_AUTH` (default: false) Whether to require token-based authentication on all routes; see [Authentication](doc/auth.md) for details.
+* `USERNAME_PLATFORM` (default: null) Name of a single authorized user (temporary)
+* `USERNAME_PLATFORM` (default: null) Password of a single authorized user (temporary)
 
 You can set those properties in the run config in your IDE, via an `.env` file, using `export` on the shell or in a `docker-compose.yml` file. Note that if you have one of those properties in e.g. your `.env` file, and it does not have a value, that may still overwrite the default and set the value to `null` or the empty string.
 
-## Authentification 
-The RP utilizes O2Auth as its authentication mechanism, requiring users to log in using their credentials. These credentials are subsequently compared to those provided in the environmental variables, as outlined in the previous section. Upon successful validation, the user is issued a JWT (JSON Web Token) which enables interaction with the RP. To facilitate this interaction, the user must inject the JWT into the lock, visibly located in the upper right corner of the window when accessing the Swagger UI. Subsequently, the JWT is consistently included in the header of all requests sent by the endpoints. Furthermore, when an AgentContainer is initiated, it is assigned its own token as an environmental variable. This token serves as an authentication mechanism when communicating with the RP.
+
+## Environment Variables (Agent Container)
+
+When an Agent Container is started by the Runtime Platform, a number of environment variables are set to facilitate the communication between the Agent Container and its parent Runtime Platform.
+
+* `CONTAINER_ID` The Agent Container's own container ID used to identify the container at the Runtime Platform.
+* `PLATFORM_URL` The URL or IP address where the Agent Container can reach its parent Runtime Platform 
+* `TOKEN` Bearer token assigned to the container needed to interact with the parent Runtime Platform if it is using authentication (see [Authentication](doc/auth.md) for details).
+
 
 ## Additional Information
 
 * [API Routes and Models](doc/api.md)
 * [Protocols](doc/protocols.md)
+* [Authentication](doc/auth.md)

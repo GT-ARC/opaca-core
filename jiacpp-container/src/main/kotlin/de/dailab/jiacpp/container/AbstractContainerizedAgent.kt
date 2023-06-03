@@ -43,7 +43,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
             token = it.authToken
         }
     }
-    
+
     fun deregister() {
         log.info("DE-REGISTERING...")
         val desc = getDescription()
