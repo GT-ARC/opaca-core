@@ -11,7 +11,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -26,16 +25,6 @@ public class RestHelper {
     public static final ObjectMapper mapper = JsonMapper.builder()
             .findAndAddModules().build();
 
-
-    public <T> T post(String path, String usernamePlatform, String passwordPlatform, Class<T> type) throws IOException {
-        // Create a payload object or map to hold the username and password
-        Map<String, String> payload = new HashMap<>();
-        payload.put("username", usernamePlatform);
-        payload.put("password", passwordPlatform);
-    
-        // Call the request method with the POST method and the payload
-        return request("POST", path, payload, type);
-    }
 
     public <T> T get(String path, Class<T> type) throws IOException {
         return request("GET", path, null, type);
@@ -53,7 +42,7 @@ public class RestHelper {
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
         connection.setRequestMethod(method);
 
-        if (token != null && !token.isEmpty()) {
+        if (token != null && ! token.isEmpty()) {
             connection.setRequestProperty("Authorization", "Bearer " + token);
         }
         
@@ -93,11 +82,6 @@ public class RestHelper {
 
     public static String writeJson(Object obj) throws IOException {
         return mapper.writeValueAsString(obj);
-    }
-
-    public RestHelper(String baseUrl) {
-        this.baseUrl = baseUrl;
-        this.token = null;
     }
 
 }

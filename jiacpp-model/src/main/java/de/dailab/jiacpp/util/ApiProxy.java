@@ -17,19 +17,16 @@ import java.util.Map;
 public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
 
     public final String baseUrl;
-    public final String token;
     private final RestHelper client;
 
     public ApiProxy(String baseUrl, String token) {
         this.baseUrl = baseUrl;
-        this.token = token;
         this.client = new RestHelper(baseUrl, token);
     }
 
     public ApiProxy(String baseUrl) {
         this.baseUrl = baseUrl;
-        this.token = null;
-        this.client = new RestHelper(baseUrl);
+        this.client = new RestHelper(baseUrl, null);
     }
 
     // INFO ROUTES
@@ -176,7 +173,11 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     @Override
     public String login(String usernamePlatform, String passwordPlatform) throws IOException {
         System.out.println("LOGIN");
-        return client.post("/login", usernamePlatform, passwordPlatform, String.class);
+        var payload = Map.of(
+                "username", usernamePlatform,
+                "password", passwordPlatform
+        );
+        return client.post("/login", payload, String.class);
     }
 
 }
