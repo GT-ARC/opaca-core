@@ -21,7 +21,7 @@ import java.util.stream.IntStream;
  */
 @Log
 @Configuration
-@ToString(exclude = {"registryPasswords"})
+@ToString(exclude = {"registryPasswords", "passwordPlatform"})
 public class PlatformConfig {
 
     // GENERAL SETTINGS
@@ -31,13 +31,6 @@ public class PlatformConfig {
 
     @Value("${public_url}")
     public String publicUrl;
-
-    @Value("${username_platform}")
-    public String usernamePlatform;
-
-    @Value("${password_platform}")
-    public String passwordPlatform;
-
 
     @Value("${container_environment}")
     public ContainerEnvironment containerEnvironment;
@@ -50,6 +43,17 @@ public class PlatformConfig {
 
     @Value("${default_image_directory}")
     public String defaultImageDirectory;
+
+    // SECURITY & AUTHENTICATION
+
+    @Value("${security.enableJwt}")
+    public Boolean enableJwt;
+
+    @Value("${username_platform}")
+    public String usernamePlatform;
+
+    @Value("${password_platform}")
+    public String passwordPlatform;
 
     // IMAGE REGISTRY CREDENTIALS
 
@@ -73,9 +77,6 @@ public class PlatformConfig {
     @Value("${remote_docker_port}")
     public String remoteDockerPort;
 
-    @Value("${security.enableJwt}")
-    public Boolean enableJwt;
-
     // KUBERNETES (only for container_environment = "kubernetes")
 
     @Value("${kubernetes_namespace}")
@@ -92,10 +93,6 @@ public class PlatformConfig {
     public enum ContainerEnvironment {
         DOCKER, KUBERNETES
     }
-
-    // TODO
-    //  auth stuff for platform itself? tbd
-    //  GPU support and other "features" of this specific platform
 
 
     /**

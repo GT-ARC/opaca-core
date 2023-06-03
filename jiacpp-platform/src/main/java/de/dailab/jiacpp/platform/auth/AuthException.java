@@ -1,4 +1,4 @@
-package de.dailab.jiacpp.platform;
+package de.dailab.jiacpp.platform.auth;
 
 import org.springframework.security.core.AuthenticationException;
 

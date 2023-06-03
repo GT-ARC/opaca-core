@@ -1,4 +1,4 @@
-package de.dailab.jiacpp.platform;
+package de.dailab.jiacpp.platform.auth;
 
 import java.util.ArrayList;
 import java.util.HashMap;
