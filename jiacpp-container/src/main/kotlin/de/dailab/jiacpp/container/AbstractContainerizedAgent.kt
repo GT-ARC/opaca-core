@@ -37,12 +37,10 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         log.info("REGISTERING...")
         val desc = getDescription()
         val ref = system.resolve(CONTAINER_AGENT)
-        ref invoke ask<Pair<String?, String?>>(Register(desc)) {
-            if (it != null) {
-                log.info("REGISTERED: Parent URL is ${it.first}")
-                runtimePlatformUrl = it.first
-                token = it.second
-            }
+        ref invoke ask<Registered>(Register(desc)) {
+            log.info("REGISTERED: Parent URL is ${it.parentUrl}")
+            runtimePlatformUrl = it.parentUrl
+            token = it.authToken
         }
     }
     

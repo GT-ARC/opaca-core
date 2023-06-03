@@ -240,12 +240,12 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     override fun behaviour() = act {
 
         // agents may register with the container agent, publishing their ID and actions
-        respond<Register, Pair<String?, String?> > {
+        respond<Register, Registered> {
             // TODO should Register message contain the agent's internal name, or is that always equal to the agentId?
             log.info("Registering ${it.description}")
             registeredAgents[it.description.agentId] = it.description
             notifyPlatform()
-            Pair(runtimePlatformUrl, token)
+            Registered(runtimePlatformUrl, token)
         }
 
         // in case agents want to de-register themselves before the container as a whole terminates
