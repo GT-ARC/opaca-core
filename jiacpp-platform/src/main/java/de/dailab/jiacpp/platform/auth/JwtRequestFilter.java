@@ -31,7 +31,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String requestURL = request.getRequestURI();
 
-        if (!isSwagger(requestURL) && !requestURL.contains("/login")) {
+        // TODO check exact match of path, not contained in URL
+        if (! isSwagger(requestURL) && ! requestURL.contains("/login")) {
 
             final String requestTokenHeader = request.getHeader("Authorization");
             String username = null;
@@ -65,8 +66,10 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             }
         }
         chain.doFilter(request, response);
-    }    
+    }
+
     private boolean isSwagger(String url) {
+        // TODO (almost) same list in SecurityConfiguration -> extract to some constant?
         return url.contains("/swagger-resources")
             || url.contains("/v2/api-docs")
             || url.contains("/swagger-resources/")
@@ -78,10 +81,9 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             || url.contains("/swagger-ui/");
     }
 
-
     private void handleException(HttpServletResponse response, HttpStatus status, String message)
-        throws IOException {
-    response.setStatus(status.value());
-    response.getWriter().write(message);
+            throws IOException {
+        response.setStatus(status.value());
+        response.getWriter().write(message);
     }
 }

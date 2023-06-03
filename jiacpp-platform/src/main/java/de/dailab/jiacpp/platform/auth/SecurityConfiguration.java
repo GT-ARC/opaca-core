@@ -2,6 +2,7 @@ package de.dailab.jiacpp.platform.auth;
 
 import javax.annotation.PostConstruct;
 
+import de.dailab.jiacpp.platform.PlatformConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -29,6 +30,9 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private PlatformConfig config;
+
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
         auth.userDetailsService(myUserDetailsService);
@@ -36,19 +40,16 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
     @PostConstruct
     public void init() {
-        if(enableJwt) {
+        if (config.enableAuth) {
             jwtRequestFilter = new JwtRequestFilter();
             jwtRequestFilter.setJwtUserDetailsService(myUserDetailsService);
             jwtRequestFilter.setJwtUtil(jwtUtil);
         }
     }
-    
-    @Value("${security.enableJwt}")
-    private boolean enableJwt;
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        if (enableJwt) {
+        if (config.enableAuth) {
             http.csrf().disable()
                     .authorizeRequests()
                     .antMatchers("/v2/api-docs",

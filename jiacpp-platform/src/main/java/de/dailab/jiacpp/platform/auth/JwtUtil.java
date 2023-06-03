@@ -15,6 +15,7 @@ public class JwtUtil {
 
     private final TokenUserDetailsService tokenUserDetailsService;
 
+    // TODO get from environment variable or generate random secret on each start up
     private final String SECRET_KEY = "secret";
 
     @Autowired
