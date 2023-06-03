@@ -228,6 +228,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         AgentContainer container = runningContainers.get(containerId);
         if (container != null) {
             runningContainers.remove(containerId);
+            userDetailsService.removeUser(containerId);
             containerClient.stopContainer(containerId);
             notifyConnectedPlatforms();
             return true;
