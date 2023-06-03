@@ -29,7 +29,7 @@ public class AuthTests {
     @BeforeClass
     public static void setupPlatform() {
         platform = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_PORT,
-                "--default_image_directory=./default-test-images", "--security.enableJwt=true",
+                "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--username_platform=testUser", "--password_platform=testPwd");
     }
 

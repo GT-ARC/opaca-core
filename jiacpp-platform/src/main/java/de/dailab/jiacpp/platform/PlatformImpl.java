@@ -38,9 +38,9 @@ public class PlatformImpl implements RuntimePlatformApi {
     final ContainerClient containerClient;
 
     final JwtUtil jwtUtil;
-    
 
-    private TokenUserDetailsService tokenUserDetailsService;
+    final TokenUserDetailsService userDetailsService;
+
 
     /** Currently running Agent Containers, mapping container ID to description */
     private final Map<String, AgentContainer> runningContainers = new HashMap<>();
@@ -52,11 +52,10 @@ public class PlatformImpl implements RuntimePlatformApi {
     private final Set<String> pendingConnections = new HashSet<>();
 
     @Autowired
-    public PlatformImpl(PlatformConfig config, TokenUserDetailsService tokenUserDetailsService) {
+    public PlatformImpl(PlatformConfig config, TokenUserDetailsService userDetailsService, JwtUtil jwtUtil) {
         this.config = config;
-        this.tokenUserDetailsService = tokenUserDetailsService;
-        tokenUserDetailsService.addUser(config.usernamePlatform, config.passwordPlatform);
-        this.jwtUtil = new JwtUtil(tokenUserDetailsService);
+        this.userDetailsService = userDetailsService;
+        this.jwtUtil = jwtUtil;
 
         if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.DOCKER) {
             log.info("Using Docker on host " + config.remoteDockerHost);
@@ -175,7 +174,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     public String addContainer(AgentContainerImage image) throws IOException {
         String agentContainerId = UUID.randomUUID().toString();
         String token = jwtUtil.generateTokenForAgentContainer(agentContainerId);
-        
+
         // start container... this may raise an Exception, or returns the connectivity info
         var connectivity = containerClient.startContainer(agentContainerId, token, image);
 
@@ -188,7 +187,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 var container = client.getContainerInfo();
                 container.setConnectivity(connectivity);
                 runningContainers.put(agentContainerId, container);
-                tokenUserDetailsService.addUser(agentContainerId, agentContainerId);
+                userDetailsService.addUser(agentContainerId, agentContainerId);
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
                     log.warning("Agent Container ID does not match: Expected " +

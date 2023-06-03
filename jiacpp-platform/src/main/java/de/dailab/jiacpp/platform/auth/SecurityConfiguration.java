@@ -19,7 +19,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @EnableWebSecurity
-@Configuration
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
     private JwtRequestFilter jwtRequestFilter;

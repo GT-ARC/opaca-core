@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
+import de.dailab.jiacpp.platform.auth.JwtUtil;
 import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
 import de.dailab.jiacpp.util.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,11 +40,14 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Autowired
 	PlatformConfig config;
 
+	@Autowired
+    TokenUserDetailsService tokenUserDetailsService;
+
+	@Autowired
+	JwtUtil jwtUtil;
 
 	RuntimePlatformApi implementation;
 
-	@Autowired
-    private TokenUserDetailsService tokenUserDetailsService;
 
 	/*
 	 * LIFECYCLE
@@ -53,7 +57,9 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public void postConstruct() {
 		log.info("In Post-Construct");
 		log.info("Started with Config: " + config);
-		implementation = EventProxy.create(new PlatformImpl(config, tokenUserDetailsService));
+
+		tokenUserDetailsService.addUser(config.usernamePlatform, config.passwordPlatform);
+		implementation = EventProxy.create(new PlatformImpl(config, tokenUserDetailsService, jwtUtil));
 		this.startDefaultImages();
 	}
 

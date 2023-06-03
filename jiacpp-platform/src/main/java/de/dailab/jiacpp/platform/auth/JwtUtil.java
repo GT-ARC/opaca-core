@@ -13,15 +13,12 @@ import java.util.Date;
 @Service
 public class JwtUtil {
 
-    private final TokenUserDetailsService tokenUserDetailsService;
+    @Autowired
+    private TokenUserDetailsService tokenUserDetailsService;
 
     // TODO get from environment variable or generate random secret on each start up
     private final String SECRET_KEY = "secret";
 
-    @Autowired
-    public JwtUtil(TokenUserDetailsService tokenUserDetailsService) {
-        this.tokenUserDetailsService = tokenUserDetailsService;
-    }
 
     public String generateTokenForUser(String username, String password) {
         UserDetails userDetails;
