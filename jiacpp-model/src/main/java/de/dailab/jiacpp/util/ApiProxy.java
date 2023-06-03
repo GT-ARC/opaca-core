@@ -170,14 +170,4 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         return client.post("/connections/notify", platformUrl, Boolean.class);
     }
 
-    @Override
-    public String login(String usernamePlatform, String passwordPlatform) throws IOException {
-        System.out.println("LOGIN");
-        var payload = Map.of(
-                "username", usernamePlatform,
-                "password", passwordPlatform
-        );
-        return client.post("/login", payload, String.class);
-    }
-
 }

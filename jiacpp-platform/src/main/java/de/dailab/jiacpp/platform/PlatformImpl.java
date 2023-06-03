@@ -86,11 +86,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         return EventHistory.getInstance().getEvents();
     }
 
-    @Override
-    public String login(String usernamePlatform, String passwordPlatform) throws IOException {
-        return jwtUtil.generateTokenForUser(usernamePlatform, passwordPlatform);
-        
-    }
     /*
      * AGENTS ROUTES
      */
