@@ -8,6 +8,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.Date;
 
 @Service
@@ -23,7 +24,7 @@ public class JwtUtil {
     public String generateTokenForUser(String username, String password) {
         UserDetails userDetails = tokenUserDetailsService.loadUserByUsername(username);
         if (userDetails.getPassword().equals(password)) {
-            return createToken(username, 60 * 60);  // token valid for 1 hour
+            return createToken(username, Duration.ofHours(1));
         } else {
             throw new BadCredentialsException("Wrong password");
         }
@@ -31,13 +32,13 @@ public class JwtUtil {
 
     public String generateTokenForAgentContainer(String containerId) {
         // TODO expiration date of 10 hours does not work for agent containers, should be able to run for weeks
-        return createToken(containerId, 60 * 60 * 10);  // token valid for 10 hours
+        return createToken(containerId, Duration.ofHours(10));
     }
 
-    private String createToken(String username, long validSeconds) {
+    private String createToken(String username, Duration duration) {
         return Jwts.builder().setSubject(username)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * validSeconds))
+                .setExpiration(new Date(System.currentTimeMillis() + duration.toMillis()))
                 .signWith(SignatureAlgorithm.HS256, SECRET_KEY).compact();
     }
 
