@@ -33,7 +33,6 @@
 * **send** and **broadcast**: forward message to all valid platforms
 * **invoke**: forward invoke to first valid connected platform
 * `forward` parameter gets automatically set to `false` in the request to the connected platform to prevent endless forwarding
-
 * TODO: graphic
 
 ## Protocol for connecting two Runtime Platforms
