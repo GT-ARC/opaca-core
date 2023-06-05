@@ -152,7 +152,7 @@ public class DockerClient implements ContainerClient {
 
     private String getDockerHost() {
         return Strings.isNullOrEmpty(config.remoteDockerHost)
-                ? "unix:///var/run/docker.sock"
+                ? "npipe:////./pipe/docker_engine"  // connect locally to docker engine on windows
                 : String.format("tcp://%s:%s", config.remoteDockerHost, config.remoteDockerPort);
     }
 
