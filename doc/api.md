@@ -27,14 +27,17 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
 ### `GET /agents/{agent}`
 
 * get description of a specific agent
-* input: ID of the agent to get
+* input: 
+    * agent: ID of the agent to get
 * output: `AgentDescription`
 * errors: 200 / null result for unknown agent
 
 ### `POST /send/{agent}?forward=true|false`
 
 * send asynchronous message to agent
-* input: ID of the agent to send the message to
+* input: 
+    * agent: ID of the agent to send the message to
+    * forward: true or false, depending on whether the message should be forwarded to connected platforms in case the agent does not exist on this platform
 * body: `Message`
 * output: none
 * errors: 404 for unknown agent
