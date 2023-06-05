@@ -37,7 +37,7 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
 * send asynchronous message to agent
 * input: 
     * agent: ID of the agent to send the message to
-    * forward: true or false, depending on whether the message should be forwarded to connected platforms in case the agent does not exist on this platform
+    * forward: (optional, default `true`) `true/false`, whether the message should be forwarded to connected platforms in case the agent does not exist on this platform
 * body: `Message`
 * output: none
 * errors: 404 for unknown agent
@@ -45,7 +45,9 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
 ### `POST /broadcast/{channel}?forward=true|false`
 
 * send asynchronous message to all agents subscribed to the channel
-* input: name of the message channel
+* input: 
+    * channel: name of the message channel
+    * forward: (optional, default `true`) `true/false`, whether the request should be forwarded to connected platforms in case the channel does not exist on this platform
 * body: `Message`
 * output: none
 * errors: none
@@ -54,7 +56,10 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
 
 * invoke action/service provided by the given agent and get result (synchronously) 
 * expected parameter and output types are given in the action description
-* input: name of the action and ID of the agent
+* input: 
+    * action: name of the action
+    * agent: ID of the agent to invoke the action on
+    * forward: (optional, default `true`) `true/false`, whether the request should be forwarded to connected platforms in case the action/agent does not exist on this platform
 * body: JSON object mapping parameter names to parameters
 * output: result of the action
 * errors: 404 for unknown action or agent
@@ -87,7 +92,8 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
 ### `GET /containers/{container}`
 
 * get information on a specific agent container
-* input: ID of the agent container
+* input: 
+    * container: ID of the agent container
 * output: `AgentContainer`
 * errors: 200 / null for unknown container
 
@@ -102,13 +108,14 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
 
 * notify the platform about changes in one of its containers
 * body: `containerId` of the container
-* output: true or false, depending on whether the container responded to `/info` call; it it does not respond, container is removed
+* output: `true/false`, depending on whether the container responded to `/info` call; it it does not respond, container is removed
 * errors: 404 if container does not exist on platform
 
 ### `DELETE /containers/{container}`
 
 * stop/delete/undeploy AgentContainer with given ID from the platform
-* input: ID of the agent container to remove
+* input: 
+    * container: ID of the agent container to remove
 * output: `true/false` whether the container could be removed or not (not found)
 * errors: none
 
@@ -130,7 +137,7 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
 
 * notify the platform about changes in a connected Runtime Platform
 * body: the base URL of the other Runtime Platform
-* output: true or false, depending on whether the other platform responded to `/info` call; if it does not respond, connection is removed
+* output: `true/false`, depending on whether the other platform responded to `/info` call; if it does not respond, connection is removed
 * errors: 404 if the other platform is not connected to this platform
 
 ### `DELETE /connections`
