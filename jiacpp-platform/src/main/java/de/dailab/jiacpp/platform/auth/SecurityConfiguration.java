@@ -1,7 +1,5 @@
 package de.dailab.jiacpp.platform.auth;
 
-import javax.annotation.PostConstruct;
-
 import de.dailab.jiacpp.platform.PlatformConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
