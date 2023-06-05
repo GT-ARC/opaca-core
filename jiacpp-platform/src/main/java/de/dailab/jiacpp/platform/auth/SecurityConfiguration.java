@@ -97,15 +97,16 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
         @Override
         protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
                 throws ServletException, IOException {
-            String requestURL = request.getRequestURI();
-
+            String requestURI = request.getRequestURI();
+        
             // TODO check exact match of path, not contained in URL
+            
             /* Some routes, such as /login and those related to the Swagger UI, 
              * are not included in the token authorization process.
              * /login is used to generate a token and Swagger UI should
              * always be accessible, to perform actions such as /login.
              */
-            if (! isSwagger(requestURL) && ! requestURL.contains("/login")) {
+            if (! isSwagger(requestURI) && ! requestURI.equals("/login")) {
 
                 final String requestTokenHeader = request.getHeader("Authorization");
                 String username = null;
