@@ -49,6 +49,9 @@ public class PlatformConfig {
     @Value("${security.enableAuth}")
     public Boolean enableAuth;
 
+    @Value("${security.secret}")
+    public String secret;
+
     @Value("${username_platform}")
     public String usernamePlatform;
 
