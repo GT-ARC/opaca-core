@@ -165,7 +165,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public String addContainer(AgentContainerImage image) throws IOException {
         String agentContainerId = UUID.randomUUID().toString();
-        String token = jwtUtil.generateTokenForAgentContainer(agentContainerId);
+        String token = config.enableAuth ? jwtUtil.generateTokenForAgentContainer(agentContainerId) : null;
 
         // start container... this may raise an Exception, or returns the connectivity info
         var connectivity = containerClient.startContainer(agentContainerId, token, image);
