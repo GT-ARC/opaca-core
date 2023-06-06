@@ -30,10 +30,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-/*
- * The SecurityConfiguration class is a configuration class for enabling and configuring authentification for our Spring application. 
- * The inner class JwtRequestFilter is the filter that is applied to ensure that only authentificated/authorized users are 
- * allowed for requesting the platform.
+/**
+ * The SecurityConfiguration class is a configuration class for enabling and configuring authentication for the Spring
+ * application. The inner class JwtRequestFilter is the filter that is applied to ensure that only authenticated and
+ * authorized users are allowed for requesting the platform.
  */
 @EnableWebSecurity
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
