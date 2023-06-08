@@ -1,0 +1,18 @@
+@startuml
+hide footbox
+participant RuntimePlatform1 as RP1
+participant RuntimePlatform2 as RP2
+participant RuntimePlatform3 as RP3
+
+title Runtime Platform to Runtime Platform
+
+hnote across: "send", "broadcast"
+RP1 -> RP2 : message, forward=true
+RP2 -> RP3 : message, forward=false
+
+hnote across: "invoke"
+RP1 -> RP2 : params, forward=true
+RP2 -> RP3 : params, forward=false
+RP3 --> RP2 : Response
+RP2 --> RP1 : Response
+@enduml
