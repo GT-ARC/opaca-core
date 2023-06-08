@@ -1,5 +1,6 @@
 package de.dailab.jiacpp.sample
 
+import de.dailab.jiacpp.api.AgentContainerApi
 import de.dailab.jiacpp.container.AbstractContainerizedAgent
 import de.dailab.jiacpp.container.Invoke
 import de.dailab.jiacpp.model.Action
@@ -69,7 +70,8 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     private fun actionGetInfo() = mapOf(
         Pair("name", name),
         Pair("lastMessage", lastMessage),
-        Pair("lastBroadcast", lastBroadcast)
+        Pair("lastBroadcast", lastBroadcast),
+        Pair(AgentContainerApi.ENV_TOKEN, System.getenv(AgentContainerApi.ENV_TOKEN))
     )
 
     private fun createAction(name: String) {

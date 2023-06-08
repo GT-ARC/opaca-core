@@ -5,8 +5,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
+import de.dailab.jiacpp.platform.auth.JwtUtil;
+import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
 import de.dailab.jiacpp.util.*;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -31,10 +34,17 @@ import java.util.stream.Collectors;
  */
 @Log
 @RestController
+@SecurityRequirement(name = "bearerAuth")
 public class PlatformRestController implements RuntimePlatformApi {
 
 	@Autowired
 	PlatformConfig config;
+
+	@Autowired
+    TokenUserDetailsService tokenUserDetailsService;
+
+	@Autowired
+	JwtUtil jwtUtil;
 
 	RuntimePlatformApi implementation;
 
@@ -47,7 +57,9 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public void postConstruct() {
 		log.info("In Post-Construct");
 		log.info("Started with Config: " + config);
-		implementation = EventProxy.create(new PlatformImpl(config));
+
+		tokenUserDetailsService.addUser(config.usernamePlatform, config.passwordPlatform);
+		implementation = EventProxy.create(new PlatformImpl(config, tokenUserDetailsService, jwtUtil));
 		this.startDefaultImages();
 	}
 
@@ -100,6 +112,19 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException e) {
 		log.warning(e.getMessage());  // probably user error
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+	}
+
+	/*
+	 * AUTHENTICATION
+	 */
+
+	@RequestMapping(value="/login", method=RequestMethod.POST)
+	@Operation(summary="Login with username and password", tags={"authentication"})
+	public String login(
+			@RequestParam String username,
+			@RequestParam String password
+	) {
+		return jwtUtil.generateTokenForUser(username, password);
 	}
 
 	/*

@@ -22,31 +22,27 @@
 	
 	<dependencies>
 
-
-	    <dependency>
-	        <groupId>io.kubernetes</groupId>
-	        <artifactId>client-java</artifactId>
-	        <version>12.0.0</version>
-	    </dependency>
-	    <dependency>
-	        <groupId>io.kubernetes</groupId>
-	        <artifactId>client-java-api</artifactId>
-	        <version>12.0.0</version>
-	    </dependency>
-
-
-
 		<dependency>
 			<groupId>de.dailab.jiacpp</groupId>
 			<artifactId>jiacpp-model</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
-		<!-- Spring Boot, OpenAPI -->
+		<!-- Spring Boot, OpenAPI, Auth -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 			<version>2.6.3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt</artifactId>
+			<version>0.9.1</version>
 		</dependency>
 
 		<dependency>
@@ -65,6 +61,18 @@
 			<groupId>com.github.docker-java</groupId>
 			<artifactId>docker-java-transport-httpclient5</artifactId>
 			<version>3.2.13</version>
+		</dependency>
+
+		<!-- Kubernetes API for Java -->
+		<dependency>
+			<groupId>io.kubernetes</groupId>
+			<artifactId>client-java</artifactId>
+			<version>12.0.0</version>
+		</dependency>
+		<dependency>
+			<groupId>io.kubernetes</groupId>
+			<artifactId>client-java-api</artifactId>
+			<version>12.0.0</version>
 		</dependency>
 
 		<!-- for testing -->
