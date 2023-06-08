@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import lombok.AllArgsConstructor;
+import lombok.extern.java.Log;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -16,6 +17,7 @@ import java.util.Map;
 /**
  * Helper class for issuing different REST calls in Java.
  */
+@Log
 @AllArgsConstructor
 public class RestHelper {
 
@@ -39,6 +41,7 @@ public class RestHelper {
     }
 
     public <T> T request(String method, String path, Object payload, Class<T> type) throws IOException {
+        log.info(String.format("%s %s%s (%s)", method, baseUrl, path, payload));
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
         connection.setRequestMethod(method);
 
