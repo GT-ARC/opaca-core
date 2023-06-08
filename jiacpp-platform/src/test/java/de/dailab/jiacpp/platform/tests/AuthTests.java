@@ -84,6 +84,9 @@ public class AuthTests {
     }
 
     // TODO token from container
+    // TODO deploy test container
+    // TODO use /GetInfo to get token, decrypt token, check that token contains containerID
+    // TODO once /notify is fully implemented, test container -> platform by adding action, checking if info was auto-updated
 
     private String authQuery(String username, String password) {
         return buildQuery(Map.of("username", username, "password", password));

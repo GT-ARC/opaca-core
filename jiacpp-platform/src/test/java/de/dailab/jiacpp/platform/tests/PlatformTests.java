@@ -192,6 +192,17 @@ public class PlatformTests {
     }
 
     /**
+     * if auth is disabled, no token should be passed to container
+     */
+    @Test
+    public void test5AuAuthNoToken() throws Exception {
+        var con = request(PLATFORM_A, "POST", "/invoke/GetInfo", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+        Assert.assertEquals("", res.get("TOKEN"));
+    }
+
+    /**
      * Test Event Logging by issuing some calls (successful and failing),
      * then see if the generated events match those calls.
      */
