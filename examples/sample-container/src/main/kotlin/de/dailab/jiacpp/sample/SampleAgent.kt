@@ -24,7 +24,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             Action("GetInfo", mapOf(), "Map"),
             Action("Add", mapOf(Pair("x", "String"), Pair("y", "Int")), "Int"),
             // actions for testing modifying agents and actions at runtime
-            Action("CreateAction", mapOf(Pair("name", "String")), "void"),
+            Action("CreateAction", mapOf(Pair("name", "String"), Pair("notify", "Boolean")), "void"),
             Action("SpawnAgent", mapOf(Pair("name", "String")), "void"),
             Action("Deregister", mapOf(), "void")
         ).plus(extraActions)
@@ -48,9 +48,10 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
                 "DoThis" -> actionDoThis(it.parameters["message"]!!.asText(), it.parameters["sleep_seconds"]!!.asInt())
                 "Add" -> actionAdd(it.parameters["x"]!!.asInt(), it.parameters["y"]!!.asInt())
                 "GetInfo" -> actionGetInfo()
-                "CreateAction" -> createAction((it.parameters["name"]!!.asText()))
+                "CreateAction" -> createAction(it.parameters["name"]!!.asText(), it.parameters["notify"]!!.asBoolean())
                 "SpawnAgent" -> spawnAgent(it.parameters["name"]!!.asText())
-                "Deregister" -> deregister()
+                "Deregister" -> deregister(false)
+                in extraActions.map { a -> a.name } -> "Called extra action ${it.name}"
                 else -> null
             }
         }
@@ -76,9 +77,9 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         Pair(AgentContainerApi.ENV_TOKEN, System.getenv(AgentContainerApi.ENV_TOKEN))
     )
 
-    private fun createAction(name: String) {
+    private fun createAction(name: String, notify: Boolean) {
         extraActions.add(Action(name, mapOf(), "String"))
-        register()
+        register(notify)
     }
 
     private fun spawnAgent(name: String) {
