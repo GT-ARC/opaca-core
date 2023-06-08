@@ -83,9 +83,27 @@ public class AuthTests {
         Assert.assertEquals(403, con.getResponseCode());
     }
 
-    // TODO token from container
-    // TODO deploy test container
-    // TODO use /GetInfo to get token, decrypt token, check that token contains containerID
+    @Test
+    public void test3Deploy() throws Exception {
+        var image = getSampleContainerImage();
+        var con = requestWithToken(PLATFORM, "POST", "/containers", image, token);
+        Assert.assertEquals(200, con.getResponseCode());
+        containerId = result(con);
+    }
+
+    @Test
+    public void test4GetContainerToken() throws Exception {
+        var con = requestWithToken(PLATFORM, "POST", "/invoke/GetInfo", Map.of(), token);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+        var containerToken = (String) res.get("TOKEN");
+        Assert.assertTrue(containerToken != null && ! containerToken.equals(""));
+
+        // container token can be used to call platform routes
+        con = requestWithToken(PLATFORM, "GET", "/info", null, containerToken);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
     // TODO once /notify is fully implemented, test container -> platform by adding action, checking if info was auto-updated
 
     private String authQuery(String username, String password) {
