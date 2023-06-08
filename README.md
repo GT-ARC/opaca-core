@@ -27,18 +27,7 @@ and first tests in order to find out what of this makes sense etc.
 * use the `POST send` or `POST invoke` routes to send messages to the agent (with any payload; reply-to does not matter for now), or invoke the agent's dummy action (the action takes some time to run); check the logs of the agent container; you can also invoke the action and then immediately re-send the message to check that both work concurrently
 * shut down the platform with Ctrl+C; the agent container(s) should shut down as well
 
-## Getting Started / Kubernetes Environment
-* Log in to your Kubernetes (K8s) cluster.
-* Apply the document "doc/config/permission.yaml" to your cluster with `kubectl apply -f doc/config/permission.yaml`. This will create a namespace called "agents", a ServiceAccount, and the Roles associated with this ServiceAccount.
-* Set the environment variables in the "application.properties" file to "kubernetes" and run `mvn install` in the parent folder to create the JAR file for the platform.
-* Build the image for the platform by running the command `docker build -t agents-platform jiacpp-platform/.`
-* Log in to your Docker registry and push the platform image to it.
-* Also build the sample-agent-container-image with `docker build -t sample-agent-container-image examples/sample-container` and push it to your Docker registry.
-* Prepare your document "doc/config/platform-deploy.yaml." Replace the registry for the platform image with your own registry address. Also, replace the registry configurations used by the platform to deploy new agents.
-* Create a secret named "my-registry-key" for the registry that contains the platform image. Alternatively, you can use a different name, but then make sure to update the corresponding entry in the "platform-deploy.yaml" file. Use the command: `kubectl create secret docker-registry my-registry-key --docker-server=<address:port> --docker-username=<username> --docker-password='<password>' -n agents`
-* Apply the document "config/platform-deploy.yaml" to your cluster.
-* Now the pod with the platform is up and running. If you run the command `kubectl get services -n agents` you will see the IP of the service that is mapped to this pod.
-* Interact with the platform by using curl commands, such as: `curl -X POST -H "Content-Type: application/json" -d '{"imageName": "<registryAddress>:<registryPort>/sample-agent-container-image"}' http://<IP-platform-service/pod>:8000/containers` However, make sure that the port is correct. The default is 8000
+See [Execution Environments](doc/environments.md) for more information on different ways to execute the platform and agent containers.
 
 
 ## Environment Variables (Runtime Platform)
@@ -64,8 +53,8 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 * `REMOTE_DOCKER_PORT` (default: 2375) Port where remote Docker host exposes its API; usually this is 2375.
 
 ### Kubernetes
-* `KUBERNETES_NAMESPACE` (default: "agents")
-* `KUBERNETES_CONFIG` (default: "~/.kube/config")
+* `KUBERNETES_NAMESPACE` (default: "agents") Namespace where to deploy Agent Container pods.
+* `KUBERNETES_CONFIG` (default: "~/.kube/config") Alternative location for Kubernetes config.
 
 ### Security & Authentication
 * `ENABLE_AUTH` (default: false) Whether to require token-based authentication on all routes; see [Authentication](doc/auth.md) for details.
@@ -82,4 +71,5 @@ See the [API docs](doc/api.md) for Environment Variables passed from the Runtime
 
 * [API Routes and Models](doc/api.md)
 * [Protocols](doc/protocols.md)
+* [Execution Environments](doc/environments.md)
 * [Authentication](doc/auth.md)
