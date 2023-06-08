@@ -6,9 +6,9 @@ participant RuntimePlatform as RP
 participant ContainerAgent as CA
 collections "Other Agents" as OA
 
-title Runtime Platform to Container Agent
+title Runtime Platform to Agent Container
 
-hnote across: "message"
+hnote across: "send"
 RP -> CA: HTTP request
 CA -> OA: ref tell
 RP <-- CA: HTTP response (status only)
@@ -26,24 +26,24 @@ RP <-- CA: HTTP response (status and result)
 
 newpage Agent Container to Runtime Platform
 
-hnote across: "message"
+hnote across: "send"
 OA -> RP: HTTP request
-RP -> RP: forward
+RP -> RP: forward?
 OA <-- RP: HTTP response (status only)
 
 hnote across: "broadcast"
 OA -> RP: HTTP request
-RP -> RP: forward
+RP -> RP: forward?
 OA <-- RP: HTTP response (status only)
 
 hnote across: "invoke"
 OA -> RP: HTTP request
-RP -> RP: forward
+RP -> RP: forward?
 OA <-- RP: HTTP response (status and result)
 
 newpage Within Agent Container
 
-hnote across: "message"
+hnote across: "send"
 OA -> OA: ref tell
 
 hnote across: "broadcast"
