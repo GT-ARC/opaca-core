@@ -5,8 +5,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
+import de.dailab.jiacpp.platform.auth.JwtUtil;
+import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
 import de.dailab.jiacpp.util.*;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -31,10 +34,17 @@ import java.util.stream.Collectors;
  */
 @Log
 @RestController
+@SecurityRequirement(name = "bearerAuth")
 public class PlatformRestController implements RuntimePlatformApi {
 
 	@Autowired
 	PlatformConfig config;
+
+	@Autowired
+    TokenUserDetailsService tokenUserDetailsService;
+
+	@Autowired
+	JwtUtil jwtUtil;
 
 	RuntimePlatformApi implementation;
 
@@ -47,7 +57,9 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public void postConstruct() {
 		log.info("In Post-Construct");
 		log.info("Started with Config: " + config);
-		implementation = EventProxy.create(new PlatformImpl(config));
+
+		tokenUserDetailsService.addUser(config.usernamePlatform, config.passwordPlatform);
+		implementation = EventProxy.create(new PlatformImpl(config, tokenUserDetailsService, jwtUtil));
 		this.startDefaultImages();
 	}
 
@@ -103,6 +115,19 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	/*
+	 * AUTHENTICATION
+	 */
+
+	@RequestMapping(value="/login", method=RequestMethod.POST)
+	@Operation(summary="Login with username and password", tags={"authentication"})
+	public String login(
+			@RequestParam String username,
+			@RequestParam String password
+	) {
+		return jwtUtil.generateTokenForUser(username, password);
+	}
+
+	/*
 	 * INFO ROUTES
 	 */
 
@@ -150,10 +175,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public void send(
 			@PathVariable String agentId,
 			@RequestBody Message message,
+			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("SEND: %s, %s", agentId, message));
-		implementation.send(agentId, message, forward);
+		implementation.send(agentId, message, containerId, forward);
 	}
 
 	@RequestMapping(value="/broadcast/{channel}", method=RequestMethod.POST)
@@ -162,10 +188,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public void broadcast(
 			@PathVariable String channel,
 			@RequestBody Message message,
+			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("BROADCAST: %s, %s, %s", channel, message, forward));
-		implementation.broadcast(channel, message, forward);
+		log.info(String.format("BROADCAST: %s, %s", channel, message));
+		implementation.broadcast(channel, message, containerId, forward);
 	}
 
 	@RequestMapping(value="/invoke/{action}", method=RequestMethod.POST)
@@ -174,23 +201,25 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public JsonNode invoke(
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters,
+			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("INVOKE: %s, %s", action, parameters));
-		return implementation.invoke(action, parameters, forward);
+		return implementation.invoke(action, parameters, containerId, forward);
 	}
 
 	@RequestMapping(value="/invoke/{action}/{agentId}", method=RequestMethod.POST)
 	@Operation(summary="Invoke action at that specific agent", tags={"agents"})
 	@Override
 	public JsonNode invoke(
-			@PathVariable String agentId,
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters,
+			@PathVariable String agentId,
+			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("INVOKE: %s, %s, %s", action, agentId, parameters));
-		return implementation.invoke(agentId, action, parameters, forward);
+		return implementation.invoke(action, parameters, agentId, containerId, forward);
 	}
 
 	/*
@@ -203,7 +232,6 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public String addContainer(
 			@RequestBody AgentContainerImage container
 	) throws IOException {
-		// TODO handle "failed to start container" error (tbd)
 		log.info(String.format("ADD CONTAINER: %s", container));
 		return implementation.addContainer(container);
 	}

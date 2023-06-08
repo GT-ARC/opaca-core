@@ -37,47 +37,52 @@ public interface CommonApi {
     /**
      * Send message to a single agent in the container.
      *
-     * REST: POST /send/{id}
+     * REST: POST /send/{id}?containerId={containerId}&forward={true|false}`
      *
      * @param agentId ID of the agent
      * @param message The message envelope
-     * @param forward flag whether to forward the message to connected platforms
+     * @param containerId ID of the Container to use (optional)
+     * @param forward flag whether to forward the message to connected platforms (optional)
      */
-    void send(String agentId, Message message, boolean forward) throws IOException;
+    void send(String agentId, Message message, String containerId, boolean forward) throws IOException;
 
     /**
      * Send message to a group of agents, or channel.
      *
-     * REST: POST /broadcast/{channel}
+     * REST: POST /broadcast/{channel}?containerId={containerId}&forward={true|false}`
      *
      * @param channel Name of the group or channel
      * @param message The message envelope
-     * @param forward flag whether to forward the message to connected platforms
+     * @param containerId ID of the Container to use (optional)
+     * @param forward flag whether to forward the message to connected platforms (optional)
      */
-    void broadcast(String channel, Message message, boolean forward) throws IOException;
+    void broadcast(String channel, Message message, String containerId, boolean forward) throws IOException;
 
     /**
      * Invoke an action provided by any agent on this container.
      *
-     * REST: POST /invoke/{action}
+     * REST: POST /invoke/{action}?containerId={containerId}&forward={true|false}`
      *
      * @param action Name of the action
      * @param parameters Map of Parameters
-     * @param forward flag whether to forward the message to connected platforms
+     * @param containerId ID of the Container to use (optional)
+     * @param forward flag whether to forward the message to connected platforms (optional)
      * @return Action result
      */
-    JsonNode invoke(String action, Map<String, JsonNode> parameters, boolean forward) throws IOException;
+    JsonNode invoke(String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws IOException;
 
     /**
      * Invoke an action provided by a specific agent on this container.
      *
-     * REST: POST /invoke/{action}/{agent}
+     * REST: POST /invoke/{action}/{agent}?containerId={containerId}&forward={true|false}`
      *
      * @param action Name of the action
      * @param parameters Map of Parameters
-     * @param forward flag whether to forward the message to connected platforms
+     * @param agentId Name of the agent
+     * @param containerId ID of the Container to use (optional)
+     * @param forward flag whether to forward the message to connected platforms (optional)
      * @return Action result
      */
-    JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters, boolean forward) throws IOException;
+    JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws IOException;
 
 }

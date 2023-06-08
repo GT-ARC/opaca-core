@@ -32,7 +32,7 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
 * output: `AgentDescription`
 * errors: 200 / null result for unknown agent
 
-### `POST /send/{agent}?forward=true|false`
+### `POST /send/{agent}?containerId={containerId}&forward={true|false}`
 
 * send asynchronous message to agent
 * input: 
@@ -42,7 +42,7 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
 * output: none
 * errors: 404 for unknown agent
 
-### `POST /broadcast/{channel}?forward=true|false`
+### `POST /broadcast/{channel}?containerId={containerId}&forward={true|false}`
 
 * send asynchronous message to all agents subscribed to the channel
 * input: 
@@ -52,7 +52,7 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
 * output: none
 * errors: none
 
-### `POST /invoke/{action}/{agent}?forward=true|false`
+### `POST /invoke/{action}/{agent}?containerId={containerId}&forward={true|false}`
 
 * invoke action/service provided by the given agent and get result (synchronously) 
 * expected parameter and output types are given in the action description
@@ -64,7 +64,7 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
 * output: result of the action
 * errors: 404 for unknown action or agent
 
-### `POST /invoke/{action}?forward=true|false`
+### `POST /invoke/{action}?containerId={containerId}&forward={true|false}`
 
 * same as `POST /invoke/{action}/{agent}`, but invoke action at _any_ agent that provides it
 
@@ -108,7 +108,7 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
 
 * notify the platform about changes in one of its containers
 * body: `containerId` of the container
-* output: `true/false`, depending on whether the container responded to `/info` call; it it does not respond, container is removed
+* output: `true/false`, depending on whether the container responded to `/info` call; if it does not respond, container is removed
 * errors: 404 if container does not exist on platform
 
 ### `DELETE /containers/{container}`
@@ -149,7 +149,7 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
 
 ### Common Themes of different Routes
 
-* some routes have an optional `forward` parameter, telling whether the call can be forwarded to another platform, if the agent or action is not found in a container on this one (default: true)
+* the `/send`, `/broadcast` and `/invoke` routes of the Agents API each have two optional query-parameters: `containerId` telling which specific container to address (default: any), and `forward` telling whether the call can be forwarded to another platform, if the agent or action is not found in a container on this one (default: true); these parameters are only relevant for the Runtime Platform version of those routes and can be ignored for the Agent Containers themselves
 * typically, the API will return HTTP Status codes 502 if the call could not be forwarded to the target container or platform, and 404 if the agent or action is question has not been found (an exception being the `DELETE` routes, since here the effect is the same whether the container/platform was found; those will just return `false` in this case)
 
 

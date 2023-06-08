@@ -25,7 +25,8 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
 
     /** proxy to parent Runtime Platform for forwarding outgoing calls */
     private var runtimePlatformUrl: String? = null
-    private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl) }
+    private var token: String? = null
+    private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl, token) }
 
     override fun preStart() {
         super.preStart()
@@ -36,11 +37,10 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         log.info("REGISTERING...")
         val desc = getDescription()
         val ref = system.resolve(CONTAINER_AGENT)
-        ref invoke ask<String?>(Register(desc)) {
-            if (it != null) {
-                log.info("REGISTERED: Parent URL is $it")
-                runtimePlatformUrl = it
-            }
+        ref invoke ask<Registered>(Register(desc)) {
+            log.info("REGISTERED: Parent URL is ${it.parentUrl}")
+            runtimePlatformUrl = it.parentUrl
+            token = it.authToken
         }
     }
 
@@ -63,8 +63,8 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         val jsonParameters = parameters.entries
             .associate { Pair<String, JsonNode>(it.key, RestHelper.mapper.valueToTree(it.value)) }
         val res = when (agentId) {
-            null -> parentProxy.invoke(action, jsonParameters, true)
-            else -> parentProxy.invoke(agentId, action, jsonParameters, true)
+            null -> parentProxy.invoke(action, jsonParameters, null, true)
+            else -> parentProxy.invoke(action, jsonParameters, agentId, null, true)
         }
         return RestHelper.mapper.treeToValue(res, type)
     }
@@ -76,7 +76,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
     fun sendOutboundBroadcast(channel: String, message: Any) {
         log.info("Outbound Broadcast: $message @ $channel")
         val payload: JsonNode = RestHelper.mapper.valueToTree(message)
-        parentProxy.broadcast(channel, Message(payload, name), true)
+        parentProxy.broadcast(channel, Message(payload, name), null, true)
     }
 
     /**
@@ -86,7 +86,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
     fun sendOutboundMessage(agentId: String, message: Any) {
         log.info("Outbound Message: $message @ $agentId")
         val payload: JsonNode = RestHelper.mapper.valueToTree(message)
-        parentProxy.send(agentId, Message(payload, name), true)
+        parentProxy.send(agentId, Message(payload, name), null, true)
     }
 
 }

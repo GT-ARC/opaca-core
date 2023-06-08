@@ -76,13 +76,11 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             val body: String = request.reader.lines().collect(Collectors.joining())
             response.contentType = "application/json"
 
-            // TODO interpretation of "forward"? currently ignored; escalate to RP if AC is addressed directly?
-
             val send = Regex("^/send/([^/]+)$").find(path)
             if (send != null) {
                 val id = send.groupValues[1]
                 val message = RestHelper.readObject(body, Message::class.java)
-                val res = impl.send(id, message, false)
+                val res = impl.send(id, message, "", false)
                 response.writer.write(RestHelper.writeJson(res))
             }
 
@@ -90,7 +88,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             if (broadcast != null) {
                 val channel = broadcast.groupValues[1]
                 val message = RestHelper.readObject(body, Message::class.java)
-                val res = impl.broadcast(channel, message, false)
+                val res = impl.broadcast(channel, message, "", false)
                 response.writer.write(RestHelper.writeJson(res))
             }
 
@@ -98,7 +96,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             if (invokeAct != null) {
                 val action = invokeAct.groupValues[1]
                 val parameters = RestHelper.readMap(body)
-                val res = impl.invoke(action, parameters, false)
+                val res = impl.invoke(action, parameters, "", false)
                 response.writer.write(RestHelper.writeJson(res))
             }
 
@@ -107,7 +105,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 val action = invokeActOf.groupValues[1]
                 val agentId = invokeActOf.groupValues[2]
                 val parameters = RestHelper.readMap(body)
-                val res = impl.invoke(agentId, action, parameters, false)
+                val res = impl.invoke(action, parameters, agentId, "", false)
                 response.writer.write(RestHelper.writeJson(res))
             }
         }
@@ -125,6 +123,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     /** the URL of the parent Runtime Platform, received on initialization */
     private var runtimePlatformUrl: String? = null
 
+    /** the token for accessing the parent Runtime Platform, received on initialization */
+    private var token: String? = null
+    
     /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
 
@@ -147,6 +148,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         log.info("Setting environment...")
         containerId = System.getenv(AgentContainerApi.ENV_CONTAINER_ID)
         runtimePlatformUrl = System.getenv(AgentContainerApi.ENV_PLATFORM_URL)
+        token = System.getenv(AgentContainerApi.ENV_TOKEN)
         startedAt = ZonedDateTime.now(ZoneId.of("Z"))
     }
 
@@ -180,7 +182,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             return registeredAgents[agentId]
         }
 
-        override fun send(agentId: String, message: Message, forward: Boolean) {
+        override fun send(agentId: String, message: Message, containerId: String, forward: Boolean) {
             log.info("SEND: $agentId $message")
             val agent = findRegisteredAgent(agentId, action=null)
             if (agent != null) {
@@ -190,17 +192,17 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             // TODO raise exception if not found?
         }
 
-        override fun broadcast(channel: String, message: Message, forward: Boolean) {
+        override fun broadcast(channel: String, message: Message, containerId: String, forward: Boolean) {
             log.info("BROADCAST: $channel $message")
             broker.publish(channel, message)
         }
 
-        override fun invoke(action: String, parameters: Map<String, JsonNode>, forward: Boolean): JsonNode? {
+        override fun invoke(action: String, parameters: Map<String, JsonNode>, containerId: String, forward: Boolean): JsonNode? {
             log.info("INVOKE ACTION: $action $parameters")
-            return invoke(null, action, parameters, forward)
+            return invoke(action, parameters, null, containerId, forward)
         }
 
-        override fun invoke(agentId: String?, action: String, parameters: Map<String, JsonNode>, forward: Boolean): JsonNode? {
+        override fun invoke(action: String, parameters: Map<String, JsonNode>, agentId: String?, containerId: String, forward: Boolean): JsonNode? {
             log.info("INVOKE ACTION OF AGENT: $agentId $action $parameters")
 
             val agent = findRegisteredAgent(agentId, action)
@@ -236,12 +238,12 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     override fun behaviour() = act {
 
         // agents may register with the container agent, publishing their ID and actions
-        respond<Register, String?> {
+        respond<Register, Registered> {
             // TODO should Register message contain the agent's internal name, or is that always equal to the agentId?
             log.info("Registering ${it.description}")
             registeredAgents[it.description.agentId] = it.description
             notifyPlatform()
-            runtimePlatformUrl
+            Registered(runtimePlatformUrl, token)
         }
 
         // in case agents want to de-register themselves before the container as a whole terminates

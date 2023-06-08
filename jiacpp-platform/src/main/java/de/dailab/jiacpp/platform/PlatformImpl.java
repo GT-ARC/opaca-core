@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
+import de.dailab.jiacpp.platform.auth.JwtUtil;
+import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
 import de.dailab.jiacpp.platform.containerclient.ContainerClient;
 import de.dailab.jiacpp.platform.containerclient.DockerClient;
 import de.dailab.jiacpp.platform.containerclient.KubernetesClient;
@@ -17,6 +19,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+
 /**
  * This class provides the actual implementation of the API routes. Might also be split up
  * further, e.g. for agent-forwarding, container-management, and linking to other platforms.
@@ -24,12 +27,14 @@ import java.util.stream.Stream;
 @Log
 public class PlatformImpl implements RuntimePlatformApi {
 
-    // TODO make sure agent IDs are globally unique? extend agent-ids with platform-hash or similar?
-    //  e.g. optionally allow "agentId@containerId" to be passed in place of agentId for all routes? (Issue #10)
-
     final PlatformConfig config;
 
     final ContainerClient containerClient;
+
+    final JwtUtil jwtUtil;
+
+    final TokenUserDetailsService userDetailsService;
+
 
     /** Currently running Agent Containers, mapping container ID to description */
     private final Map<String, AgentContainer> runningContainers = new HashMap<>();
@@ -41,9 +46,11 @@ public class PlatformImpl implements RuntimePlatformApi {
     private final Set<String> pendingConnections = new HashSet<>();
 
 
-    public PlatformImpl(PlatformConfig config) {
+    public PlatformImpl(PlatformConfig config, TokenUserDetailsService userDetailsService, JwtUtil jwtUtil) {
         this.config = config;
-        
+        this.userDetailsService = userDetailsService;
+        this.jwtUtil = jwtUtil;
+
         if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.DOCKER) {
             log.info("Using Docker on host " + config.remoteDockerHost);
             this.containerClient = new DockerClient();
@@ -93,13 +100,13 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public void send(String agentId, Message message, boolean forward) throws NoSuchElementException {
-        var clients = getClients(null, agentId, null, forward);
+    public void send(String agentId, Message message, String containerId, boolean forward) throws NoSuchElementException {
+        var clients = getClients(containerId, agentId, null, forward);
 
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             log.info("Forwarding /send to " + client.baseUrl);
             try {
-                client.send(agentId, message, false);
+                client.send(agentId, message, containerId, false);
                 return;
             } catch (IOException e) {
                 log.warning("Failed to forward /send to " + client.baseUrl);
@@ -110,13 +117,13 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public void broadcast(String channel, Message message, boolean forward) {
-        var clients = getClients(null, null, null, forward);
+    public void broadcast(String channel, Message message, String containerId, boolean forward) {
+        var clients = getClients(containerId, null, null, forward);
 
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             log.info("Forwarding /broadcast to " + client.baseUrl);
             try {
-                client.broadcast(channel, message, false);
+                client.broadcast(channel, message, containerId, false);
             } catch (IOException e) {
                 log.warning("Failed to forward /broadcast to " + client.baseUrl);
             }
@@ -124,19 +131,19 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters, boolean forward) throws NoSuchElementException {
-        return invoke(null, action, parameters, forward);
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws NoSuchElementException {
+        return invoke(action, parameters, null, containerId, forward);
     }
 
     @Override
-    public JsonNode invoke(String agentId, String action, Map<String, JsonNode> parameters, boolean forward) throws NoSuchElementException {
-        var clients = getClients(null, agentId, action, forward);
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws NoSuchElementException {
+        var clients = getClients(containerId, agentId, action, forward);
 
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {
                 return agentId == null
-                        ? client.invoke(action, parameters, false)
-                        : client.invoke(agentId, action, parameters, false);
+                        ? client.invoke(action, parameters, containerId, false)
+                        : client.invoke(action, parameters, agentId, containerId, false);
             } catch (IOException e) {
                 // todo: different warning in case of faulty parameters?
                 log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s'",
@@ -155,9 +162,10 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public String addContainer(AgentContainerImage image) throws IOException {
         String agentContainerId = UUID.randomUUID().toString();
+        String token = config.enableAuth ? jwtUtil.generateTokenForAgentContainer(agentContainerId) : "";
 
         // start container... this may raise an Exception, or returns the connectivity info
-        var connectivity = containerClient.startContainer(agentContainerId, image);
+        var connectivity = containerClient.startContainer(agentContainerId, token, image);
 
         // wait until container is up and running...
         var start = System.currentTimeMillis();
@@ -168,6 +176,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 var container = client.getContainerInfo();
                 container.setConnectivity(connectivity);
                 runningContainers.put(agentContainerId, container);
+                userDetailsService.addUser(agentContainerId, agentContainerId);
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
                     log.warning("Agent Container ID does not match: Expected " +
@@ -213,6 +222,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         AgentContainer container = runningContainers.get(containerId);
         if (container != null) {
             runningContainers.remove(containerId);
+            userDetailsService.removeUser(containerId);
             containerClient.stopContainer(containerId);
             notifyConnectedPlatforms();
             return true;
@@ -339,30 +349,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     /**
-     * Get client for send or invoke to specific agent, in a specific container, for a specific action.
-     * All those parameters are optional (e.g. for "send" or "invoke" without agentId), but obviously
-     * _some_ should be set, otherwise it does not make much sense to call the method.
-     */
-    private ApiProxy getClient(String containerId, String agentId, String action) throws IOException {
-        // TODO for /invoke: also check that action parameters match, or just the name?
-        // check own containers
-        var container = runningContainers.values().stream()
-                .filter(c -> matches(c, containerId, agentId, action))
-                .findFirst();
-        if (container.isPresent()) {
-            return getClient(container.get());
-        }
-        // check containers on connected platforms
-        var platform = connectedPlatforms.values().stream()
-                .filter(p -> p.getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action)))
-                .findFirst();
-        if (platform.isPresent()) {
-            return new ApiProxy(platform.get().getBaseUrl());
-        }
-        return null;
-    }
-
-    /**
      * get a list of clients for all containers/platforms that fulfill the given agent/action requirements.
      *
      * @param containerId container on which should be searched for valid agents/actions
@@ -404,7 +390,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     private ApiProxy getClient(String containerId) {
         var url = containerClient.getUrl(containerId);
-        System.out.println("URL " + url);
         return new ApiProxy(url);
     }
 

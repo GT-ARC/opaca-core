@@ -10,6 +10,8 @@ import de.dailab.jiacpp.model.AgentDescription
 
 data class Register(val description: AgentDescription)
 
+data class Registered(val parentUrl: String?, val authToken: String?)
+
 data class DeRegister(val agentId: String)
 
 // Message for Invoking a JIAC++ action at a containerized agent, wrapping the name of the action to call

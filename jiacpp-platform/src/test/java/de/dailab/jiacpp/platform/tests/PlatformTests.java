@@ -1,9 +1,10 @@
 package de.dailab.jiacpp.platform.tests;
 
+import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.platform.Application;
 import de.dailab.jiacpp.platform.PlatformRestController;
-import de.dailab.jiacpp.util.RestHelper;
+import static de.dailab.jiacpp.platform.tests.TestUtils.*;
 
 import org.junit.*;
 import org.junit.runners.MethodSorters;
@@ -12,27 +13,26 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
 /**
  * The unit tests in this class test all the basic functionality of the Runtime Platform as well as some
- * error cases. The tests run against a live Runtime Platform that has to be started before the tests.
- *
- * - build everything with `mvn install`
- * - build the example container: `cd examples/sample-container; docker build -t sample-agent-container-image .`
- * - build the runtime platform docker image: `cd ../../jiacpp-platform; docker build -t jiacpp-platform .`
- * - start the runtime platform(s): `docker-compose up`
- *
- * NOTE: execution of the Runtime Platform in docker-compose does not work properly yet;
- * for now, just run it directly: `java -jar target/jiacpp-platform-0.1-SNAPSHOT.jar`
- * (for the connection-tests, repeat this for two platforms with ports 8001 and 8002 respectively)
+ * error cases. The tests run against two live Runtime Platforms that are started along with the tests.
+ * The sample container image is taken from the DAI Gitlab Container Registry.
  *
  * Some tests depend on each others, so best always execute all tests. (That's also the reason
  * for the numbers in the method names, so don't remove those and stay consistent when adding more tests!)
+ *
+ * During initial setup and the first tests, two Runtime Platforms are started, a sample-container is
+ * deployed on the first one, and the two platforms are connected.
+ *
+ *   Platform A   -----------------   Platform B
+ *       |
+ *  Sample-Container-Image
+ *
+ * Thus, this is the setup that can be assumed for most tests. Individual tests may deploy additional
+ * containers needed for testing, but then they should undeploy them when they are done.
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class PlatformTests {
@@ -42,8 +42,6 @@ public class PlatformTests {
 
     private final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
     private final String PLATFORM_B = "http://localhost:" + PLATFORM_B_PORT;
-
-    private final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v5";
 
     private static ConfigurableApplicationContext platformA = null;
 
@@ -197,6 +195,17 @@ public class PlatformTests {
     }
 
     /**
+     * if auth is disabled, no token should be passed to container
+     */
+    @Test
+    public void test5AuAuthNoToken() throws Exception {
+        var con = request(PLATFORM_A, "POST", "/invoke/GetInfo", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+        Assert.assertEquals("", res.get("TOKEN"));
+    }
+
+    /**
      * Test Event Logging by issuing some calls (successful and failing),
      * then see if the generated events match those calls.
      */
@@ -228,12 +237,14 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         var newContainerId = result(con);
 
-        con = request(PLATFORM_A, "GET", "/containers/" + newContainerId, null);
-        var res = result(con, AgentContainer.class);
-        Assert.assertEquals(8083, (int) res.getConnectivity().getApiPortMapping());
-
-        con = request(PLATFORM_A, "DELETE", "/containers/" + newContainerId, null);
-        Assert.assertEquals(200, con.getResponseCode());
+        try {
+            con = request(PLATFORM_A, "GET", "/containers/" + newContainerId, null);
+            var res = result(con, AgentContainer.class);
+            Assert.assertEquals(8083, (int) res.getConnectivity().getApiPortMapping());
+        } finally {
+            con = request(PLATFORM_A, "DELETE", "/containers/" + newContainerId, null);
+            Assert.assertEquals(200, con.getResponseCode());
+        }
     }
 
     /**
@@ -275,6 +286,48 @@ public class PlatformTests {
         con = request(PLATFORM_A, "GET", "/containers/" + containerId, null);
         var res = result(con, AgentContainer.class);
         Assert.assertNotNull(res.getConnectivity());
+    }
+
+    /**
+     * Deploy an additional sample-container on the same platform, so there are two of the same.
+     * Then /send and /broadcast messages to one particular container, then /invoke the GetInfo
+     * action of the respective containers to check that the messages were delivered correctly.
+     */
+    @Test
+    public void test5WithContainerId() throws Exception {
+        // deploy a second sample container image on platform A
+        var image = getSampleContainerImage();
+        var con = request(PLATFORM_A, "POST", "/containers", image);
+        var newContainerId = result(con);
+
+        try {
+            // directed /send and /broadcast to both containers
+            var msg1 = Map.of("payload", "\"Message to First Container\"", "replyTo", "");
+            var msg2 = Map.of("payload", "\"Message to Second Container\"", "replyTo", "");
+            request(PLATFORM_A, "POST", "/broadcast/topic?containerId=" + containerId, msg1);
+            request(PLATFORM_A, "POST", "/send/sample1?containerId=" + newContainerId, msg2);
+            Thread.sleep(500);
+
+            // directed /invoke of GetInfo to check last messages of first container
+            con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample1?containerId=" + containerId, Map.of());
+            var res1 = result(con, Map.class);
+            System.out.println(res1);
+            Assert.assertEquals(containerId, res1.get(AgentContainerApi.ENV_CONTAINER_ID));
+            Assert.assertEquals(msg1.get("payload"), res1.get("lastBroadcast"));
+            Assert.assertNotEquals(msg2.get("payload"), res1.get("lastMessage"));
+
+            // directed /invoke of GetInfo to check last messages of second container
+            con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample1?containerId=" + newContainerId, Map.of());
+            var res2 = result(con, Map.class);
+            System.out.println(res1);
+            Assert.assertEquals(newContainerId, res2.get(AgentContainerApi.ENV_CONTAINER_ID));
+            Assert.assertNotEquals(msg1.get("payload"), res2.get("lastBroadcast"));
+            Assert.assertEquals(msg2.get("payload"), res2.get("lastMessage"));
+        } finally {
+            // remove the additional sample container image from platform A
+            con = request(PLATFORM_A, "DELETE", "/containers/" + newContainerId, null);
+            Assert.assertEquals(200, con.getResponseCode());
+        }
     }
 
     /**
@@ -347,14 +400,15 @@ public class PlatformTests {
      */
     @Test
     public void test7ForwardBroadcast() throws Exception {
-        var message = Map.of("payload", "testBroadcast", "replyTo", "doesnotmatter");
+        var message = Map.of("payload", "testBroadcastForward", "replyTo", "doesnotmatter");
         var con = request(PLATFORM_B, "POST", "/broadcast/topic", message);
         Assert.assertEquals(200, con.getResponseCode());
+        Thread.sleep(500);
 
         con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample1", Map.of());
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
-        Assert.assertEquals("testBroadcast", res.get("lastBroadcast"));
+        Assert.assertEquals("testBroadcastForward", res.get("lastBroadcast"));
     }
 
     // repeat tests again, with second platform, but disallowing forwarding
@@ -608,45 +662,6 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         agentsList = result(con, List.class);
         Assert.assertEquals(1, agentsList.size());
-    }
-
-    /*
-     * HELPER METHODS
-     */
-
-    public AgentContainerImage getSampleContainerImage() {
-        var image = new AgentContainerImage();
-        image.setImageName(TEST_IMAGE);
-        image.setExtraPorts(Map.of(8888, new AgentContainerImage.PortDescription()));
-        return image;
-    }
-
-    public HttpURLConnection request(String host, String method, String path, Object payload) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) new URL(host + path).openConnection();
-        connection.setRequestMethod(method);
-
-        if (payload != null) {
-            String json = RestHelper.mapper.writeValueAsString(payload);
-            byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
-            connection.setDoOutput(true);
-            connection.setFixedLengthStreamingMode(bytes.length);
-            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-            connection.connect();
-            try (OutputStream os = connection.getOutputStream()) {
-                os.write(bytes);
-            }
-        } else {
-            connection.connect();
-        }
-        return connection;
-    }
-
-    public String result(HttpURLConnection connection) throws IOException {
-        return new String(connection.getInputStream().readAllBytes());
-    }
-
-    public <T> T result(HttpURLConnection connection, Class<T> type) throws IOException {
-        return RestHelper.mapper.readValue(connection.getInputStream(), type);
     }
 
 }

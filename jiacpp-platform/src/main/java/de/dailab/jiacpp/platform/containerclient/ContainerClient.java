@@ -27,7 +27,7 @@ public interface ContainerClient {
      *
      * @return Port Mappings
      */
-    AgentContainer.Connectivity startContainer(String containerId, AgentContainerImage image) throws IOException, NoSuchElementException;
+    AgentContainer.Connectivity startContainer(String containerId, String token, AgentContainerImage image) throws IOException, NoSuchElementException;
 
     /**
      * Stop the agent container with the given ID.
