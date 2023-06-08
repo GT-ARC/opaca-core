@@ -22,6 +22,7 @@ import java.util.Map;
 public class RestHelper {
 
     public final String baseUrl;
+    public final String token;
 
     public static final ObjectMapper mapper = JsonMapper.builder()
             .findAndAddModules().build();
@@ -44,6 +45,10 @@ public class RestHelper {
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
         connection.setRequestMethod(method);
 
+        if (token != null && ! token.isEmpty()) {
+            connection.setRequestProperty("Authorization", "Bearer " + token);
+        }
+        
         if (payload != null) {
             String json = mapper.writeValueAsString(payload);
             byte[] bytes = json.getBytes(StandardCharsets.UTF_8);

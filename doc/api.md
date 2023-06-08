@@ -99,7 +99,7 @@ This document shows a high-level, easy-to-read, language-agnostic overview of th
 
 * notify the platform about changes in one of its containers
 * body: `containerId` of the container
-* output: true or false, depending on whether the container responded to `/info` call; it it does not respond, container is removed
+* output: true or false, depending on whether the container responded to `/info` call; if it does not respond, container is removed
 * errors: 404 if container does not exist on platform
 
 ### `DELETE /containers/{container}`

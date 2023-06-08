@@ -12,21 +12,11 @@ import java.util.AbstractMap;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.openapi.models.V1Container;
-import io.kubernetes.client.openapi.models.V1ContainerPort;
-import io.kubernetes.client.openapi.models.V1Pod;
-import io.kubernetes.client.util.Watch;
-import io.kubernetes.client.openapi.models.V1LocalObjectReference;
-import io.kubernetes.client.openapi.models.V1PodSpec;
-import io.kubernetes.client.custom.IntOrString;
-import io.kubernetes.client.openapi.models.V1ObjectMeta;
-import io.kubernetes.client.util.Config;
 import io.kubernetes.client.openapi.ApiException;
-import io.kubernetes.client.openapi.models.V1Service;
-import io.kubernetes.client.openapi.models.V1ServicePort;
-import io.kubernetes.client.openapi.models.V1ServiceSpec;
 import io.kubernetes.client.openapi.models.*;
-import io.kubernetes.client.openapi.models.V1Secret;
+import io.kubernetes.client.custom.IntOrString;
+import io.kubernetes.client.util.Watch;
+import io.kubernetes.client.util.Config;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -81,8 +71,7 @@ public class KubernetesClient implements ContainerClient {
             } else if (config.platformEnvironment == PlatformConfig.PlatformEnvironment.NATIVE) {
                 // If running locally, it will use the default kubeconfig file location
                 var configPath = config.kubernetesConfig.replaceAll("^~", System.getProperty("user.home"));
-                String kubeConfigPath = configPath;
-                client = Config.fromConfig(kubeConfigPath);
+                client = Config.fromConfig(configPath);
             } else {
                 throw new RuntimeException("Invalid platform environment: " + config.platformEnvironment);
             }
@@ -101,7 +90,7 @@ public class KubernetesClient implements ContainerClient {
     }
 
     @Override
-    public AgentContainer.Connectivity startContainer(String containerId, AgentContainerImage image) throws IOException, NoSuchElementException {
+    public AgentContainer.Connectivity startContainer(String containerId, String token, AgentContainerImage image) throws IOException, NoSuchElementException {
         
         var imageName = image.getImageName();
         var registry = imageName.split("/")[0];
@@ -123,15 +112,15 @@ public class KubernetesClient implements ContainerClient {
                         ))
                         .env(Arrays.asList(
                             new V1EnvVar().name(AgentContainerApi.ENV_CONTAINER_ID).value(containerId),
+                            new V1EnvVar().name(AgentContainerApi.ENV_TOKEN).value(token),
                             new V1EnvVar().name(AgentContainerApi.ENV_PLATFORM_URL).value(config.getOwnBaseUrl())
                         ))
                 ))
                 .imagePullSecrets(registrySecret == null ? null : Collections.singletonList(new V1LocalObjectReference().name(registrySecret)))
             );
 
-        V1Pod createdPod = null;
         try {
-            createdPod = coreApi.createNamespacedPod(namespace, pod, null, null, null);
+            V1Pod createdPod = coreApi.createNamespacedPod(namespace, pod, null, null, null);
             log.info("Pod created: " + createdPod.getMetadata().getName());
 
             createServicesForPorts(containerId, image, portMap);

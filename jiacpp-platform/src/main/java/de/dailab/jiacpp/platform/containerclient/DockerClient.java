@@ -80,7 +80,8 @@ public class DockerClient implements ContainerClient {
     }
 
     @Override
-    public AgentContainer.Connectivity startContainer(String containerId, AgentContainerImage image) throws IOException, NoSuchElementException {
+    public AgentContainer.Connectivity startContainer(String containerId, String token, AgentContainerImage image) throws IOException, NoSuchElementException {
+        
         var imageName = image.getImageName();
         var extraPorts = image.getExtraPorts();
         try {
@@ -96,6 +97,7 @@ public class DockerClient implements ContainerClient {
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
                     .withEnv(
                             String.format("%s=%s", AgentContainerApi.ENV_CONTAINER_ID, containerId),
+                            String.format("%s=%s", AgentContainerApi.ENV_TOKEN, token),
                             String.format("%s=%s", AgentContainerApi.ENV_PLATFORM_URL, config.getOwnBaseUrl()))
                     .withHostConfig(HostConfig.newHostConfig()
                             .withPortBindings(portMap.entrySet().stream().map(

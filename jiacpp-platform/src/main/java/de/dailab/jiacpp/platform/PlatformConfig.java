@@ -21,7 +21,7 @@ import java.util.stream.IntStream;
  */
 @Log
 @Configuration
-@ToString(exclude = {"registryPasswords"})
+@ToString(exclude = {"registryPasswords", "passwordPlatform"})
 public class PlatformConfig {
 
     // GENERAL SETTINGS
@@ -43,6 +43,20 @@ public class PlatformConfig {
 
     @Value("${default_image_directory}")
     public String defaultImageDirectory;
+
+    // SECURITY & AUTHENTICATION
+
+    @Value("${security.enableAuth}")
+    public Boolean enableAuth;
+
+    @Value("${security.secret}")
+    public String secret;
+
+    @Value("${username_platform}")
+    public String usernamePlatform;
+
+    @Value("${password_platform}")
+    public String passwordPlatform;
 
     // IMAGE REGISTRY CREDENTIALS
 
@@ -82,10 +96,6 @@ public class PlatformConfig {
     public enum ContainerEnvironment {
         DOCKER, KUBERNETES
     }
-
-    // TODO
-    //  auth stuff for platform itself? tbd
-    //  GPU support and other "features" of this specific platform
 
 
     /**
