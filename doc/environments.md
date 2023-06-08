@@ -9,6 +9,8 @@ Both the Runtime Platform and the Agent Containers can be executed in different 
 
 The simplest way to execute the Runtime Platform. Just follow the steps in the "Quick Testing Guide" of the main [Readme](../README.md).
 
+Note: You can also use the `Native` environment to execute the Runtime Platform in Docker (Compose), but there seem to be some problems with resolving the Runtime Platform's own IP in this case (which is needed to connect to the containers). To work around this problem, use the `PUBLIC_URL` environment variable to set the proper (internal) IP or actual public URL of the Runtime Platform to be used.
+
 ### Kubernetes
 
 For productive use, the Runtime Platform itself can be executed in Kubernetes along with its containers.
@@ -33,6 +35,8 @@ For productive use, the Runtime Platform itself can be executed in Kubernetes al
 The default execution environment is to run the Agent Containers on a Docker installed on the same host where the Runtime Platform itself is running. Of course, this requires Docker to be installed and accessible on the host. Alternatively, the `REMOTE_DOCKER_HOST`, `REMOTE_DOCKER_PORT` environment variables can be used to configure a remote Docker host.
 
 The typical use case for this is development and testing, but it can also be used for productive use, especially if no Kubernetes is available.
+
+Keep in mind that, when running the Agent Containers on a remote Docker or Kubernetes host, the Runtime Platform itself must also be accessible to the Agent Containers, otherwise they will not be able to route any outgoing communication to other Agent Containers over the platform (but otherwise they will run just fine).
 
 ### Kubernetes
 
