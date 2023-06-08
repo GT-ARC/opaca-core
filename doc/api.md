@@ -3,7 +3,13 @@
 This document shows a high-level, easy-to-read, language-agnostic overview of the JIAC++ API, the different routes, etc. It _should_ be kept up to date, but might not always _be_ up to date. When in doubt, please consult the Interfaces and Model classes in the `jiacpp-model` module, or just start a Runtime Platform and check the documentation in the Swagger Web UI.
 
 
-<!-- TODO environment variables passed from TP to AC -->
+## Environment Variables (Agent Container)
+
+When an Agent Container is started by the Runtime Platform, a number of environment variables are set to facilitate the communication between the Agent Container and its parent Runtime Platform.
+
+* `CONTAINER_ID` The Agent Container's own container ID used to identify the container at the Runtime Platform.
+* `PLATFORM_URL` The URL or IP address where the Agent Container can reach its parent Runtime Platform
+* `TOKEN` Bearer token assigned to the container needed to interact with the parent Runtime Platform if it is using authentication (see [Authentication](doc/auth.md) for details).
 
 
 ## Agents API

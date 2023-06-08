@@ -74,14 +74,7 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 
 You can set those properties in the run config in your IDE, via an `.env` file, using `export` on the shell or in a `docker-compose.yml` file. Note that if you have one of those properties in e.g. your `.env` file, and it does not have a value, that may still overwrite the default and set the value to `null` or the empty string.
 
-
-## Environment Variables (Agent Container)
-
-When an Agent Container is started by the Runtime Platform, a number of environment variables are set to facilitate the communication between the Agent Container and its parent Runtime Platform.
-
-* `CONTAINER_ID` The Agent Container's own container ID used to identify the container at the Runtime Platform.
-* `PLATFORM_URL` The URL or IP address where the Agent Container can reach its parent Runtime Platform 
-* `TOKEN` Bearer token assigned to the container needed to interact with the parent Runtime Platform if it is using authentication (see [Authentication](doc/auth.md) for details).
+See the [API docs](doc/api.md) for Environment Variables passed from the Runtime Platform to the started Agent Containers.
 
 
 ## Additional Information
