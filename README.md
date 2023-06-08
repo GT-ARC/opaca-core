@@ -69,6 +69,7 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 
 ### Security & Authentication
 * `ENABLE_AUTH` (default: false) Whether to require token-based authentication on all routes; see [Authentication](doc/auth.md) for details.
+* `SECRET` (default: empty) The secret used to encrypt and decrypt the JWT tokens used for authentication.
 * `USERNAME_PLATFORM` (default: null) Name of a single authorized user (temporary)
 * `USERNAME_PLATFORM` (default: null) Password of a single authorized user (temporary)
 
