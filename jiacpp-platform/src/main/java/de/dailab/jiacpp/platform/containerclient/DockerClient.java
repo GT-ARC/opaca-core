@@ -19,6 +19,7 @@ import de.dailab.jiacpp.platform.PlatformConfig;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.java.Log;
+import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -152,9 +153,16 @@ public class DockerClient implements ContainerClient {
         return conn.getPublicUrl() + ":" + conn.getApiPortMapping();
     }
 
+    private String getLocalDockerHost() {
+        // Just differentiates between Windows and others for now
+        return SystemUtils.IS_OS_WINDOWS
+                ? "npipe:////./pipe/docker_engine"
+                : "unix:///var/run/docker.sock";
+    }
+
     private String getDockerHost() {
         return Strings.isNullOrEmpty(config.remoteDockerHost)
-                ? "unix:///var/run/docker.sock"
+                ? getLocalDockerHost()
                 : String.format("tcp://%s:%s", config.remoteDockerHost, config.remoteDockerPort);
     }
 
