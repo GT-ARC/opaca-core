@@ -30,6 +30,11 @@ public class AuthTests {
                 "--username_platform=testUser", "--password_platform=testPwd");
     }
 
+    @AfterClass
+    public static void stopPlatform() throws Exception {
+        platform.close();
+    }
+
 
     @Test
     public void test1Login() throws Exception {
@@ -79,7 +84,6 @@ public class AuthTests {
         Assert.assertEquals(403, con.getResponseCode());
     }
 
-    @Ignore("Test works fine, but causes PlatformTests to fail (port not freed in time?)")
     @Test
     public void test3Deploy() throws Exception {
         var image = getSampleContainerImage();
@@ -88,7 +92,6 @@ public class AuthTests {
         containerId = result(con);
     }
 
-    @Ignore("Test works fine, but causes PlatformTests to fail (port not freed in time?)")
     @Test
     public void test4GetContainerToken() throws Exception {
         var con = requestWithToken(PLATFORM, "POST", "/invoke/GetInfo", Map.of(), token);

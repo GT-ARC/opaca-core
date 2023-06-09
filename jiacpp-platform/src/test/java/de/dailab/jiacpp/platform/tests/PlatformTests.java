@@ -44,7 +44,7 @@ public class PlatformTests {
     private final String PLATFORM_B = "http://localhost:" + PLATFORM_B_PORT;
 
     private static ConfigurableApplicationContext platformA = null;
-
+    private static ConfigurableApplicationContext platformB = null;
     private static String containerId = null;
     private static String platformABaseUrl = null;
 
@@ -57,7 +57,13 @@ public class PlatformTests {
     public static void setupPlatforms() {
         platformA = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT,
                 "--default_image_directory=./default-test-images");
-        SpringApplication.run(Application.class, "--server.port=" + PLATFORM_B_PORT);
+        platformB = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_B_PORT);
+    }
+
+    @AfterClass
+    public static void stopPlatforms() throws Exception {
+        platformA.close();
+        platformB.close();
     }
 
     /*
