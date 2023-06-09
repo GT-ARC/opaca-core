@@ -32,85 +32,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     private val broker by resolve<BrokerAgentRef>()
 
-
-    // implementation of API
-
-    /** minimal Jetty server for providing the REST interface */
-    private val server = Server(AgentContainerApi.DEFAULT_PORT)
-
-    /** servlet handling the different REST routes, delegating to `impl` for actual logic */
-    private val servlet = object : HttpServlet() {
-
-        // I'm sure there's a much better way to do this...
-        // TODO this part would actually be the same for any Java-based implementation, incl. JIAC V...
-        //  move this as an abstract class to the Model module to be reusable?
-
-        override fun doGet(request: HttpServletRequest, response: HttpServletResponse) {
-            log.info("received GET $request")
-            val path = request.pathInfo
-            response.contentType = "application/json"
-
-            val info = Regex("^/info$").find(path)
-            if (info != null) {
-                val res = impl.containerInfo
-                response.writer.write(RestHelper.writeJson(res))
-            }
-
-            val agents = Regex("^/agents$").find(path)
-            if (agents != null) {
-                val res = impl.agents
-                response.writer.write(RestHelper.writeJson(res))
-            }
-
-            val agentWithId = Regex("^/agents/([^/]+)$").find(path)
-            if (agentWithId != null) {
-                val id = agentWithId.groupValues[1]
-                val res = impl.getAgent(id)
-                response.writer.write(RestHelper.writeJson(res))
-            }
-        }
-
-        override fun doPost(request: HttpServletRequest, response: HttpServletResponse) {
-            log.info("received POST $request")
-            val path = request.pathInfo  // NOTE: queryParams (?...) go to request.queryString
-            val body: String = request.reader.lines().collect(Collectors.joining())
-            response.contentType = "application/json"
-
-            val send = Regex("^/send/([^/]+)$").find(path)
-            if (send != null) {
-                val id = send.groupValues[1]
-                val message = RestHelper.readObject(body, Message::class.java)
-                val res = impl.send(id, message, "", false)
-                response.writer.write(RestHelper.writeJson(res))
-            }
-
-            val broadcast = Regex("^/broadcast/([^/]+)$").find(path)
-            if (broadcast != null) {
-                val channel = broadcast.groupValues[1]
-                val message = RestHelper.readObject(body, Message::class.java)
-                val res = impl.broadcast(channel, message, "", false)
-                response.writer.write(RestHelper.writeJson(res))
-            }
-
-            val invokeAct = Regex("^/invoke/([^/]+)$").find(path)
-            if (invokeAct != null) {
-                val action = invokeAct.groupValues[1]
-                val parameters = RestHelper.readMap(body)
-                val res = impl.invoke(action, parameters, "", false)
-                response.writer.write(RestHelper.writeJson(res))
-            }
-
-            val invokeActOf = Regex("^/invoke/([^/]+)/([^/]+)$").find(path)
-            if (invokeActOf != null) {
-                val action = invokeActOf.groupValues[1]
-                val agentId = invokeActOf.groupValues[2]
-                val parameters = RestHelper.readMap(body)
-                val res = impl.invoke(action, parameters, agentId, "", false)
-                response.writer.write(RestHelper.writeJson(res))
-            }
-        }
-    }
-
+    private val server by lazy { JiacppServer2(impl, AgentContainerApi.DEFAULT_PORT) }
 
     // information on current state of agent container
 
@@ -139,9 +61,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         // start web server
         log.info("Starting web server...")
-        val handler = ServletHandler()
-        handler.addServletWithMapping(ServletHolder(servlet), "/*")
-        server.handler = handler
         server.start()
 
         // get environment variables
@@ -188,8 +107,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             if (agent != null) {
                 val ref = system.resolve(agent)
                 ref tell message
+            } else {
+                throw NoSuchElementException("Agent $agentId not found")
             }
-            // TODO raise exception if not found?
         }
 
         override fun broadcast(channel: String, message: Message, containerId: String, forward: Boolean) {
@@ -225,9 +145,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
                 // TODO handle error case here... raise exception or return null?
                 return RestHelper.mapper.valueToTree(result.get())
+            } else {
+                throw NoSuchElementException("Action $action of Agent $agentId not found")
             }
-            // TODO raise exception if not found?
-            return null
         }
     }
 
