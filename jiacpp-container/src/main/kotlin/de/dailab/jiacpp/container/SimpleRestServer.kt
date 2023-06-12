@@ -26,56 +26,85 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int) {
     private val servlet = object: HttpServlet() {
 
         override fun doGet(request: HttpServletRequest, response: HttpServletResponse) {
-            val path = request.pathInfo
+            try {
+                val path = request.pathInfo
+                val res = handleGet(path)
+                writeResponse(response, 200, res)
+            } catch (e: Exception) {
+                handleError(response, e)
+            }
+        }
+
+        override fun doPost(request: HttpServletRequest, response: HttpServletResponse) {
+            try {
+                val path = request.pathInfo  // NOTE: queryParams (?...) go to request.queryString
+                val body: String = request.reader.lines().collect(Collectors.joining())
+                val res = handlePost(path, body)
+                writeResponse(response, 200, res)
+            } catch (e: Exception) {
+                handleError(response, e)
+            }
+        }
+
+        private fun writeResponse(response: HttpServletResponse, code: Int, result: Any?) {
             response.contentType = "application/json"
+            response.status = code
+            response.writer.write(RestHelper.writeJson(result))
+        }
+
+        private fun handleError(response: HttpServletResponse, e: Exception) {
+            println("HANDLE ERROR $e")
+            val code = when (e) {
+                is NoSuchMethodException -> 405
+                is NoSuchElementException -> 404
+                else -> 500
+            }
+            val err = mapOf(Pair("details", e.toString()))
+            writeResponse(response, code, err)
+        }
+
+        private fun handleGet(path: String): Any? {
 
             val info = Regex("^/info$").find(path)
             if (info != null) {
-                val res = impl.containerInfo
-                response.writer.write(RestHelper.writeJson(res))
+                return impl.containerInfo
             }
 
             val agents = Regex("^/agents$").find(path)
             if (agents != null) {
-                val res = impl.agents
-                response.writer.write(RestHelper.writeJson(res))
+                return  impl.agents
             }
 
             val agentWithId = Regex("^/agents/([^/]+)$").find(path)
             if (agentWithId != null) {
                 val id = agentWithId.groupValues[1]
-                val res = impl.getAgent(id)
-                response.writer.write(RestHelper.writeJson(res))
+                return impl.getAgent(id)
             }
+
+            throw NoSuchElementException("Unknown path: $path")
         }
 
-        override fun doPost(request: HttpServletRequest, response: HttpServletResponse) {
-            val path = request.pathInfo  // NOTE: queryParams (?...) go to request.queryString
-            val body: String = request.reader.lines().collect(Collectors.joining())
-            response.contentType = "application/json"
+        private fun handlePost(path: String, body: String): Any? {
 
             val send = Regex("^/send/([^/]+)$").find(path)
             if (send != null) {
                 val id = send.groupValues[1]
                 val message = RestHelper.readObject(body, Message::class.java)
-                val res = impl.send(id, message, "", false)
-                response.writer.write(RestHelper.writeJson(res))
+                return impl.send(id, message, "", false)
             }
 
             val broadcast = Regex("^/broadcast/([^/]+)$").find(path)
             if (broadcast != null) {
                 val channel = broadcast.groupValues[1]
                 val message = RestHelper.readObject(body, Message::class.java)
-                val res = impl.broadcast(channel, message, "", false)
-                response.writer.write(RestHelper.writeJson(res))
+                return impl.broadcast(channel, message, "", false)
             }
 
             val invokeAct = Regex("^/invoke/([^/]+)$").find(path)
             if (invokeAct != null) {
                 val action = invokeAct.groupValues[1]
                 val parameters = RestHelper.readMap(body)
-                val res = impl.invoke(action, parameters, "", false)
-                response.writer.write(RestHelper.writeJson(res))
+                return impl.invoke(action, parameters, "", false)
             }
 
             val invokeActOf = Regex("^/invoke/([^/]+)/([^/]+)$").find(path)
@@ -83,10 +112,12 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int) {
                 val action = invokeActOf.groupValues[1]
                 val agentId = invokeActOf.groupValues[2]
                 val parameters = RestHelper.readMap(body)
-                val res = impl.invoke(action, parameters, agentId, "", false)
-                response.writer.write(RestHelper.writeJson(res))
+                return impl.invoke(action, parameters, agentId, "", false)
             }
+
+            throw NoSuchElementException("Unknown path: $path")
         }
+
     }
 
     fun start() {

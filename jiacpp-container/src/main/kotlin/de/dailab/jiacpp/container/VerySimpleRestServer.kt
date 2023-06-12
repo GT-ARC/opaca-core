@@ -13,6 +13,8 @@ import java.util.concurrent.Executors
 /**
  * Minimal Jetty server for providing the REST interface
  * I'm sure there's a much better way to do this...
+ *
+ * TODO does not need any library, but does not work properly yet (freezing after first request)
  */
 class JiacppServer2(val impl: AgentContainerApi, val port: Int) {
 
