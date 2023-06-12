@@ -146,6 +146,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                         : client.invoke(action, parameters, agentId, containerId, false);
             } catch (IOException e) {
                 // todo: different warning in case of faulty parameters?
+                // todo: goes here in case of runtime error on agent container, but should properly error then?
                 log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s'",
                         action, agentId, client.baseUrl));
             }

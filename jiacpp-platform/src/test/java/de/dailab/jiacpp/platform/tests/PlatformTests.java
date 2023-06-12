@@ -170,6 +170,29 @@ public class PlatformTests {
         }
     }
 
+    @Test
+    public void test4InvokeFail() throws Exception {
+        var con = request(PLATFORM_A, "POST", "/invoke/Fail", Map.of());
+        var res = result(con);
+        System.out.println("RESULT " + res);
+        Assert.assertEquals(500, con.getResponseCode());
+        Assert.assertTrue(res.contains("Action Failed"));
+    }
+
+    @Ignore
+    @Test
+    public void test4InvokeParamMismatch() throws Exception {
+        // TODO invoke action with mismatched parameters
+        //  at the moment, this raises an internal exception, but later should be handled by platform, returning 422 or similar
+    }
+
+    @Ignore
+    @Test
+    public void test4InvokeTimeout() throws Exception {
+        // TODO requires individual timeout field for "invoke" (or wait 30+ seconds here...)
+        //  should produce 504 gateway timeout (but the actual container should produce 408 request timeout)
+    }
+
     /**
      * call send, check that it arrived via another invoke
      */

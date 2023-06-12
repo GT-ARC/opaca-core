@@ -23,6 +23,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             Action("DoThis", mapOf(Pair("message", "String"), Pair("sleep_seconds", "Int")), "String"),
             Action("GetInfo", mapOf(), "Map"),
             Action("Add", mapOf(Pair("x", "String"), Pair("y", "Int")), "Int"),
+            Action("Fail", mapOf(), "void"),
             // actions for testing modifying agents and actions at runtime
             Action("CreateAction", mapOf(Pair("name", "String")), "void"),
             Action("SpawnAgent", mapOf(Pair("name", "String")), "void"),
@@ -48,6 +49,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
                 "DoThis" -> actionDoThis(it.parameters["message"]!!.asText(), it.parameters["sleep_seconds"]!!.asInt())
                 "Add" -> actionAdd(it.parameters["x"]!!.asInt(), it.parameters["y"]!!.asInt())
                 "GetInfo" -> actionGetInfo()
+                "Fail" -> actionFail()
                 "CreateAction" -> createAction((it.parameters["name"]!!.asText()))
                 "SpawnAgent" -> spawnAgent(it.parameters["name"]!!.asText())
                 "Deregister" -> deregister()
@@ -66,6 +68,10 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     }
 
     private fun actionAdd(x: Int, y: Int) = x + y
+
+    private fun actionFail() {
+        throw RuntimeException("Action Failed (as expected)")
+    }
 
     private fun actionGetInfo() = mapOf(
         Pair("name", name),

@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletResponse
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
+import java.lang.RuntimeException
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.concurrent.Semaphore
@@ -118,7 +119,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             val agent = findRegisteredAgent(agentId, action)
             if (agent != null) {
                 val lock = Semaphore(0) // needs to be released once before it can be acquired
-                val result = AtomicReference<Any>() // holder for action result
+                val result = AtomicReference<Any?>() // holder for action result
+                val error = AtomicReference<Any?>() // holder for error, if any
                 val ref = system.resolve(agent)
                 ref invoke ask<Any>(Invoke(action, parameters)) {
                     log.info("GOT RESULT $it")
@@ -126,6 +128,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                     lock.release()
                 }.error {
                     log.error("ERROR $it")
+                    error.set(it)
                     lock.release()
                 }
                 // TODO handle timeout?
@@ -133,8 +136,15 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 log.debug("waiting for action result...")
                 lock.acquireUninterruptibly()
 
-                // TODO handle error case here... raise exception or return null?
-                return RestHelper.mapper.valueToTree(result.get())
+                log.info("result: ${result.get()}; error: ${error.get()}")
+                if (error.get() == null) {
+                    return RestHelper.mapper.valueToTree(result.get())
+                } else {
+                    when (val e = error.get()) {
+                        is Throwable -> throw RuntimeException(e)
+                        else -> throw RuntimeException(e.toString())
+                    }
+                }
             } else {
                 throw NoSuchElementException("Action $action of Agent $agentId not found")
             }
