@@ -32,21 +32,21 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     private val broker by resolve<BrokerAgentRef>()
 
-    private val server by lazy { JiacppServer2(impl, AgentContainerApi.DEFAULT_PORT) }
+    private val server by lazy { JiacppServer(impl, AgentContainerApi.DEFAULT_PORT) }
 
     // information on current state of agent container
 
     /** when the Agent Container was initialized */
-    private var startedAt: ZonedDateTime? = null
+    private val startedAt = ZonedDateTime.now(ZoneId.of("Z"))
 
     /** the ID of the Agent Container itself, received on initialization */
-    private var containerId: String? = null
+    private val containerId = System.getenv(AgentContainerApi.ENV_CONTAINER_ID)
 
     /** the URL of the parent Runtime Platform, received on initialization */
-    private var runtimePlatformUrl: String? = null
+    private val runtimePlatformUrl = System.getenv(AgentContainerApi.ENV_PLATFORM_URL)
 
     /** the token for accessing the parent Runtime Platform, received on initialization */
-    private var token: String? = null
+    private val token = System.getenv(AgentContainerApi.ENV_TOKEN)
     
     /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
@@ -58,17 +58,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     override fun preStart() {
         log.info("Starting Container Agent...")
         super.preStart()
-
-        // start web server
-        log.info("Starting web server...")
         server.start()
-
-        // get environment variables
-        log.info("Setting environment...")
-        containerId = System.getenv(AgentContainerApi.ENV_CONTAINER_ID)
-        runtimePlatformUrl = System.getenv(AgentContainerApi.ENV_PLATFORM_URL)
-        token = System.getenv(AgentContainerApi.ENV_TOKEN)
-        startedAt = ZonedDateTime.now(ZoneId.of("Z"))
     }
 
     /**

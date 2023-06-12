@@ -32,7 +32,7 @@ class JiacppServer2(val impl: AgentContainerApi, val port: Int) {
                     else -> throw NoSuchMethodException("Method not supported")
                 }
                 println("RES $res")
-                writeResponse(exchange, 200, if (res != null) RestHelper.writeJson(res) else "")
+                writeResponse(exchange, 200, res)
             } catch (e: Exception) {
                 println("ERROR $e")
                 val code = when (e) {
@@ -40,14 +40,16 @@ class JiacppServer2(val impl: AgentContainerApi, val port: Int) {
                     is NoSuchElementException -> 404
                     else -> 500
                 }
-                writeResponse(exchange, code, e.message)
+                val err = mapOf(Pair("details", e.toString()))
+                writeResponse(exchange, code, err)
             }
             println("done here")
         }
 
-        private fun writeResponse(exchange: HttpExchange, code: Int, message: String?) {
-            val bytes = (message ?: "").toByteArray()
-            exchange.responseHeaders.set("Content-Type", "application/json")
+        private fun writeResponse(exchange: HttpExchange, code: Int, result: Any?) {
+            val json = RestHelper.writeJson(result)
+            val bytes = json.toByteArray()
+            exchange.responseHeaders.set("Content-Type", "application/json; charset=utf-8")
             exchange.sendResponseHeaders(code, bytes.size.toLong())
             exchange.responseBody.write(bytes)
         }
