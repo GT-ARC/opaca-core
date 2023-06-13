@@ -3,6 +3,7 @@ package de.dailab.jiacpp.container
 import com.fasterxml.jackson.databind.JsonNode
 import de.dailab.jiacpp.api.AgentContainerApi
 import de.dailab.jiacpp.model.*
+import de.dailab.jiacpp.util.ApiProxy
 import de.dailab.jiacpp.util.RestHelper
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.BrokerAgentRef
@@ -125,7 +126,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     /** the token for accessing the parent Runtime Platform, received on initialization */
     private var token: String? = null
-    
+
+    private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl, token) }
+
     /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
 
@@ -242,7 +245,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             // TODO should Register message contain the agent's internal name, or is that always equal to the agentId?
             log.info("Registering ${it.description}")
             registeredAgents[it.description.agentId] = it.description
-            notifyPlatform()
+            if (it.notify) {
+                notifyPlatform()
+            }
             Registered(runtimePlatformUrl, token)
         }
 
@@ -250,15 +255,15 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         on<DeRegister> {
             log.info("De-Registering ${it.agentId}")
             registeredAgents.remove(it.agentId)
-            notifyPlatform()
+            if (it.notify) {
+                notifyPlatform()
+            }
         }
 
     }
 
     private fun notifyPlatform() {
-        // TODO notify parent platform (or connected platform, if that's implemented) of changes in this container
-        //  keep track of last time /info route was invoked to reduce unnecessary calls? won't work for multiple
-        //  connected platforms. Or just send the notify with a short delay (1 second?)
+        parentProxy.notifyUpdateContainer(containerId)
     }
 
     private fun findRegisteredAgent(agentId: String?, action: String?): String? {

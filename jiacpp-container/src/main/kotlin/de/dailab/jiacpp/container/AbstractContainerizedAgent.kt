@@ -30,25 +30,25 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
 
     override fun preStart() {
         super.preStart()
-        register()
+        register(false)
     }
 
-    fun register() {
+    fun register(notify: Boolean) {
         log.info("REGISTERING...")
         val desc = getDescription()
         val ref = system.resolve(CONTAINER_AGENT)
-        ref invoke ask<Registered>(Register(desc)) {
+        ref invoke ask<Registered>(Register(desc, notify)) {
             log.info("REGISTERED: Parent URL is ${it.parentUrl}")
             runtimePlatformUrl = it.parentUrl
             token = it.authToken
         }
     }
 
-    fun deregister() {
+    fun deregister(notify: Boolean) {
         log.info("DE-REGISTERING...")
         val desc = getDescription()
         val ref = system.resolve(CONTAINER_AGENT)
-        ref tell DeRegister(desc.agentId)
+        ref tell DeRegister(desc.agentId, notify)
     }
 
     abstract fun getDescription(): AgentDescription
