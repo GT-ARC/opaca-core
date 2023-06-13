@@ -105,7 +105,16 @@ public class AuthTests {
         Assert.assertEquals(200, con.getResponseCode());
     }
 
-    // TODO once /notify is fully implemented, test container -> platform by adding action, checking if info was auto-updated
+    @Test
+    public void test7TriggerAutoNotify() throws Exception {
+        // create new agent action
+        var con = requestWithToken(PLATFORM, "POST", "/invoke/CreateAction", Map.of("name", "TestAction", "notify", "true"), token);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // agent container must be able to call parent platform route to notify platform of change
+        con = requestWithToken(PLATFORM, "POST", "/invoke/TestAction", Map.of(), token);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
 
     private String authQuery(String username, String password) {
         return buildQuery(Map.of("username", username, "password", password));

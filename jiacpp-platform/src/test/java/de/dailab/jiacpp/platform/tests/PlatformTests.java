@@ -676,9 +676,9 @@ public class PlatformTests {
     }
 
     @Test
-    public void test7AddNewAction() throws Exception {
+    public void test7AddNewActionManualNotify() throws Exception {
         // create new agent action
-        var con = request(PLATFORM_A, "POST", "/invoke/CreateAction/sample1", Map.of("name", "TemporaryTestAction"));
+        var con = request(PLATFORM_A, "POST", "/invoke/CreateAction/sample1", Map.of("name", "TemporaryTestAction", "notify", "false"));
         Assert.assertEquals(200, con.getResponseCode());
 
         // new action has been created, but platform has not yet been notified --> action is unknown
@@ -696,6 +696,18 @@ public class PlatformTests {
         // platform A has also already notified platform B about its changes
         con = request(PLATFORM_B, "POST", "/invoke/TemporaryTestAction", Map.of());
         Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    @Test
+    public void test7AddNewActionAutoNotify() throws Exception {
+        // create new agent action
+        var con = request(PLATFORM_A, "POST", "/invoke/CreateAction/sample1", Map.of("name", "AnotherTemporaryTestAction", "notify", "true"));
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // agent container automatically notified platform of the changes
+        con = request(PLATFORM_A, "POST", "/invoke/AnotherTemporaryTestAction/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertTrue(result(con).contains("AnotherTemporaryTestAction"));
     }
 
     @Test
