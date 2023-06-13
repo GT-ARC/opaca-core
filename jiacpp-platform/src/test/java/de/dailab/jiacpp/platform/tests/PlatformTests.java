@@ -15,6 +15,8 @@ import org.springframework.context.ConfigurableApplicationContext;
 import java.io.*;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The unit tests in this class test all the basic functionality of the Runtime Platform as well as some
@@ -168,6 +170,30 @@ public class PlatformTests {
             var res = result(con, Map.class);
             Assert.assertEquals(name, res.get("name"));
         }
+    }
+
+    /**
+     * invoke long-running action at two agents in parallel; the agents may be "busy" until the first action is through
+     * (and indeed they are in the JIAC VI reference impl), but the ContainerAgent (and of course the Swagger UI) are
+     * still responsive and can take on tasks for other agents.
+     */
+    @Test
+    public void test4InvokeNonblocking() throws Exception {
+        long start = System.currentTimeMillis();
+        List<Thread> threads = Stream.of("sample1", "sample2")
+                .map(agent -> new Thread(() -> {
+                    try {
+                        var con = request(PLATFORM_A, "POST", "/invoke/DoThis/" + agent,
+                                Map.of("message", "", "sleep_seconds", 5));
+                        Assert.assertEquals(200, con.getResponseCode());
+                    } catch (Exception e) {
+                        Assert.fail(e.getMessage());
+                    }
+                })).collect(Collectors.toList());
+        for (Thread t : threads) t.start();
+        for (Thread t : threads) t.join();
+        System.out.println(System.currentTimeMillis() - start);
+        Assert.assertTrue(System.currentTimeMillis() - start < 8 * 1000);
     }
 
     @Test

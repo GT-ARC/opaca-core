@@ -135,8 +135,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
                 log.debug("waiting for action result...")
                 lock.acquireUninterruptibly()
-
-                log.info("result: ${result.get()}; error: ${error.get()}")
                 if (error.get() == null) {
                     return RestHelper.mapper.valueToTree(result.get())
                 } else {
