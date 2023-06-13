@@ -11,6 +11,7 @@ import java.util.AbstractMap;
 
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.Configuration;
+import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.*;
@@ -41,6 +42,7 @@ public class KubernetesClient implements ContainerClient {
 
     private PlatformConfig config;
     private CoreV1Api coreApi;
+    private AppsV1Api appsApi;
     private String namespace;
 
     /** additional Kubernetes-specific information on agent containers */
@@ -77,6 +79,7 @@ public class KubernetesClient implements ContainerClient {
             }
             Configuration.setDefaultApiClient(client);
             this.coreApi = new CoreV1Api();
+            this.appsApi = new AppsV1Api();
         } catch (IOException e) {
             log.severe("Could not initialize Kubernetes Client: " + e.getMessage());
             throw new RuntimeException(e);
@@ -100,35 +103,59 @@ public class KubernetesClient implements ContainerClient {
         Map<Integer, Integer> portMap = extraPorts.keySet().stream()
                 .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
 
-        V1Pod pod = new V1Pod()
-            .metadata(new V1ObjectMeta().name(containerId).labels(Collections.singletonMap("app", containerId)))
-            .spec(new V1PodSpec()
-                .containers(Collections.singletonList(
-                    new V1Container()
-                        .name(containerId)
-                        .image(imageName)
+
+        V1Deployment deployment = new V1Deployment()
+                .metadata(new V1ObjectMeta().name(containerId))
+                .spec(new V1DeploymentSpec()
+	        	.strategy(new V1DeploymentStrategy()
+	            		.rollingUpdate(new V1RollingUpdateDeployment()
+	                	.maxSurge(new IntOrString(1))
+	                	.maxUnavailable(new IntOrString(0))
+	            		)
+	           	 	.type("RollingUpdate")
+	                 )
+                        .replicas(1)
+                        .selector(new V1LabelSelector().matchLabels(Collections.singletonMap("app", containerId)))
+                        .template(new V1PodTemplateSpec()
+                                .metadata(new V1ObjectMeta().labels(Collections.singletonMap("app", containerId)))
+                                .spec(new V1PodSpec()
+                                        .containers(Collections.singletonList(
+                                                new V1Container()
+                                                        .name(containerId)
+                                                        .image(imageName)
+                                                        .ports(Collections.singletonList(
+                                                                new V1ContainerPort().containerPort(image.getApiPort())
+                                                        ))
+                                                        .env(Arrays.asList(
+                                                            new V1EnvVar().name(AgentContainerApi.ENV_CONTAINER_ID).value(containerId),
+                                                            new V1EnvVar().name(AgentContainerApi.ENV_TOKEN).value(token),
+                                                            new V1EnvVar().name(AgentContainerApi.ENV_PLATFORM_URL).value(config.getOwnBaseUrl())
+                                                        ))
+                                        ))
+                                        .imagePullSecrets(registrySecret == null ? null : Collections.singletonList(new V1LocalObjectReference().name(registrySecret)))
+                                )));
+
+        V1Service service = new V1Service()
+                .metadata(new V1ObjectMeta().name(containerId))
+                .spec(new V1ServiceSpec()
+                        .selector(Collections.singletonMap("app", containerId))
                         .ports(Collections.singletonList(
-                            new V1ContainerPort().containerPort(image.getApiPort())
+                                new V1ServicePort().port(image.getApiPort()).targetPort(new IntOrString(image.getApiPort()))
                         ))
-                        .env(Arrays.asList(
-                            new V1EnvVar().name(AgentContainerApi.ENV_CONTAINER_ID).value(containerId),
-                            new V1EnvVar().name(AgentContainerApi.ENV_TOKEN).value(token),
-                            new V1EnvVar().name(AgentContainerApi.ENV_PLATFORM_URL).value(config.getOwnBaseUrl())
-                        ))
-                ))
-                .imagePullSecrets(registrySecret == null ? null : Collections.singletonList(new V1LocalObjectReference().name(registrySecret)))
-            );
+                        .type("ClusterIP"));
+
 
         try {
-            V1Pod createdPod = coreApi.createNamespacedPod(namespace, pod, null, null, null);
-            log.info("Pod created: " + createdPod.getMetadata().getName());
+            V1Deployment createdDeployment = appsApi.createNamespacedDeployment(namespace, deployment, null, null, null);
+            System.out.println("Deployment created: " + createdDeployment.getMetadata().getName());
+
+            V1Service createdService = coreApi.createNamespacedService(namespace, service, null, null, null);
+            System.out.println("Service created: " + createdService.getMetadata().getName());
+            String serviceIP = createdService.getSpec().getClusterIP();
 
             createServicesForPorts(containerId, image, portMap);
 
-            String podIp = waitForPodIP(createdPod.getMetadata().getName());
-            log.info("Pod IP: " + podIp);
-
-            String podUid = createdPod.getMetadata().getUid();
+            log.info("Deployment IP: " + serviceIP);
 
             var connectivity = new AgentContainer.Connectivity(
                     config.getOwnBaseUrl().replaceAll(":\\d+$", ""),  // TODO is this correct?
@@ -136,7 +163,7 @@ public class KubernetesClient implements ContainerClient {
                     extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );
 
-            pods.put(containerId, new PodInfo(podUid, podIp, connectivity));
+            pods.put(containerId, new PodInfo(createdDeployment.getMetadata().getName(), serviceIP, connectivity));
 
             return connectivity;
         } catch (ApiException e) {
