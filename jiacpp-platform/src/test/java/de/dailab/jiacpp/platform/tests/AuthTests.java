@@ -105,7 +105,6 @@ public class AuthTests {
         Assert.assertEquals(200, con.getResponseCode());
     }
 
-    @Ignore("Test works fine, but causes PlatformTests to fail (port not freed in time?)")
     @Test
     public void test7TriggerAutoNotify() throws Exception {
         // create new agent action
