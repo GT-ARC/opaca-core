@@ -203,18 +203,15 @@ public class PlatformTests {
         // TODO this is not ideal yet... the original error may contain a descriptive message that is lost
     }
 
-    @Ignore
+    /**
+     * invoke action with mismatched/missing parameters
+     */
     @Test
     public void test4InvokeParamMismatch() throws Exception {
-        // TODO invoke action with mismatched parameters
-        //  currently, this raises an exception in the container, but should be handled by platform, returning 422 (?)
-    }
-
-    @Ignore
-    @Test
-    public void test4InvokeTimeout() throws Exception {
-        // TODO requires individual timeout field for "invoke" (or wait 30+ seconds here...)
-        //  should produce 504 gateway timeout (but the actual container should produce 408 request timeout)
+        var con = request(PLATFORM_A, "POST", "/invoke/DoThis/",
+                Map.of("message", "missing 'sleep_seconds' parameter!"));
+        Assert.assertEquals(502, con.getResponseCode());
+        // TODO case of missing parameter could also be handled by platform, resulting in 422 error
     }
 
     /**
@@ -519,6 +516,20 @@ public class PlatformTests {
     }
 
     /**
+     * use sample-agent's de-register action to kill the agent, without notifying the parent
+     * platform, then call an action that no longer exists in the container
+     */
+    @Test
+    public void test8InvokeAfterKillAgent() throws Exception {
+        // invoke de-register to stop the agent (but it does not notify the parent platform)
+        var con = request(PLATFORM_A, "POST", "/invoke/Deregister/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        // invoke again, causing container to raise 404 and platform has to handle it
+        con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample1", Map.of());
+        Assert.assertEquals(502, con.getResponseCode());
+    }
+
+    /**
      * undeploy container, check that it's gone
      */
     @Test
@@ -582,9 +593,6 @@ public class PlatformTests {
         var con = request(PLATFORM_A, "POST", "/send/unknownagent", message);
         Assert.assertEquals(404, con.getResponseCode());
     }
-
-    // TODO invoke and send to known agent that does not respond on target container...
-    //  needs actually faulty container; manually tested by stopping container outside of platform
 
     /**
      * try to deploy unknown container
