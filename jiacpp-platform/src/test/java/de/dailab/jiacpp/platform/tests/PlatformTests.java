@@ -173,17 +173,15 @@ public class PlatformTests {
     @Test
     public void test4InvokeFail() throws Exception {
         var con = request(PLATFORM_A, "POST", "/invoke/Fail", Map.of());
-        var res = result(con);
-        System.out.println("RESULT " + res);
-        Assert.assertEquals(500, con.getResponseCode());
-        Assert.assertTrue(res.contains("Action Failed"));
+        Assert.assertEquals(502, con.getResponseCode());
+        // TODO this is not ideal yet... the original error may contain a descriptive message that is lost
     }
 
     @Ignore
     @Test
     public void test4InvokeParamMismatch() throws Exception {
         // TODO invoke action with mismatched parameters
-        //  at the moment, this raises an internal exception, but later should be handled by platform, returning 422 or similar
+        //  currently, this raises an exception in the container, but should be handled by platform, returning 422 (?)
     }
 
     @Ignore
