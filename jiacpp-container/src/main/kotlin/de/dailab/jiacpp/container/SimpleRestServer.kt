@@ -13,8 +13,14 @@ import java.util.stream.Collectors
 
 
 /**
- * Minimal Jetty server for providing the REST interface
- * I'm sure there's a much better way to do this...
+ * Minimal Jetty server for providing the REST interface. There's probably a better way to do this.
+ * The goal is just a minimal REST server for providing the AgentContainer API to be called by the
+ * Runtime Platform; things like a web interface, model checking, security, etc. should be provided
+ * by the Runtime Platform and are thus intentionally not considered here.
+ *
+ * Previously, this was a part of the ContainerAgent itself. Moved to a separate class to unclutter
+ * the ContainerAgent and "make room" for some basic exception handling, translating no-such-element
+ * or actual internal errors (e.g. when executing an action) to appropriate HTTP status codes.
  */
 class JiacppServer(val impl: AgentContainerApi, val port: Int) {
 

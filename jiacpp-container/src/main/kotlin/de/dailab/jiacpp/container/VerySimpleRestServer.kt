@@ -11,10 +11,11 @@ import java.util.concurrent.Executors
 
 
 /**
- * Minimal Jetty server for providing the REST interface
- * I'm sure there's a much better way to do this...
+ * Alternative implementation of minimal REST server providing the JIAC++ AgentContainer API.
+ * This uses only Java builtin classes, no external libraries, and could thus easily be moved
+ * to the jiacpp-model module as a basis for all sorts of Java-based AgentContainer implementations.
  *
- * TODO does not need any library, but does not work properly yet (freezing after first request)
+ * TODO this does not work properly yet (freezing after first request)
  */
 class JiacppServer2(val impl: AgentContainerApi, val port: Int) {
 
