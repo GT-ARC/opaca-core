@@ -47,6 +47,12 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         //  move this as an abstract class to the Model module to be reusable?
 
         override fun doGet(request: HttpServletRequest, response: HttpServletResponse) {
+            val tokenFromRequest = request.getHeader("Authorization")?.removePrefix("Bearer ") ?: ""
+            if (token != tokenFromRequest) {
+                response.status = HttpServletResponse.SC_UNAUTHORIZED
+                response.writer.write("Unauthorized")
+                return
+            }
             log.info("received GET $request")
             val path = request.pathInfo
             response.contentType = "application/json"
@@ -72,6 +78,12 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
 
         override fun doPost(request: HttpServletRequest, response: HttpServletResponse) {
+            val tokenFromRequest = request.getHeader("Authorization")?.removePrefix("Bearer ") ?: ""
+            if (token != tokenFromRequest) {
+                response.status = HttpServletResponse.SC_UNAUTHORIZED
+                response.writer.write("Unauthorized")
+                return
+            }
             log.info("received POST $request")
             val path = request.pathInfo  // NOTE: queryParams (?...) go to request.queryString
             val body: String = request.reader.lines().collect(Collectors.joining())

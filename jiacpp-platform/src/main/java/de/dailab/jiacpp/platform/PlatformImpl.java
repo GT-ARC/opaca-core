@@ -38,6 +38,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     /** Currently running Agent Containers, mapping container ID to description */
     private final Map<String, AgentContainer> runningContainers = new HashMap<>();
+     private final Map<String, String> tokens = new HashMap<>();
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
     private final Map<String, RuntimePlatform> connectedPlatforms = new HashMap<>();
@@ -169,13 +170,14 @@ public class PlatformImpl implements RuntimePlatformApi {
 
         // wait until container is up and running...
         var start = System.currentTimeMillis();
-        var client = getClient(agentContainerId);
+        var client = getClient(agentContainerId, token);
         String extraMessage = "";
         while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000) {
             try {
                 var container = client.getContainerInfo();
                 container.setConnectivity(connectivity);
                 runningContainers.put(agentContainerId, container);
+                tokens.put(agentContainerId, token);
                 userDetailsService.addUser(agentContainerId, agentContainerId);
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
@@ -288,7 +290,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw new NoSuchElementException(msg);
         }
         try {
-            var client = this.getClient(containerId);
+            var client = this.getClient(containerId, tokens.get(containerId));
             var containerInfo = client.getContainerInfo();
             containerInfo.setConnectivity(runningContainers.get(containerId).getConnectivity());
             runningContainers.put(containerId, containerInfo);
@@ -361,7 +363,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         // local containers
         var containerClients = runningContainers.values().stream()
                 .filter(c -> matches(c, containerId, agentId, action))
-                .map(c -> getClient(c.getContainerId()));
+                .map(c -> getClient(c.getContainerId(), tokens.get(c.getContainerId())));
 
         if (!includeConnected) return containerClients;
 
@@ -391,6 +393,11 @@ public class PlatformImpl implements RuntimePlatformApi {
     private ApiProxy getClient(String containerId) {
         var url = containerClient.getUrl(containerId);
         return new ApiProxy(url);
+    }
+
+    private ApiProxy getClient(String containerId, String token) {
+        var url = containerClient.getUrl(containerId);
+        return new ApiProxy(url, token);
     }
 
     private String normalizeString(String string) {
