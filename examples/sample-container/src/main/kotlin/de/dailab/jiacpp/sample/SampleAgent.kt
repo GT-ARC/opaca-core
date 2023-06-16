@@ -83,7 +83,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     }
 
     private fun spawnAgent(name: String) {
-        system.spawnAgent(SampleAgent(name), self)
+        system.spawnAgent(SampleAgent(name))
     }
 
 }
