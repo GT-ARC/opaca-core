@@ -179,6 +179,7 @@ public class PlatformTests {
      */
     @Test
     public void test4InvokeNonblocking() throws Exception {
+        // TODO inner Asserts do not seem to make the test fail!
         long start = System.currentTimeMillis();
         List<Thread> threads = Stream.of("sample1", "sample2")
                 .map(agent -> new Thread(() -> {

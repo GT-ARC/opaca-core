@@ -59,7 +59,6 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int) {
         }
 
         private fun handleError(response: HttpServletResponse, e: Exception) {
-            println("HANDLE ERROR $e")
             val code = when (e) {
                 is NoSuchMethodException -> 405
                 is NoSuchElementException -> 404

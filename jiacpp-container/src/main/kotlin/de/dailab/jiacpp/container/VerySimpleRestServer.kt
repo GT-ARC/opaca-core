@@ -15,7 +15,7 @@ import java.util.concurrent.Executors
  * This uses only Java builtin classes, no external libraries, and could thus easily be moved
  * to the jiacpp-model module as a basis for all sorts of Java-based AgentContainer implementations.
  *
- * TODO this does not work properly yet (freezing after first request)
+ * TODO works fine when started natively, but not when inside Docker?
  */
 class JiacppServer2(val impl: AgentContainerApi, val port: Int) {
 
@@ -50,11 +50,12 @@ class JiacppServer2(val impl: AgentContainerApi, val port: Int) {
         }
 
         private fun writeResponse(exchange: HttpExchange, code: Int, result: Any?) {
-            val json = RestHelper.writeJson(result)
+            val json = RestHelper.writeJson(result) + "\n"
             val bytes = json.toByteArray()
             exchange.responseHeaders.set("Content-Type", "application/json; charset=utf-8")
             exchange.sendResponseHeaders(code, bytes.size.toLong())
             exchange.responseBody.write(bytes)
+            exchange.close()
         }
 
         private fun doGet(exchange: HttpExchange): Any? {
@@ -118,7 +119,7 @@ class JiacppServer2(val impl: AgentContainerApi, val port: Int) {
 
     fun start() {
         server.createContext("/", handler)
-        server.executor = Executors.newFixedThreadPool(10)
+        server.executor = null  // default
         server.start()
     }
 
