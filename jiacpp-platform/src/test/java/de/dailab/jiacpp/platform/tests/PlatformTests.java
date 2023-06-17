@@ -559,6 +559,31 @@ public class PlatformTests {
         Assert.assertTrue(result(con).contains("AnotherTemporaryTestAction"));
     }
 
+    /**
+     * bug in sample-container caused newly spawned agents to hang on invoke. not really API,
+     * but sample-container should show "how to do it", so checking that it works now
+     */
+    @Test
+    public void test7SpawnAgentThenInvoke() throws Exception {
+        // spawn new sample-agent
+        var con = request(PLATFORM_A, "POST", "/invoke/SpawnAgent", Map.of("name", "sample3"));
+        Assert.assertEquals(200, con.getResponseCode());
+        con = request(PLATFORM_A, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // invoke action at newly spawned agent
+        Assert.assertEquals(200, con.getResponseCode());con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample3", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+        Assert.assertEquals("sample3", res.get("name"));
+
+        // de-register to respore state before test
+        con = request(PLATFORM_A, "POST", "/invoke/Deregister/sample3", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        con = request(PLATFORM_A, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
     @Test
     public void test8DeregisterAgent() throws Exception {
         // deregister agent "sample2"
