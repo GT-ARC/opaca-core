@@ -15,6 +15,8 @@ import org.springframework.context.ConfigurableApplicationContext;
 import java.io.*;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The unit tests in this class test all the basic functionality of the Runtime Platform as well as some
@@ -168,6 +170,49 @@ public class PlatformTests {
             var res = result(con, Map.class);
             Assert.assertEquals(name, res.get("name"));
         }
+    }
+
+    /**
+     * invoke long-running action at two agents in parallel; the agents may be "busy" until the first action is through
+     * (and indeed they are in the JIAC VI reference impl), but the ContainerAgent (and of course the Swagger UI) are
+     * still responsive and can take on tasks for other agents.
+     */
+    @Test
+    public void test4InvokeNonblocking() throws Exception {
+        // TODO inner Asserts do not seem to make the test fail!
+        long start = System.currentTimeMillis();
+        List<Thread> threads = Stream.of("sample1", "sample2")
+                .map(agent -> new Thread(() -> {
+                    try {
+                        var con = request(PLATFORM_A, "POST", "/invoke/DoThis/" + agent,
+                                Map.of("message", "", "sleep_seconds", 5));
+                        Assert.assertEquals(200, con.getResponseCode());
+                    } catch (Exception e) {
+                        Assert.fail(e.getMessage());
+                    }
+                })).collect(Collectors.toList());
+        for (Thread t : threads) t.start();
+        for (Thread t : threads) t.join();
+        System.out.println(System.currentTimeMillis() - start);
+        Assert.assertTrue(System.currentTimeMillis() - start < 8 * 1000);
+    }
+
+    @Test
+    public void test4InvokeFail() throws Exception {
+        var con = request(PLATFORM_A, "POST", "/invoke/Fail", Map.of());
+        Assert.assertEquals(502, con.getResponseCode());
+        // TODO this is not ideal yet... the original error may contain a descriptive message that is lost
+    }
+
+    /**
+     * invoke action with mismatched/missing parameters
+     */
+    @Test
+    public void test4InvokeParamMismatch() throws Exception {
+        var con = request(PLATFORM_A, "POST", "/invoke/DoThis/",
+                Map.of("message", "missing 'sleep_seconds' parameter!"));
+        Assert.assertEquals(502, con.getResponseCode());
+        // TODO case of missing parameter could also be handled by platform, resulting in 422 error
     }
 
     /**
@@ -453,6 +498,126 @@ public class PlatformTests {
         Assert.assertNotEquals("testBroadcastNoForward", res.get("lastBroadcast"));
     }
 
+
+    @Test
+    public void test7RequestNotify() throws Exception {
+        // valid container
+        var con1 = request(PLATFORM_A, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con1.getResponseCode());
+
+        // valid platform
+        var con2 = request(PLATFORM_B, "POST", "/connections/notify", platformABaseUrl);
+        Assert.assertEquals(200, con2.getResponseCode());
+    }
+
+    @Test
+    public void test7RequestInvalidNotify() throws Exception {
+        // invalid container
+        var con1 = request(PLATFORM_A, "POST", "/containers/notify", "container-does-not-exist");
+        Assert.assertEquals(404, con1.getResponseCode());
+
+        // unknown platform
+        var con2 = request(PLATFORM_A, "POST", "/connections/notify", "http://platform-does-not-exist.com");
+        Assert.assertEquals(404, con2.getResponseCode());
+
+        // invalid platform
+        var con3 = request(PLATFORM_A, "POST", "/connections/notify", "invalid-url");
+        Assert.assertEquals(400, con3.getResponseCode());
+    }
+
+    @Test
+    public void test7AddNewActionManualNotify() throws Exception {
+        // create new agent action
+        var con = request(PLATFORM_A, "POST", "/invoke/CreateAction/sample1", Map.of("name", "TemporaryTestAction", "notify", "false"));
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // new action has been created, but platform has not yet been notified --> action is unknown
+        con = request(PLATFORM_A, "POST", "/invoke/TemporaryTestAction/sample1", Map.of());
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // notify platform about updates in container, after which the new action is known
+        con = request(PLATFORM_A, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // try to invoke the new action, which should now succeed
+        con = request(PLATFORM_A, "POST", "/invoke/TemporaryTestAction/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // platform A has also already notified platform B about its changes
+        con = request(PLATFORM_B, "POST", "/invoke/TemporaryTestAction", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    @Test
+    public void test7AddNewActionAutoNotify() throws Exception {
+        // create new agent action
+        var con = request(PLATFORM_A, "POST", "/invoke/CreateAction/sample1", Map.of("name", "AnotherTemporaryTestAction", "notify", "true"));
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // agent container automatically notified platform of the changes
+        con = request(PLATFORM_A, "POST", "/invoke/AnotherTemporaryTestAction/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertTrue(result(con).contains("AnotherTemporaryTestAction"));
+    }
+
+    /**
+     * bug in sample-container caused newly spawned agents to hang on invoke. not really API,
+     * but sample-container should show "how to do it", so checking that it works now
+     */
+    @Test
+    public void test7SpawnAgentThenInvoke() throws Exception {
+        // spawn new sample-agent
+        var con = request(PLATFORM_A, "POST", "/invoke/SpawnAgent", Map.of("name", "sample3"));
+        Assert.assertEquals(200, con.getResponseCode());
+        con = request(PLATFORM_A, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // invoke action at newly spawned agent
+        Assert.assertEquals(200, con.getResponseCode());con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample3", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+        Assert.assertEquals("sample3", res.get("name"));
+
+        // de-register to respore state before test
+        con = request(PLATFORM_A, "POST", "/invoke/Deregister/sample3", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        con = request(PLATFORM_A, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    @Test
+    public void test8DeregisterAgent() throws Exception {
+        // deregister agent "sample2"
+        var con = request(PLATFORM_A, "POST", "/invoke/Deregister/sample2", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        con = request(PLATFORM_A, "GET", "/agents", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var agentsList = result(con, List.class);
+        Assert.assertEquals(2, agentsList.size());
+
+        // notify --> agent should no longer be known
+        con = request(PLATFORM_A, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con.getResponseCode());
+        con = request(PLATFORM_A, "GET", "/agents", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        agentsList = result(con, List.class);
+        Assert.assertEquals(1, agentsList.size());
+    }
+
+    /**
+     * use sample-agent's de-register action to kill the agent, without notifying the parent
+     * platform, then call an action that no longer exists in the container
+     */
+    @Test
+    public void test8InvokeAfterKillAgent() throws Exception {
+        // invoke de-register to stop the agent (but it does not notify the parent platform)
+        var con = request(PLATFORM_A, "POST", "/invoke/Deregister/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        // invoke again, causing container to raise 404 and platform has to handle it
+        con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample1", Map.of());
+        Assert.assertEquals(502, con.getResponseCode());
+    }
+
     /**
      * disconnect platforms, check that both are disconnected
      */
@@ -536,9 +701,6 @@ public class PlatformTests {
         Assert.assertEquals(404, con.getResponseCode());
     }
 
-    // TODO invoke and send to known agent that does not respond on target container...
-    //  needs actually faulty container; manually tested by stopping container outside of platform
-
     /**
      * try to deploy unknown container
      *   -> 404 (not found)
@@ -600,86 +762,6 @@ public class PlatformTests {
         // TODO case is different if the platform _is_ connected, but does not respond to disconnect -> 502?
         var res = result(con, Boolean.class);
         Assert.assertFalse(res);
-    }
-
-    @Test
-    public void test7RequestNotify() throws Exception {
-        // valid container
-        var con1 = request(PLATFORM_A, "POST", "/containers/notify", containerId);
-        Assert.assertEquals(200, con1.getResponseCode());
-
-        // valid platform
-        var con2 = request(PLATFORM_B, "POST", "/connections/notify", platformABaseUrl);
-        Assert.assertEquals(200, con2.getResponseCode());
-    }
-
-    @Test
-    public void test7RequestInvalidNotify() throws Exception {
-        // invalid container
-        var con1 = request(PLATFORM_A, "POST", "/containers/notify", "container-does-not-exist");
-        Assert.assertEquals(404, con1.getResponseCode());
-
-        // unknown platform
-        var con2 = request(PLATFORM_A, "POST", "/connections/notify", "http://platform-does-not-exist.com");
-        Assert.assertEquals(404, con2.getResponseCode());
-
-        // invalid platform
-        var con3 = request(PLATFORM_A, "POST", "/connections/notify", "invalid-url");
-        Assert.assertEquals(400, con3.getResponseCode());
-    }
-
-    @Test
-    public void test7AddNewActionManualNotify() throws Exception {
-        // create new agent action
-        var con = request(PLATFORM_A, "POST", "/invoke/CreateAction/sample1", Map.of("name", "TemporaryTestAction", "notify", "false"));
-        Assert.assertEquals(200, con.getResponseCode());
-
-        // new action has been created, but platform has not yet been notified --> action is unknown
-        con = request(PLATFORM_A, "POST", "/invoke/TemporaryTestAction/sample1", Map.of());
-        Assert.assertEquals(404, con.getResponseCode());
-
-        // notify platform about updates in container, after which the new action is known
-        con = request(PLATFORM_A, "POST", "/containers/notify", containerId);
-        Assert.assertEquals(200, con.getResponseCode());
-
-        // try to invoke the new action, which should now succeed
-        con = request(PLATFORM_A, "POST", "/invoke/TemporaryTestAction/sample1", Map.of());
-        Assert.assertEquals(200, con.getResponseCode());
-
-        // platform A has also already notified platform B about its changes
-        con = request(PLATFORM_B, "POST", "/invoke/TemporaryTestAction", Map.of());
-        Assert.assertEquals(200, con.getResponseCode());
-    }
-
-    @Test
-    public void test7AddNewActionAutoNotify() throws Exception {
-        // create new agent action
-        var con = request(PLATFORM_A, "POST", "/invoke/CreateAction/sample1", Map.of("name", "AnotherTemporaryTestAction", "notify", "true"));
-        Assert.assertEquals(200, con.getResponseCode());
-
-        // agent container automatically notified platform of the changes
-        con = request(PLATFORM_A, "POST", "/invoke/AnotherTemporaryTestAction/sample1", Map.of());
-        Assert.assertEquals(200, con.getResponseCode());
-        Assert.assertTrue(result(con).contains("AnotherTemporaryTestAction"));
-    }
-
-    @Test
-    public void test8DeregisterAgent() throws Exception {
-        // deregister agent "sample2"
-        var con = request(PLATFORM_A, "POST", "/invoke/Deregister/sample2", Map.of("name", "TemporaryTestAction"));
-        Assert.assertEquals(200, con.getResponseCode());
-        con = request(PLATFORM_A, "GET", "/agents", null);
-        Assert.assertEquals(200, con.getResponseCode());
-        var agentsList = result(con, List.class);
-        Assert.assertEquals(2, agentsList.size());
-
-        // notify --> agent should no longer be known
-        con = request(PLATFORM_A, "POST", "/containers/notify", containerId);
-        Assert.assertEquals(200, con.getResponseCode());
-        con = request(PLATFORM_A, "GET", "/agents", null);
-        Assert.assertEquals(200, con.getResponseCode());
-        agentsList = result(con, List.class);
-        Assert.assertEquals(1, agentsList.size());
     }
 
 }
