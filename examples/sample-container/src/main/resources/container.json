@@ -5,6 +5,7 @@
   "provides": ["sample-provision"],
 
   "name": "Sample JIAC++ Agent Container",
+  "version": "0.1.9",
   "description": "Just a sample container doing nothing but receiving and reacting to API calls",
   "provider": "DAI-Lab",
 
