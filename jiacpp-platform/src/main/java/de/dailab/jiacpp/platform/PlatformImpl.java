@@ -101,19 +101,21 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public void send(String agentId, Message message, String containerId, boolean forward) throws NoSuchElementException {
+    public void send(String agentId, Message message, String containerId, boolean forward) throws IOException, NoSuchElementException {
         var clients = getClients(containerId, agentId, null, forward);
 
+        IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             log.info("Forwarding /send to " + client.baseUrl);
             try {
                 client.send(agentId, message, containerId, false);
                 return;
             } catch (IOException e) {
-                log.warning("Failed to forward /send to " + client.baseUrl);
+                log.warning("Failed to forward /send to " + client.baseUrl + ": " + e);
+                lastException = e;
             }
         }
-        // TODO should this throw the last IO-Exception if there was any?
+        if (lastException != null) throw lastException;
         throw new NoSuchElementException(String.format("Not found: agent '%s'", agentId));
     }
 
@@ -126,33 +128,35 @@ public class PlatformImpl implements RuntimePlatformApi {
             try {
                 client.broadcast(channel, message, containerId, false);
             } catch (IOException e) {
-                log.warning("Failed to forward /broadcast to " + client.baseUrl);
+                log.warning("Failed to forward /broadcast to " + client.baseUrl + ": " + e);
             }
         }
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws NoSuchElementException {
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws IOException, NoSuchElementException {
         return invoke(action, parameters, null, containerId, forward);
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws NoSuchElementException {
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws IOException, NoSuchElementException {
         var clients = getClients(containerId, agentId, action, forward);
 
+        IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {
                 return agentId == null
                         ? client.invoke(action, parameters, containerId, false)
                         : client.invoke(action, parameters, agentId, containerId, false);
             } catch (IOException e) {
-                // todo: different warning in case of faulty parameters?
-                log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s'",
-                        action, agentId, client.baseUrl));
+                log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s': %s",
+                        action, agentId, client.baseUrl, e));
+                log.warning("CAUSE " + e.getCause());
+                log.warning("MESSAGE " + e.getMessage());
+                lastException = e;
             }
         }
-        // TODO should this throw the last IO-Exception if there was any?
-        // iterated over all clients, no valid client found
+        if (lastException != null) throw lastException;
         throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s'", action, agentId));
     }
 

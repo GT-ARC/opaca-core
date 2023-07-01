@@ -7,7 +7,6 @@ import de.dailab.jiacpp.platform.PlatformConfig;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.java.Log;
-import java.util.AbstractMap;
 
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.Configuration;
@@ -25,7 +24,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.Arrays;
-import java.util.stream.IntStream;
 import java.util.Set;
 import java.util.List;
 import java.util.HashSet;
@@ -249,36 +247,21 @@ public class KubernetesClient implements ContainerClient {
     }
 
     private Map<String, String> loadKubernetesSecrets() {
-        if (config.registryNames.isEmpty()) {
-            return Map.of();
-        }
-        var sep = config.registrySeparator;
-        var registries = config.registryNames.split(sep);
-        var logins = config.registryLogins.split(sep);
-        var passwords = config.registryPasswords.split(sep);
-
-        if (registries.length != logins.length || registries.length != passwords.length) {
-            log.warning("Number of Registry Names does not match Login Usernames and Passwords");
-            return Map.of();
-        } else {
-            return IntStream.range(0, registries.length)
-                    .mapToObj(i -> createKubernetesSecret(registries[i], logins[i], passwords[i]))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        }
+        return config.loadDockerAuth().stream().collect(Collectors.toMap(
+                PlatformConfig.ImageRegistryAuth::getRegistry,
+                x -> createKubernetesSecret(x.getRegistry(), x.getLogin(), x.getPassword())));
     }
 
-
-    private Map.Entry<String, String> createKubernetesSecret(String registryAddress, String username, String password) {
+    private String createKubernetesSecret(String registryAddress, String username, String password) {
         String secretName = registryAddress.replaceAll("[^a-zA-Z0-9-]", "-");
 
         String auth = Base64.getEncoder().encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
-
-        Map<String, byte[]> dockerConfigJson = Map.of(".dockerconfigjson", ("{\"auths\": {\"" + registryAddress + "\": {\"auth\": \"" + auth + "\"}}}").getBytes(StandardCharsets.UTF_8));
+        String authJson = "{\"auths\": {\"" + registryAddress + "\": {\"auth\": \"" + auth + "\"}}}";
 
         V1Secret secret = new V1Secret()
                 .metadata(new V1ObjectMeta().name(secretName).namespace(namespace))
                 .type("kubernetes.io/dockerconfigjson")
-                .data(dockerConfigJson);
+                .data(Map.of(".dockerconfigjson", authJson.getBytes(StandardCharsets.UTF_8)));
 
         try {
             this.coreApi.createNamespacedSecret(namespace, secret, null, null, null);
@@ -286,7 +269,7 @@ public class KubernetesClient implements ContainerClient {
             log.severe("Exception when creating secret: " + e.getResponseBody());
         }
 
-        return new AbstractMap.SimpleEntry<>(registryAddress, secretName);
+        return secretName;
     }
 
 }

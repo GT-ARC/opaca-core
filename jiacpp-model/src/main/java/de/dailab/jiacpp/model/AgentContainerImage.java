@@ -32,6 +32,9 @@ public class AgentContainerImage {
     /** short readable name of this Agent Container */
     String name;
 
+    /** version number of this image */
+    String version;
+
     /** Optional longer description of what the container does */
     String description;
 
