@@ -3,6 +3,7 @@ package de.dailab.jiacpp.platform.tests;
 import de.dailab.jiacpp.platform.Application;
 import static de.dailab.jiacpp.platform.tests.TestUtils.*;
 
+import org.jose4j.json.internal.json_simple.JSONObject;
 import org.junit.*;
 import org.junit.runners.MethodSorters;
 
@@ -21,6 +22,8 @@ public class AuthTests {
     private static ConfigurableApplicationContext platform = null;
     private static String token = null;
     private static String containerId = null;
+    private static String containerIP = null;
+    private static String containerToken = null;
 
     @BeforeClass
     public static void setupPlatform() {
@@ -65,6 +68,8 @@ public class AuthTests {
         Assert.assertEquals(403, con.getResponseCode());
     }
 
+
+    /* Authentification against the Platform */
     @Test
     public void test2WithToken() throws Exception {
         var con = requestWithToken(PLATFORM, "GET", "/info", null, token);
@@ -97,7 +102,7 @@ public class AuthTests {
         var con = requestWithToken(PLATFORM, "POST", "/invoke/GetInfo", Map.of(), token);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
-        var containerToken = (String) res.get("TOKEN");
+        containerToken = (String) res.get("TOKEN");
         Assert.assertTrue(containerToken != null && ! containerToken.equals(""));
 
         // container token can be used to call platform routes
@@ -114,6 +119,32 @@ public class AuthTests {
         // agent container must be able to call parent platform route to notify platform of change
         con = requestWithToken(PLATFORM, "POST", "/invoke/TestAction", Map.of(), token);
         Assert.assertEquals(200, con.getResponseCode());
+    }
+
+
+    /* Authentification against the containers */
+    @Test
+    public void test8WithToken() throws Exception {
+        var con1 = requestWithToken(PLATFORM, "GET", "/info", null, token);
+        // Extract baseUrl as a String from the json response
+        var res = result(con1, Map.class);
+        containerIP = (String) res.get("baseUrl");
+        
+        var con2 = requestWithToken(containerIP, "GET", "/info", null, containerToken);
+        Assert.assertEquals(200, con2.getResponseCode());
+    }
+    
+    @Test
+    public void test8WithWrongToken() throws Exception {
+        var invalidToken = "wrong-token";
+        var con = requestWithToken(containerIP, "GET", "/info", null, invalidToken);
+        Assert.assertEquals(403, con.getResponseCode());
+    }
+
+    @Test
+    public void test8WithoutToken() throws Exception {
+        var con = requestWithToken(containerIP, "GET", "/info", null, null);
+        Assert.assertEquals(403, con.getResponseCode());
     }
 
     private String authQuery(String username, String password) {
