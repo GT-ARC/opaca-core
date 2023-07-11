@@ -12,8 +12,12 @@
   "apiPort": 8082,
   "extraPorts": {
     "8888": {
-      "protocol": "HTTP",
-      "description": "Simple Web Server for testing extra ports"
+      "protocol": "TCP",
+      "description": "Simple Web Server for testing TCP port"
+    },
+    "8889": {
+      "protocol": "UDP",
+      "description": "Simple Web Server for testing UDP port"
     }
   }
 

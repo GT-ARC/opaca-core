@@ -13,6 +13,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
+import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -317,7 +321,7 @@ public class PlatformTests {
      * test exposed extra port (has to be provided in sample image)
      */
     @Test
-    public void test5ExtraPort() throws Exception {
+    public void test5ExtraPortTCP() throws Exception {
         var con = request(PLATFORM_A, "GET", "/containers/" + containerId, null);
         var res = result(con, AgentContainer.class).getConnectivity();
 
@@ -327,6 +331,46 @@ public class PlatformTests {
         Assert.assertEquals("It Works!", result(con));
     }
 
+    @Test
+    public void test5ExtraPortUDP() throws Exception {
+        var image = getSampleContainerImage("UDP");
+        var con1 = request(PLATFORM_A, "POST", "/containers", image);
+        var newContainerId = result(con1);
+
+        var con2 = request(PLATFORM_A, "GET", "/containers/" + newContainerId, null);
+        var res = result(con2, AgentContainer.class).getConnectivity();
+
+        DatagramSocket socket = new DatagramSocket();
+        socket.setSoTimeout(2000000); // Set read timeout to 10 seconds
+
+        System.out.println("__________URL____________");
+        System.out.println(res.getPublicUrl());
+        
+        byte[] buffer = new byte[512];
+        URL url = new URL(res.getPublicUrl());
+        String host = url.getHost();
+
+        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, new InetSocketAddress(host, res.getExtraPortMappings().keySet().iterator().next()));
+        System.out.println("Target IP: " + packet.getAddress());
+        System.out.println("Target Port: " + packet.getPort());
+        System.out.println("Socket Local Port: " + socket.getLocalPort());
+
+
+        try {
+            System.out.println("_______PACKET_________");
+            System.out.println(packet);
+            socket.send(packet);
+            System.out.println("__________PACKET IS SENT_____");
+            // Try to receive a packet within the timeout period
+            DatagramPacket response = new DatagramPacket(new byte[512], 512);
+            System.out.println("__________RESPONSE__________");
+            System.out.println(response);
+            socket.receive(response);
+            Assert.assertEquals("It Works!", response);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     /**
      * test that connectivity info is still there after /notify
      */

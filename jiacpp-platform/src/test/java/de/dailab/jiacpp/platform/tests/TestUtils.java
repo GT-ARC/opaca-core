@@ -36,6 +36,20 @@ public class TestUtils {
         return image;
     }
 
+    public static AgentContainerImage getSampleContainerImage(String protocol) {
+        var image = new AgentContainerImage();
+        image.setImageName(TEST_IMAGE);
+        if(protocol != null && protocol.equalsIgnoreCase("UDP")) {
+            AgentContainerImage.PortDescription portDescription = new AgentContainerImage.PortDescription();
+            portDescription.setProtocol("UDP");
+            portDescription.setDescription("UDP Port");
+            image.setExtraPorts(Map.of(8889, portDescription));
+        } else {
+            image.setExtraPorts(Map.of(8889, new AgentContainerImage.PortDescription()));
+        }
+        return image;
+    }
+
     public static String buildQuery(Map<String, Object> params) {
         if (params != null) {
             var query = new StringBuilder();

@@ -104,7 +104,8 @@ public class DockerClient implements ContainerClient {
             }).collect(Collectors.toList());
                
             exposedPorts.add(ExposedPort.tcp(image.getApiPort()));
-
+            System.out.println(portMap);
+            System.out.println(exposedPorts);
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
                     .withEnv(
