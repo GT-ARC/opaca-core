@@ -95,15 +95,13 @@ public class DockerClient implements ContainerClient {
                     .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
 
             // exposed ports based on the protocol
-            List<ExposedPort> exposedPorts = extraPorts.keySet().stream().map(port -> {
-                String protocol = (image.getExtraPorts().get(port).getProtocol() != null) ? image.getExtraPorts().get(port).getProtocol() : "TCP";
-                if ("UDP".equalsIgnoreCase(protocol)) {
-                    return ExposedPort.udp(port);
+            List<ExposedPort> exposedPorts = extraPorts.entrySet().stream().map(entry -> {
+                if ("UDP".equalsIgnoreCase(entry.getValue().getProtocol())) {
+                    return ExposedPort.udp(entry.getKey());
                 } else {
-                    return ExposedPort.tcp(port);
+                    return ExposedPort.tcp(entry.getKey());
                 }
             }).collect(Collectors.toList());
-               
             exposedPorts.add(ExposedPort.tcp(image.getApiPort()));
 
             log.info("Creating Container...");
