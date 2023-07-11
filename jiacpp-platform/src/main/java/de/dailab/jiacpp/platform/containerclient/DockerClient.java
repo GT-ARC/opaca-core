@@ -82,27 +82,26 @@ public class DockerClient implements ContainerClient {
 
     @Override
     public AgentContainer.Connectivity startContainer(String containerId, String token, AgentContainerImage image) throws IOException, NoSuchElementException {
-    
+
         var imageName = image.getImageName();
         var extraPorts = image.getExtraPorts();
         try {
             if (! isImagePresent(imageName)) {
                 pullDockerImage(imageName);
             }
-    
+
+            // port mappings
             Map<Integer, Integer> portMap = Stream.concat(Stream.of(image.getApiPort()), extraPorts.keySet().stream())
-            .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
+                    .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
 
             // exposed ports based on the protocol
-            List<ExposedPort> exposedPorts = extraPorts.keySet().stream().map(port -> {
-                String protocol = (image.getExtraPorts().get(port).getProtocol() != null) ? image.getExtraPorts().get(port).getProtocol() : "TCP";
-                if ("UDP".equalsIgnoreCase(protocol)) {
-                    return ExposedPort.udp(port);
+            List<ExposedPort> exposedPorts = extraPorts.entrySet().stream().map(entry -> {
+                if ("UDP".equalsIgnoreCase(entry.getValue().getProtocol())) {
+                    return ExposedPort.udp(entry.getKey());
                 } else {
-                    return ExposedPort.tcp(port);
+                    return ExposedPort.tcp(entry.getKey());
                 }
             }).collect(Collectors.toList());
-               
             exposedPorts.add(ExposedPort.tcp(image.getApiPort()));
             System.out.println(portMap);
             System.out.println(exposedPorts);
@@ -120,10 +119,10 @@ public class DockerClient implements ContainerClient {
                     .withExposedPorts(exposedPorts)
                     .exec();
             log.info(String.format("Result: %s", res));
-    
+
             log.info("Starting Container...");
             dockerClient.startContainerCmd(res.getId()).exec();
-    
+
             // create connectivity object
             var connectivity = new AgentContainer.Connectivity(
                     getContainerBaseUrl(),
@@ -131,16 +130,15 @@ public class DockerClient implements ContainerClient {
                     extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );
             dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), connectivity));
-    
+
             return connectivity;
-    
+
         } catch (NotFoundException e) {
             // might theoretically happen if image is deleted between pull and run...
             log.warning("Image not found: " + imageName);
             throw new NoSuchElementException("Image not found: " + imageName);
         }
     }
-    
 
     @Override
     public void stopContainer(String containerId) throws IOException {
