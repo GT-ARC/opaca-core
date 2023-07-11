@@ -95,6 +95,11 @@ public class AuthTests {
         var con = requestWithToken(PLATFORM, "POST", "/containers", image, token);
         Assert.assertEquals(200, con.getResponseCode());
         containerId = result(con);
+
+        con = requestWithToken(PLATFORM, "GET", "/containers/" + containerId, null, token);
+        var res = result(con, Map.class);
+        var connectivity = ((Map<String, Object>) res.get("connectivity"));
+        containerIP = String.format("%s:%s", connectivity.get("publicUrl"), connectivity.get("apiPortMapping"));
     }
 
     @Test
@@ -125,11 +130,6 @@ public class AuthTests {
     /* Authentification against the containers */
     @Test
     public void test8WithToken() throws Exception {
-        var con1 = requestWithToken(PLATFORM, "GET", "/info", null, token);
-        // Extract baseUrl as a String from the json response
-        var res = result(con1, Map.class);
-        containerIP = (String) res.get("baseUrl");
-        
         var con2 = requestWithToken(containerIP, "GET", "/info", null, containerToken);
         Assert.assertEquals(200, con2.getResponseCode());
     }

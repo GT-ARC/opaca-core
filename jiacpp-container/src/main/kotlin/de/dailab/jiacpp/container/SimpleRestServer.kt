@@ -70,9 +70,8 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
 
         private fun handleError(response: HttpServletResponse, e: Exception) {
             val code = when (e) {
-//                is NoSuchMethodException -> 405
                 is NoSuchElementException -> 404
-                is NotAuthenticatedException -> 401
+                is NotAuthenticatedException -> 403
                 else -> 500
             }
             val err = mapOf(Pair("details", e.toString()))
