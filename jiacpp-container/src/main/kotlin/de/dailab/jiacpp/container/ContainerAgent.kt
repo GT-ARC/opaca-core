@@ -34,7 +34,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     private val broker by resolve<BrokerAgentRef>()
 
-    private val server by lazy { JiacppServer(impl, AgentContainerApi.DEFAULT_PORT) }
+    private val server by lazy { JiacppServer(impl, AgentContainerApi.DEFAULT_PORT, token) }
 
     // information on current state of agent container
 

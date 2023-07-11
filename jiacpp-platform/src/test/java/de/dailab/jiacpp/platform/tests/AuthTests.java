@@ -21,6 +21,8 @@ public class AuthTests {
     private static ConfigurableApplicationContext platform = null;
     private static String token = null;
     private static String containerId = null;
+    private static String containerIP = null;
+    private static String containerToken = null;
 
     @BeforeClass
     public static void setupPlatform() {
@@ -31,7 +33,7 @@ public class AuthTests {
     }
 
     @AfterClass
-    public static void stopPlatform() throws Exception {
+    public static void stopPlatform() {
         platform.close();
     }
 
@@ -65,6 +67,9 @@ public class AuthTests {
         Assert.assertEquals(403, con.getResponseCode());
     }
 
+
+    // Authentication against the Platform
+
     @Test
     public void test2WithToken() throws Exception {
         var con = requestWithToken(PLATFORM, "GET", "/info", null, token);
@@ -85,11 +90,17 @@ public class AuthTests {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void test3Deploy() throws Exception {
         var image = getSampleContainerImage();
         var con = requestWithToken(PLATFORM, "POST", "/containers", image, token);
         Assert.assertEquals(200, con.getResponseCode());
         containerId = result(con);
+
+        con = requestWithToken(PLATFORM, "GET", "/containers/" + containerId, null, token);
+        var res = result(con, Map.class);
+        var connectivity = ((Map<String, Object>) res.get("connectivity"));
+        containerIP = String.format("%s:%s", connectivity.get("publicUrl"), connectivity.get("apiPortMapping"));
     }
 
     @Test
@@ -97,7 +108,7 @@ public class AuthTests {
         var con = requestWithToken(PLATFORM, "POST", "/invoke/GetInfo", Map.of(), token);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
-        var containerToken = (String) res.get("TOKEN");
+        containerToken = (String) res.get("TOKEN");
         Assert.assertTrue(containerToken != null && ! containerToken.equals(""));
 
         // container token can be used to call platform routes
@@ -115,6 +126,30 @@ public class AuthTests {
         con = requestWithToken(PLATFORM, "POST", "/invoke/TestAction", Map.of(), token);
         Assert.assertEquals(200, con.getResponseCode());
     }
+
+
+    // Authentication against the containers
+
+    @Test
+    public void test8WithToken() throws Exception {
+        var con = requestWithToken(containerIP, "GET", "/info", null, containerToken);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+    
+    @Test
+    public void test8WithWrongToken() throws Exception {
+        var invalidToken = "wrong-token";
+        var con = requestWithToken(containerIP, "GET", "/info", null, invalidToken);
+        Assert.assertEquals(403, con.getResponseCode());
+    }
+
+    @Test
+    public void test8WithoutToken() throws Exception {
+        var con = requestWithToken(containerIP, "GET", "/info", null, null);
+        Assert.assertEquals(403, con.getResponseCode());
+    }
+
+    // Helper methods
 
     private String authQuery(String username, String password) {
         return buildQuery(Map.of("username", username, "password", password));
