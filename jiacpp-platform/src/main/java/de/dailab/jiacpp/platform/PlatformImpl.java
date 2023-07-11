@@ -38,7 +38,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     /** Currently running Agent Containers, mapping container ID to description */
     private final Map<String, AgentContainer> runningContainers = new HashMap<>();
-     private final Map<String, String> tokens = new HashMap<>();
+    private final Map<String, String> tokens = new HashMap<>();
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
     private final Map<String, RuntimePlatform> connectedPlatforms = new HashMap<>();

@@ -3,7 +3,6 @@ package de.dailab.jiacpp.platform.tests;
 import de.dailab.jiacpp.platform.Application;
 import static de.dailab.jiacpp.platform.tests.TestUtils.*;
 
-import org.jose4j.json.internal.json_simple.JSONObject;
 import org.junit.*;
 import org.junit.runners.MethodSorters;
 
@@ -34,7 +33,7 @@ public class AuthTests {
     }
 
     @AfterClass
-    public static void stopPlatform() throws Exception {
+    public static void stopPlatform() {
         platform.close();
     }
 
@@ -69,7 +68,8 @@ public class AuthTests {
     }
 
 
-    /* Authentification against the Platform */
+    // Authentication against the Platform
+
     @Test
     public void test2WithToken() throws Exception {
         var con = requestWithToken(PLATFORM, "GET", "/info", null, token);
@@ -90,6 +90,7 @@ public class AuthTests {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void test3Deploy() throws Exception {
         var image = getSampleContainerImage();
         var con = requestWithToken(PLATFORM, "POST", "/containers", image, token);
@@ -127,11 +128,12 @@ public class AuthTests {
     }
 
 
-    /* Authentification against the containers */
+    // Authentication against the containers
+
     @Test
     public void test8WithToken() throws Exception {
-        var con2 = requestWithToken(containerIP, "GET", "/info", null, containerToken);
-        Assert.assertEquals(200, con2.getResponseCode());
+        var con = requestWithToken(containerIP, "GET", "/info", null, containerToken);
+        Assert.assertEquals(200, con.getResponseCode());
     }
     
     @Test
@@ -146,6 +148,8 @@ public class AuthTests {
         var con = requestWithToken(containerIP, "GET", "/info", null, null);
         Assert.assertEquals(403, con.getResponseCode());
     }
+
+    // Helper methods
 
     private String authQuery(String username, String password) {
         return buildQuery(Map.of("username", username, "password", password));
