@@ -95,7 +95,7 @@ public class DockerClient implements ContainerClient {
                     .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
             // translate to Docker PortBindings (incl. ExposedPort descriptions)
             List<PortBinding> portBindings = portMap.entrySet().stream()
-                    .map(e -> PortBinding.parse(e.getKey() + ":" + e.getValue() + "/" + getProtocol(e.getKey(), image)))
+                    .map(e -> PortBinding.parse(e.getValue() + ":" + e.getKey() + "/" + getProtocol(e.getKey(), image)))
                     .collect(Collectors.toList());
 
             log.info("Creating Container...");
@@ -108,7 +108,7 @@ public class DockerClient implements ContainerClient {
                     .withExposedPorts(portBindings.stream().map(PortBinding::getExposedPort).collect(Collectors.toList()))
                     .exec();
             log.info(String.format("Result: %s", res));
-    
+
             log.info("Starting Container...");
             dockerClient.startContainerCmd(res.getId()).exec();
 
