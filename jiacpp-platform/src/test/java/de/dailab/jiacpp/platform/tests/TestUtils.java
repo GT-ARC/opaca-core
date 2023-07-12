@@ -23,7 +23,7 @@ public class TestUtils {
      * > docker tag test-image registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:vXYZ
      * > docker push registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:vXYZ
      */
-    static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v10";
+    static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v11";
 
     /*
      * HELPER METHODS
@@ -32,9 +32,13 @@ public class TestUtils {
     public static AgentContainerImage getSampleContainerImage() {
         var image = new AgentContainerImage();
         image.setImageName(TEST_IMAGE);
-        image.setExtraPorts(Map.of(8888, new AgentContainerImage.PortDescription()));
+        image.setExtraPorts(Map.of(
+                8888, new AgentContainerImage.PortDescription("TCP", "TCP Test Port"),
+                8889, new AgentContainerImage.PortDescription("UDP", "UDP Test Port")
+        ));
         return image;
     }
+
 
     public static String buildQuery(Map<String, Object> params) {
         if (params != null) {

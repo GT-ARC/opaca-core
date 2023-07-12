@@ -82,17 +82,21 @@ public class DockerClient implements ContainerClient {
 
     @Override
     public AgentContainer.Connectivity startContainer(String containerId, String token, AgentContainerImage image) throws IOException, NoSuchElementException {
-        
         var imageName = image.getImageName();
         var extraPorts = image.getExtraPorts();
+
         try {
             if (! isImagePresent(imageName)) {
                 pullDockerImage(imageName);
             }
 
-            // port mappings
+            // port mappings for API- and Extra-Ports
             Map<Integer, Integer> portMap = Stream.concat(Stream.of(image.getApiPort()), extraPorts.keySet().stream())
                     .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
+            // translate to Docker PortBindings (incl. ExposedPort descriptions)
+            List<PortBinding> portBindings = portMap.entrySet().stream()
+                    .map(e -> PortBinding.parse(e.getValue() + ":" + e.getKey() + "/" + getProtocol(e.getKey(), image)))
+                    .collect(Collectors.toList());
 
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
@@ -100,19 +104,14 @@ public class DockerClient implements ContainerClient {
                             String.format("%s=%s", AgentContainerApi.ENV_CONTAINER_ID, containerId),
                             String.format("%s=%s", AgentContainerApi.ENV_TOKEN, token),
                             String.format("%s=%s", AgentContainerApi.ENV_PLATFORM_URL, config.getOwnBaseUrl()))
-                    .withHostConfig(HostConfig.newHostConfig()
-                            .withPortBindings(portMap.entrySet().stream().map(
-                                    e -> PortBinding.parse(String.format("%s:%s", e.getValue(), e.getKey()))
-                            ).collect(Collectors.toList()))
-                    )
-                    .withExposedPorts(portMap.keySet().stream().map(ExposedPort::tcp).collect(Collectors.toList()))
+                    .withHostConfig(HostConfig.newHostConfig().withPortBindings(portBindings))
+                    .withExposedPorts(portBindings.stream().map(PortBinding::getExposedPort).collect(Collectors.toList()))
                     .exec();
             log.info(String.format("Result: %s", res));
 
             log.info("Starting Container...");
             dockerClient.startContainerCmd(res.getId()).exec();
 
-            // create connectivity object
             var connectivity = new AgentContainer.Connectivity(
                     getContainerBaseUrl(),
                     portMap.get(image.getApiPort()),
@@ -151,6 +150,15 @@ public class DockerClient implements ContainerClient {
     public String getUrl(String containerId) {
         var conn = dockerContainers.get(containerId).connectivity;
         return conn.getPublicUrl() + ":" + conn.getApiPortMapping();
+    }
+
+    private String getProtocol(int port, AgentContainerImage image) {
+        if (image.getExtraPorts().containsKey(port)) {
+            String protocol = image.getExtraPorts().get(port).getProtocol();
+            return "udp".equalsIgnoreCase(protocol) ? "udp" : "tcp";
+        } else {
+            return "tcp";
+        }
     }
 
     private String getLocalDockerHost() {

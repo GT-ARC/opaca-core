@@ -13,6 +13,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.*;
+import java.net.*;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -317,14 +318,32 @@ public class PlatformTests {
      * test exposed extra port (has to be provided in sample image)
      */
     @Test
-    public void test5ExtraPort() throws Exception {
+    public void test5ExtraPortTCP() throws Exception {
         var con = request(PLATFORM_A, "GET", "/containers/" + containerId, null);
         var res = result(con, AgentContainer.class).getConnectivity();
 
-        var url = String.format("%s:%s", res.getPublicUrl(), res.getExtraPortMappings().keySet().iterator().next());
+        var url = String.format("%s:%s", res.getPublicUrl(), "8888");
         con = request(url, "GET", "/", null);
         Assert.assertEquals(200, con.getResponseCode());
         Assert.assertEquals("It Works!", result(con));
+    }
+
+    @Test
+    public void test5ExtraPortUDP() throws Exception {
+        var addr = InetAddress.getByName("localhost");
+        DatagramSocket clientSocket = new DatagramSocket();
+        byte[] sendData = "Test".getBytes();
+        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, addr, 8889);
+        clientSocket.send(sendPacket);
+
+        byte[] receiveData = new byte[1024];
+        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        clientSocket.receive(receivePacket);
+
+        String receivedMessage = new String(receivePacket.getData(), 0, receivePacket.getLength());
+        Assert.assertEquals("TestTest", receivedMessage);
+
+        clientSocket.close();
     }
 
     /**
