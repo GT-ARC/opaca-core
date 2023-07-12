@@ -64,7 +64,7 @@ public class PlatformTests {
     }
 
     @AfterClass
-    public static void stopPlatforms() throws Exception {
+    public static void stopPlatforms() {
         platformA.close();
         platformB.close();
     }

@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
+import java.lang.RuntimeException
 import java.util.stream.Collectors
 
 
@@ -22,7 +23,7 @@ import java.util.stream.Collectors
  * the ContainerAgent and "make room" for some basic exception handling, translating no-such-element
  * or actual internal errors (e.g. when executing an action) to appropriate HTTP status codes.
  */
-class JiacppServer(val impl: AgentContainerApi, val port: Int) {
+class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String?) {
 
     private val server = Server(port)
 
@@ -33,6 +34,7 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int) {
 
         override fun doGet(request: HttpServletRequest, response: HttpServletResponse) {
             try {
+                checkToken(request)
                 val path = request.pathInfo
                 val res = handleGet(path)
                 writeResponse(response, 200, res)
@@ -43,12 +45,20 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int) {
 
         override fun doPost(request: HttpServletRequest, response: HttpServletResponse) {
             try {
+                checkToken(request)
                 val path = request.pathInfo  // NOTE: queryParams (?...) go to request.queryString
                 val body: String = request.reader.lines().collect(Collectors.joining())
                 val res = handlePost(path, body)
                 writeResponse(response, 200, res)
             } catch (e: Exception) {
                 handleError(response, e)
+            }
+        }
+
+        private fun checkToken(request: HttpServletRequest) {
+            val tokenFromRequest = request.getHeader("Authorization")?.removePrefix("Bearer ")
+            if (! token.isNullOrEmpty() && tokenFromRequest != token) {
+                throw NotAuthenticatedException("Unauthorized: Token does not match")
             }
         }
 
@@ -60,8 +70,8 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int) {
 
         private fun handleError(response: HttpServletResponse, e: Exception) {
             val code = when (e) {
-                is NoSuchMethodException -> 405
                 is NoSuchElementException -> 404
+                is NotAuthenticatedException -> 403
                 else -> 500
             }
             val err = mapOf(Pair("details", e.toString()))
@@ -135,5 +145,7 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int) {
     fun stop() {
         server.stop()
     }
+
+    class NotAuthenticatedException(message: String): RuntimeException(message)
 
 }
