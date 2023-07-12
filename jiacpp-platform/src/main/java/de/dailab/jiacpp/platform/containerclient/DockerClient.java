@@ -96,7 +96,6 @@ public class DockerClient implements ContainerClient {
             List<PortBinding> portBindings = new ArrayList<>();
             List<ExposedPort> exposedPorts = new ArrayList<>();
     
-            // combine two loops into one
             for (Integer port : extraPorts.keySet()) {
     
                 String protocol = (extraPorts.get(port).getProtocol() != null) ? extraPorts.get(port).getProtocol() : "TCP";
