@@ -15,7 +15,6 @@ import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.model.AgentContainerImage.PortDescription;
 import de.dailab.jiacpp.platform.PlatformConfig;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,7 +24,6 @@ import org.apache.commons.lang3.SystemUtils;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -86,37 +84,20 @@ public class DockerClient implements ContainerClient {
     public AgentContainer.Connectivity startContainer(String containerId, String token, AgentContainerImage image) throws IOException, NoSuchElementException {
         var imageName = image.getImageName();
         var extraPorts = image.getExtraPorts();
-        Map<Integer, Integer> portMap = new HashMap<>();
-    
+
         try {
-            if (!isImagePresent(imageName)) {
+            if (! isImagePresent(imageName)) {
                 pullDockerImage(imageName);
             }
-    
-            List<PortBinding> portBindings = new ArrayList<>();
-            List<ExposedPort> exposedPorts = new ArrayList<>();
-    
-            for (Integer port : extraPorts.keySet()) {
-    
-                String protocol = (extraPorts.get(port).getProtocol() != null) ? extraPorts.get(port).getProtocol() : "TCP";
-                Integer reservedPort = this.reserveNextFreePort(port);
-                portMap.put(port, reservedPort);
-    
-                if ("UDP".equalsIgnoreCase(protocol)) {
-                    portBindings.add(PortBinding.parse(port + ":" + reservedPort + "/udp"));
-                    exposedPorts.add(ExposedPort.udp(port));
-                } else {
-                    portBindings.add(PortBinding.parse(port + ":" + reservedPort));
-                    exposedPorts.add(ExposedPort.tcp(port));
-                }
-            }
-    
-            // Reserve port for the API and add to the port map and bindings
-            Integer apiPortHost = this.reserveNextFreePort(image.getApiPort());
-            portMap.put(image.getApiPort(), apiPortHost);
-            portBindings.add(PortBinding.parse(image.getApiPort() + ":" + apiPortHost));
-            exposedPorts.add(ExposedPort.tcp(image.getApiPort()));
-    
+
+            // port mappings for API- and Extra-Ports
+            Map<Integer, Integer> portMap = Stream.concat(Stream.of(image.getApiPort()), extraPorts.keySet().stream())
+                    .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
+            // translate to Docker PortBindings (incl. ExposedPort descriptions)
+            List<PortBinding> portBindings = portMap.entrySet().stream()
+                    .map(e -> PortBinding.parse(e.getKey() + ":" + e.getValue() + "/" + getProtocol(e.getKey(), image)))
+                    .collect(Collectors.toList());
+
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
                     .withEnv(
@@ -124,32 +105,28 @@ public class DockerClient implements ContainerClient {
                             String.format("%s=%s", AgentContainerApi.ENV_TOKEN, token),
                             String.format("%s=%s", AgentContainerApi.ENV_PLATFORM_URL, config.getOwnBaseUrl()))
                     .withHostConfig(HostConfig.newHostConfig().withPortBindings(portBindings))
-                    .withExposedPorts(exposedPorts)
+                    .withExposedPorts(portBindings.stream().map(PortBinding::getExposedPort).collect(Collectors.toList()))
                     .exec();
-    
             log.info(String.format("Result: %s", res));
     
             log.info("Starting Container...");
             dockerClient.startContainerCmd(res.getId()).exec();
-    
+
             var connectivity = new AgentContainer.Connectivity(
                     getContainerBaseUrl(),
                     portMap.get(image.getApiPort()),
                     extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );
-    
             dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), connectivity));
-    
+
             return connectivity;
-    
+
         } catch (NotFoundException e) {
             // might theoretically happen if image is deleted between pull and run...
             log.warning("Image not found: " + imageName);
             throw new NoSuchElementException("Image not found: " + imageName);
         }
     }
-    
-    
 
     @Override
     public void stopContainer(String containerId) throws IOException {
@@ -173,6 +150,15 @@ public class DockerClient implements ContainerClient {
     public String getUrl(String containerId) {
         var conn = dockerContainers.get(containerId).connectivity;
         return conn.getPublicUrl() + ":" + conn.getApiPortMapping();
+    }
+
+    private String getProtocol(int port, AgentContainerImage image) {
+        if (image.getExtraPorts().containsKey(port)) {
+            String protocol = image.getExtraPorts().get(port).getProtocol();
+            return "udp".equalsIgnoreCase(protocol) ? "udp" : "tcp";
+        } else {
+            return "tcp";
+        }
     }
 
     private String getLocalDockerHost() {
