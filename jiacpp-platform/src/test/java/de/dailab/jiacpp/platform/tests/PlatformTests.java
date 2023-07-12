@@ -5,7 +5,6 @@ import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.platform.Application;
 import de.dailab.jiacpp.platform.PlatformRestController;
 import static de.dailab.jiacpp.platform.tests.TestUtils.*;
-import static org.junit.Assert.assertEquals;
 
 import org.junit.*;
 import org.junit.runners.MethodSorters;
@@ -14,10 +13,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.*;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
-import java.net.URL;
+import java.net.*;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -326,7 +322,7 @@ public class PlatformTests {
         var con = request(PLATFORM_A, "GET", "/containers/" + containerId, null);
         var res = result(con, AgentContainer.class).getConnectivity();
 
-        var url = String.format("%s:%s", res.getPublicUrl(), res.getExtraPortMappings().keySet().iterator().next());
+        var url = String.format("%s:%s", res.getPublicUrl(), "8888");
         con = request(url, "GET", "/", null);
         Assert.assertEquals(200, con.getResponseCode());
         Assert.assertEquals("It Works!", result(con));
@@ -334,27 +330,22 @@ public class PlatformTests {
 
     @Test
     public void test5ExtraPortUDP() throws Exception {
-        Thread clientThread;
-        clientThread = new Thread(() -> {
-            try {
-                DatagramSocket clientSocket = new DatagramSocket();
-                byte[] sendData = "Hello, Server!".getBytes();
-                DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, 8889);
-                clientSocket.send(sendPacket);
+        var addr = InetAddress.getByName("localhost");
+        DatagramSocket clientSocket = new DatagramSocket();
+        byte[] sendData = "Test".getBytes();
+        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, addr, 8889);
+        clientSocket.send(sendPacket);
 
-                byte[] receiveData = new byte[1024];
-                DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-                clientSocket.receive(receivePacket);
+        byte[] receiveData = new byte[1024];
+        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        clientSocket.receive(receivePacket);
 
-                String receivedMessage = new String(receivePacket.getData(), 0, receivePacket.getLength());
-                assertEquals("It Works!", receivedMessage);
-                
-                clientSocket.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+        String receivedMessage = new String(receivePacket.getData(), 0, receivePacket.getLength());
+        Assert.assertEquals("TestTest", receivedMessage);
+
+        clientSocket.close();
     }
+
     /**
      * test that connectivity info is still there after /notify
      */

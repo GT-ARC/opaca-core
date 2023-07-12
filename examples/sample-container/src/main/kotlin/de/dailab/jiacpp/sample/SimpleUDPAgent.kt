@@ -27,7 +27,7 @@ class SimpleUDPAgent: Agent(overrideName="simple-udp-agent") {
                 println("Received: $message")
 
                 // Sending a response
-                val responseData = "It Works!".toByteArray(StandardCharsets.UTF_8)
+                val responseData = (message + message).toByteArray(StandardCharsets.UTF_8)
                 val responsePacket = DatagramPacket(responseData, responseData.size, packet.address, packet.port)
                 socket.send(responsePacket)
             }

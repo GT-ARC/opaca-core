@@ -1,7 +1,6 @@
 package de.dailab.jiacpp.platform.tests;
 
 import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.model.AgentContainerImage.PortDescription;
 import de.dailab.jiacpp.util.RestHelper;
 
 import java.io.IOException;
@@ -9,7 +8,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
 
 public class TestUtils {
@@ -35,13 +33,10 @@ public class TestUtils {
     public static AgentContainerImage getSampleContainerImage() {
         var image = new AgentContainerImage();
         image.setImageName(TEST_IMAGE);
-        Map<Integer, AgentContainerImage.PortDescription> extraPorts = new HashMap<>();
-        extraPorts.put(8888, new AgentContainerImage.PortDescription());
-        AgentContainerImage.PortDescription portDescriptionUDP = new AgentContainerImage.PortDescription();
-        portDescriptionUDP.setProtocol("UDP");
-        portDescriptionUDP.setDescription("UDP Port");
-        extraPorts.put(8889, portDescriptionUDP);
-        image.setExtraPorts(extraPorts);
+        image.setExtraPorts(Map.of(
+                8888, new AgentContainerImage.PortDescription("TCP", "TCP Test Port"),
+                8889, new AgentContainerImage.PortDescription("UDP", "UDP Test Port")
+        ));
         return image;
     }
 
