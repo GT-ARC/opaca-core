@@ -1,6 +1,7 @@
 package de.dailab.jiacpp.platform.tests;
 
 import de.dailab.jiacpp.model.AgentContainerImage;
+import de.dailab.jiacpp.model.AgentContainerImage.PortDescription;
 import de.dailab.jiacpp.util.RestHelper;
 
 import java.io.IOException;
@@ -8,6 +9,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 
 public class TestUtils {
@@ -23,7 +25,8 @@ public class TestUtils {
      * > docker tag test-image registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:vXYZ
      * > docker push registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:vXYZ
      */
-    static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v9a";
+    // static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v9a";
+    static final String TEST_IMAGE = "sample-agent-container-image";
 
     /*
      * HELPER METHODS
@@ -32,23 +35,16 @@ public class TestUtils {
     public static AgentContainerImage getSampleContainerImage() {
         var image = new AgentContainerImage();
         image.setImageName(TEST_IMAGE);
-        image.setExtraPorts(Map.of(8888, new AgentContainerImage.PortDescription()));
+        Map<Integer, AgentContainerImage.PortDescription> extraPorts = new HashMap<>();
+        extraPorts.put(8888, new AgentContainerImage.PortDescription());
+        AgentContainerImage.PortDescription portDescriptionUDP = new AgentContainerImage.PortDescription();
+        portDescriptionUDP.setProtocol("UDP");
+        portDescriptionUDP.setDescription("UDP Port");
+        extraPorts.put(8889, portDescriptionUDP);
+        image.setExtraPorts(extraPorts);
         return image;
     }
 
-    public static AgentContainerImage getSampleContainerImage(String protocol) {
-        var image = new AgentContainerImage();
-        image.setImageName(TEST_IMAGE);
-        if(protocol != null && protocol.equalsIgnoreCase("UDP")) {
-            AgentContainerImage.PortDescription portDescription = new AgentContainerImage.PortDescription();
-            portDescription.setProtocol("UDP");
-            portDescription.setDescription("UDP Port");
-            image.setExtraPorts(Map.of(8889, portDescription));
-        } else {
-            image.setExtraPorts(Map.of(8889, new AgentContainerImage.PortDescription()));
-        }
-        return image;
-    }
 
     public static String buildQuery(Map<String, Object> params) {
         if (params != null) {
