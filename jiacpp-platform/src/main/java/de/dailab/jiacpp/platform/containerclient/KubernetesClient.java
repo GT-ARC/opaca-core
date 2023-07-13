@@ -168,10 +168,7 @@ public class KubernetesClient implements ContainerClient {
 
             return connectivity;
         } catch (ApiException e) {
-            System.err.println("Status code: " + e.getCode());
-            System.err.println("Reason: " + e.getResponseBody());
-            System.err.println("Response headers: " + e.getResponseHeaders());
-            e.printStackTrace();
+            log.severe("Error creating pod: " + e.getMessage());
             throw new IOException("Failed to create Pod: " + e.getMessage());
         }
     }
@@ -182,7 +179,11 @@ public class KubernetesClient implements ContainerClient {
         try {
             // remove container info, stop container
             var containerInfo = pods.remove(containerId);
-            coreApi.deleteNamespacedPod(containerId, namespace, null, null, null, null, null, null);
+            
+            appsApi.deleteNamespacedDeployment(containerId, namespace, null, null, null, null, null, null);
+            String serviceId = "svc-" + containerId;
+            coreApi.deleteNamespacedService(serviceId, namespace, null, null, null, null, null, null);
+            
             // free up ports used by this container
             // TODO do this first, or in finally?
             usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
@@ -199,9 +200,6 @@ public class KubernetesClient implements ContainerClient {
         var ip = pods.get(podId).getInternalIp();
         return String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT);
     }
-
-
-  
 
     private void createServicesForPorts(String containerId, AgentContainerImage image, Map<Integer, Integer> portMap) throws ApiException {
         for (Map.Entry<Integer, Integer> entry : portMap.entrySet()) {
@@ -263,7 +261,6 @@ public class KubernetesClient implements ContainerClient {
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         }
     }
-
 
     private Map.Entry<String, String> createKubernetesSecret(String registryAddress, String username, String password) {
         String secretName = registryAddress.replaceAll("[^a-zA-Z0-9-]", "-");
