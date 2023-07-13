@@ -135,8 +135,9 @@ public class KubernetesClient implements ContainerClient {
                                         .imagePullSecrets(registrySecret == null ? null : Collections.singletonList(new V1LocalObjectReference().name(registrySecret)))
                                 )));
 
+        String serviceId = "svc-" + containerId;
         V1Service service = new V1Service()
-                .metadata(new V1ObjectMeta().name(containerId))
+                .metadata(new V1ObjectMeta().name(serviceId))
                 .spec(new V1ServiceSpec()
                         .selector(Collections.singletonMap("app", containerId))
                         .ports(Collections.singletonList(
@@ -148,7 +149,7 @@ public class KubernetesClient implements ContainerClient {
         try {
             V1Deployment createdDeployment = appsApi.createNamespacedDeployment(namespace, deployment, null, null, null);
             System.out.println("Deployment created: " + createdDeployment.getMetadata().getName());
-
+            
             V1Service createdService = coreApi.createNamespacedService(namespace, service, null, null, null);
             System.out.println("Service created: " + createdService.getMetadata().getName());
             String serviceIP = createdService.getSpec().getClusterIP();
@@ -167,7 +168,10 @@ public class KubernetesClient implements ContainerClient {
 
             return connectivity;
         } catch (ApiException e) {
-            log.severe("Error creating pod: " + e.getMessage());
+            System.err.println("Status code: " + e.getCode());
+            System.err.println("Reason: " + e.getResponseBody());
+            System.err.println("Response headers: " + e.getResponseHeaders());
+            e.printStackTrace();
             throw new IOException("Failed to create Pod: " + e.getMessage());
         }
     }
