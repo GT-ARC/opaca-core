@@ -197,41 +197,7 @@ public class KubernetesClient implements ContainerClient {
     }
 
 
-    /**
-     * Wait for the pod to be in the Running state and have an IP address assigned
-     */
-    private String waitForPodIP(String podName) throws ApiException, IOException, NoSuchElementException {
-        ApiClient apiClient = coreApi.getApiClient();
-        try (Watch<V1Pod> watch = Watch.createWatch(
-                apiClient,
-                coreApi.listNamespacedPodCall(namespace, null, null, null, null, null, null, null, null, null, true, null),
-                new TypeToken<Watch.Response<V1Pod>>(){}.getType())) {
-
-            for (Watch.Response<V1Pod> item : watch) {
-                V1Pod pod = item.object;
-                String name = pod.getMetadata().getName();
-                String phase = pod.getStatus().getPhase();
-                List<V1ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
-
-                if (name.equals(podName)) {
-                    if (phase.equalsIgnoreCase("Running") && pod.getStatus().getPodIP() != null) {
-                        return pod.getStatus().getPodIP();
-                    } else if (containerStatuses != null) {
-                        for (V1ContainerStatus status : containerStatuses) {
-                            V1ContainerState state = status.getState();
-                            if (state.getWaiting() != null && "ImagePullBackOff".equals(state.getWaiting().getReason())) {
-                                coreApi.deleteNamespacedPod(podName, namespace, null, null, null, null, null, null);
-                                throw new NoSuchElementException("Container image could not be pulled");
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        throw new IOException("Container did not start");
-    }
-
-
+  
 
     private void createServicesForPorts(String containerId, AgentContainerImage image, Map<Integer, Integer> portMap) throws ApiException {
         for (Map.Entry<Integer, Integer> entry : portMap.entrySet()) {
