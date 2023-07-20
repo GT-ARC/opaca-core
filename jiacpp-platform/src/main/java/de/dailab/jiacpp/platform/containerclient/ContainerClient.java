@@ -22,6 +22,13 @@ public interface ContainerClient {
     void initialize(PlatformConfig config);
 
     /**
+     * Test connection to the Backend, e.g. Docker or Kubernetes. This is called right after initialize,
+     * but made this a separate method to make it more explicit. This should raise an Exception (with
+     * some details, if possible) that will then crash the Service right after the start.
+     */
+    void testConnectivity();
+
+    /**
      * Start a container with the given container ID (for later reference) and image name. If all goes well,
      * return nothing, otherwise raise an appropriate exception.
      *

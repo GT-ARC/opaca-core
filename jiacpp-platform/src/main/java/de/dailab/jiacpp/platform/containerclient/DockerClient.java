@@ -81,6 +81,11 @@ public class DockerClient implements ContainerClient {
     }
 
     @Override
+    public void testConnectivity() {
+        this.dockerClient.listContainersCmd().exec();
+    }
+
+    @Override
     public AgentContainer.Connectivity startContainer(String containerId, String token, AgentContainerImage image) throws IOException, NoSuchElementException {
         var imageName = image.getImageName();
         var extraPorts = image.getExtraPorts();
