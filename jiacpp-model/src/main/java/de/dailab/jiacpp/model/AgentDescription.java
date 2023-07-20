@@ -4,13 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * Description of a single running agents, including its capabilities.
  */
 @Data @AllArgsConstructor @NoArgsConstructor
-public class AgentDescription {
+public class AgentDescription implements Serializable {
 
     // TODO also list messages this agent understands and would react to
 

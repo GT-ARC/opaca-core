@@ -24,6 +24,7 @@ import org.apache.commons.lang3.SystemUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -52,9 +53,10 @@ public class DockerClient implements ContainerClient {
 
     @Data
     @AllArgsConstructor
-    public static class DockerContainerInfo {
+    public static class DockerContainerInfo implements Serializable {
         String containerId;
         AgentContainer.Connectivity connectivity;
+        
     }
 
     @Override

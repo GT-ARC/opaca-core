@@ -4,13 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.util.Map;
 
 /**
  * Describes an action provided by one or more agents.
  */
 @Data @AllArgsConstructor @NoArgsConstructor
-public class Action {
+public class Action implements Serializable {
 
     /** name of the action */
     String name;
