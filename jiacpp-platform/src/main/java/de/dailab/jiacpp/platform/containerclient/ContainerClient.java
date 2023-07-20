@@ -2,6 +2,7 @@ package de.dailab.jiacpp.platform.containerclient;
 
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
+import de.dailab.jiacpp.platform.Persistent;
 import de.dailab.jiacpp.platform.PlatformConfig;
 
 import java.io.IOException;
@@ -13,13 +14,14 @@ import java.util.NoSuchElementException;
  * somewhat clean, the main point of this is so that the same PlatformImpl can be used with different
  * container clients, e.g. via configuration.
  */
+
 public interface ContainerClient {
 
     /**
      * Initialize the client using properties in the given configuration file. Different clients may
      * require different attributes.
      */
-    void initialize(PlatformConfig config);
+    void initialize(PlatformConfig config, Persistent persistent);
 
     /**
      * Start a container with the given container ID (for later reference) and image name. If all goes well,

@@ -3,6 +3,7 @@ package de.dailab.jiacpp.platform.containerclient;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
+import de.dailab.jiacpp.platform.Persistent;
 import de.dailab.jiacpp.platform.PlatformConfig;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -59,7 +60,7 @@ public class KubernetesClient implements ContainerClient {
     }
 
     @Override
-    public void initialize(PlatformConfig config) {
+    public void initialize(PlatformConfig config, Persistent persistent) {
         // Initialize the Kubernetes API client
         try {
             ApiClient client;

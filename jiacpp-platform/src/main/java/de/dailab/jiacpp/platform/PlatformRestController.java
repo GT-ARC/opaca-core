@@ -46,6 +46,9 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Autowired
 	JwtUtil jwtUtil;
 
+	@Autowired
+    Persistent persistent;
+
 	RuntimePlatformApi implementation;
 
 
@@ -58,8 +61,9 @@ public class PlatformRestController implements RuntimePlatformApi {
 		log.info("In Post-Construct");
 		log.info("Started with Config: " + config);
 
+		tokenUserDetailsService.initialize(persistent);
 		tokenUserDetailsService.addUser(config.usernamePlatform, config.passwordPlatform);
-		implementation = EventProxy.create(new PlatformImpl(config, tokenUserDetailsService, jwtUtil));
+		implementation = EventProxy.create(new PlatformImpl(config, tokenUserDetailsService, jwtUtil, persistent));
 		this.startDefaultImages();
 	}
 

@@ -15,11 +15,13 @@ import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
+import de.dailab.jiacpp.platform.Persistent;
 import de.dailab.jiacpp.platform.PlatformConfig;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.java.Log;
 import org.apache.commons.lang3.SystemUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -34,33 +36,31 @@ import java.util.stream.Stream;
  * - https://github.com/docker-java/docker-java/blob/master/docs/getting_started.md
  * - https://www.baeldung.com/docker-java-api
  */
-@Log
+
+ @Log
 public class DockerClient implements ContainerClient {
+
+    private Persistent persistent;
 
     private PlatformConfig config;
 
     /** Client for accessing (remote) Docker runtime */
     private com.github.dockerjava.api.DockerClient dockerClient;
 
-    /** additional Docker-specific information on agent containers */
-    private Map<String, DockerContainerInfo> dockerContainers;
-
     /** Available Docker Auth */
     private Map<String, AuthConfig> auth;
 
-    /** Set of already used ports on target Docker host */
-    private Set<Integer> usedPorts;
-
     @Data
     @AllArgsConstructor
-    static class DockerContainerInfo {
+    public static class DockerContainerInfo {
         String containerId;
         AgentContainer.Connectivity connectivity;
     }
 
     @Override
-    public void initialize(PlatformConfig config) {
+    public void initialize(PlatformConfig config, Persistent persistent) {
         this.config = config;
+        this.persistent = persistent;
 
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
                 .withDockerHost(getDockerHost())
@@ -76,12 +76,11 @@ public class DockerClient implements ContainerClient {
 
         this.auth = loadDockerAuth();
         this.dockerClient = DockerClientImpl.getInstance(dockerConfig, dockerHttpClient);
-        this.dockerContainers = new HashMap<>();
-        this.usedPorts = new HashSet<>();
     }
 
     @Override
     public AgentContainer.Connectivity startContainer(String containerId, String token, AgentContainerImage image) throws IOException, NoSuchElementException {
+
         var imageName = image.getImageName();
         var extraPorts = image.getExtraPorts();
 
@@ -117,7 +116,7 @@ public class DockerClient implements ContainerClient {
                     portMap.get(image.getApiPort()),
                     extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );
-            dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), connectivity));
+            persistent.dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), connectivity));
 
             return connectivity;
 
@@ -132,12 +131,12 @@ public class DockerClient implements ContainerClient {
     public void stopContainer(String containerId) throws IOException {
         try {
             // remove container info, stop container
-            var containerInfo = dockerContainers.remove(containerId);
+            var containerInfo = persistent.dockerContainers.remove(containerId);
             dockerClient.stopContainerCmd(containerInfo.containerId).exec();
             // free up ports used by this container
             // TODO do this first, or in finally?
-            usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
-            usedPorts.removeAll(containerInfo.connectivity.getExtraPortMappings().keySet());
+            persistent.usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
+            persistent.usedPorts.removeAll(containerInfo.connectivity.getExtraPortMappings().keySet());
         } catch (NotModifiedException e) {
             var msg = "Could not stop Container " + containerId + "; already stopped?";
             log.warning(msg);
@@ -148,7 +147,7 @@ public class DockerClient implements ContainerClient {
 
     @Override
     public String getUrl(String containerId) {
-        var conn = dockerContainers.get(containerId).connectivity;
+        var conn = persistent.dockerContainers.get(containerId).connectivity;
         return conn.getPublicUrl() + ":" + conn.getApiPortMapping();
     }
 
@@ -204,11 +203,11 @@ public class DockerClient implements ContainerClient {
      * Starting from the given preferred port, get and reserve the next free port.
      */
     private int reserveNextFreePort(int port) {
-        while (usedPorts.contains(port)) {
+        while (persistent.usedPorts.contains(port)) {
             // TODO how to handle ports blocked by other containers or applications? just ping ports?
             port++;
         }
-        usedPorts.add(port);
+        persistent.usedPorts.add(port);
         return port;
     }
 

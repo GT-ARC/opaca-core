@@ -1,14 +1,23 @@
 package de.dailab.jiacpp.platform.auth;
 
-import java.util.HashMap;
+import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+
+import com.github.dockerjava.core.DefaultDockerClientConfig;
+import com.github.dockerjava.core.DockerClientConfig;
+import com.github.dockerjava.core.DockerClientImpl;
+import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
+import com.github.dockerjava.transport.DockerHttpClient;
+
+import de.dailab.jiacpp.platform.Persistent;
+import de.dailab.jiacpp.platform.PlatformConfig;
 
 /**
  * The purpose of the TokenUserDetailsService class is to provide user details 
@@ -17,27 +26,30 @@ import org.springframework.stereotype.Service;
 @Service
 public class TokenUserDetailsService implements UserDetailsService {
 
-    private final Map<String, String> userCredentials = new HashMap<>();
+    private Persistent persistent;
 
     /** Returns the user as a standardized 'User' object */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        if (userCredentials.containsKey(username)) {
-            return new User(username, userCredentials.get(username), List.of());
+        if (persistent.userCredentials.containsKey(username)) {
+            return new User(username, persistent.userCredentials.get(username), List.of());
         } else {
             throw new UsernameNotFoundException("User not found: " + username);
         }
     }
 
+    public void initialize(Persistent persistent) {
+        this.persistent = persistent;
+    }
     /**
      * Adding user to the credentials map. Those user credentials can be a human's credentials
      * as [username:password] or agent container credentials as [containerID:containerID].
      */
     public void addUser(String username, String password) {
-        userCredentials.put(username, password);
+        persistent.userCredentials.put(username, password);
     }
 
     public void removeUser(String username) {
-        userCredentials.remove(username);
+        persistent.userCredentials.remove(username);
     }
 }
