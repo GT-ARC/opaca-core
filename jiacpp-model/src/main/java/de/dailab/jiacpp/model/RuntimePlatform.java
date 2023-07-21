@@ -4,14 +4,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.io.Serializable;
 import java.util.List;
 
 /**
  * Description of the Runtime Platform, including deployed Agent Containers.
  */
 @Data @AllArgsConstructor @NoArgsConstructor
-public class RuntimePlatform implements Serializable {
+public class RuntimePlatform {
 
     /** the external base URL where to reach this platform */
     String baseUrl;

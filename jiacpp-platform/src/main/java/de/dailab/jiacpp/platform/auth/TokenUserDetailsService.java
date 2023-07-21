@@ -31,8 +31,8 @@ public class TokenUserDetailsService implements UserDetailsService {
     /** Returns the user as a standardized 'User' object */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        if (persistent.userCredentials.containsKey(username)) {
-            return new User(username, persistent.userCredentials.get(username), List.of());
+        if (persistent.data.userCredentials.containsKey(username)) {
+            return new User(username, persistent.data.userCredentials.get(username), List.of());
         } else {
             throw new UsernameNotFoundException("User not found: " + username);
         }
@@ -46,10 +46,10 @@ public class TokenUserDetailsService implements UserDetailsService {
      * as [username:password] or agent container credentials as [containerID:containerID].
      */
     public void addUser(String username, String password) {
-        persistent.userCredentials.put(username, password);
+        persistent.data.userCredentials.put(username, password);
     }
 
     public void removeUser(String username) {
-        persistent.userCredentials.remove(username);
+        persistent.data.userCredentials.remove(username);
     }
 }

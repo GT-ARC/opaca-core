@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.io.Serializable;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +13,7 @@ import java.util.Map;
  * Information on a running Agent Container, combining information on image with runtime data.
  */
 @Data @AllArgsConstructor @NoArgsConstructor
-public class AgentContainer implements Serializable {
+public class AgentContainer {
 
     /** ID of the container; does not necessarily have to be the Docker Container ID */
     String containerId;
@@ -33,7 +32,7 @@ public class AgentContainer implements Serializable {
     Connectivity connectivity;
 
     @Data @AllArgsConstructor @NoArgsConstructor
-    public static class Connectivity implements Serializable {
+    public static class Connectivity {
 
         /** this container's public URL (e.g. the URL of the Runtime Platform, Docker Host, or Kubernetes Node */
         String publicUrl;

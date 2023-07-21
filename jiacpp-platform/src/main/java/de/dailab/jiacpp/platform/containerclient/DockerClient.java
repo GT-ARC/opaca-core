@@ -51,9 +51,12 @@ public class DockerClient implements ContainerClient {
     /** Available Docker Auth */
     private Map<String, AuthConfig> auth;
 
+    public Map<String, DockerContainerInfo> dockerContainers;
+    public Set<Integer> usedPorts;
+    
     @Data
     @AllArgsConstructor
-    public static class DockerContainerInfo implements Serializable {
+    public static class DockerContainerInfo {
         String containerId;
         AgentContainer.Connectivity connectivity;
         
@@ -63,6 +66,8 @@ public class DockerClient implements ContainerClient {
     public void initialize(PlatformConfig config, Persistent persistent) {
         this.config = config;
         this.persistent = persistent;
+        this.dockerContainers = persistent.data.dockerContainers;
+        this.usedPorts = persistent.data.usedPorts;
 
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
                 .withDockerHost(getDockerHost())
@@ -118,7 +123,7 @@ public class DockerClient implements ContainerClient {
                     portMap.get(image.getApiPort()),
                     extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );
-            persistent.dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), connectivity));
+            dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), connectivity));
 
             return connectivity;
 
@@ -133,12 +138,12 @@ public class DockerClient implements ContainerClient {
     public void stopContainer(String containerId) throws IOException {
         try {
             // remove container info, stop container
-            var containerInfo = persistent.dockerContainers.remove(containerId);
+            var containerInfo = dockerContainers.remove(containerId);
             dockerClient.stopContainerCmd(containerInfo.containerId).exec();
             // free up ports used by this container
             // TODO do this first, or in finally?
-            persistent.usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
-            persistent.usedPorts.removeAll(containerInfo.connectivity.getExtraPortMappings().keySet());
+            usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
+            usedPorts.removeAll(containerInfo.connectivity.getExtraPortMappings().keySet());
         } catch (NotModifiedException e) {
             var msg = "Could not stop Container " + containerId + "; already stopped?";
             log.warning(msg);
@@ -149,7 +154,7 @@ public class DockerClient implements ContainerClient {
 
     @Override
     public String getUrl(String containerId) {
-        var conn = persistent.dockerContainers.get(containerId).connectivity;
+        var conn = dockerContainers.get(containerId).connectivity;
         return conn.getPublicUrl() + ":" + conn.getApiPortMapping();
     }
 
@@ -205,11 +210,11 @@ public class DockerClient implements ContainerClient {
      * Starting from the given preferred port, get and reserve the next free port.
      */
     private int reserveNextFreePort(int port) {
-        while (persistent.usedPorts.contains(port)) {
+        while (usedPorts.contains(port)) {
             // TODO how to handle ports blocked by other containers or applications? just ping ports?
             port++;
         }
-        persistent.usedPorts.add(port);
+        usedPorts.add(port);
         return port;
     }
 
