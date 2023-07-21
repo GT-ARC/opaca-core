@@ -9,7 +9,6 @@ import jakarta.servlet.http.HttpServletResponse
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
-import java.lang.RuntimeException
 import java.util.stream.Collectors
 
 

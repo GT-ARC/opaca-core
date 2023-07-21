@@ -43,6 +43,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * send asynchronous message to agent
 * input: 
     * agent: ID of the agent to send the message to
+    * containerId: (optional) if the request should only go to one specific container
     * forward: (optional, default `true`) `true/false`, whether the message should be forwarded to connected platforms in case the agent does not exist on this platform
 * body: `Message`
 * output: none
@@ -53,6 +54,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * send asynchronous message to all agents subscribed to the channel
 * input: 
     * channel: name of the message channel
+    * containerId: (optional) if the request should only go to one specific container
     * forward: (optional, default `true`) `true/false`, whether the request should be forwarded to connected platforms in case the channel does not exist on this platform
 * body: `Message`
 * output: none
@@ -66,6 +68,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
     * action: name of the action
     * agent: ID of the agent to invoke the action on
     * timeout: (optional, default `-1`) timeout after which to stop the action; `-1` means the default-timeout used by the container, which might be no timeout, or some fixed time (e.g. 30 seconds in JIAC VI)
+    * containerId: (optional) if the request should only go to one specific container 
     * forward: (optional, default `true`) `true/false`, whether the request should be forwarded to connected platforms in case the action/agent does not exist on this platform
 * body: JSON object mapping parameter names to parameters
 * output: result of the action
