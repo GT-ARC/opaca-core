@@ -134,20 +134,20 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws IOException, NoSuchElementException {
-        return invoke(action, parameters, null, containerId, forward);
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
+        return invoke(action, parameters, null, timeout, containerId, forward);
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws IOException, NoSuchElementException {
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
         var clients = getClients(containerId, agentId, action, forward);
 
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {
                 return agentId == null
-                        ? client.invoke(action, parameters, containerId, false)
-                        : client.invoke(action, parameters, agentId, containerId, false);
+                        ? client.invoke(action, parameters, timeout, containerId, false)
+                        : client.invoke(action, parameters, agentId, timeout, containerId, false);
             } catch (IOException e) {
                 log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s': %s",
                         action, agentId, client.baseUrl, e));

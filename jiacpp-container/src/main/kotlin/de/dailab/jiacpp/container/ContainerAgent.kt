@@ -15,6 +15,7 @@ import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
 import java.lang.RuntimeException
+import java.time.Duration
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.concurrent.Semaphore
@@ -111,12 +112,12 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             broker.publish(channel, message)
         }
 
-        override fun invoke(action: String, parameters: Map<String, JsonNode>, containerId: String, forward: Boolean): JsonNode? {
+        override fun invoke(action: String, parameters: Map<String, JsonNode>, timeout: Int, containerId: String, forward: Boolean): JsonNode? {
             log.info("INVOKE ACTION: $action $parameters")
-            return invoke(action, parameters, null, containerId, forward)
+            return invoke(action, parameters, null, timeout, containerId, forward)
         }
 
-        override fun invoke(action: String, parameters: Map<String, JsonNode>, agentId: String?, containerId: String, forward: Boolean): JsonNode? {
+        override fun invoke(action: String, parameters: Map<String, JsonNode>, agentId: String?, timeout: Int, containerId: String, forward: Boolean): JsonNode? {
             log.info("INVOKE ACTION OF AGENT: $agentId $action $parameters")
 
             val agent = findRegisteredAgent(agentId, action)
@@ -133,8 +134,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                     log.error("ERROR $it")
                     error.set(it)
                     lock.release()
-                }
-                // TODO handle timeout?
+                }.timeout(Duration.ofSeconds(if (timeout > 0) timeout.toLong() else 30)) // 30 is default in JIAC VI
 
                 log.debug("waiting for action result...")
                 lock.acquireUninterruptibly()
