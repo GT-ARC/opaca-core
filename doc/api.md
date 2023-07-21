@@ -58,19 +58,20 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * output: none
 * errors: none
 
-### `POST /invoke/{action}/{agent}?containerId={containerId}&forward={true|false}`
+### `POST /invoke/{action}/{agent}?timeout={int}&containerId={containerId}&forward={true|false}`
 
 * invoke action/service provided by the given agent and get result (synchronously) 
 * expected parameter and output types are given in the action description
 * input: 
     * action: name of the action
     * agent: ID of the agent to invoke the action on
+    * timeout: (optional, default `-1`) timeout after which to stop the action; `-1` means the default-timeout used by the container, which might be no timeout, or some fixed time (e.g. 30 seconds in JIAC VI)
     * forward: (optional, default `true`) `true/false`, whether the request should be forwarded to connected platforms in case the action/agent does not exist on this platform
 * body: JSON object mapping parameter names to parameters
 * output: result of the action
 * errors: 404 for unknown action or agent
 
-### `POST /invoke/{action}?containerId={containerId}&forward={true|false}`
+### `POST /invoke/{action}?timeout={int}&containerId={containerId}&forward={true|false}`
 
 * same as `POST /invoke/{action}/{agent}`, but invoke action at _any_ agent that provides it
 
