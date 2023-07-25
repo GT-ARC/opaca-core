@@ -103,6 +103,24 @@ public class KubernetesClient implements ContainerClient {
         Map<Integer, Integer> portMap = extraPorts.keySet().stream()
                 .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
 
+        V1PodTemplateSpec podTemplateSpec = new V1PodTemplateSpec()
+                .metadata(new V1ObjectMeta().labels(Collections.singletonMap("app", containerId)))
+                .spec(new V1PodSpec()
+                        .containers(Collections.singletonList(
+                                new V1Container()
+                                        .name(containerId)
+                                        .image(imageName)
+                                        .ports(Collections.singletonList(
+                                                new V1ContainerPort().containerPort(image.getApiPort())
+                                        ))
+                                        .env(Arrays.asList(
+                                                new V1EnvVar().name(AgentContainerApi.ENV_CONTAINER_ID).value(containerId),
+                                                new V1EnvVar().name(AgentContainerApi.ENV_TOKEN).value(token),
+                                                new V1EnvVar().name(AgentContainerApi.ENV_PLATFORM_URL).value(config.getOwnBaseUrl())
+                                        ))
+                        ))
+                        .imagePullSecrets(registrySecret == null ? null : Collections.singletonList(new V1LocalObjectReference().name(registrySecret)))
+                ))
 
         V1Deployment deployment = new V1Deployment()
                 .metadata(new V1ObjectMeta().name(containerId))
@@ -116,24 +134,7 @@ public class KubernetesClient implements ContainerClient {
 	                 )
                         .replicas(1)
                         .selector(new V1LabelSelector().matchLabels(Collections.singletonMap("app", containerId)))
-                        .template(new V1PodTemplateSpec()
-                                .metadata(new V1ObjectMeta().labels(Collections.singletonMap("app", containerId)))
-                                .spec(new V1PodSpec()
-                                        .containers(Collections.singletonList(
-                                                new V1Container()
-                                                        .name(containerId)
-                                                        .image(imageName)
-                                                        .ports(Collections.singletonList(
-                                                                new V1ContainerPort().containerPort(image.getApiPort())
-                                                        ))
-                                                        .env(Arrays.asList(
-                                                            new V1EnvVar().name(AgentContainerApi.ENV_CONTAINER_ID).value(containerId),
-                                                            new V1EnvVar().name(AgentContainerApi.ENV_TOKEN).value(token),
-                                                            new V1EnvVar().name(AgentContainerApi.ENV_PLATFORM_URL).value(config.getOwnBaseUrl())
-                                                        ))
-                                        ))
-                                        .imagePullSecrets(registrySecret == null ? null : Collections.singletonList(new V1LocalObjectReference().name(registrySecret)))
-                                )));
+                        .template(podTemplateSpec);
 
         String serviceId = "svc-" + containerId;
         V1Service service = new V1Service()
