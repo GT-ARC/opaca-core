@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 @Log
 @RestController
 @SecurityRequirement(name = "bearerAuth")
+@CrossOrigin(origins = "*", methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE } )
 public class PlatformRestController implements RuntimePlatformApi {
 
 	@Autowired

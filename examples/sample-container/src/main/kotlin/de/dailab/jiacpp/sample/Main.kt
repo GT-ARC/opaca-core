@@ -14,6 +14,7 @@ fun main() {
             add(SampleAgent("sample1"))
             add(SampleAgent("sample2"))
             add(SimpleUIAgent())
+            add(SimpleUDPAgent())
         }
     }.start()
 }

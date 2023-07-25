@@ -38,6 +38,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     /** Currently running Agent Containers, mapping container ID to description */
     private final Map<String, AgentContainer> runningContainers = new HashMap<>();
+    private final Map<String, String> tokens = new HashMap<>();
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
     private final Map<String, RuntimePlatform> connectedPlatforms = new HashMap<>();
@@ -100,19 +101,21 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public void send(String agentId, Message message, String containerId, boolean forward) throws NoSuchElementException {
+    public void send(String agentId, Message message, String containerId, boolean forward) throws IOException, NoSuchElementException {
         var clients = getClients(containerId, agentId, null, forward);
 
+        IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             log.info("Forwarding /send to " + client.baseUrl);
             try {
                 client.send(agentId, message, containerId, false);
                 return;
             } catch (IOException e) {
-                log.warning("Failed to forward /send to " + client.baseUrl);
+                log.warning("Failed to forward /send to " + client.baseUrl + ": " + e);
+                lastException = e;
             }
         }
-        // TODO should this throw the last IO-Exception if there was any?
+        if (lastException != null) throw lastException;
         throw new NoSuchElementException(String.format("Not found: agent '%s'", agentId));
     }
 
@@ -125,33 +128,35 @@ public class PlatformImpl implements RuntimePlatformApi {
             try {
                 client.broadcast(channel, message, containerId, false);
             } catch (IOException e) {
-                log.warning("Failed to forward /broadcast to " + client.baseUrl);
+                log.warning("Failed to forward /broadcast to " + client.baseUrl + ": " + e);
             }
         }
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws NoSuchElementException {
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws IOException, NoSuchElementException {
         return invoke(action, parameters, null, containerId, forward);
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws NoSuchElementException {
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws IOException, NoSuchElementException {
         var clients = getClients(containerId, agentId, action, forward);
 
+        IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {
                 return agentId == null
                         ? client.invoke(action, parameters, containerId, false)
                         : client.invoke(action, parameters, agentId, containerId, false);
             } catch (IOException e) {
-                // todo: different warning in case of faulty parameters?
-                log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s'",
-                        action, agentId, client.baseUrl));
+                log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s': %s",
+                        action, agentId, client.baseUrl, e));
+                log.warning("CAUSE " + e.getCause());
+                log.warning("MESSAGE " + e.getMessage());
+                lastException = e;
             }
         }
-        // TODO should this throw the last IO-Exception if there was any?
-        // iterated over all clients, no valid client found
+        if (lastException != null) throw lastException;
         throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s'", action, agentId));
     }
 
@@ -169,13 +174,14 @@ public class PlatformImpl implements RuntimePlatformApi {
 
         // wait until container is up and running...
         var start = System.currentTimeMillis();
-        var client = getClient(agentContainerId);
+        var client = getClient(agentContainerId, token);
         String extraMessage = "";
         while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000) {
             try {
                 var container = client.getContainerInfo();
                 container.setConnectivity(connectivity);
                 runningContainers.put(agentContainerId, container);
+                tokens.put(agentContainerId, token);
                 userDetailsService.addUser(agentContainerId, agentContainerId);
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
@@ -288,7 +294,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw new NoSuchElementException(msg);
         }
         try {
-            var client = this.getClient(containerId);
+            var client = this.getClient(containerId, tokens.get(containerId));
             var containerInfo = client.getContainerInfo();
             containerInfo.setConnectivity(runningContainers.get(containerId).getConnectivity());
             runningContainers.put(containerId, containerInfo);
@@ -361,7 +367,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         // local containers
         var containerClients = runningContainers.values().stream()
                 .filter(c -> matches(c, containerId, agentId, action))
-                .map(c -> getClient(c.getContainerId()));
+                .map(c -> getClient(c.getContainerId(), tokens.get(c.getContainerId())));
 
         if (!includeConnected) return containerClients;
 
@@ -391,6 +397,11 @@ public class PlatformImpl implements RuntimePlatformApi {
     private ApiProxy getClient(String containerId) {
         var url = containerClient.getUrl(containerId);
         return new ApiProxy(url);
+    }
+
+    private ApiProxy getClient(String containerId, String token) {
+        var url = containerClient.getUrl(containerId);
+        return new ApiProxy(url, token);
     }
 
     private String normalizeString(String string) {

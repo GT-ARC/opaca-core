@@ -14,6 +14,7 @@ import jakarta.servlet.http.HttpServletResponse
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
+import java.lang.RuntimeException
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.concurrent.Semaphore
@@ -33,99 +34,21 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     private val broker by resolve<BrokerAgentRef>()
 
-
-    // implementation of API
-
-    /** minimal Jetty server for providing the REST interface */
-    private val server = Server(AgentContainerApi.DEFAULT_PORT)
-
-    /** servlet handling the different REST routes, delegating to `impl` for actual logic */
-    private val servlet = object : HttpServlet() {
-
-        // I'm sure there's a much better way to do this...
-        // TODO this part would actually be the same for any Java-based implementation, incl. JIAC V...
-        //  move this as an abstract class to the Model module to be reusable?
-
-        override fun doGet(request: HttpServletRequest, response: HttpServletResponse) {
-            log.info("received GET $request")
-            val path = request.pathInfo
-            response.contentType = "application/json"
-
-            val info = Regex("^/info$").find(path)
-            if (info != null) {
-                val res = impl.containerInfo
-                response.writer.write(RestHelper.writeJson(res))
-            }
-
-            val agents = Regex("^/agents$").find(path)
-            if (agents != null) {
-                val res = impl.agents
-                response.writer.write(RestHelper.writeJson(res))
-            }
-
-            val agentWithId = Regex("^/agents/([^/]+)$").find(path)
-            if (agentWithId != null) {
-                val id = agentWithId.groupValues[1]
-                val res = impl.getAgent(id)
-                response.writer.write(RestHelper.writeJson(res))
-            }
-        }
-
-        override fun doPost(request: HttpServletRequest, response: HttpServletResponse) {
-            log.info("received POST $request")
-            val path = request.pathInfo  // NOTE: queryParams (?...) go to request.queryString
-            val body: String = request.reader.lines().collect(Collectors.joining())
-            response.contentType = "application/json"
-
-            val send = Regex("^/send/([^/]+)$").find(path)
-            if (send != null) {
-                val id = send.groupValues[1]
-                val message = RestHelper.readObject(body, Message::class.java)
-                val res = impl.send(id, message, "", false)
-                response.writer.write(RestHelper.writeJson(res))
-            }
-
-            val broadcast = Regex("^/broadcast/([^/]+)$").find(path)
-            if (broadcast != null) {
-                val channel = broadcast.groupValues[1]
-                val message = RestHelper.readObject(body, Message::class.java)
-                val res = impl.broadcast(channel, message, "", false)
-                response.writer.write(RestHelper.writeJson(res))
-            }
-
-            val invokeAct = Regex("^/invoke/([^/]+)$").find(path)
-            if (invokeAct != null) {
-                val action = invokeAct.groupValues[1]
-                val parameters = RestHelper.readMap(body)
-                val res = impl.invoke(action, parameters, "", false)
-                response.writer.write(RestHelper.writeJson(res))
-            }
-
-            val invokeActOf = Regex("^/invoke/([^/]+)/([^/]+)$").find(path)
-            if (invokeActOf != null) {
-                val action = invokeActOf.groupValues[1]
-                val agentId = invokeActOf.groupValues[2]
-                val parameters = RestHelper.readMap(body)
-                val res = impl.invoke(action, parameters, agentId, "", false)
-                response.writer.write(RestHelper.writeJson(res))
-            }
-        }
-    }
-
+    private val server by lazy { JiacppServer(impl, AgentContainerApi.DEFAULT_PORT, token) }
 
     // information on current state of agent container
 
     /** when the Agent Container was initialized */
-    private var startedAt: ZonedDateTime? = null
+    private val startedAt = ZonedDateTime.now(ZoneId.of("Z"))
 
     /** the ID of the Agent Container itself, received on initialization */
-    private var containerId: String? = null
+    private val containerId = System.getenv(AgentContainerApi.ENV_CONTAINER_ID)
 
     /** the URL of the parent Runtime Platform, received on initialization */
-    private var runtimePlatformUrl: String? = null
+    private val runtimePlatformUrl = System.getenv(AgentContainerApi.ENV_PLATFORM_URL)
 
     /** the token for accessing the parent Runtime Platform, received on initialization */
-    private var token: String? = null
+    private val token = System.getenv(AgentContainerApi.ENV_TOKEN)
 
     private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl, token) }
 
@@ -139,20 +62,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     override fun preStart() {
         log.info("Starting Container Agent...")
         super.preStart()
-
-        // start web server
-        log.info("Starting web server...")
-        val handler = ServletHandler()
-        handler.addServletWithMapping(ServletHolder(servlet), "/*")
-        server.handler = handler
         server.start()
-
-        // get environment variables
-        log.info("Setting environment...")
-        containerId = System.getenv(AgentContainerApi.ENV_CONTAINER_ID)
-        runtimePlatformUrl = System.getenv(AgentContainerApi.ENV_PLATFORM_URL)
-        token = System.getenv(AgentContainerApi.ENV_TOKEN)
-        startedAt = ZonedDateTime.now(ZoneId.of("Z"))
     }
 
     /**
@@ -191,8 +101,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             if (agent != null) {
                 val ref = system.resolve(agent)
                 ref tell message
+            } else {
+                throw NoSuchElementException("Agent $agentId not found")
             }
-            // TODO raise exception if not found?
         }
 
         override fun broadcast(channel: String, message: Message, containerId: String, forward: Boolean) {
@@ -211,7 +122,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             val agent = findRegisteredAgent(agentId, action)
             if (agent != null) {
                 val lock = Semaphore(0) // needs to be released once before it can be acquired
-                val result = AtomicReference<Any>() // holder for action result
+                val result = AtomicReference<Any?>() // holder for action result
+                val error = AtomicReference<Any?>() // holder for error, if any
                 val ref = system.resolve(agent)
                 ref invoke ask<Any>(Invoke(action, parameters)) {
                     log.info("GOT RESULT $it")
@@ -219,18 +131,24 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                     lock.release()
                 }.error {
                     log.error("ERROR $it")
+                    error.set(it)
                     lock.release()
                 }
                 // TODO handle timeout?
 
                 log.debug("waiting for action result...")
                 lock.acquireUninterruptibly()
-
-                // TODO handle error case here... raise exception or return null?
-                return RestHelper.mapper.valueToTree(result.get())
+                if (error.get() == null) {
+                    return RestHelper.mapper.valueToTree(result.get())
+                } else {
+                    when (val e = error.get()) {
+                        is Throwable -> throw RuntimeException(e)
+                        else -> throw RuntimeException(e.toString())
+                    }
+                }
+            } else {
+                throw NoSuchElementException("Action $action of Agent $agentId not found")
             }
-            // TODO raise exception if not found?
-            return null
         }
     }
 

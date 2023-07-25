@@ -5,6 +5,7 @@
   "provides": ["pong"],
 
   "name": "Ping Pong Example Agent Container - Pong Side",
+  "version": "0.1.1",
   "description": "One side of distributed Ping-Pong example. Ping agent regularly sends broadcast message to be received by pong agents; Pong agents reply directed message containing a random number; Ping agent invokes an action at the Pong Agent that sent the highest number",
   "provider": "DAI-Lab"
 }
