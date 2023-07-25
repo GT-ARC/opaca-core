@@ -125,20 +125,19 @@ public class KubernetesClient implements ContainerClient {
         V1Deployment deployment = new V1Deployment()
                 .metadata(new V1ObjectMeta().name(containerId))
                 .spec(new V1DeploymentSpec()
-	        	.strategy(new V1DeploymentStrategy()
-	            		.rollingUpdate(new V1RollingUpdateDeployment()
-	                	.maxSurge(new IntOrString(1))
-	                	.maxUnavailable(new IntOrString(0))
-	            		)
-	           	 	.type("RollingUpdate")
-	                 )
+                        .strategy(new V1DeploymentStrategy()
+                                .rollingUpdate(new V1RollingUpdateDeployment()
+                                        .maxSurge(new IntOrString(1))
+                                        .maxUnavailable(new IntOrString(0))
+                                )
+                                .type("RollingUpdate")
+                        )
                         .replicas(1)
                         .selector(new V1LabelSelector().matchLabels(Collections.singletonMap("app", containerId)))
                         .template(podTemplateSpec);
 
-        String serviceId = "svc-" + containerId;
         V1Service service = new V1Service()
-                .metadata(new V1ObjectMeta().name(serviceId))
+                .metadata(new V1ObjectMeta().name(serviceId(containerId)))
                 .spec(new V1ServiceSpec()
                         .selector(Collections.singletonMap("app", containerId))
                         .ports(Collections.singletonList(
@@ -146,13 +145,12 @@ public class KubernetesClient implements ContainerClient {
                         ))
                         .type("ClusterIP"));
 
-
         try {
             V1Deployment createdDeployment = appsApi.createNamespacedDeployment(namespace, deployment, null, null, null);
-            System.out.println("Deployment created: " + createdDeployment.getMetadata().getName());
+            log.info("Deployment created: " + createdDeployment.getMetadata().getName());
             
             V1Service createdService = coreApi.createNamespacedService(namespace, service, null, null, null);
-            System.out.println("Service created: " + createdService.getMetadata().getName());
+            log.info("Service created: " + createdService.getMetadata().getName());
             String serviceIP = createdService.getSpec().getClusterIP();
 
             createServicesForPorts(containerId, image, portMap);
@@ -174,16 +172,13 @@ public class KubernetesClient implements ContainerClient {
         }
     }
 
-
     @Override
     public void stopContainer(String containerId) throws IOException {
         try {
             // remove container info, stop container
             var containerInfo = pods.remove(containerId);
-            
             appsApi.deleteNamespacedDeployment(containerId, namespace, null, null, null, null, null, null);
-            String serviceId = "svc-" + containerId;
-            coreApi.deleteNamespacedService(serviceId, namespace, null, null, null, null, null, null);
+            coreApi.deleteNamespacedService(serviceId(containerId), namespace, null, null, null, null, null, null);
             
             // free up ports used by this container
             // TODO do this first, or in finally?
@@ -215,7 +210,7 @@ public class KubernetesClient implements ContainerClient {
     }
 
     private V1Service createNodePortService(String containerId, int port, int targetPort, String protocol) {
-        String serviceName = "svc-" + containerId + "-" + port;
+        String serviceName = serviceId(containerId) + "-" + port;
         return new V1Service()
             .metadata(new V1ObjectMeta().name(serviceName).labels(Collections.singletonMap("app", containerId)))
             .spec(new V1ServiceSpec()
@@ -231,6 +226,9 @@ public class KubernetesClient implements ContainerClient {
             );
     }
 
+    private String serviceId(String containerId) {
+        return "svc-" + containerId;
+    }
 
     /**
      * Starting from the given preferred port, get and reserve the next free port.
