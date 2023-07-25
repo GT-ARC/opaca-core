@@ -70,21 +70,24 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 	@PreDestroy
 	public void preDestroy() throws IOException {
-		log.info("In Destroy, stopping containers...");
-		for (String connection : implementation.getConnections()) {
-			try {
-				implementation.disconnectPlatform(connection);
-			} catch (Exception e) {
-				log.warning("Exception disconnecting from " + connection + ": " + e.getMessage());
+		if (config.stopPolicy.equals("stop") | config.stopPolicy.equals("restart")) {
+			log.info("In Destroy, stopping containers...");
+			for (String connection : implementation.getConnections()) {
+				try {
+					implementation.disconnectPlatform(connection);
+				} catch (Exception e) {
+					log.warning("Exception disconnecting from " + connection + ": " + e.getMessage());
+				}
+			}
+			for (AgentContainer container : implementation.getContainers()) {
+				try {
+					implementation.removeContainer(container.getContainerId());
+				} catch (Exception e) {
+					log.warning("Exception stopping container " + container.getContainerId() + ": " + e.getMessage());
+				}
 			}
 		}
-		for (AgentContainer container : implementation.getContainers()) {
-			try {
-				implementation.removeContainer(container.getContainerId());
-			} catch (Exception e) {
-				log.warning("Exception stopping container " + container.getContainerId() + ": " + e.getMessage());
-			}
-		}
+
 	}
 
 	/*

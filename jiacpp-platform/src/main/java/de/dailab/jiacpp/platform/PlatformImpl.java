@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
+import de.dailab.jiacpp.platform.Persistent.PersistentData;
 import de.dailab.jiacpp.platform.auth.JwtUtil;
 import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
 import de.dailab.jiacpp.platform.containerclient.ContainerClient;
@@ -48,9 +49,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     public PlatformImpl(PlatformConfig config, TokenUserDetailsService userDetailsService, JwtUtil jwtUtil, Persistent persistent) {
         this.persistent = persistent;
         this.config = config;
-        this.runningContainers = persistent.data.runningContainers;
-        this.tokens = persistent.data.tokens;
-        this.connectedPlatforms = persistent.data.connectedPlatforms;
 
         this.userDetailsService = userDetailsService;
         this.jwtUtil = jwtUtil;    
@@ -66,6 +64,30 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
 
         this.containerClient.initialize(config, persistent);
+
+        // Wenn kein persistent.json existiert, gibts hier nen fehler 
+        this.runningContainers = persistent.data.runningContainers;
+        this.tokens = persistent.data.tokens;
+        this.connectedPlatforms = persistent.data.connectedPlatforms;
+
+        if (config.stopPolicy.equals("restart")) {
+            System.out.println("__________2____________");
+            PersistentData lastData = new PersistentData();
+            lastData = persistent.data;
+            persistent.data = new PersistentData();
+            
+            for (AgentContainer agentContainer : lastData.runningContainers.values()) {
+                System.out.println(agentContainer);
+                AgentContainerImage image = agentContainer.getImage();
+                System.out.println(image);
+                try {
+                    addContainer(image);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                
+            }
+        }
         // TODO add list of known used ports to config (e.g. the port of the RP itself, or others)
     }
 
@@ -169,28 +191,40 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public String addContainer(AgentContainerImage image) throws IOException {
+        System.out.println("______add______-1");
         String agentContainerId = UUID.randomUUID().toString();
         String token = config.enableAuth ? jwtUtil.generateTokenForAgentContainer(agentContainerId) : "";
 
+        System.out.println("______add______-2");
+        System.out.println(image);
         // start container... this may raise an Exception, or returns the connectivity info
         var connectivity = containerClient.startContainer(agentContainerId, token, image);
 
+        System.out.println("______add______-3");
         // wait until container is up and running...
         var start = System.currentTimeMillis();
         var client = getClient(agentContainerId, token);
         String extraMessage = "";
         while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000) {
             try {
+                System.out.println("______add______4");
                 var container = client.getContainerInfo();
+                System.out.println("______add______4.1");
                 container.setConnectivity(connectivity);
+                System.out.println("______add______4.2");
+                System.out.println(runningContainers);
                 runningContainers.put(agentContainerId, container);
+                System.out.println("______add______4.3");
                 tokens.put(agentContainerId, token);
+                System.out.println("______add______4.4");
                 userDetailsService.addUser(agentContainerId, agentContainerId);
+                System.out.println("______add______4.5");
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
                     log.warning("Agent Container ID does not match: Expected " +
                             agentContainerId + ", but found " + container.getContainerId());
                 }
+                System.out.println("______add______5");
                 notifyConnectedPlatforms();
                 return agentContainerId;
             } catch (MismatchedInputException e) {

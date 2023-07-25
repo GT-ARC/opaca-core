@@ -88,22 +88,24 @@ public class DockerClient implements ContainerClient {
     @Override
     public AgentContainer.Connectivity startContainer(String containerId, String token, AgentContainerImage image) throws IOException, NoSuchElementException {
 
+        System.out.println("staaaaart 1");
         var imageName = image.getImageName();
         var extraPorts = image.getExtraPorts();
-
+        System.out.println("staaaaart 2");
         try {
             if (! isImagePresent(imageName)) {
                 pullDockerImage(imageName);
             }
-
+            System.out.println("staaaaart 3");
             // port mappings for API- and Extra-Ports
             Map<Integer, Integer> portMap = Stream.concat(Stream.of(image.getApiPort()), extraPorts.keySet().stream())
                     .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
+            System.out.println("staaaaart 4");
             // translate to Docker PortBindings (incl. ExposedPort descriptions)
             List<PortBinding> portBindings = portMap.entrySet().stream()
                     .map(e -> PortBinding.parse(e.getValue() + ":" + e.getKey() + "/" + getProtocol(e.getKey(), image)))
                     .collect(Collectors.toList());
-
+            System.out.println("staaaaart 5");
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
                     .withEnv(
@@ -114,17 +116,18 @@ public class DockerClient implements ContainerClient {
                     .withExposedPorts(portBindings.stream().map(PortBinding::getExposedPort).collect(Collectors.toList()))
                     .exec();
             log.info(String.format("Result: %s", res));
-
+            System.out.println("staaaaart 6");
             log.info("Starting Container...");
             dockerClient.startContainerCmd(res.getId()).exec();
-
+            System.out.println("staaaaart 7");
             var connectivity = new AgentContainer.Connectivity(
                     getContainerBaseUrl(),
                     portMap.get(image.getApiPort()),
                     extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );
+            System.out.println("staaaaart 8");
             dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), connectivity));
-
+            System.out.println("staaaaart 9");
             return connectivity;
 
         } catch (NotFoundException e) {

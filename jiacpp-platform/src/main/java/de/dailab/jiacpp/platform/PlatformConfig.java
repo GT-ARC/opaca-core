@@ -38,6 +38,9 @@ public class PlatformConfig {
     @Value("${platform_environment}")
     public PlatformEnvironment platformEnvironment;
 
+    @Value("${stop_policy}")
+    public String stopPolicy;
+
     @Value("${container_timeout_sec}")
     public int containerTimeoutSec;
 
