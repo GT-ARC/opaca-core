@@ -120,7 +120,7 @@ public class KubernetesClient implements ContainerClient {
                                         ))
                         ))
                         .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)))
-                ))
+                );
 
         V1Deployment deployment = new V1Deployment()
                 .metadata(new V1ObjectMeta().name(containerId))
@@ -134,7 +134,8 @@ public class KubernetesClient implements ContainerClient {
                         )
                         .replicas(1)
                         .selector(new V1LabelSelector().matchLabels(Map.of("app", containerId)))
-                        .template(podTemplateSpec);
+                        .template(podTemplateSpec)
+                );
 
         V1Service service = new V1Service()
                 .metadata(new V1ObjectMeta().name(serviceId(containerId)))
