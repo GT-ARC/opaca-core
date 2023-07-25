@@ -104,22 +104,22 @@ public class KubernetesClient implements ContainerClient {
                 .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
 
         V1PodTemplateSpec podTemplateSpec = new V1PodTemplateSpec()
-                .metadata(new V1ObjectMeta().labels(Collections.singletonMap("app", containerId)))
+                .metadata(new V1ObjectMeta().labels(Map.of("app", containerId)))
                 .spec(new V1PodSpec()
-                        .containers(Collections.singletonList(
+                        .containers(List.of(
                                 new V1Container()
                                         .name(containerId)
                                         .image(imageName)
-                                        .ports(Collections.singletonList(
+                                        .ports(List.of(
                                                 new V1ContainerPort().containerPort(image.getApiPort())
                                         ))
-                                        .env(Arrays.asList(
+                                        .env(List.of(
                                                 new V1EnvVar().name(AgentContainerApi.ENV_CONTAINER_ID).value(containerId),
                                                 new V1EnvVar().name(AgentContainerApi.ENV_TOKEN).value(token),
                                                 new V1EnvVar().name(AgentContainerApi.ENV_PLATFORM_URL).value(config.getOwnBaseUrl())
                                         ))
                         ))
-                        .imagePullSecrets(registrySecret == null ? null : Collections.singletonList(new V1LocalObjectReference().name(registrySecret)))
+                        .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)))
                 ))
 
         V1Deployment deployment = new V1Deployment()
@@ -133,14 +133,14 @@ public class KubernetesClient implements ContainerClient {
                                 .type("RollingUpdate")
                         )
                         .replicas(1)
-                        .selector(new V1LabelSelector().matchLabels(Collections.singletonMap("app", containerId)))
+                        .selector(new V1LabelSelector().matchLabels(Map.of("app", containerId)))
                         .template(podTemplateSpec);
 
         V1Service service = new V1Service()
                 .metadata(new V1ObjectMeta().name(serviceId(containerId)))
                 .spec(new V1ServiceSpec()
-                        .selector(Collections.singletonMap("app", containerId))
-                        .ports(Collections.singletonList(
+                        .selector(Map.of("app", containerId))
+                        .ports(List.of(
                                 new V1ServicePort().port(image.getApiPort()).targetPort(new IntOrString(image.getApiPort()))
                         ))
                         .type("ClusterIP"));
@@ -212,11 +212,11 @@ public class KubernetesClient implements ContainerClient {
     private V1Service createNodePortService(String containerId, int port, int targetPort, String protocol) {
         String serviceName = serviceId(containerId) + "-" + port;
         return new V1Service()
-            .metadata(new V1ObjectMeta().name(serviceName).labels(Collections.singletonMap("app", containerId)))
+            .metadata(new V1ObjectMeta().name(serviceName).labels(Map.of("app", containerId)))
             .spec(new V1ServiceSpec()
                 .type("NodePort")
-                .selector(Collections.singletonMap("app", containerId))
-                .ports(Collections.singletonList(
+                .selector(Map.of("app", containerId))
+                .ports(List.of(
                     new V1ServicePort()
                         .port(port)
                         .targetPort(new IntOrString(targetPort))
