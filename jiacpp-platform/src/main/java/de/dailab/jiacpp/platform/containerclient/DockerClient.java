@@ -21,7 +21,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.java.Log;
 import org.apache.commons.lang3.SystemUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -51,9 +50,6 @@ public class DockerClient implements ContainerClient {
     /** Available Docker Auth */
     private Map<String, AuthConfig> auth;
 
-    public Map<String, DockerContainerInfo> dockerContainers;
-    public Set<Integer> usedPorts;
-    
     @Data
     @AllArgsConstructor
     public static class DockerContainerInfo {
@@ -66,8 +62,6 @@ public class DockerClient implements ContainerClient {
     public void initialize(PlatformConfig config, Persistent persistent) {
         this.config = config;
         this.persistent = persistent;
-        this.dockerContainers = persistent.data.dockerContainers;
-        this.usedPorts = persistent.data.usedPorts;
 
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
                 .withDockerHost(getDockerHost())
@@ -88,24 +82,19 @@ public class DockerClient implements ContainerClient {
     @Override
     public AgentContainer.Connectivity startContainer(String containerId, String token, AgentContainerImage image) throws IOException, NoSuchElementException {
 
-        System.out.println("staaaaart 1");
         var imageName = image.getImageName();
         var extraPorts = image.getExtraPorts();
-        System.out.println("staaaaart 2");
         try {
             if (! isImagePresent(imageName)) {
                 pullDockerImage(imageName);
             }
-            System.out.println("staaaaart 3");
             // port mappings for API- and Extra-Ports
             Map<Integer, Integer> portMap = Stream.concat(Stream.of(image.getApiPort()), extraPorts.keySet().stream())
                     .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
-            System.out.println("staaaaart 4");
             // translate to Docker PortBindings (incl. ExposedPort descriptions)
             List<PortBinding> portBindings = portMap.entrySet().stream()
                     .map(e -> PortBinding.parse(e.getValue() + ":" + e.getKey() + "/" + getProtocol(e.getKey(), image)))
                     .collect(Collectors.toList());
-            System.out.println("staaaaart 5");
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
                     .withEnv(
@@ -116,18 +105,14 @@ public class DockerClient implements ContainerClient {
                     .withExposedPorts(portBindings.stream().map(PortBinding::getExposedPort).collect(Collectors.toList()))
                     .exec();
             log.info(String.format("Result: %s", res));
-            System.out.println("staaaaart 6");
             log.info("Starting Container...");
             dockerClient.startContainerCmd(res.getId()).exec();
-            System.out.println("staaaaart 7");
             var connectivity = new AgentContainer.Connectivity(
                     getContainerBaseUrl(),
                     portMap.get(image.getApiPort()),
                     extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );
-            System.out.println("staaaaart 8");
-            dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), connectivity));
-            System.out.println("staaaaart 9");
+            persistent.data.dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), connectivity));
             return connectivity;
 
         } catch (NotFoundException e) {
@@ -141,12 +126,12 @@ public class DockerClient implements ContainerClient {
     public void stopContainer(String containerId) throws IOException {
         try {
             // remove container info, stop container
-            var containerInfo = dockerContainers.remove(containerId);
+            var containerInfo = persistent.data.dockerContainers.remove(containerId);
             dockerClient.stopContainerCmd(containerInfo.containerId).exec();
             // free up ports used by this container
             // TODO do this first, or in finally?
-            usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
-            usedPorts.removeAll(containerInfo.connectivity.getExtraPortMappings().keySet());
+            persistent.data.usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
+            persistent.data.usedPorts.removeAll(containerInfo.connectivity.getExtraPortMappings().keySet());
         } catch (NotModifiedException e) {
             var msg = "Could not stop Container " + containerId + "; already stopped?";
             log.warning(msg);
@@ -157,7 +142,7 @@ public class DockerClient implements ContainerClient {
 
     @Override
     public String getUrl(String containerId) {
-        var conn = dockerContainers.get(containerId).connectivity;
+        var conn = persistent.data.dockerContainers.get(containerId).connectivity;
         return conn.getPublicUrl() + ":" + conn.getApiPortMapping();
     }
 
@@ -213,11 +198,11 @@ public class DockerClient implements ContainerClient {
      * Starting from the given preferred port, get and reserve the next free port.
      */
     private int reserveNextFreePort(int port) {
-        while (usedPorts.contains(port)) {
+        while (persistent.data.usedPorts.contains(port)) {
             // TODO how to handle ports blocked by other containers or applications? just ping ports?
             port++;
         }
-        usedPorts.add(port);
+        persistent.data.usedPorts.add(port);
         return port;
     }
 

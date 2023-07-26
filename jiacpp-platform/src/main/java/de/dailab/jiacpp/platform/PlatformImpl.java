@@ -32,12 +32,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     
     final PlatformConfig config;
 
-    private Map<String, AgentContainer> runningContainers;
-
-    private Map<String, String> tokens;
-
-    private Map<String, RuntimePlatform> connectedPlatforms;
-
     final ContainerClient containerClient;
 
     public Set<String> pendingConnections = new HashSet<>();
@@ -66,20 +60,13 @@ public class PlatformImpl implements RuntimePlatformApi {
         this.containerClient.initialize(config, persistent);
 
         // Wenn kein persistent.json existiert, gibts hier nen fehler 
-        this.runningContainers = persistent.data.runningContainers;
-        this.tokens = persistent.data.tokens;
-        this.connectedPlatforms = persistent.data.connectedPlatforms;
-
         if (config.stopPolicy.equals("restart")) {
-            System.out.println("__________2____________");
             PersistentData lastData = new PersistentData();
             lastData = persistent.data;
             persistent.data = new PersistentData();
             
             for (AgentContainer agentContainer : lastData.runningContainers.values()) {
-                System.out.println(agentContainer);
                 AgentContainerImage image = agentContainer.getImage();
-                System.out.println(image);
                 try {
                     addContainer(image);
                 } catch (IOException e) {
@@ -95,9 +82,9 @@ public class PlatformImpl implements RuntimePlatformApi {
     public RuntimePlatform getPlatformInfo() {
         return new RuntimePlatform(
                 config.getOwnBaseUrl(),
-                List.copyOf(runningContainers.values()),
+                List.copyOf(persistent.data.runningContainers.values()),
                 List.of(), // TODO "provides" pf platform? read from config? issue #42
-                List.copyOf(connectedPlatforms.keySet())
+                List.copyOf(persistent.data.connectedPlatforms.keySet())
         );
     }
 
@@ -112,14 +99,14 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public List<AgentDescription> getAgents() {
-        return runningContainers.values().stream()
+        return persistent.data.runningContainers.values().stream()
                 .flatMap(c -> c.getAgents().stream())
                 .collect(Collectors.toList());
     }
 
     @Override
     public AgentDescription getAgent(String agentId) {
-        return runningContainers.values().stream()
+        return persistent.data.runningContainers.values().stream()
                 .flatMap(c -> c.getAgents().stream())
                 .filter(a -> a.getAgentId().equals(agentId))
                 .findAny().orElse(null);
@@ -191,40 +178,29 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public String addContainer(AgentContainerImage image) throws IOException {
-        System.out.println("______add______-1");
         String agentContainerId = UUID.randomUUID().toString();
         String token = config.enableAuth ? jwtUtil.generateTokenForAgentContainer(agentContainerId) : "";
 
-        System.out.println("______add______-2");
         System.out.println(image);
         // start container... this may raise an Exception, or returns the connectivity info
         var connectivity = containerClient.startContainer(agentContainerId, token, image);
 
-        System.out.println("______add______-3");
         // wait until container is up and running...
         var start = System.currentTimeMillis();
         var client = getClient(agentContainerId, token);
         String extraMessage = "";
         while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000) {
             try {
-                System.out.println("______add______4");
                 var container = client.getContainerInfo();
-                System.out.println("______add______4.1");
                 container.setConnectivity(connectivity);
-                System.out.println("______add______4.2");
-                System.out.println(runningContainers);
-                runningContainers.put(agentContainerId, container);
-                System.out.println("______add______4.3");
-                tokens.put(agentContainerId, token);
-                System.out.println("______add______4.4");
+                persistent.data.runningContainers.put(agentContainerId, container);
+                persistent.data.tokens.put(agentContainerId, token);
                 userDetailsService.addUser(agentContainerId, agentContainerId);
-                System.out.println("______add______4.5");
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
                     log.warning("Agent Container ID does not match: Expected " +
                             agentContainerId + ", but found " + container.getContainerId());
                 }
-                System.out.println("______add______5");
                 notifyConnectedPlatforms();
                 return agentContainerId;
             } catch (MismatchedInputException e) {
@@ -252,19 +228,19 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public List<AgentContainer> getContainers() {
-        return List.copyOf(runningContainers.values());
+        return List.copyOf(persistent.data.runningContainers.values());
     }
 
     @Override
     public AgentContainer getContainer(String containerId) {
-        return runningContainers.get(containerId);
+        return persistent.data.runningContainers.get(containerId);
     }
 
     @Override
     public boolean removeContainer(String containerId) throws IOException {
-        AgentContainer container = runningContainers.get(containerId);
+        AgentContainer container = persistent.data.runningContainers.get(containerId);
         if (container != null) {
-            runningContainers.remove(containerId);
+            persistent.data.runningContainers.remove(containerId);
             userDetailsService.removeUser(containerId);
             containerClient.stopContainer(containerId);
             notifyConnectedPlatforms();
@@ -281,7 +257,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     public boolean connectPlatform(String url) throws IOException {
         url = normalizeString(url);
         checkUrl(url);
-        if (url.equals(config.getOwnBaseUrl()) || connectedPlatforms.containsKey(url)) {
+        if (url.equals(config.getOwnBaseUrl()) || persistent.data.connectedPlatforms.containsKey(url)) {
             return false;
         } else if (pendingConnections.contains(url)) {
             // callback from remote platform following our own request for connection
@@ -293,7 +269,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 var res = client.connectPlatform(config.getOwnBaseUrl());
                 if (res) {
                     var info = client.getPlatformInfo();
-                    connectedPlatforms.put(url, info);
+                    persistent.data.connectedPlatforms.put(url, info);
                 }
                 return true;
             } finally {
@@ -305,14 +281,14 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public List<String> getConnections() {
-        return List.copyOf(connectedPlatforms.keySet());
+        return List.copyOf(persistent.data.connectedPlatforms.keySet());
     }
 
     @Override
     public boolean disconnectPlatform(String url) throws IOException {
         url = normalizeString(url);
         checkUrl(url);
-        if (connectedPlatforms.remove(url) != null) {
+        if (persistent.data.connectedPlatforms.remove(url) != null) {
             var client = new ApiProxy(url);
             var res = client.disconnectPlatform(config.getOwnBaseUrl());
             log.info(String.format("Disconnected from %s: %s", url, res));
@@ -325,21 +301,21 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public boolean notifyUpdateContainer(String containerId) {
         containerId = normalizeString(containerId);
-        if (! runningContainers.containsKey(containerId)) {
+        if (! persistent.data.runningContainers.containsKey(containerId)) {
             var msg = String.format("Container did not exist: %s", containerId);
             log.warning(msg);
             throw new NoSuchElementException(msg);
         }
         try {
-            var client = this.getClient(containerId, tokens.get(containerId));
+            var client = this.getClient(containerId, persistent.data.tokens.get(containerId));
             var containerInfo = client.getContainerInfo();
-            containerInfo.setConnectivity(runningContainers.get(containerId).getConnectivity());
-            runningContainers.put(containerId, containerInfo);
+            containerInfo.setConnectivity(persistent.data.runningContainers.get(containerId).getConnectivity());
+            persistent.data.runningContainers.put(containerId, containerInfo);
             notifyConnectedPlatforms();
             return true;
         } catch (IOException e) {
             log.warning(String.format("Container did not respond: %s; removing...", containerId));
-            runningContainers.remove(containerId);
+            persistent.data.runningContainers.remove(containerId);
             return false;
         }
     }
@@ -352,7 +328,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             log.warning("Cannot request update for self.");
             return false;
         }
-        if (!connectedPlatforms.containsKey(platformUrl)) {
+        if (!persistent.data.connectedPlatforms.containsKey(platformUrl)) {
             var msg = String.format("Platform was not connected: %s", platformUrl);
             log.warning(msg);
             throw new NoSuchElementException(msg);
@@ -360,11 +336,11 @@ public class PlatformImpl implements RuntimePlatformApi {
         try {
             var client = new ApiProxy(platformUrl);
             var platformInfo = client.getPlatformInfo();
-            connectedPlatforms.put(platformUrl, platformInfo);
+            persistent.data.connectedPlatforms.put(platformUrl, platformInfo);
             return true;
         } catch (IOException e) {
             log.warning(String.format("Platform did not respond: %s; removing...", platformUrl));
-            connectedPlatforms.remove(platformUrl);
+            persistent.data.connectedPlatforms.remove(platformUrl);
             return false;
         }
     }
@@ -381,7 +357,7 @@ public class PlatformImpl implements RuntimePlatformApi {
      *      asynchronous (without too much fuzz) so it does not block those other calls?
      */
     private void notifyConnectedPlatforms() {
-        for (String platformUrl : connectedPlatforms.keySet()) {
+        for (String platformUrl : persistent.data.connectedPlatforms.keySet()) {
             var client = new ApiProxy(platformUrl);
             try {
                 client.notifyUpdatePlatform(config.getOwnBaseUrl());
@@ -402,14 +378,14 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
     private Stream<ApiProxy> getClients(String containerId, String agentId, String action, boolean includeConnected) {
         // local containers
-        var containerClients = runningContainers.values().stream()
+        var containerClients = persistent.data.runningContainers.values().stream()
                 .filter(c -> matches(c, containerId, agentId, action))
-                .map(c -> getClient(c.getContainerId(), tokens.get(c.getContainerId())));
+                .map(c -> getClient(c.getContainerId(), persistent.data.tokens.get(c.getContainerId())));
 
         if (!includeConnected) return containerClients;
 
         // remote platforms
-        var platformClients = connectedPlatforms.values().stream()
+        var platformClients = persistent.data.connectedPlatforms.values().stream()
                 .filter(p -> p.getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action)))
                 .map(p -> new ApiProxy(p.getBaseUrl()));
 

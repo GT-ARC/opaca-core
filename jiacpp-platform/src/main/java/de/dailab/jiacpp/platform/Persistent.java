@@ -38,7 +38,7 @@ import lombok.Data;
 @Component
 public class Persistent {
 
-    @Data @NoArgsConstructor @AllArgsConstructor @Component
+    @Data @NoArgsConstructor @AllArgsConstructor
     public static class PersistentData {
 
         /* PlatformImpl variables */
