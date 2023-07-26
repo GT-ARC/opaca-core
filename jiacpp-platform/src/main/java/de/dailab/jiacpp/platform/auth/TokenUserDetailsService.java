@@ -1,7 +1,9 @@
 package de.dailab.jiacpp.platform.auth;
 
-import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+
+import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.User;
@@ -10,14 +12,10 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import com.github.dockerjava.core.DefaultDockerClientConfig;
-import com.github.dockerjava.core.DockerClientConfig;
-import com.github.dockerjava.core.DockerClientImpl;
-import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
-import com.github.dockerjava.transport.DockerHttpClient;
 
-import de.dailab.jiacpp.platform.Persistent;
-import de.dailab.jiacpp.platform.PlatformConfig;
+import de.dailab.jiacpp.platform.Persistent.PersistentData;
+import de.dailab.jiacpp.platform.PlatformImpl;
+import de.dailab.jiacpp.util.EventProxy;
 
 /**
  * The purpose of the TokenUserDetailsService class is to provide user details 
@@ -26,30 +24,38 @@ import de.dailab.jiacpp.platform.PlatformConfig;
 @Service
 public class TokenUserDetailsService implements UserDetailsService {
 
-    private Persistent persistent;
+    @Autowired
+    PersistentData persistentData;
+
+    private Map<String, String> userCredentials;
+
+    @PostConstruct
+	public void postConstruct() {
+		userCredentials = persistentData.userCredentials;
+        System.out.println("Tokens");
+        System.out.println(persistentData);
+	}
 
     /** Returns the user as a standardized 'User' object */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        if (persistent.data.userCredentials.containsKey(username)) {
-            return new User(username, persistent.data.userCredentials.get(username), List.of());
+        if (userCredentials.containsKey(username)) {
+            return new User(username, userCredentials.get(username), List.of());
         } else {
             throw new UsernameNotFoundException("User not found: " + username);
         }
     }
 
-    public void initialize(Persistent persistent) {
-        this.persistent = persistent;
-    }
+
     /**
      * Adding user to the credentials map. Those user credentials can be a human's credentials
      * as [username:password] or agent container credentials as [containerID:containerID].
      */
     public void addUser(String username, String password) {
-        persistent.data.userCredentials.put(username, password);
+        userCredentials.put(username, password);
     }
 
     public void removeUser(String username) {
-        persistent.data.userCredentials.remove(username);
+        userCredentials.remove(username);
     }
 }

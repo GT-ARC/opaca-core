@@ -17,6 +17,7 @@ import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
 import de.dailab.jiacpp.platform.Persistent;
 import de.dailab.jiacpp.platform.PlatformConfig;
+import de.dailab.jiacpp.platform.Persistent.PersistentData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.java.Log;
@@ -40,7 +41,7 @@ import java.util.stream.Stream;
  @Log
 public class DockerClient implements ContainerClient {
 
-    private Persistent persistent;
+    private PersistentData persistentData;
 
     private PlatformConfig config;
 
@@ -49,6 +50,10 @@ public class DockerClient implements ContainerClient {
 
     /** Available Docker Auth */
     private Map<String, AuthConfig> auth;
+
+    private Set<Integer> usedPorts;
+
+    private Map<String, DockerContainerInfo> dockerContainers;
 
     @Data
     @AllArgsConstructor
@@ -59,9 +64,14 @@ public class DockerClient implements ContainerClient {
     }
 
     @Override
-    public void initialize(PlatformConfig config, Persistent persistent) {
+    public void initialize(PlatformConfig config, PersistentData persistentData) {
         this.config = config;
-        this.persistent = persistent;
+        this.persistentData = persistentData;
+        System.out.println("DockerClient");
+        System.out.println(this.persistentData);
+        this.usedPorts = persistentData.usedPorts;
+        this.dockerContainers = persistentData.dockerContainers;
+
 
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
                 .withDockerHost(getDockerHost())
@@ -112,7 +122,7 @@ public class DockerClient implements ContainerClient {
                     portMap.get(image.getApiPort()),
                     extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );
-            persistent.data.dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), connectivity));
+            dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), connectivity));
             return connectivity;
 
         } catch (NotFoundException e) {
@@ -126,12 +136,12 @@ public class DockerClient implements ContainerClient {
     public void stopContainer(String containerId) throws IOException {
         try {
             // remove container info, stop container
-            var containerInfo = persistent.data.dockerContainers.remove(containerId);
+            var containerInfo = dockerContainers.remove(containerId);
             dockerClient.stopContainerCmd(containerInfo.containerId).exec();
             // free up ports used by this container
             // TODO do this first, or in finally?
-            persistent.data.usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
-            persistent.data.usedPorts.removeAll(containerInfo.connectivity.getExtraPortMappings().keySet());
+            usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
+            usedPorts.removeAll(containerInfo.connectivity.getExtraPortMappings().keySet());
         } catch (NotModifiedException e) {
             var msg = "Could not stop Container " + containerId + "; already stopped?";
             log.warning(msg);
@@ -142,7 +152,7 @@ public class DockerClient implements ContainerClient {
 
     @Override
     public String getUrl(String containerId) {
-        var conn = persistent.data.dockerContainers.get(containerId).connectivity;
+        var conn = dockerContainers.get(containerId).connectivity;
         return conn.getPublicUrl() + ":" + conn.getApiPortMapping();
     }
 
@@ -198,11 +208,11 @@ public class DockerClient implements ContainerClient {
      * Starting from the given preferred port, get and reserve the next free port.
      */
     private int reserveNextFreePort(int port) {
-        while (persistent.data.usedPorts.contains(port)) {
+        while (usedPorts.contains(port)) {
             // TODO how to handle ports blocked by other containers or applications? just ping ports?
             port++;
         }
-        persistent.data.usedPorts.add(port);
+        usedPorts.add(port);
         return port;
     }
 

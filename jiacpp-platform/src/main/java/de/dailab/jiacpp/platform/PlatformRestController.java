@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
+import de.dailab.jiacpp.platform.Persistent.PersistentData;
 import de.dailab.jiacpp.platform.auth.JwtUtil;
 import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
 import de.dailab.jiacpp.util.*;
@@ -48,7 +49,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	JwtUtil jwtUtil;
 
 	@Autowired
-    Persistent persistent;
+    PersistentData persistentData;
 
 	RuntimePlatformApi implementation;
 
@@ -62,9 +63,8 @@ public class PlatformRestController implements RuntimePlatformApi {
 		log.info("In Post-Construct");
 		log.info("Started with Config: " + config);
 
-		tokenUserDetailsService.initialize(persistent);
 		tokenUserDetailsService.addUser(config.usernamePlatform, config.passwordPlatform);
-		implementation = EventProxy.create(new PlatformImpl(config, tokenUserDetailsService, jwtUtil, persistent));
+		implementation = EventProxy.create(new PlatformImpl(config, tokenUserDetailsService, jwtUtil, persistentData));
 		this.startDefaultImages();
 	}
 

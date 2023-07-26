@@ -24,6 +24,7 @@ import com.google.gson.GsonBuilder;
 
 import javax.annotation.PostConstruct;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import de.dailab.jiacpp.model.AgentContainer;
@@ -31,14 +32,15 @@ import de.dailab.jiacpp.util.RestHelper;
 import de.dailab.jiacpp.model.RuntimePlatform;
 import de.dailab.jiacpp.platform.containerclient.DockerClient.DockerContainerInfo;
 
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import lombok.Data;
 
 @Component
 public class Persistent {
 
-    @Data @NoArgsConstructor @AllArgsConstructor
+	@Autowired
+	PlatformConfig config;
+
+    @Data @Component
     public static class PersistentData {
 
         /* PlatformImpl variables */
@@ -51,38 +53,57 @@ public class Persistent {
         /* TokensUserDetailsService variables */
         public Map<String, String> userCredentials = new HashMap<>();
 
+        public void reset() {
+            this.tokens.clear();
+            this.runningContainers.clear();
+            this.connectedPlatforms.clear();
+            this.dockerContainers.clear();
+            this.usedPorts.clear();
+            this.userCredentials.clear();
+        }
+    
+        public Map<String, AgentContainer> getRunningContainers() {
+            return new HashMap<>(this.runningContainers);
+        }
     }
 
-    public PersistentData data;
+
+    @Autowired
+    PersistentData data;
 
     private static final String filename = "/home/benjamin/Desktop/persistent.json";
 
     private transient ScheduledExecutorService scheduler;
 
+
     @PostConstruct
     public void init() {
-        this.data = loadFromFile();
-        System.out.println(this.data);
+        loadFromFile();
         this.scheduler = Executors.newScheduledThreadPool(1);
-        this.startPeriodicSave();
+        if (!config.stopPolicy.equals("stop")) {
+            this.startPeriodicSave();
+        }
     }
 
-    private PersistentData loadFromFile() {
-        PersistentData lastdata = new PersistentData();
-
+    private void loadFromFile() {
         File file = new File(filename);
         if (file.exists()) {
             try {
                 String content = new String(Files.readAllBytes(Paths.get(filename)), StandardCharsets.UTF_8);
-                lastdata = RestHelper.readObject(content, PersistentData.class);
+                PersistentData lastdata = RestHelper.readObject(content, PersistentData.class);
+                this.data.tokens = lastdata.tokens;
+                this.data.runningContainers = lastdata.runningContainers;
+                this.data.connectedPlatforms = lastdata.connectedPlatforms;
+                this.data.dockerContainers = lastdata.dockerContainers;
+                this.data.usedPorts = lastdata.usedPorts;
+                this.data.userCredentials = lastdata.userCredentials;
+    
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
-
-        return lastdata;
     }
-
+    
     private void startPeriodicSave() {
         final Runnable saver = new Runnable() {
             public void run() { 
@@ -93,6 +114,8 @@ public class Persistent {
     }
 
     private void saveToFile() {
+        System.out.println("SAVE TO FILE");
+        System.out.println(this.data);
         try {
             Gson gson = new GsonBuilder()
                 .registerTypeAdapter(ZonedDateTime.class, (JsonSerializer<ZonedDateTime>) (date, type, jsonSerializationContext) -> new JsonPrimitive(date.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)))
