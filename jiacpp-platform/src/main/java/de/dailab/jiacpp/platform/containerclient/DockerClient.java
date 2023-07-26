@@ -15,9 +15,9 @@ import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.platform.Persistent;
+import de.dailab.jiacpp.platform.Session;
 import de.dailab.jiacpp.platform.PlatformConfig;
-import de.dailab.jiacpp.platform.Persistent.PersistentData;
+import de.dailab.jiacpp.platform.Session.SessionData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.java.Log;
@@ -41,7 +41,7 @@ import java.util.stream.Stream;
  @Log
 public class DockerClient implements ContainerClient {
 
-    private PersistentData persistentData;
+    private SessionData sessionData;
 
     private PlatformConfig config;
 
@@ -64,13 +64,11 @@ public class DockerClient implements ContainerClient {
     }
 
     @Override
-    public void initialize(PlatformConfig config, PersistentData persistentData) {
+    public void initialize(PlatformConfig config, SessionData sessionData) {
         this.config = config;
-        this.persistentData = persistentData;
-        System.out.println("DockerClient");
-        System.out.println(this.persistentData);
-        this.usedPorts = persistentData.usedPorts;
-        this.dockerContainers = persistentData.dockerContainers;
+        this.sessionData = sessionData;
+        this.usedPorts = sessionData.usedPorts;
+        this.dockerContainers = sessionData.dockerContainers;
 
 
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()

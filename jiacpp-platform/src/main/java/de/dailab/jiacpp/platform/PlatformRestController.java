@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
-import de.dailab.jiacpp.platform.Persistent.PersistentData;
+import de.dailab.jiacpp.platform.Session.SessionData;
 import de.dailab.jiacpp.platform.auth.JwtUtil;
 import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
 import de.dailab.jiacpp.util.*;
@@ -49,7 +49,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	JwtUtil jwtUtil;
 
 	@Autowired
-    PersistentData persistentData;
+    SessionData sessionData;
 
 	RuntimePlatformApi implementation;
 
@@ -64,8 +64,9 @@ public class PlatformRestController implements RuntimePlatformApi {
 		log.info("Started with Config: " + config);
 
 		tokenUserDetailsService.addUser(config.usernamePlatform, config.passwordPlatform);
-		implementation = EventProxy.create(new PlatformImpl(config, tokenUserDetailsService, jwtUtil, persistentData));
+		implementation = EventProxy.create(new PlatformImpl(config, tokenUserDetailsService, jwtUtil, sessionData));
 		this.startDefaultImages();
+		this.applyShutdownStrategy();
 	}
 
 	@PreDestroy
@@ -355,4 +356,20 @@ public class PlatformRestController implements RuntimePlatformApi {
 		}
 	}
 
+	private void applyShutdownStrategy() {
+        if (config.stopPolicy.equals("restart")) {
+            Map<String, AgentContainer> lastContainers = sessionData.copyRunningContainers();
+            sessionData.reset();
+            
+            for (AgentContainer agentContainer : lastContainers.values()) {
+                AgentContainerImage image = agentContainer.getImage();
+                try {
+                    addContainer(image);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                
+            }
+        }
+	}
 }

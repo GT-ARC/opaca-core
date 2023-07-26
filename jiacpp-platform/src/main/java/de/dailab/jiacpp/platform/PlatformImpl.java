@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
-import de.dailab.jiacpp.platform.Persistent.PersistentData;
+import de.dailab.jiacpp.platform.Session.SessionData;
 import de.dailab.jiacpp.platform.auth.JwtUtil;
 import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
 import de.dailab.jiacpp.platform.containerclient.ContainerClient;
@@ -28,7 +28,7 @@ import java.util.stream.Stream;
 @Log
 public class PlatformImpl implements RuntimePlatformApi {
 
-    final PersistentData persistentData;
+    final SessionData sessionData;
     
     final PlatformConfig config;
 
@@ -46,17 +46,12 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     private Map<String, AgentContainer> runningContainers;
 
-    public PlatformImpl(PlatformConfig config, TokenUserDetailsService userDetailsService, JwtUtil jwtUtil, PersistentData persistentData) {
-        this.persistentData = persistentData;
-        System.out.println("PlatformImpl");
-        System.out.println(this.persistentData);
-        this.runningContainers = persistentData.runningContainers;
-        this.tokens = persistentData.tokens;
-        this.connectedPlatforms = persistentData.connectedPlatforms;
-
-
+    public PlatformImpl(PlatformConfig config, TokenUserDetailsService userDetailsService, JwtUtil jwtUtil, SessionData sessionData) {
+        this.sessionData = sessionData;
+        this.runningContainers = sessionData.runningContainers;
+        this.tokens = sessionData.tokens;
+        this.connectedPlatforms = sessionData.connectedPlatforms;
         this.config = config;
-
         this.userDetailsService = userDetailsService;
         this.jwtUtil = jwtUtil;    
 
@@ -70,23 +65,8 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw new IllegalArgumentException("Invalid environment specified");
         }
 
-        this.containerClient.initialize(config, persistentData);
+        this.containerClient.initialize(config, sessionData);
 
-        // Wenn kein persistent.json existiert, gibts hier nen fehler 
-        if (config.stopPolicy.equals("restart")) {
-            Map<String, AgentContainer> lastContainers = persistentData.getRunningContainers();
-            persistentData.reset();
-            
-            for (AgentContainer agentContainer : lastContainers.values()) {
-                AgentContainerImage image = agentContainer.getImage();
-                try {
-                    addContainer(image);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                
-            }
-        }
         // TODO add list of known used ports to config (e.g. the port of the RP itself, or others)
     }
 

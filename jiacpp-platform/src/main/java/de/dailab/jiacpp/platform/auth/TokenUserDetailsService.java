@@ -13,9 +13,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 
-import de.dailab.jiacpp.platform.Persistent.PersistentData;
-import de.dailab.jiacpp.platform.PlatformImpl;
-import de.dailab.jiacpp.util.EventProxy;
+import de.dailab.jiacpp.platform.Session.SessionData;
+
 
 /**
  * The purpose of the TokenUserDetailsService class is to provide user details 
@@ -25,15 +24,13 @@ import de.dailab.jiacpp.util.EventProxy;
 public class TokenUserDetailsService implements UserDetailsService {
 
     @Autowired
-    PersistentData persistentData;
+    SessionData sessionData;
 
     private Map<String, String> userCredentials;
 
     @PostConstruct
 	public void postConstruct() {
-		userCredentials = persistentData.userCredentials;
-        System.out.println("Tokens");
-        System.out.println(persistentData);
+		userCredentials = sessionData.userCredentials;
 	}
 
     /** Returns the user as a standardized 'User' object */

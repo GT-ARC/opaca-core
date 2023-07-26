@@ -2,7 +2,7 @@ package de.dailab.jiacpp.platform.containerclient;
 
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.platform.Persistent.PersistentData;
+import de.dailab.jiacpp.platform.Session.SessionData;
 import de.dailab.jiacpp.platform.PlatformConfig;
 
 import java.io.IOException;
@@ -21,7 +21,7 @@ public interface ContainerClient {
      * Initialize the client using properties in the given configuration file. Different clients may
      * require different attributes.
      */
-    void initialize(PlatformConfig config, PersistentData persistentData);
+    void initialize(PlatformConfig config, SessionData SessionData);
 
     /**
      * Start a container with the given container ID (for later reference) and image name. If all goes well,
