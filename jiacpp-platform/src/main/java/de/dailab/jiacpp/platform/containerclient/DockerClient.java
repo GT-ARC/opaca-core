@@ -15,16 +15,14 @@ import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.platform.Session;
 import de.dailab.jiacpp.platform.PlatformConfig;
-import de.dailab.jiacpp.platform.Session.SessionData;
+import de.dailab.jiacpp.session.SessionData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.java.Log;
 import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -40,8 +38,6 @@ import java.util.stream.Stream;
 
  @Log
 public class DockerClient implements ContainerClient {
-
-    private SessionData sessionData;
 
     private PlatformConfig config;
 
@@ -66,7 +62,6 @@ public class DockerClient implements ContainerClient {
     @Override
     public void initialize(PlatformConfig config, SessionData sessionData) {
         this.config = config;
-        this.sessionData = sessionData;
         this.usedPorts = sessionData.usedPorts;
         this.dockerContainers = sessionData.dockerContainers;
 

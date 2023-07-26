@@ -2,8 +2,8 @@ package de.dailab.jiacpp.platform.containerclient;
 
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.platform.Session.SessionData;
 import de.dailab.jiacpp.platform.PlatformConfig;
+import de.dailab.jiacpp.session.*;
 
 import java.io.IOException;
 import java.util.NoSuchElementException;

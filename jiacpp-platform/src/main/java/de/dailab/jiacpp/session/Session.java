@@ -1,4 +1,4 @@
-package de.dailab.jiacpp.platform;
+package de.dailab.jiacpp.session;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -10,10 +10,6 @@ import java.time.format.DateTimeFormatter;
 import com.google.gson.JsonSerializer;
 import com.google.gson.JsonPrimitive;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -27,12 +23,9 @@ import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.util.RestHelper;
-import de.dailab.jiacpp.model.RuntimePlatform;
-import de.dailab.jiacpp.platform.containerclient.DockerClient.DockerContainerInfo;
+import de.dailab.jiacpp.platform.PlatformConfig;
 
-import lombok.Data;
 
 @Component
 public class Session {
@@ -40,44 +33,20 @@ public class Session {
 	@Autowired
 	PlatformConfig config;
 
-    @Data @Component
-    public static class SessionData {
-
-        /* PlatformImpl variables */
-        public Map<String, String> tokens = new HashMap<>();
-        public Map<String, AgentContainer> runningContainers = new HashMap<>();
-        public Map<String, RuntimePlatform> connectedPlatforms = new HashMap<>();
-        /* DockerClient variables */
-        public Map<String, DockerContainerInfo> dockerContainers = new HashMap<>();
-        public Set<Integer> usedPorts = new HashSet<>();
-        /* TokensUserDetailsService variables */
-        public Map<String, String> userCredentials = new HashMap<>();
-
-        public void reset() {
-            this.tokens.clear();
-            this.runningContainers.clear();
-            this.connectedPlatforms.clear();
-            this.dockerContainers.clear();
-            this.usedPorts.clear();
-            this.userCredentials.clear();
-        }
-    
-        public Map<String, AgentContainer> copyRunningContainers() {
-            return new HashMap<>(this.runningContainers);
-        }
-    }
-
-
     @Autowired
     SessionData data;
 
-    private static final String filename = "/home/benjamin/Desktop/Session.json";
+    private static final String filename = "Session.json";
+    private String filePath;
 
     private transient ScheduledExecutorService scheduler;
 
-
     @PostConstruct
     public void init() {
+        // set the file path for storage and load operations
+        String currentDirectory = System.getProperty("user.dir");
+        filePath = Paths.get(currentDirectory, filename).toString();
+
         loadFromFile();
         this.scheduler = Executors.newScheduledThreadPool(1);
         if (!config.stopPolicy.equals("stop")) {
@@ -86,10 +55,10 @@ public class Session {
     }
 
     private void loadFromFile() {
-        File file = new File(filename);
+        File file = new File(filePath);
         if (file.exists()) {
             try {
-                String content = new String(Files.readAllBytes(Paths.get(filename)), StandardCharsets.UTF_8);
+                String content = new String(Files.readAllBytes(Paths.get(filePath)), StandardCharsets.UTF_8);
                 SessionData lastdata = RestHelper.readObject(content, SessionData.class);
                 this.data.tokens = lastdata.tokens;
                 this.data.runningContainers = lastdata.runningContainers;
@@ -114,14 +83,12 @@ public class Session {
     }
 
     private void saveToFile() {
-        System.out.println("SAVE TO FILE");
-        System.out.println(this.data);
         try {
             Gson gson = new GsonBuilder()
                 .registerTypeAdapter(ZonedDateTime.class, (JsonSerializer<ZonedDateTime>) (date, type, jsonSerializationContext) -> new JsonPrimitive(date.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)))
                 .setPrettyPrinting()
                 .create();
-            FileWriter writer = new FileWriter(filename);
+            FileWriter writer = new FileWriter(filePath);
             gson.toJson(this.data, writer);
             writer.close();
         } catch (IOException i) {
