@@ -10,6 +10,7 @@ import de.dailab.jiacpp.model.AgentDescription;
 import de.dailab.jiacpp.model.Event;
 import de.dailab.jiacpp.model.Message;
 import de.dailab.jiacpp.model.RuntimePlatform;
+import de.dailab.jiacpp.platform.PlatformConfig.StopPolicy;
 import de.dailab.jiacpp.platform.auth.JwtUtil;
 import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
 import de.dailab.jiacpp.session.SessionData;
@@ -76,7 +77,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 	@PreDestroy
 	public void preDestroy() throws IOException {
-		if (config.stopPolicy.equals("stop") | config.stopPolicy.equals("restart")) {
+		if (config.stopPolicy == StopPolicy.STOP  | config.stopPolicy == StopPolicy.RESTART) {
 			log.info("In Destroy, stopping containers...");
 			for (String connection : implementation.getConnections()) {
 				try {
@@ -362,7 +363,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	private void applyShutdownStrategy() {
-        if (config.stopPolicy.equals("restart")) {
+        if (config.stopPolicy == StopPolicy.RESTART) {
             Map<String, AgentContainer> lastContainers = sessionData.copyRunningContainers();
             sessionData.reset();
             
