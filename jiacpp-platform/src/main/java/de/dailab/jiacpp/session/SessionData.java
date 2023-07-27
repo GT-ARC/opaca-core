@@ -13,6 +13,9 @@ import de.dailab.jiacpp.platform.containerclient.DockerClient.DockerContainerInf
 import de.dailab.jiacpp.platform.containerclient.KubernetesClient.PodInfo;
 import lombok.Data;
 
+/**
+ * TODO JAVADOCS
+ */
 @Data @Component
 public class SessionData {
 
@@ -20,11 +23,14 @@ public class SessionData {
     public Map<String, String> tokens = new HashMap<>();
     public Map<String, AgentContainer> runningContainers = new HashMap<>();
     public Map<String, RuntimePlatform> connectedPlatforms = new HashMap<>();
+
     /* DockerClient variables */
     public Map<String, DockerContainerInfo> dockerContainers = new HashMap<>();
     public Set<Integer> usedPorts = new HashSet<>();
+
     /* KubernetesClient variables */
     public Map<String, PodInfo> pods = new HashMap<>();
+
     /* TokensUserDetailsService variables */
     public Map<String, String> userCredentials = new HashMap<>();
 
@@ -38,7 +44,4 @@ public class SessionData {
         this.pods.clear();
     }
 
-    public Map<String, AgentContainer> copyRunningContainers() {
-        return new HashMap<>(this.runningContainers);
-    }
 }

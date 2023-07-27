@@ -3,12 +3,7 @@ package de.dailab.jiacpp.platform;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
-import de.dailab.jiacpp.model.AgentContainer;
-import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.model.AgentDescription;
-import de.dailab.jiacpp.model.Event;
-import de.dailab.jiacpp.model.Message;
-import de.dailab.jiacpp.model.RuntimePlatform;
+import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.platform.auth.JwtUtil;
 import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
 import de.dailab.jiacpp.platform.containerclient.ContainerClient;
@@ -43,6 +38,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     final TokenUserDetailsService userDetailsService;
 
+
     /** Currently running Agent Containers, mapping container ID to description */
     private final Map<String, AgentContainer> runningContainers;
     private final Map<String, String> tokens;
@@ -74,7 +70,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
 
         this.containerClient.initialize(config, sessionData);
-
         // TODO add list of known used ports to config (e.g. the port of the RP itself, or others)
     }
 

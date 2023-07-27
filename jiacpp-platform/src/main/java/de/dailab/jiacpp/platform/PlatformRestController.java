@@ -4,12 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
-import de.dailab.jiacpp.model.AgentContainer;
-import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.model.AgentDescription;
-import de.dailab.jiacpp.model.Event;
-import de.dailab.jiacpp.model.Message;
-import de.dailab.jiacpp.model.RuntimePlatform;
+import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.platform.PlatformConfig.SessionPolicy;
 import de.dailab.jiacpp.platform.auth.JwtUtil;
 import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
@@ -30,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -369,8 +365,9 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	private void applyShutdownStrategy() {
+		// TODO restart-policy, move default-images here, or move this to top
         if (config.sessionPolicy == SessionPolicy.RESTART) {
-            Map<String, AgentContainer> lastContainers = sessionData.copyRunningContainers();
+            Map<String, AgentContainer> lastContainers = new HashMap<>(sessionData.runningContainers);
             sessionData.reset();
             
             for (AgentContainer agentContainer : lastContainers.values()) {
