@@ -55,8 +55,7 @@ public class KubernetesClient implements ContainerClient {
 
     @Data
     @AllArgsConstructor
-    public
-    static class PodInfo {
+    public static class PodInfo {
         String containerId;
         String internalIp;
         AgentContainer.Connectivity connectivity;

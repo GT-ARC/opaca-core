@@ -14,7 +14,6 @@ import java.util.NoSuchElementException;
  * somewhat clean, the main point of this is so that the same PlatformImpl can be used with different
  * container clients, e.g. via configuration.
  */
-
 public interface ContainerClient {
 
     /**

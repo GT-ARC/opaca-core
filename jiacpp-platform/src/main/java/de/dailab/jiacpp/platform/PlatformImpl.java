@@ -39,26 +39,29 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     final ContainerClient containerClient;
 
-    public Set<String> pendingConnections = new HashSet<>();
-
     final JwtUtil jwtUtil;
 
     final TokenUserDetailsService userDetailsService;
 
-    private Map<String, RuntimePlatform> connectedPlatforms;
+    /** Currently running Agent Containers, mapping container ID to description */
+    private final Map<String, AgentContainer> runningContainers;
+    private final Map<String, String> tokens;
 
-    private Map<String, String> tokens;
+    /** Currently connected other Runtime Platforms, mapping URL to description */
+    private final Map<String, RuntimePlatform> connectedPlatforms;
 
-    private Map<String, AgentContainer> runningContainers;
+    /** Set of remote Runtime Platform URLs with a pending connection request */
+    private final Set<String> pendingConnections = new HashSet<>();
+
 
     public PlatformImpl(PlatformConfig config, TokenUserDetailsService userDetailsService, JwtUtil jwtUtil, SessionData sessionData) {
+        this.config = config;
+        this.userDetailsService = userDetailsService;
+        this.jwtUtil = jwtUtil;
         this.sessionData = sessionData;
         this.runningContainers = sessionData.runningContainers;
         this.tokens = sessionData.tokens;
         this.connectedPlatforms = sessionData.connectedPlatforms;
-        this.config = config;
-        this.userDetailsService = userDetailsService;
-        this.jwtUtil = jwtUtil;    
 
         if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.DOCKER) {
             log.info("Using Docker on host " + config.remoteDockerHost);
@@ -178,7 +181,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         String agentContainerId = UUID.randomUUID().toString();
         String token = config.enableAuth ? jwtUtil.generateTokenForAgentContainer(agentContainerId) : "";
 
-        System.out.println(image);
         // start container... this may raise an Exception, or returns the connectivity info
         var connectivity = containerClient.startContainer(agentContainerId, token, image);
 

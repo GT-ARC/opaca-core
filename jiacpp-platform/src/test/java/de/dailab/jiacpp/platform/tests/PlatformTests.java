@@ -1,14 +1,9 @@
 package de.dailab.jiacpp.platform.tests;
 
 import de.dailab.jiacpp.api.AgentContainerApi;
-import de.dailab.jiacpp.model.AgentContainer;
-import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.model.AgentDescription;
-import de.dailab.jiacpp.model.RuntimePlatform;
+import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.platform.Application;
 import de.dailab.jiacpp.platform.PlatformRestController;
-import de.dailab.jiacpp.session.*;
-
 import static de.dailab.jiacpp.platform.tests.TestUtils.*;
 
 import org.junit.*;

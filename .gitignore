@@ -4,3 +4,4 @@ target
 .env
 default-images
 .vscode
+*.log

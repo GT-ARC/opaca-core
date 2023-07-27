@@ -81,10 +81,10 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 	@PreDestroy
 	public void preDestroy() throws IOException {
-		if (config.sessionPolicy == SessionPolicy.RESTART  | config.sessionPolicy == SessionPolicy.RECONNECT) {
+		if (config.sessionPolicy == SessionPolicy.RESTART  || config.sessionPolicy == SessionPolicy.RECONNECT) {
 			session.saveToFile();
 		}
-		if (config.sessionPolicy == SessionPolicy.SHUTDOWN  | config.sessionPolicy == SessionPolicy.RESTART) {
+		if (config.sessionPolicy == SessionPolicy.SHUTDOWN  || config.sessionPolicy == SessionPolicy.RESTART) {
 			log.info("In Destroy, stopping containers...");
 			for (String connection : implementation.getConnections()) {
 				try {
@@ -380,7 +380,6 @@ public class PlatformRestController implements RuntimePlatformApi {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                
             }
         }
 	}
