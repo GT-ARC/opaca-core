@@ -71,32 +71,13 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 		tokenUserDetailsService.addUser(config.usernamePlatform, config.passwordPlatform);
 		implementation = EventProxy.create(new PlatformImpl(config, tokenUserDetailsService, jwtUtil, sessionData));
-		this.startDefaultImages();
-		this.applyShutdownStrategy();
+
+		applyRestartStrategy();
 	}
 
 	@PreDestroy
 	public void preDestroy() throws IOException {
-		if (config.sessionPolicy == SessionPolicy.RESTART  || config.sessionPolicy == SessionPolicy.RECONNECT) {
-			session.saveToFile();
-		}
-		if (config.sessionPolicy == SessionPolicy.SHUTDOWN  || config.sessionPolicy == SessionPolicy.RESTART) {
-			log.info("In Destroy, stopping containers...");
-			for (String connection : implementation.getConnections()) {
-				try {
-					implementation.disconnectPlatform(connection);
-				} catch (Exception e) {
-					log.warning("Exception disconnecting from " + connection + ": " + e.getMessage());
-				}
-			}
-			for (AgentContainer container : implementation.getContainers()) {
-				try {
-					implementation.removeContainer(container.getContainerId());
-				} catch (Exception e) {
-					log.warning("Exception stopping container " + container.getContainerId() + ": " + e.getMessage());
-				}
-			}
-		}
+		applyShutdownStrategy();
 	}
 
 	/*
@@ -334,8 +315,28 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	/*
-	 * HELPER METHODS
+	 * SESSION HANDLING
+	 * this could be moved directly to Session once everything is properly Autowired together...
 	 */
+
+	private void applyRestartStrategy() {
+		if (config.sessionPolicy == SessionPolicy.SHUTDOWN) {
+			startDefaultImages();
+		}
+		if (config.sessionPolicy == SessionPolicy.RESTART) {
+			restartContainers();
+		}
+	}
+
+	private void applyShutdownStrategy() throws IOException {
+		if (config.sessionPolicy != SessionPolicy.SHUTDOWN) {
+			session.saveToFile();
+		}
+		if (config.sessionPolicy != SessionPolicy.RECONNECT) {
+			stopRunningContainers();
+		}
+		disconnectPlatforms();
+	}
 
 	/**
 	 * reads image config files from default container directory
@@ -354,6 +355,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	private void startDefaultImages() {
+		log.info("Loading Default Images (if any)...");
 		for (File file: readDefaultImages()) {
 			log.info("Auto-deploying " + file);
 			try {
@@ -364,20 +366,38 @@ public class PlatformRestController implements RuntimePlatformApi {
 		}
 	}
 
-	private void applyShutdownStrategy() {
-		// TODO restart-policy, move default-images here, or move this to top
-        if (config.sessionPolicy == SessionPolicy.RESTART) {
-            Map<String, AgentContainer> lastContainers = new HashMap<>(sessionData.runningContainers);
-            sessionData.reset();
-            
-            for (AgentContainer agentContainer : lastContainers.values()) {
-                AgentContainerImage image = agentContainer.getImage();
-                try {
-                    addContainer(image);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+	private void restartContainers() {
+		log.info("Restarting Last Containers...");
+		Map<String, AgentContainer> lastContainers = new HashMap<>(sessionData.runningContainers);
+		sessionData.reset();
+		for (AgentContainer agentContainer : lastContainers.values()) {
+			try {
+				addContainer(agentContainer.getImage());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private void stopRunningContainers() throws IOException {
+		log.info("Stopping Running Containers...");
+		for (AgentContainer container : implementation.getContainers()) {
+			try {
+				implementation.removeContainer(container.getContainerId());
+			} catch (Exception e) {
+				log.warning("Exception stopping container " + container.getContainerId() + ": " + e.getMessage());
+			}
+		}
+	}
+
+	private void disconnectPlatforms() throws IOException {
+		log.info("Disconnecting from other Platforms...");
+		for (String connection : implementation.getConnections()) {
+			try {
+				implementation.disconnectPlatform(connection);
+			} catch (Exception e) {
+				log.warning("Exception disconnecting from " + connection + ": " + e.getMessage());
+			}
+		}
 	}
 }
