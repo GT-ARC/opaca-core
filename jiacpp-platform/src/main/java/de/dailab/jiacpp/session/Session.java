@@ -83,7 +83,7 @@ public class Session {
         scheduler.scheduleAtFixedRate(saver, 60, 60, TimeUnit.SECONDS);
     }
 
-    private void saveToFile() {
+    public void saveToFile() {
         try {
             Gson gson = new GsonBuilder()
                 .registerTypeAdapter(ZonedDateTime.class, (JsonSerializer<ZonedDateTime>) (date, type, jsonSerializationContext) -> new JsonPrimitive(date.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)))

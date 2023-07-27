@@ -14,6 +14,7 @@ import de.dailab.jiacpp.platform.PlatformConfig.StopPolicy;
 import de.dailab.jiacpp.platform.auth.JwtUtil;
 import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
 import de.dailab.jiacpp.session.SessionData;
+import de.dailab.jiacpp.session.Session;
 import de.dailab.jiacpp.util.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -57,6 +58,9 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Autowired
     SessionData sessionData;
 
+	@Autowired
+    Session session;
+
 	RuntimePlatformApi implementation;
 
 
@@ -77,6 +81,9 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 	@PreDestroy
 	public void preDestroy() throws IOException {
+		if (config.stopPolicy == StopPolicy.RESTART  | config.stopPolicy == StopPolicy.RECONNECT) {
+			session.saveToFile();
+		}
 		if (config.stopPolicy == StopPolicy.STOP  | config.stopPolicy == StopPolicy.RESTART) {
 			log.info("In Destroy, stopping containers...");
 			for (String connection : implementation.getConnections()) {
@@ -94,7 +101,6 @@ public class PlatformRestController implements RuntimePlatformApi {
 				}
 			}
 		}
-
 	}
 
 	/*
