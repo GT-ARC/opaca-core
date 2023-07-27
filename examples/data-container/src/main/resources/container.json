@@ -1,0 +1,13 @@
+{
+  "imageName": "data-agent-container-image",
+
+  "requires": ["data-requirement"],
+  "provides": ["data-provision"],
+
+  "name": "data JIAC++ Agent Container",
+  "version": "0.1.1",
+  "description": "A data container doing data akquisition.",
+  "provider": "DAI-Lab",
+
+  "apiPort": 8082
+}
