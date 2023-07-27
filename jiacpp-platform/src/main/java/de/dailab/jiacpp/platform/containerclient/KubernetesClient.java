@@ -53,6 +53,7 @@ public class KubernetesClient implements ContainerClient {
 
     @Data
     @AllArgsConstructor
+    public
     static class PodInfo {
         String containerId;
         String internalIp;
@@ -84,8 +85,8 @@ public class KubernetesClient implements ContainerClient {
         this.namespace = config.kubernetesNamespace;
         this.config = config;
         this.auth = loadKubernetesSecrets();
-        this.pods = new HashMap<>();
-        this.usedPorts = new HashSet<>();
+        this.pods = sessionData.pods;
+        this.usedPorts = sessionData.usedPorts;
     }
 
     @Override

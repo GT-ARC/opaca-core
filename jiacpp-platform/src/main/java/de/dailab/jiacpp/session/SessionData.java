@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.RuntimePlatform;
 import de.dailab.jiacpp.platform.containerclient.DockerClient.DockerContainerInfo;
+import de.dailab.jiacpp.platform.containerclient.KubernetesClient.PodInfo;
 import lombok.Data;
 
 @Data @Component
@@ -22,6 +23,8 @@ public class SessionData {
     /* DockerClient variables */
     public Map<String, DockerContainerInfo> dockerContainers = new HashMap<>();
     public Set<Integer> usedPorts = new HashSet<>();
+    /* KubernetesClient variables */
+    public Map<String, PodInfo> pods = new HashMap<>();
     /* TokensUserDetailsService variables */
     public Map<String, String> userCredentials = new HashMap<>();
 
@@ -32,6 +35,7 @@ public class SessionData {
         this.dockerContainers.clear();
         this.usedPorts.clear();
         this.userCredentials.clear();
+        this.pods.clear();
     }
 
     public Map<String, AgentContainer> copyRunningContainers() {
