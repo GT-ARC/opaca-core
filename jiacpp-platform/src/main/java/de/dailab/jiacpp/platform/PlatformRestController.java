@@ -326,6 +326,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 		if (config.sessionPolicy == SessionPolicy.RESTART) {
 			restartContainers();
 		}
+		// TODO what about connections? connected-platforms info is restored, but might be outdated
 	}
 
 	private void applyShutdownStrategy() throws IOException {
@@ -335,6 +336,8 @@ public class PlatformRestController implements RuntimePlatformApi {
 		if (config.sessionPolicy != SessionPolicy.RECONNECT) {
 			stopRunningContainers();
 		}
+		// TODO possible race condition: session could be saved again after containers are stopped
+		//  check again if this method is ALWAYS called; if it is, remove the regular session save
 		disconnectPlatforms();
 	}
 

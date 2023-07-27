@@ -20,7 +20,8 @@ import de.dailab.jiacpp.platform.PlatformConfig;
 import de.dailab.jiacpp.platform.PlatformConfig.SessionPolicy;
 
 /**
- * TODO JAVADOCS
+ * Class responsible for Session handling. Load SessionData from JSON file when platform is
+ * started, and save it to that file when it is stopped (depending on policy).
  */
 @Component
 @Log

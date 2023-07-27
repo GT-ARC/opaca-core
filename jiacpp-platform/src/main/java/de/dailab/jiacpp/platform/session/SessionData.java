@@ -14,7 +14,8 @@ import de.dailab.jiacpp.platform.containerclient.KubernetesClient.PodInfo;
 import lombok.Data;
 
 /**
- * TODO JAVADOCS
+ * Class aggregating all Session data of the Runtime Platform, to be stored to and loaded from
+ * file in between sessions. All other classes (e.g. Runtime-Impl etc.) use the data in this class.
  */
 @Data @Component
 public class SessionData {
