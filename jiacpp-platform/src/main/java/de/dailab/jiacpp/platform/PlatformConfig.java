@@ -38,8 +38,8 @@ public class PlatformConfig {
     @Value("${platform_environment}")
     public PlatformEnvironment platformEnvironment;
 
-    @Value("${stop_policy}")
-    public StopPolicy stopPolicy;
+    @Value("${session_policy}")
+    public SessionPolicy sessionPolicy;
 
     @Value("${container_timeout_sec}")
     public int containerTimeoutSec;
@@ -96,8 +96,8 @@ public class PlatformConfig {
         NATIVE, KUBERNETES
     }
 
-    public enum StopPolicy {
-        STOP, RESTART, RECONNECT
+    public enum SessionPolicy {
+        SHUTDOWN, RESTART, RECONNECT
     }
 
     public enum ContainerEnvironment {

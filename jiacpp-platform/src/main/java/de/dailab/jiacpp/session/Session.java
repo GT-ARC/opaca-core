@@ -25,7 +25,7 @@ import org.springframework.stereotype.Component;
 
 import de.dailab.jiacpp.util.RestHelper;
 import de.dailab.jiacpp.platform.PlatformConfig;
-import de.dailab.jiacpp.platform.PlatformConfig.StopPolicy;
+import de.dailab.jiacpp.platform.PlatformConfig.SessionPolicy;
 
 
 @Component
@@ -50,7 +50,7 @@ public class Session {
 
         loadFromFile();
         this.scheduler = Executors.newScheduledThreadPool(1);
-        if (!(config.stopPolicy == StopPolicy.STOP)) {
+        if (!(config.sessionPolicy == SessionPolicy.SHUTDOWN)) {
             this.startPeriodicSave();
         }
     }

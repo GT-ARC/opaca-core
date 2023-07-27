@@ -10,7 +10,7 @@ import de.dailab.jiacpp.model.AgentDescription;
 import de.dailab.jiacpp.model.Event;
 import de.dailab.jiacpp.model.Message;
 import de.dailab.jiacpp.model.RuntimePlatform;
-import de.dailab.jiacpp.platform.PlatformConfig.StopPolicy;
+import de.dailab.jiacpp.platform.PlatformConfig.SessionPolicy;
 import de.dailab.jiacpp.platform.auth.JwtUtil;
 import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
 import de.dailab.jiacpp.session.SessionData;
@@ -81,10 +81,10 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 	@PreDestroy
 	public void preDestroy() throws IOException {
-		if (config.stopPolicy == StopPolicy.RESTART  | config.stopPolicy == StopPolicy.RECONNECT) {
+		if (config.sessionPolicy == SessionPolicy.RESTART  | config.sessionPolicy == SessionPolicy.RECONNECT) {
 			session.saveToFile();
 		}
-		if (config.stopPolicy == StopPolicy.STOP  | config.stopPolicy == StopPolicy.RESTART) {
+		if (config.sessionPolicy == SessionPolicy.SHUTDOWN  | config.sessionPolicy == SessionPolicy.RESTART) {
 			log.info("In Destroy, stopping containers...");
 			for (String connection : implementation.getConnections()) {
 				try {
@@ -369,7 +369,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 	private void applyShutdownStrategy() {
-        if (config.stopPolicy == StopPolicy.RESTART) {
+        if (config.sessionPolicy == SessionPolicy.RESTART) {
             Map<String, AgentContainer> lastContainers = sessionData.copyRunningContainers();
             sessionData.reset();
             
