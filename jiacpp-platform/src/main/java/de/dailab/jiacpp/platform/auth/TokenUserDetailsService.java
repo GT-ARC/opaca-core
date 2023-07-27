@@ -12,7 +12,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import de.dailab.jiacpp.session.SessionData;
+import de.dailab.jiacpp.platform.session.SessionData;
 
 
 /**

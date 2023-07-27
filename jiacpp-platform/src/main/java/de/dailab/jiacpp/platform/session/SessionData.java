@@ -1,4 +1,4 @@
-package de.dailab.jiacpp.session;
+package de.dailab.jiacpp.platform.session;
 
 import java.util.HashMap;
 import java.util.HashSet;
