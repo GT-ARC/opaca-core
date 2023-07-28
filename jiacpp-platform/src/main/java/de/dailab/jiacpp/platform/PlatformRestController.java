@@ -67,10 +67,6 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 	@PostConstruct
 	public void postConstruct() {
-		log.info("In Post-Construct");
-		log.info("Started with Config: " + config);
-
-		tokenUserDetailsService.addUser(config.usernamePlatform, config.passwordPlatform);
 		implementation = EventProxy.create(implementation);
 
 		applyRestartStrategy();
