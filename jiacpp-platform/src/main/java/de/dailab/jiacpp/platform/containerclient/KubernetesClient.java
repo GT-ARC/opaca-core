@@ -106,6 +106,7 @@ public class KubernetesClient implements ContainerClient {
         V1PodTemplateSpec podTemplateSpec = new V1PodTemplateSpec()
                 .metadata(new V1ObjectMeta().labels(Map.of("app", containerId)))
                 .spec(new V1PodSpec()
+                        .hostNetwork(true)
                         .containers(List.of(
                                 new V1Container()
                                         .name(containerId)

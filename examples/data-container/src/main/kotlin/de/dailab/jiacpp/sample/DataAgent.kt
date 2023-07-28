@@ -7,6 +7,10 @@ import de.dailab.jiacpp.model.Action
 import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
 import de.dailab.jiacvi.behaviour.act
+import java.io.IOException
+import kotlin.concurrent.thread
+
+
 
 
 class DataAgent(name: String): AbstractContainerizedAgent(name=name) {
@@ -63,8 +67,30 @@ class DataAgent(name: String): AbstractContainerizedAgent(name=name) {
     private fun actionAkquireData(camera_id: String, stream_seconds: Int): String {
         log.info("in 'AkquireData' action, waiting...")
         println(camera_id)
-        Thread.sleep(1000 * stream_seconds.toLong())
-        log.info("done waiting")
+        val ffmpegCommand = mutableListOf(
+        "ffmpeg",
+        "-i",
+        "rtsp://admin:admin12345@130.149.98.39:554",
+        "-t",
+        "10",
+        "test.mkv"
+        )
+
+        val processBuilder = ProcessBuilder(ffmpegCommand)
+
+        val processThread = thread(start = false) {
+            try {
+                val process = processBuilder.start()
+                val exitCode = process.waitFor()
+                println("Exited with code $exitCode")
+            } catch (e: IOException) {
+                e.printStackTrace()
+            } catch (e: InterruptedException) {
+                e.printStackTrace()
+            }
+        }
+
+        processThread.start()
         return "Action 'AkquireData' of $name called with camera_id=$camera_id and stream_seconds=$stream_seconds"
     }
 
