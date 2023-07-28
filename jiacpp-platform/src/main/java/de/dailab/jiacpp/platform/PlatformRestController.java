@@ -2,14 +2,9 @@ package de.dailab.jiacpp.platform;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
-import de.dailab.jiacpp.platform.PlatformConfig.SessionPolicy;
 import de.dailab.jiacpp.platform.auth.JwtUtil;
-import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
-import de.dailab.jiacpp.platform.session.SessionData;
-import de.dailab.jiacpp.platform.session.Session;
 import de.dailab.jiacpp.util.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -20,16 +15,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.stream.Collectors;
 
 
 /**
@@ -43,19 +32,7 @@ import java.util.stream.Collectors;
 public class PlatformRestController implements RuntimePlatformApi {
 
 	@Autowired
-	PlatformConfig config;
-
-	@Autowired
-    TokenUserDetailsService tokenUserDetailsService;
-
-	@Autowired
-	JwtUtil jwtUtil;
-
-	@Autowired
-    SessionData sessionData;
-
-	@Autowired
-    Session session;
+	private JwtUtil jwtUtil;
 
 	@Autowired
 	private RuntimePlatformApi implementation;
@@ -68,13 +45,6 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@PostConstruct
 	public void postConstruct() {
 		implementation = EventProxy.create(implementation);
-
-		applyRestartStrategy();
-	}
-
-	@PreDestroy
-	public void preDestroy() throws IOException {
-		applyShutdownStrategy();
 	}
 
 	/*
@@ -313,93 +283,4 @@ public class PlatformRestController implements RuntimePlatformApi {
 		return implementation.notifyUpdatePlatform(platformUrl);
 	}
 
-	/*
-	 * SESSION HANDLING
-	 * this could be moved directly to Session once everything is properly Autowired together...
-	 */
-
-	private void applyRestartStrategy() {
-		if (config.sessionPolicy == SessionPolicy.SHUTDOWN) {
-			startDefaultImages();
-		}
-		if (config.sessionPolicy == SessionPolicy.RESTART) {
-			restartContainers();
-		}
-		// TODO what about connections? connected-platforms info is restored, but might be outdated
-	}
-
-	private void applyShutdownStrategy() throws IOException {
-		if (config.sessionPolicy != SessionPolicy.SHUTDOWN) {
-			session.saveToFile();
-		}
-		if (config.sessionPolicy != SessionPolicy.RECONNECT) {
-			stopRunningContainers();
-		}
-		// TODO possible race condition: session could be saved again after containers are stopped
-		//  check again if this method is ALWAYS called; if it is, remove the regular session save
-		disconnectPlatforms();
-	}
-
-	/**
-	 * reads image config files from default container directory
-	 */
-	public List<File> readDefaultImages() {
-		if (Strings.isNullOrEmpty(config.defaultImageDirectory)) return List.of();
-		try {
-			return Files.list(Path.of(config.defaultImageDirectory))
-					.map(Path::toFile)
-					.filter(f -> f.isFile() && f.getName().toLowerCase().endsWith(".json"))
-					.collect(Collectors.toList());
-		} catch (IOException e) {
-			log.severe("Failed to read default images: " + e);
-			return List.of();
-		}
-	}
-
-	private void startDefaultImages() {
-		log.info("Loading Default Images (if any)...");
-		for (File file: readDefaultImages()) {
-			log.info("Auto-deploying " + file);
-			try {
-				this.addContainer(RestHelper.mapper.readValue(file, AgentContainerImage.class));
-			} catch (Exception e) {
-				log.severe(String.format("Failed to load image specified in file %s: %s", file, e));
-			}
-		}
-	}
-
-	private void restartContainers() {
-		log.info("Restarting Last Containers...");
-		Map<String, AgentContainer> lastContainers = new HashMap<>(sessionData.runningContainers);
-		sessionData.reset();
-		for (AgentContainer agentContainer : lastContainers.values()) {
-			try {
-				addContainer(agentContainer.getImage());
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	private void stopRunningContainers() throws IOException {
-		log.info("Stopping Running Containers...");
-		for (AgentContainer container : implementation.getContainers()) {
-			try {
-				implementation.removeContainer(container.getContainerId());
-			} catch (Exception e) {
-				log.warning("Exception stopping container " + container.getContainerId() + ": " + e.getMessage());
-			}
-		}
-	}
-
-	private void disconnectPlatforms() throws IOException {
-		log.info("Disconnecting from other Platforms...");
-		for (String connection : implementation.getConnections()) {
-			try {
-				implementation.disconnectPlatform(connection);
-			} catch (Exception e) {
-				log.warning("Exception disconnecting from " + connection + ": " + e.getMessage());
-			}
-		}
-	}
 }

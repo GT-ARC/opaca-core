@@ -6,6 +6,7 @@ import de.dailab.jiacpp.platform.Application;
 import de.dailab.jiacpp.platform.PlatformRestController;
 import static de.dailab.jiacpp.platform.tests.TestUtils.*;
 
+import de.dailab.jiacpp.platform.session.Session;
 import org.junit.*;
 import org.junit.runners.MethodSorters;
 
@@ -78,7 +79,7 @@ public class PlatformTests {
      */
     @Test
     public void test1DefaultImage() throws Exception {
-        var restController = ((PlatformRestController) platformA.getBean("platformRestController"));
+        var session = (Session) platformA.getBean("session");
 
         // create image file
         var imageFile = new File("./default-test-images/sample.json");
@@ -88,7 +89,7 @@ public class PlatformTests {
             writer.write("{ \"imageName\": \"" + TEST_IMAGE + "\" }");
         }
 
-        var defaultImages = restController.readDefaultImages();
+        var defaultImages = session.readDefaultImages();
         Assert.assertEquals(defaultImages.size(), 1);
         Assert.assertEquals(defaultImages.get(0).getAbsolutePath(), imageFile.getAbsolutePath());
 

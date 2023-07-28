@@ -1,7 +1,6 @@
 package de.dailab.jiacpp.platform;
 
 import com.google.common.base.Strings;
-import de.dailab.jiacpp.util.EventProxy;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.ToString;
