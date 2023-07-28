@@ -57,7 +57,8 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Autowired
     Session session;
 
-	RuntimePlatformApi implementation;
+	@Autowired
+	private RuntimePlatformApi implementation;
 
 
 	/*
@@ -70,7 +71,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 		log.info("Started with Config: " + config);
 
 		tokenUserDetailsService.addUser(config.usernamePlatform, config.passwordPlatform);
-		implementation = EventProxy.create(new PlatformImpl(config, tokenUserDetailsService, jwtUtil, sessionData));
+		implementation = EventProxy.create(implementation);
 
 		applyRestartStrategy();
 	}

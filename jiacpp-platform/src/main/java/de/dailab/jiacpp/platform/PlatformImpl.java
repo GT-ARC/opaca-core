@@ -13,7 +13,10 @@ import de.dailab.jiacpp.platform.session.SessionData;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.dailab.jiacpp.util.EventHistory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.net.URL;
 import java.util.*;
@@ -26,35 +29,38 @@ import java.util.stream.Stream;
  * further, e.g. for agent-forwarding, container-management, and linking to other platforms.
  */
 @Log
+@Component
 public class PlatformImpl implements RuntimePlatformApi {
 
-    final SessionData sessionData;
-    
-    final PlatformConfig config;
+    @Autowired
+    private SessionData sessionData;
 
-    final ContainerClient containerClient;
+    @Autowired
+    private PlatformConfig config;
 
-    final JwtUtil jwtUtil;
+    @Autowired
+    private JwtUtil jwtUtil;
 
-    final TokenUserDetailsService userDetailsService;
+    @Autowired
+    private TokenUserDetailsService userDetailsService;
+
+
+    private ContainerClient containerClient;
 
 
     /** Currently running Agent Containers, mapping container ID to description */
-    private final Map<String, AgentContainer> runningContainers;
-    private final Map<String, String> tokens;
+    private Map<String, AgentContainer> runningContainers;
+    private Map<String, String> tokens;
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
-    private final Map<String, RuntimePlatform> connectedPlatforms;
+    private Map<String, RuntimePlatform> connectedPlatforms;
 
     /** Set of remote Runtime Platform URLs with a pending connection request */
     private final Set<String> pendingConnections = new HashSet<>();
 
 
-    public PlatformImpl(PlatformConfig config, TokenUserDetailsService userDetailsService, JwtUtil jwtUtil, SessionData sessionData) {
-        this.config = config;
-        this.userDetailsService = userDetailsService;
-        this.jwtUtil = jwtUtil;
-        this.sessionData = sessionData;
+    @PostConstruct
+    public void initialize() {
         this.runningContainers = sessionData.runningContainers;
         this.tokens = sessionData.tokens;
         this.connectedPlatforms = sessionData.connectedPlatforms;
