@@ -70,6 +70,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
 
         this.containerClient.initialize(config, sessionData);
+        this.containerClient.testConnectivity();
         // TODO add list of known used ports to config (e.g. the port of the RP itself, or others)
     }
 

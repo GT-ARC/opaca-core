@@ -86,6 +86,15 @@ public class KubernetesClient implements ContainerClient {
     }
 
     @Override
+    public void testConnectivity() {
+        try {
+            this.coreApi.listNamespacedPod(this.namespace, null, null, null, null, null, null, null, null, null, null);
+        } catch (ApiException e) {
+            throw new RuntimeException("Could not initialize Kubernetes Client", e);
+        }
+    }
+
+    @Override
     public AgentContainer.Connectivity startContainer(String containerId, String token, AgentContainerImage image) throws IOException, NoSuchElementException {
         
         var imageName = image.getImageName();
