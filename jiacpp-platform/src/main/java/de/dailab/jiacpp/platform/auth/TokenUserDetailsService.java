@@ -1,14 +1,19 @@
 package de.dailab.jiacpp.platform.auth;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.PostConstruct;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+
+import de.dailab.jiacpp.platform.session.SessionData;
+
 
 /**
  * The purpose of the TokenUserDetailsService class is to provide user details 
@@ -17,7 +22,15 @@ import org.springframework.stereotype.Service;
 @Service
 public class TokenUserDetailsService implements UserDetailsService {
 
-    private final Map<String, String> userCredentials = new HashMap<>();
+    @Autowired
+    SessionData sessionData;
+
+    private Map<String, String> userCredentials;
+
+    @PostConstruct
+	public void postConstruct() {
+		userCredentials = sessionData.userCredentials;
+	}
 
     /** Returns the user as a standardized 'User' object */
     @Override
