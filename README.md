@@ -40,6 +40,7 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 * `CONTAINER_TIMEOUT_SEC` (default: 10) Timeout in seconds how long the RP will try to reach a newly started container's `/info` route before it assumes it did not start properly and stops it again.
 * `PLATFORM_ENVIRONMENT` (default: "native") The environment where the platform itself is running, which determine the way to find its own IP address and other details.
 * `CONTAINER_ENVIRONMENT` (default: "docker") The environment where the Agent Containers should be running; possible values are `docker` and `kubernetes`.
+* `SESSION_POLICY` (default: "shutdown") How to behave when the platform is shut down and restarted. See [Session](doc/session.md) for details.
 * `DEFAULT_IMAGE_DIRECTORY` (default: null) The runtime platform will try to read any JSON files from this directory containing Agent Container Image descriptions and auto-deploy those to the platform when it starts.
 
 ### Image Registry Credentials
@@ -72,4 +73,5 @@ See the [API docs](doc/api.md) for Environment Variables passed from the Runtime
 * [API Routes and Models](doc/api.md)
 * [Protocols](doc/protocols.md)
 * [Execution Environments](doc/environments.md)
+* [Session Handling](doc/session.md)
 * [Authentication](doc/auth.md)

@@ -9,6 +9,7 @@ import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
 import de.dailab.jiacpp.platform.containerclient.ContainerClient;
 import de.dailab.jiacpp.platform.containerclient.DockerClient;
 import de.dailab.jiacpp.platform.containerclient.KubernetesClient;
+import de.dailab.jiacpp.platform.session.SessionData;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.dailab.jiacpp.util.EventHistory;
@@ -27,6 +28,8 @@ import java.util.stream.Stream;
 @Log
 public class PlatformImpl implements RuntimePlatformApi {
 
+    final SessionData sessionData;
+    
     final PlatformConfig config;
 
     final ContainerClient containerClient;
@@ -37,20 +40,24 @@ public class PlatformImpl implements RuntimePlatformApi {
 
 
     /** Currently running Agent Containers, mapping container ID to description */
-    private final Map<String, AgentContainer> runningContainers = new HashMap<>();
-    private final Map<String, String> tokens = new HashMap<>();
+    private final Map<String, AgentContainer> runningContainers;
+    private final Map<String, String> tokens;
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
-    private final Map<String, RuntimePlatform> connectedPlatforms = new HashMap<>();
+    private final Map<String, RuntimePlatform> connectedPlatforms;
 
     /** Set of remote Runtime Platform URLs with a pending connection request */
     private final Set<String> pendingConnections = new HashSet<>();
 
 
-    public PlatformImpl(PlatformConfig config, TokenUserDetailsService userDetailsService, JwtUtil jwtUtil) {
+    public PlatformImpl(PlatformConfig config, TokenUserDetailsService userDetailsService, JwtUtil jwtUtil, SessionData sessionData) {
         this.config = config;
         this.userDetailsService = userDetailsService;
         this.jwtUtil = jwtUtil;
+        this.sessionData = sessionData;
+        this.runningContainers = sessionData.runningContainers;
+        this.tokens = sessionData.tokens;
+        this.connectedPlatforms = sessionData.connectedPlatforms;
 
         if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.DOCKER) {
             log.info("Using Docker on host " + config.remoteDockerHost);
@@ -62,7 +69,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw new IllegalArgumentException("Invalid environment specified");
         }
 
-        this.containerClient.initialize(config);
+        this.containerClient.initialize(config, sessionData);
         this.containerClient.testConnectivity();
         // TODO add list of known used ports to config (e.g. the port of the RP itself, or others)
     }

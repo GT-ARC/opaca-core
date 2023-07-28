@@ -4,32 +4,28 @@ import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
 import de.dailab.jiacpp.platform.PlatformConfig;
+import de.dailab.jiacpp.platform.session.SessionData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.java.Log;
 
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.Configuration;
+import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.*;
 import io.kubernetes.client.custom.IntOrString;
-import io.kubernetes.client.util.Watch;
 import io.kubernetes.client.util.Config;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.Arrays;
 import java.util.Set;
 import java.util.List;
-import java.util.HashSet;
 import java.util.NoSuchElementException;
-import java.util.Collections;
-import com.google.gson.reflect.TypeToken;
 
 /**
  * Container Client for running Agent Containers in Kubernetes.
@@ -39,6 +35,7 @@ public class KubernetesClient implements ContainerClient {
 
     private PlatformConfig config;
     private CoreV1Api coreApi;
+    private AppsV1Api appsApi;
     private String namespace;
 
     /** additional Kubernetes-specific information on agent containers */
@@ -52,14 +49,14 @@ public class KubernetesClient implements ContainerClient {
 
     @Data
     @AllArgsConstructor
-    static class PodInfo {
+    public static class PodInfo {
         String containerId;
         String internalIp;
         AgentContainer.Connectivity connectivity;
     }
 
     @Override
-    public void initialize(PlatformConfig config) {
+    public void initialize(PlatformConfig config, SessionData sessionData) {
         // Initialize the Kubernetes API client
         try {
             ApiClient client;
@@ -75,6 +72,7 @@ public class KubernetesClient implements ContainerClient {
             }
             Configuration.setDefaultApiClient(client);
             this.coreApi = new CoreV1Api();
+            this.appsApi = new AppsV1Api();
         } catch (IOException e) {
             log.severe("Could not initialize Kubernetes Client: " + e.getMessage());
             throw new RuntimeException(e);
@@ -83,8 +81,8 @@ public class KubernetesClient implements ContainerClient {
         this.namespace = config.kubernetesNamespace;
         this.config = config;
         this.auth = loadKubernetesSecrets();
-        this.pods = new HashMap<>();
-        this.usedPorts = new HashSet<>();
+        this.pods = sessionData.pods;
+        this.usedPorts = sessionData.usedPorts;
     }
 
     @Override
@@ -107,35 +105,59 @@ public class KubernetesClient implements ContainerClient {
         Map<Integer, Integer> portMap = extraPorts.keySet().stream()
                 .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
 
-        V1Pod pod = new V1Pod()
-            .metadata(new V1ObjectMeta().name(containerId).labels(Collections.singletonMap("app", containerId)))
-            .spec(new V1PodSpec()
-                .containers(Collections.singletonList(
-                    new V1Container()
-                        .name(containerId)
-                        .image(imageName)
-                        .ports(Collections.singletonList(
-                            new V1ContainerPort().containerPort(image.getApiPort())
+        V1PodTemplateSpec podTemplateSpec = new V1PodTemplateSpec()
+                .metadata(new V1ObjectMeta().labels(Map.of("app", containerId)))
+                .spec(new V1PodSpec()
+                        .containers(List.of(
+                                new V1Container()
+                                        .name(containerId)
+                                        .image(imageName)
+                                        .ports(List.of(
+                                                new V1ContainerPort().containerPort(image.getApiPort())
+                                        ))
+                                        .env(List.of(
+                                                new V1EnvVar().name(AgentContainerApi.ENV_CONTAINER_ID).value(containerId),
+                                                new V1EnvVar().name(AgentContainerApi.ENV_TOKEN).value(token),
+                                                new V1EnvVar().name(AgentContainerApi.ENV_PLATFORM_URL).value(config.getOwnBaseUrl())
+                                        ))
                         ))
-                        .env(Arrays.asList(
-                            new V1EnvVar().name(AgentContainerApi.ENV_CONTAINER_ID).value(containerId),
-                            new V1EnvVar().name(AgentContainerApi.ENV_TOKEN).value(token),
-                            new V1EnvVar().name(AgentContainerApi.ENV_PLATFORM_URL).value(config.getOwnBaseUrl())
+                        .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)))
+                );
+
+        V1Deployment deployment = new V1Deployment()
+                .metadata(new V1ObjectMeta().name(containerId))
+                .spec(new V1DeploymentSpec()
+                        .strategy(new V1DeploymentStrategy()
+                                .rollingUpdate(new V1RollingUpdateDeployment()
+                                        .maxSurge(new IntOrString(1))
+                                        .maxUnavailable(new IntOrString(0))
+                                )
+                                .type("RollingUpdate")
+                        )
+                        .replicas(1)
+                        .selector(new V1LabelSelector().matchLabels(Map.of("app", containerId)))
+                        .template(podTemplateSpec)
+                );
+
+        V1Service service = new V1Service()
+                .metadata(new V1ObjectMeta().name(serviceId(containerId)))
+                .spec(new V1ServiceSpec()
+                        .selector(Map.of("app", containerId))
+                        .ports(List.of(
+                                new V1ServicePort().port(image.getApiPort()).targetPort(new IntOrString(image.getApiPort()))
                         ))
-                ))
-                .imagePullSecrets(registrySecret == null ? null : Collections.singletonList(new V1LocalObjectReference().name(registrySecret)))
-            );
+                        .type("ClusterIP"));
 
         try {
-            V1Pod createdPod = coreApi.createNamespacedPod(namespace, pod, null, null, null);
-            log.info("Pod created: " + createdPod.getMetadata().getName());
+            V1Deployment createdDeployment = appsApi.createNamespacedDeployment(namespace, deployment, null, null, null);
+            log.info("Deployment created: " + createdDeployment.getMetadata().getName());
+            
+            V1Service createdService = coreApi.createNamespacedService(namespace, service, null, null, null);
+            log.info("Service created: " + createdService.getMetadata().getName());
+            String serviceIP = createdService.getSpec().getClusterIP();
+            log.info("Deployment IP: " + serviceIP);
 
             createServicesForPorts(containerId, image, portMap);
-
-            String podIp = waitForPodIP(createdPod.getMetadata().getName());
-            log.info("Pod IP: " + podIp);
-
-            String podUid = createdPod.getMetadata().getUid();
 
             var connectivity = new AgentContainer.Connectivity(
                     config.getOwnBaseUrl().replaceAll(":\\d+$", ""),  // TODO is this correct?
@@ -143,7 +165,7 @@ public class KubernetesClient implements ContainerClient {
                     extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );
 
-            pods.put(containerId, new PodInfo(podUid, podIp, connectivity));
+            pods.put(containerId, new PodInfo(createdDeployment.getMetadata().getName(), serviceIP, connectivity));
 
             return connectivity;
         } catch (ApiException e) {
@@ -152,13 +174,14 @@ public class KubernetesClient implements ContainerClient {
         }
     }
 
-
     @Override
     public void stopContainer(String containerId) throws IOException {
         try {
             // remove container info, stop container
             var containerInfo = pods.remove(containerId);
-            coreApi.deleteNamespacedPod(containerId, namespace, null, null, null, null, null, null);
+            appsApi.deleteNamespacedDeployment(containerId, namespace, null, null, null, null, null, null);
+            coreApi.deleteNamespacedService(serviceId(containerId), namespace, null, null, null, null, null, null);
+            
             // free up ports used by this container
             // TODO do this first, or in finally?
             usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
@@ -176,43 +199,6 @@ public class KubernetesClient implements ContainerClient {
         return String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT);
     }
 
-
-    /**
-     * Wait for the pod to be in the Running state and have an IP address assigned
-     */
-    private String waitForPodIP(String podName) throws ApiException, IOException, NoSuchElementException {
-        ApiClient apiClient = coreApi.getApiClient();
-        try (Watch<V1Pod> watch = Watch.createWatch(
-                apiClient,
-                coreApi.listNamespacedPodCall(namespace, null, null, null, null, null, null, null, null, null, true, null),
-                new TypeToken<Watch.Response<V1Pod>>(){}.getType())) {
-
-            for (Watch.Response<V1Pod> item : watch) {
-                V1Pod pod = item.object;
-                String name = pod.getMetadata().getName();
-                String phase = pod.getStatus().getPhase();
-                List<V1ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
-
-                if (name.equals(podName)) {
-                    if (phase.equalsIgnoreCase("Running") && pod.getStatus().getPodIP() != null) {
-                        return pod.getStatus().getPodIP();
-                    } else if (containerStatuses != null) {
-                        for (V1ContainerStatus status : containerStatuses) {
-                            V1ContainerState state = status.getState();
-                            if (state.getWaiting() != null && "ImagePullBackOff".equals(state.getWaiting().getReason())) {
-                                coreApi.deleteNamespacedPod(podName, namespace, null, null, null, null, null, null);
-                                throw new NoSuchElementException("Container image could not be pulled");
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        throw new IOException("Container did not start");
-    }
-
-
-
     private void createServicesForPorts(String containerId, AgentContainerImage image, Map<Integer, Integer> portMap) throws ApiException {
         for (Map.Entry<Integer, Integer> entry : portMap.entrySet()) {
             int containerPort = entry.getKey();
@@ -226,13 +212,13 @@ public class KubernetesClient implements ContainerClient {
     }
 
     private V1Service createNodePortService(String containerId, int port, int targetPort, String protocol) {
-        String serviceName = "svc-" + containerId + "-" + port;
+        String serviceName = serviceId(containerId) + "-" + port;
         return new V1Service()
-            .metadata(new V1ObjectMeta().name(serviceName).labels(Collections.singletonMap("app", containerId)))
+            .metadata(new V1ObjectMeta().name(serviceName).labels(Map.of("app", containerId)))
             .spec(new V1ServiceSpec()
                 .type("NodePort")
-                .selector(Collections.singletonMap("app", containerId))
-                .ports(Collections.singletonList(
+                .selector(Map.of("app", containerId))
+                .ports(List.of(
                     new V1ServicePort()
                         .port(port)
                         .targetPort(new IntOrString(targetPort))
@@ -242,6 +228,9 @@ public class KubernetesClient implements ContainerClient {
             );
     }
 
+    private String serviceId(String containerId) {
+        return "svc-" + containerId;
+    }
 
     /**
      * Starting from the given preferred port, get and reserve the next free port.
