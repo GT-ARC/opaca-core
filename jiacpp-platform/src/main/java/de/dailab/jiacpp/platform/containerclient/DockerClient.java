@@ -16,6 +16,7 @@ import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
 import de.dailab.jiacpp.platform.PlatformConfig;
+import de.dailab.jiacpp.platform.session.SessionData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.java.Log;
@@ -53,13 +54,13 @@ public class DockerClient implements ContainerClient {
 
     @Data
     @AllArgsConstructor
-    static class DockerContainerInfo {
+    public static class DockerContainerInfo {
         String containerId;
         AgentContainer.Connectivity connectivity;
     }
 
     @Override
-    public void initialize(PlatformConfig config) {
+    public void initialize(PlatformConfig config, SessionData sessionData) {
         this.config = config;
 
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
@@ -76,8 +77,8 @@ public class DockerClient implements ContainerClient {
 
         this.auth = loadDockerAuth();
         this.dockerClient = DockerClientImpl.getInstance(dockerConfig, dockerHttpClient);
-        this.dockerContainers = new HashMap<>();
-        this.usedPorts = new HashSet<>();
+        this.dockerContainers = sessionData.dockerContainers;
+        this.usedPorts = sessionData.usedPorts;
     }
 
     @Override
