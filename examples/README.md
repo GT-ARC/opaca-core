@@ -14,6 +14,7 @@ and also does some book-keeping on e.g. the last message that was received, so t
 The sample-container is deployed to <https://gitlab.dai-labor.de/pub/unit-tests/container_registry> in different
 versions that are used in unit-tests.
 
+* v12: action timeouts
 * v11: added port to test UDP
 * v10: check token on incoming calls
 * v9: sample action that fails, handle action failure in container agent

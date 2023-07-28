@@ -199,11 +199,12 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public JsonNode invoke(
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters,
+			@RequestParam(required = false, defaultValue = "-1") int timeout,
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("INVOKE: %s, %s", action, parameters));
-		return implementation.invoke(action, parameters, containerId, forward);
+		return implementation.invoke(action, parameters, timeout, containerId, forward);
 	}
 
 	@RequestMapping(value="/invoke/{action}/{agentId}", method=RequestMethod.POST)
@@ -213,11 +214,12 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters,
 			@PathVariable String agentId,
+			@RequestParam(required = false, defaultValue = "-1") int timeout,
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("INVOKE: %s, %s, %s", action, agentId, parameters));
-		return implementation.invoke(action, parameters, agentId, containerId, forward);
+		return implementation.invoke(action, parameters, agentId, timeout, containerId, forward);
 	}
 
 	/*

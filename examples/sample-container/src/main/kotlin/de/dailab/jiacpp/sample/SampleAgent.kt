@@ -54,7 +54,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
                 "SpawnAgent" -> spawnAgent(it.parameters["name"]!!.asText())
                 "Deregister" -> deregister(false)
                 in extraActions.map { a -> a.name } -> "Called extra action ${it.name}"
-                else -> null
+                else -> Unit
             }
         }
 

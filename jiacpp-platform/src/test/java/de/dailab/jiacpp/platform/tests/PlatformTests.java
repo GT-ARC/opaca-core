@@ -205,6 +205,14 @@ public class PlatformTests {
         // TODO this is not ideal yet... the original error may contain a descriptive message that is lost
     }
 
+    @Test
+    public void test4InvokeTimeout() throws Exception {
+        var params = Map.of("message", "timeout-test", "sleep_seconds", 5);
+        var con = request(PLATFORM_A, "POST", "/invoke/DoThis?timeout=2", params);
+        Assert.assertEquals(502, con.getResponseCode());
+        // TODO this is not ideal yet... the original error may contain a descriptive message that is lost
+    }
+
     /**
      * invoke action with mismatched/missing parameters
      */
