@@ -103,10 +103,16 @@ public class KubernetesClient implements ContainerClient {
         Map<Integer, Integer> portMap = extraPorts.keySet().stream()
                 .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
 
+        boolean hostNetwork = false;
+        if (image.getConfig().has("hostNetwork") && 
+            image.getConfig().get("hostNetwork").asBoolean()) {
+            hostNetwork = true;
+        }
+
         V1PodTemplateSpec podTemplateSpec = new V1PodTemplateSpec()
                 .metadata(new V1ObjectMeta().labels(Map.of("app", containerId)))
                 .spec(new V1PodSpec()
-                        .hostNetwork(true)
+                        .hostNetwork(hostNetwork)
                         .containers(List.of(
                                 new V1Container()
                                         .name(containerId)
