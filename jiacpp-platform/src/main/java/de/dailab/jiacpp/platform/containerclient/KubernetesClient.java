@@ -109,9 +109,7 @@ public class KubernetesClient implements ContainerClient {
             hostNetwork = true;
         }
 
-        V1PodTemplateSpec podTemplateSpec = new V1PodTemplateSpec()
-                .metadata(new V1ObjectMeta().labels(Map.of("app", containerId)))
-                .spec(new V1PodSpec()
+        V1PodSpec podSpec = new V1PodSpec()
                         .hostNetwork(hostNetwork)
                         .containers(List.of(
                                 new V1Container()
@@ -126,8 +124,16 @@ public class KubernetesClient implements ContainerClient {
                                                 new V1EnvVar().name(AgentContainerApi.ENV_PLATFORM_URL).value(config.getOwnBaseUrl())
                                         ))
                         ))
-                        .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)))
-                );
+                        .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)));
+
+        
+        if (image.getConfig().has("nodeName")) {
+            podSpec.nodeName(image.getConfig().get("nodeName").asText());
+        }
+        
+        V1PodTemplateSpec podTemplateSpec = new V1PodTemplateSpec()
+                .metadata(new V1ObjectMeta().labels(Map.of("app", containerId)))
+                .spec(podSpec);
 
         V1Deployment deployment = new V1Deployment()
                 .metadata(new V1ObjectMeta().name(containerId))
