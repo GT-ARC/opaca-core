@@ -104,7 +104,7 @@ public class KubernetesClient implements ContainerClient {
                 .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
 
         boolean hostNetwork = false;
-        if (image.getConfig().has("hostNetwork") && 
+        if (image.getConfig() != null && image.getConfig().has("hostNetwork") && 
             image.getConfig().get("hostNetwork").asBoolean()) {
             hostNetwork = true;
         }
@@ -127,7 +127,7 @@ public class KubernetesClient implements ContainerClient {
                         .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)));
 
         
-        if (image.getConfig().has("nodeName")) {
+        if (image.getConfig() != null && image.getConfig().has("nodeName")) {
             podSpec.nodeName(image.getConfig().get("nodeName").asText());
         }
         
