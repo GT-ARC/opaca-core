@@ -80,7 +80,7 @@ class DataProcessAgent(name: String): AbstractContainerizedAgent(name=name) {
             "-i",
             "$sanitized_camera_id.mkv",
             "-vf",
-            "select='mod(n\\,2)',setpts=${converted_ratio}*PTS", // Keep every second frame and adjust speed
+            "select='mod(n\\,${compression_ratio})',setpts=${converted_ratio}*PTS", // Keep every second frame and adjust speed
             "${sanitized_camera_id}_processed.mkv"
         )
 
