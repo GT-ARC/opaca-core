@@ -13,7 +13,7 @@ import kotlin.concurrent.thread
 
 
 
-class DataAgent(name: String): AbstractContainerizedAgent(name=name) {
+class DataProcessAgent(name: String): AbstractContainerizedAgent(name=name) {
 
     private var lastMessage: Any? = null
     private var lastBroadcast: Any? = null
@@ -24,7 +24,7 @@ class DataAgent(name: String): AbstractContainerizedAgent(name=name) {
         this.name,
         this.javaClass.name,
         listOf(
-            Action("AkquireData", mapOf(Pair("camera_id", "String"), Pair("stream_seconds", "Int")), "String"),
+            Action("ProcessData", mapOf(Pair("camera_id", "String"), Pair("compression_rate", "Int")), "String"),
             Action("GetInfo", mapOf(), "Map"),
             Action("Add", mapOf(Pair("x", "String"), Pair("y", "Int")), "Int"),
             Action("Fail", mapOf(), "void"),
@@ -50,7 +50,7 @@ class DataAgent(name: String): AbstractContainerizedAgent(name=name) {
         respond<Invoke, Any?> {
             log.info("RESPOND $it")
             when (it.name) {
-                "AkquireData" -> actionAkquireData(it.parameters["camera_id"]!!.asText(), it.parameters["stream_seconds"]!!.asInt())
+                "ProcessData" -> actionProcessData(it.parameters["camera_id"]!!.asText(), it.parameters["compression_ratio"]!!.asInt())
                 "Add" -> actionAdd(it.parameters["x"]!!.asInt(), it.parameters["y"]!!.asInt())
                 "GetInfo" -> actionGetInfo()
                 "Fail" -> actionFail()
@@ -69,18 +69,22 @@ class DataAgent(name: String): AbstractContainerizedAgent(name=name) {
         val matchResult = ipAndPortPattern.find(input)
         return matchResult?.value?.replace(Regex("[:.]"), "_") ?: ""
     }
-    private fun actionAkquireData(camera_id: String, stream_seconds: Int): String {
-        log.info("in 'AkquireData' action, waiting...")
+    private fun actionProcessData(camera_id: String, compression_ratio: Int): String {
+        log.info("in 'ProcessData' action, waiting...")
 
+        val converted_ratio = 1.0/compression_ratio
         val sanitized_camera_id = sanitizeFileName(camera_id)
+
         val ffmpegCommand = mutableListOf(
-        "ffmpeg",
-        "-i",
-        "$camera_id",
-        "-t",
-        "$stream_seconds",
-        "$sanitized_camera_id.mkv"
+            "ffmpeg",
+            "-i",
+            "$sanitized_camera_id.mkv",
+            "-vf",
+            "select='mod(n\\,2)',setpts=${converted_ratio}*PTS", // Keep every second frame and adjust speed
+            "${sanitized_camera_id}_processed.mkv"
         )
+
+        println(ffmpegCommand.joinToString(" "))
 
         val processBuilder = ProcessBuilder(ffmpegCommand)
 
@@ -97,7 +101,7 @@ class DataAgent(name: String): AbstractContainerizedAgent(name=name) {
         }
 
         processThread.start()
-        return "Action 'AkquireData' of $name called with camera_id=$camera_id and stream_seconds=$stream_seconds"
+        return "Action 'ProcessData' of $name called with camera_id=$camera_id"
     }
 
     private fun actionAdd(x: Int, y: Int) = x + y
@@ -121,7 +125,7 @@ class DataAgent(name: String): AbstractContainerizedAgent(name=name) {
     }
 
     private fun spawnAgent(name: String) {
-        system.spawnAgent(DataAgent(name))
+        system.spawnAgent(DataProcessAgent(name))
     }
 
 }

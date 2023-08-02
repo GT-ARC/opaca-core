@@ -12,6 +12,7 @@ fun main() {
         agents {
             add(ContainerAgent(image))
             add(DataAgent("Data-Agent"))
+            add(DataProcessAgent("Data-Process-Agent"))
         }
     }.start()
 }
