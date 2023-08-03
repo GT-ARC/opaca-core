@@ -7,8 +7,11 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import lombok.AllArgsConstructor;
 import lombok.extern.java.Log;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -42,6 +45,54 @@ public class RestHelper {
 
     public <T> T delete(String path, Object payload, Class<T> type) throws IOException {
         return request("DELETE", path, payload, type);
+    }
+
+    public ResponseEntity<StreamingResponseBody> getStream(String path, Object payload) throws IOException {
+        return requestStream(path, payload);
+    }
+
+    public ResponseEntity<StreamingResponseBody> requestStream(String path, Object payload) throws IOException {
+        log.info(String.format("%s %s%s (%s)", "GET", baseUrl, path, payload));
+        HttpURLConnection connection = setupConnection("GET", path, payload);
+
+        StreamingResponseBody responseBody = response -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.write((line + "\n").getBytes(StandardCharsets.UTF_8));
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        };
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(responseBody);
+    }
+
+    private HttpURLConnection setupConnection(String method, String path, Object payload) throws IOException {
+        HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
+        connection.setRequestMethod(method);
+
+        if (token != null && !token.isEmpty()) {
+            connection.setRequestProperty("Authorization", "Bearer " + token);
+        }
+
+        if (payload != null) {
+            String json = mapper.writeValueAsString(payload);
+            byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+            connection.setDoOutput(true);
+            connection.setFixedLengthStreamingMode(bytes.length);
+            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            connection.connect();
+            try (OutputStream os = connection.getOutputStream()) {
+                os.write(bytes);
+            }
+        } else {
+            connection.connect();
+        }
+        return connection;
     }
 
     public <T> T request(String method, String path, Object payload, Class<T> type) throws IOException {
@@ -90,23 +141,5 @@ public class RestHelper {
     public static String writeJson(Object obj) throws IOException {
         return mapper.writeValueAsString(obj);
     }
-
-    public ResponseEntity<StreamingResponseBody> getStream(String path, Object payload) throws IOException {
-        StreamingResponseBody responseBody = response -> {
-            for (int i = 1; i <= 1000; i++) {
-            try {
-                Thread.sleep(10);
-                response.write(("Data stream line - " + i + "\n").getBytes());
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            }
-        };
-        return ResponseEntity.ok()
-            .contentType(MediaType.TEXT_PLAIN)
-            .body(responseBody);
-    }
-
-
 
 }

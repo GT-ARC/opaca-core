@@ -12,6 +12,8 @@ import org.eclipse.jetty.servlet.ServletHolder
 import java.lang.RuntimeException
 import java.util.stream.Collectors
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 
 /**
  * Minimal Jetty server for providing the REST interface. There's probably a better way to do this.
@@ -36,8 +38,26 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
             try {
                 checkToken(request)
                 val path = request.pathInfo
-                val res = handleGet(path)
-                writeResponse(response, 200, res)
+                
+                // Check if the request is for stream
+                if (path.contains("stream")) {
+                    val objectMapper = ObjectMapper()
+                    val parameters: Map<String, JsonNode> = mapOf(
+                        "parameter1" to objectMapper.valueToTree("value1"),
+                        "parameter2" to objectMapper.valueToTree(1234),
+                        "parameter3" to objectMapper.valueToTree(listOf("value3-1", "value3-2"))
+                    )
+                    val responseEntity = impl.getStream("test", parameters , "null", "null", true)
+
+                    response.contentType = responseEntity.headers.contentType?.toString()
+                    response.status = responseEntity.statusCodeValue
+                    responseEntity.body?.writeTo(response.outputStream)
+                } else {
+                    // handle other get requests
+                    val res = handleGet(path)
+                    writeResponse(response, 200, res)
+                }
+
             } catch (e: Exception) {
                 handleError(response, e)
             }
@@ -79,26 +99,26 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
         }
 
         private fun handleGet(path: String): Any? {
-
+           
             val info = Regex("^/info$").find(path)
             if (info != null) {
                 return impl.containerInfo
             }
-
+        
             val agents = Regex("^/agents$").find(path)
             if (agents != null) {
-                return  impl.agents
+                return impl.agents
             }
-
+        
             val agentWithId = Regex("^/agents/([^/]+)$").find(path)
             if (agentWithId != null) {
                 val id = agentWithId.groupValues[1]
                 return impl.getAgent(id)
             }
-
+        
             throw NoSuchElementException("Unknown path: $path")
         }
-
+        
         private fun handlePost(path: String, body: String): Any? {
 
             val send = Regex("^/send/([^/]+)$").find(path)

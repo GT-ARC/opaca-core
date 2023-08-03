@@ -20,11 +20,11 @@ import java.time.ZonedDateTime
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicReference
 import java.util.stream.Collectors
-import java.util.*
+import org.springframework.http.ResponseEntity
+import org.springframework.http.MediaType
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
+import java.io.OutputStreamWriter
 
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 const val CONTAINER_AGENT = "container-agent"
 
@@ -156,23 +156,43 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
 
 
-
         override fun getStream(action: String, parameters: Map<String, JsonNode>, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody> {
-            log.info("getStream: $action $parameters")
-            return getStream(action, parameters, null, containerId, forward)
+            val body = StreamingResponseBody { outputStream ->
+            val writer = OutputStreamWriter(outputStream)
+    
+            parameters.forEach { (key, value) ->
+                writer.write("Parameter Key: $key, Parameter Value: $value\n")
+            }
+            writer.flush()
+            }
+        
+            return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(body)
+        
         }
 
         override fun getStream(action: String, parameters: Map<String, JsonNode>, agentId: String?, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody> {
-            val random = Random()
-            val randomBytes = ByteArray(1024)
-            random.nextBytes(randomBytes)
-        
             val body = StreamingResponseBody { outputStream ->
-                outputStream.write(randomBytes)
-            }
+                val writer = OutputStreamWriter(outputStream)
         
-            return ResponseEntity.ok().body(body)
+                parameters.forEach { (key, value) ->
+                    writer.write("Parameter Key: $key, Parameter Value: $value\n")
+                }
+                writer.flush()
+                }
+            
+                return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(body)
         }
+
+
+
+
+
+
+
 
 
 
