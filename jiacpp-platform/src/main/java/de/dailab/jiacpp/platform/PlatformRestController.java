@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -168,6 +169,33 @@ public class PlatformRestController implements RuntimePlatformApi {
 		return implementation.getHistory();
 	}
 
+
+	@RequestMapping(value="/stream/{action}", method=RequestMethod.POST)
+	@Operation(summary="stream data", tags={"agents"})
+	@Override
+	public ResponseEntity<StreamingResponseBody> getStream(
+			@PathVariable String action,
+			@RequestBody Map<String, JsonNode> parameters,
+			@RequestParam(required = false) String containerId,
+			@RequestParam(required = false, defaultValue = "true") boolean forward
+	) throws IOException {
+		log.info(String.format("STREAM: %s, %s", action, parameters));
+		return implementation.getStream(action, parameters, containerId, forward);
+	}
+
+	@RequestMapping(value="/stream/{action}/{agentId}", method=RequestMethod.POST)
+	@Operation(summary="stream data", tags={"agents"})
+	@Override
+	public ResponseEntity<StreamingResponseBody> getStream(
+			@PathVariable String action,
+			@RequestBody Map<String, JsonNode> parameters,
+			@PathVariable String agentId,
+			@RequestParam(required = false) String containerId,
+			@RequestParam(required = false, defaultValue = "true") boolean forward
+	) throws IOException {
+		log.info(String.format("STREAM: %s, %s, %s", action, agentId, parameters));
+		return implementation.getStream(action, parameters, agentId, containerId, forward);
+	}	
 	/*
 	 * AGENTS ROUTES
 	 */

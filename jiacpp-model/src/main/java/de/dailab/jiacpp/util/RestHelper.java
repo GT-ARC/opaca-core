@@ -14,6 +14,10 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
 /**
  * Helper class for issuing different REST calls in Java.
  */
@@ -62,7 +66,7 @@ public class RestHelper {
         } else {
             connection.connect();
         }
-
+        
         if (type != null) {
             return mapper.readValue(connection.getInputStream(), type);
         } else {
@@ -86,5 +90,23 @@ public class RestHelper {
     public static String writeJson(Object obj) throws IOException {
         return mapper.writeValueAsString(obj);
     }
+
+    public ResponseEntity<StreamingResponseBody> getStream(String path, Object payload) throws IOException {
+        StreamingResponseBody responseBody = response -> {
+            for (int i = 1; i <= 1000; i++) {
+            try {
+                Thread.sleep(10);
+                response.write(("Data stream line - " + i + "\n").getBytes());
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            }
+        };
+        return ResponseEntity.ok()
+            .contentType(MediaType.TEXT_PLAIN)
+            .body(responseBody);
+    }
+
+
 
 }

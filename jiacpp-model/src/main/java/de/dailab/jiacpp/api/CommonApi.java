@@ -8,6 +8,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
 /**
  * API for both, Agent Containers and Runtime Platform. In fact, those are primarily the
  * Agent Container functions, but separated here, since the Agent Container will also have
@@ -84,5 +87,8 @@ public interface CommonApi {
      * @return Action result
      */
     JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws IOException;
+
+    ResponseEntity<StreamingResponseBody> getStream(String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws IOException;
+    ResponseEntity<StreamingResponseBody> getStream(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws IOException;
 
 }

@@ -9,6 +9,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
 /**
  * Implementation of the API forwarding to the REST services at a specific base URL.
  * Can be used for e.g. calling routes of a connected Runtime Platform, or a container's
@@ -84,6 +87,7 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         return client.post(path, parameters, JsonNode.class);
     }
 
+
     // CONTAINER ROUTES
 
     @Override
@@ -101,6 +105,19 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     public AgentContainer getContainer(String containerId) throws IOException {
         var path = String.format("/containers/%s", containerId);
         return client.get(path, AgentContainer.class);
+    }
+
+
+    @Override
+    public ResponseEntity<StreamingResponseBody> getStream(String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws IOException {
+        var path = String.format("/stream/%s?%s", action, buildQuery(containerId, forward));
+        return client.getStream(path, parameters);
+    }
+
+    @Override
+    public ResponseEntity<StreamingResponseBody> getStream(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws IOException {
+        var path = String.format("/stream/%s/%s?%s", action, agentId, buildQuery(containerId, forward));
+        return client.getStream(path, parameters);
     }
 
     @Override

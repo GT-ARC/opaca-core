@@ -25,6 +25,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
 
 /**
  * This class provides the actual implementation of the API routes. Might also be split up
@@ -169,6 +172,33 @@ public class PlatformImpl implements RuntimePlatformApi {
         throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s'", action, agentId));
     }
 
+    @Override
+    public ResponseEntity<StreamingResponseBody> getStream(String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws IOException, NoSuchElementException {
+        return getStream(action, parameters, null, containerId, forward);
+    }
+
+
+    @Override
+    public ResponseEntity<StreamingResponseBody> getStream(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws IOException {
+        var clients = getClients(containerId, agentId, action, forward);
+        IOException lastException = null;
+        for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
+            try {
+                return agentId == null
+                        ? client.getStream(action, parameters, containerId, false)
+                        : client.getStream(action, parameters, agentId, containerId, false);
+            } catch (IOException e) {
+                log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s': %s",
+                        action, agentId, client.baseUrl, e));
+                log.warning("CAUSE " + e.getCause());
+                log.warning("MESSAGE " + e.getMessage());
+                lastException = e;
+            }
+        }
+        if (lastException != null) throw lastException;
+        throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s'", action, agentId));
+    }
+    
     /*
      * CONTAINERS ROUTES
      */
