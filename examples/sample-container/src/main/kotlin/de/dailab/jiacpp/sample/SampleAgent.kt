@@ -75,9 +75,10 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         }
 
     }
+    // curl -o test.mkv http://localhost:8082/stream/DoThis/sample2?forward=false
 
     private fun actionDoThis(): InputStream {
-        return FileInputStream("./test.mkv")
+        return FileInputStream("/app/test.mkv")
     }
     
 
