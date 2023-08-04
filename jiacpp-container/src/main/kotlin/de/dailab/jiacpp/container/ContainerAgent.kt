@@ -24,6 +24,8 @@ import org.springframework.http.ResponseEntity
 import org.springframework.http.MediaType
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 import java.io.OutputStreamWriter
+import java.io.InputStream
+import org.apache.commons.io.IOUtils
 
 
 const val CONTAINER_AGENT = "container-agent"
@@ -156,48 +158,53 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
 
 
-        override fun getStream(action: String, parameters: Map<String, JsonNode>, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody> {
-            val body = StreamingResponseBody { outputStream ->
-            val writer = OutputStreamWriter(outputStream)
-    
-            parameters.forEach { (key, value) ->
-                writer.write("Parameter Key: $key, Parameter Value: $value\n")
-            }
-            writer.flush()
-            }
-        
-            return ResponseEntity.ok()
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(body)
-        
+        override fun getStream(action: String, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody>? {
+            log.info("GET STREAM ACTION: $action")
+            return getStream(action, null, containerId, forward)
         }
-
-        override fun getStream(action: String, parameters: Map<String, JsonNode>, agentId: String?, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody> {
-            val body = StreamingResponseBody { outputStream ->
-                val writer = OutputStreamWriter(outputStream)
         
-                parameters.forEach { (key, value) ->
-                    writer.write("Parameter Key: $key, Parameter Value: $value\n")
+
+        override fun getStream(action: String, agentId: String?, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody>? {
+            log.info("GET STREAM ACTION OF AGENT: $agentId $action")
+        
+            val agent = findRegisteredAgent(agentId, action)
+            if (agent != null) {
+                val lock = Semaphore(0) // needs to be released once before it can be acquired
+                val result = AtomicReference<InputStream?>() // holder for action result
+                val error = AtomicReference<Any?>() // holder for error, if any
+                val ref = system.resolve(agent)
+                ref invoke ask<InputStream>(Stream(action)) {
+                    log.info("GOT RESULT $it")
+                    result.set(it)
+                    lock.release()
+                }.error {
+                    log.error("ERROR $it")
+                    error.set(it)
+                    lock.release()
                 }
-                writer.flush()
+                // TODO handle timeout?
+        
+                log.debug("waiting for action result...")
+                lock.acquireUninterruptibly()
+                if (error.get() == null) {
+                    val body = StreamingResponseBody { outputStream ->
+                        IOUtils.copy(result.get(), outputStream)
+                    }
+                
+                    return ResponseEntity.ok()
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .body(body)
+                } else {
+                    when (val e = error.get()) {
+                        is Throwable -> throw RuntimeException(e)
+                        else -> throw RuntimeException(e.toString())
+                    }
                 }
-            
-                return ResponseEntity.ok()
-                    .contentType(MediaType.TEXT_PLAIN)
-                    .body(body)
+            } else {
+                throw NoSuchElementException("Action $action of Agent $agentId not found")
+            }
         }
-
-
-
-
-
-
-
-
-
-
-
-
+        
 
 
 

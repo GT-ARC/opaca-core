@@ -41,17 +41,18 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
                 
                 // Check if the request is for stream
                 if (path.contains("stream")) {
-                    val objectMapper = ObjectMapper()
-                    val parameters: Map<String, JsonNode> = mapOf(
-                        "parameter1" to objectMapper.valueToTree("value1"),
-                        "parameter2" to objectMapper.valueToTree(1234),
-                        "parameter3" to objectMapper.valueToTree(listOf("value3-1", "value3-2"))
-                    )
-                    val responseEntity = impl.getStream("test", parameters , "null", "null", true)
+                    val invokeActOf = Regex("^/stream/([^/]+)/([^/]+)$").find(path)
+                    if (invokeActOf != null) {
+                        val action = invokeActOf.groupValues[1]
+                        val agentId = invokeActOf.groupValues[2]
+                        val responseEntity = impl.getStream(action, agentId, "", false)
 
-                    response.contentType = responseEntity.headers.contentType?.toString()
-                    response.status = responseEntity.statusCodeValue
-                    responseEntity.body?.writeTo(response.outputStream)
+                        response.contentType = responseEntity.headers.contentType?.toString()
+                        response.status = responseEntity.statusCodeValue
+                        responseEntity.body?.writeTo(response.outputStream)
+                    }
+        
+
                 } else {
                     // handle other get requests
                     val res = handleGet(path)

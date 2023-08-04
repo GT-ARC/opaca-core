@@ -173,20 +173,20 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public ResponseEntity<StreamingResponseBody> getStream(String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws IOException, NoSuchElementException {
-        return getStream(action, parameters, null, containerId, forward);
+    public ResponseEntity<StreamingResponseBody> getStream(String action, String containerId, boolean forward) throws IOException, NoSuchElementException {
+        return getStream(action, null, containerId, forward);
     }
 
 
     @Override
-    public ResponseEntity<StreamingResponseBody> getStream(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws IOException {
+    public ResponseEntity<StreamingResponseBody> getStream(String action, String agentId, String containerId, boolean forward) throws IOException {
         var clients = getClients(containerId, agentId, action, forward);
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {
                 return agentId == null
-                        ? client.getStream(action, parameters, containerId, false)
-                        : client.getStream(action, parameters, agentId, containerId, false);
+                        ? client.getStream(action, containerId, false)
+                        : client.getStream(action, agentId, containerId, false);
             } catch (IOException e) {
                 log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s': %s",
                         action, agentId, client.baseUrl, e));

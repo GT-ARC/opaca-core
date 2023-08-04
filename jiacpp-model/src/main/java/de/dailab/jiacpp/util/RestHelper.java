@@ -47,13 +47,13 @@ public class RestHelper {
         return request("DELETE", path, payload, type);
     }
 
-    public ResponseEntity<StreamingResponseBody> getStream(String path, Object payload) throws IOException {
-        return requestStream(path, payload);
+    public ResponseEntity<StreamingResponseBody> getStream(String path) throws IOException {
+        return requestStream(path);
     }
 
-    public ResponseEntity<StreamingResponseBody> requestStream(String path, Object payload) throws IOException {
-        log.info(String.format("%s %s%s (%s)", "GET", baseUrl, path, payload));
-        HttpURLConnection connection = setupConnection("GET", path, payload);
+    public ResponseEntity<StreamingResponseBody> requestStream(String path) throws IOException {
+        log.info(String.format("%s %s%s (%s)", "GET", baseUrl, path));
+        HttpURLConnection connection = setupConnection("GET", path);
 
         StreamingResponseBody responseBody = response -> {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
@@ -71,7 +71,7 @@ public class RestHelper {
                 .body(responseBody);
     }
 
-    private HttpURLConnection setupConnection(String method, String path, Object payload) throws IOException {
+    private HttpURLConnection setupConnection(String method, String path) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
         connection.setRequestMethod(method);
 
@@ -79,19 +79,9 @@ public class RestHelper {
             connection.setRequestProperty("Authorization", "Bearer " + token);
         }
 
-        if (payload != null) {
-            String json = mapper.writeValueAsString(payload);
-            byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
-            connection.setDoOutput(true);
-            connection.setFixedLengthStreamingMode(bytes.length);
-            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-            connection.connect();
-            try (OutputStream os = connection.getOutputStream()) {
-                os.write(bytes);
-            }
-        } else {
-            connection.connect();
-        }
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+        connection.connect();
         return connection;
     }
 
