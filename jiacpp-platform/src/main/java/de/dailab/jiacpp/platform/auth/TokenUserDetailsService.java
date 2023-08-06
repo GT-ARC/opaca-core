@@ -5,6 +5,7 @@ import java.util.Map;
 
 import javax.annotation.PostConstruct;
 
+import de.dailab.jiacpp.platform.PlatformConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,13 +24,20 @@ import de.dailab.jiacpp.platform.session.SessionData;
 public class TokenUserDetailsService implements UserDetailsService {
 
     @Autowired
-    SessionData sessionData;
+    private SessionData sessionData;
+
+    @Autowired
+    private PlatformConfig config;
+
 
     private Map<String, String> userCredentials;
 
     @PostConstruct
 	public void postConstruct() {
 		userCredentials = sessionData.userCredentials;
+        if (userCredentials.isEmpty()) {
+            addUser(config.usernamePlatform, config.passwordPlatform);
+        }
 	}
 
     /** Returns the user as a standardized 'User' object */

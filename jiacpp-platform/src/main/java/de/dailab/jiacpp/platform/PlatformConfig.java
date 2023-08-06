@@ -8,6 +8,7 @@ import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
+import javax.annotation.PostConstruct;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.List;
@@ -91,6 +92,10 @@ public class PlatformConfig {
     @Value("${kubernetes_config}")
     public String kubernetesConfig;
 
+    @PostConstruct
+    private void initialize() {
+        log.info("Started with Config: " + this);
+    }
 
     public enum PlatformEnvironment {
         NATIVE, KUBERNETES
