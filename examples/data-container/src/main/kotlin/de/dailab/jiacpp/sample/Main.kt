@@ -11,8 +11,10 @@ fun main() {
         enable(LocalBroker)
         agents {
             add(ContainerAgent(image))
-            add(DataAgent("Data-Agent"))
-            add(DataProcessAgent("Data-Process-Agent"))
+            add(DataCaptureAgent("Data-Capture-Agent", "rtsp://admin:admin12345@130.149.98.39:554", 60))
+            add(DataProcessAgent("Data-Process-Agent", "rtsp://admin:admin12345@130.149.98.39:554", 2))
+            add(DataStreamAgent("Data-Stream-Agent", "rtsp://admin:admin12345@130.149.98.39:554"))
+            add(DataOrchestratorAgent("Data-Orchestrator-Agent", "rtsp://admin:admin12345@130.149.98.39:554"))
         }
     }.start()
 }

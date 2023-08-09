@@ -3,17 +3,28 @@ package de.dailab.jiacpp.sample
 import de.dailab.jiacpp.api.AgentContainerApi
 import de.dailab.jiacpp.container.AbstractContainerizedAgent
 import de.dailab.jiacpp.container.Invoke
+import de.dailab.jiacpp.container.Stream
 import de.dailab.jiacpp.model.Action
 import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
 import de.dailab.jiacvi.behaviour.act
-import java.io.IOException
-import kotlin.concurrent.thread
+
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+
+import org.springframework.http.ResponseEntity
+import org.springframework.http.MediaType
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
+import java.io.OutputStreamWriter
+import java.io.InputStream
+import java.io.ByteArrayOutputStream
+import java.io.ByteArrayInputStream
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.File
 
 
-
-
-class DataProcessAgent(name: String, private val camera_id: String, private val compression_ratio: Int): AbstractContainerizedAgent(name=name) {
+class DataOrchestratorAgent(name: String, private val camera_id: String): AbstractContainerizedAgent(name=name) {
 
     private var lastMessage: Any? = null
     private var lastBroadcast: Any? = null
@@ -24,7 +35,7 @@ class DataProcessAgent(name: String, private val camera_id: String, private val 
         this.name,
         this.javaClass.name,
         listOf(
-            Action("ProcessData", mapOf(), "String"),
+            Action("CaptureResults", mapOf(), "String"),
             Action("GetInfo", mapOf(), "Map"),
             Action("Fail", mapOf(), "void"),
             // actions for testing modifying agents and actions at runtime
@@ -47,7 +58,7 @@ class DataProcessAgent(name: String, private val camera_id: String, private val 
         respond<Invoke, Any?> {
             log.info("RESPOND $it")
             when (it.name) {
-                "ProcessData" -> actionProcessData()
+                "CaptureResults" -> actionCaptureResults()
                 "GetInfo" -> actionGetInfo()
                 "Fail" -> actionFail()
                 "Deregister" -> deregister(false)
@@ -56,7 +67,15 @@ class DataProcessAgent(name: String, private val camera_id: String, private val 
             }
         }
 
+        respond<Stream, Any?> {
+            when (it.name) {
+                "CaptureResults" -> actionCaptureResults()
+                else -> null
+            }
+        }
+
     }
+    // curl -o test.mkv http://localhost:8082/stream/CaptureResults/sample2?forward=false
 
     private fun sanitizeFileName(input: String): String {
         val ipAndPortPattern = "([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}:[0-9]{1,5})".toRegex()
@@ -64,41 +83,24 @@ class DataProcessAgent(name: String, private val camera_id: String, private val 
         return matchResult?.value?.replace(Regex("[:.]"), "_") ?: ""
     }
 
-    private fun actionProcessData(): String {
-        log.info("in 'ProcessData' action, waiting...")
-
-        val converted_ratio = 1.0/compression_ratio
+    private fun actionCaptureResults(): String {
         val sanitized_camera_id = sanitizeFileName(camera_id)
+        val outputFilePath = "${sanitized_camera_id}_processed.mkv";
+        
 
-        val ffmpegCommand = mutableListOf(
-            "ffmpeg",
-            "-i",
-            "$sanitized_camera_id.mkv",
-            "-vf",
-            "select='mod(n\\,${compression_ratio})',setpts=${converted_ratio}*PTS", // Keep every second frame and adjust speed
-            "${sanitized_camera_id}_processed.mkv"
-        )
-
-        println(ffmpegCommand.joinToString(" "))
-
-        val processBuilder = ProcessBuilder(ffmpegCommand)
-
-        val processThread = thread(start = false) {
-            try {
-                val process = processBuilder.start()
-                val exitCode = process.waitFor()
-                println("Exited with code $exitCode")
-            } catch (e: IOException) {
-                e.printStackTrace()
-            } catch (e: InterruptedException) {
-                e.printStackTrace()
-            }
+        val responseEntity: ResponseEntity<StreamingResponseBody> = sendOutboundStreamRequest("actionGetStream", null, true)
+        
+        val file = File(outputFilePath)
+        val outputStream = file.outputStream() // Creates a new FileOutputStream
+        
+        responseEntity.body?.apply {
+            writeTo(outputStream)
         }
-
-        processThread.start()
-        return "Action 'ProcessData' of $name called with camera_id=$camera_id"
+        
+        outputStream.close()
+        return "Stream is transferred"
     }
-
+    
     private fun actionFail() {
         throw RuntimeException("Action Failed (as expected)")
     }

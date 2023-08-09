@@ -13,7 +13,7 @@ import kotlin.concurrent.thread
 
 
 
-class DataProcessAgent(name: String, private val camera_id: String, private val compression_ratio: Int): AbstractContainerizedAgent(name=name) {
+class DataCaptureAgent(name: String, private val camera_id: String, private val stream_seconds: Int): AbstractContainerizedAgent(name=name) {
 
     private var lastMessage: Any? = null
     private var lastBroadcast: Any? = null
@@ -24,7 +24,7 @@ class DataProcessAgent(name: String, private val camera_id: String, private val 
         this.name,
         this.javaClass.name,
         listOf(
-            Action("ProcessData", mapOf(), "String"),
+            Action("CaptureData", mapOf(), "String"),
             Action("GetInfo", mapOf(), "Map"),
             Action("Fail", mapOf(), "void"),
             // actions for testing modifying agents and actions at runtime
@@ -47,7 +47,7 @@ class DataProcessAgent(name: String, private val camera_id: String, private val 
         respond<Invoke, Any?> {
             log.info("RESPOND $it")
             when (it.name) {
-                "ProcessData" -> actionProcessData()
+                "CaptureData" -> actionCaptureData()
                 "GetInfo" -> actionGetInfo()
                 "Fail" -> actionFail()
                 "Deregister" -> deregister(false)
@@ -64,22 +64,18 @@ class DataProcessAgent(name: String, private val camera_id: String, private val 
         return matchResult?.value?.replace(Regex("[:.]"), "_") ?: ""
     }
 
-    private fun actionProcessData(): String {
-        log.info("in 'ProcessData' action, waiting...")
+    private fun actionCaptureData(): String {
+        log.info("in 'CaptureData' action, waiting...")
 
-        val converted_ratio = 1.0/compression_ratio
         val sanitized_camera_id = sanitizeFileName(camera_id)
-
         val ffmpegCommand = mutableListOf(
-            "ffmpeg",
-            "-i",
-            "$sanitized_camera_id.mkv",
-            "-vf",
-            "select='mod(n\\,${compression_ratio})',setpts=${converted_ratio}*PTS", // Keep every second frame and adjust speed
-            "${sanitized_camera_id}_processed.mkv"
+        "ffmpeg",
+        "-i",
+        "$camera_id",
+        "-t",
+        "$stream_seconds",
+        "$sanitized_camera_id.mkv"
         )
-
-        println(ffmpegCommand.joinToString(" "))
 
         val processBuilder = ProcessBuilder(ffmpegCommand)
 
@@ -96,7 +92,7 @@ class DataProcessAgent(name: String, private val camera_id: String, private val 
         }
 
         processThread.start()
-        return "Action 'ProcessData' of $name called with camera_id=$camera_id"
+        return "Action 'CaptureData' of $name called with camera_id=$camera_id and stream_seconds=$stream_seconds"
     }
 
     private fun actionFail() {
@@ -111,4 +107,5 @@ class DataProcessAgent(name: String, private val camera_id: String, private val 
         Pair(AgentContainerApi.ENV_PLATFORM_URL, System.getenv(AgentContainerApi.ENV_PLATFORM_URL)),
         Pair(AgentContainerApi.ENV_TOKEN, System.getenv(AgentContainerApi.ENV_TOKEN))
     )
+
 }
