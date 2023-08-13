@@ -35,7 +35,7 @@ class DataOrchestratorAgent(name: String, private val camera_id: String): Abstra
         this.name,
         this.javaClass.name,
         listOf(
-            Action("CaptureResults", mapOf(), "String"),
+            Action("CaptureResults", mapOf(Pair("containerId", "String")), "String"),
             Action("GetInfo", mapOf(), "Map"),
             Action("Fail", mapOf(), "void"),
             // actions for testing modifying agents and actions at runtime
@@ -58,18 +58,11 @@ class DataOrchestratorAgent(name: String, private val camera_id: String): Abstra
         respond<Invoke, Any?> {
             log.info("RESPOND $it")
             when (it.name) {
-                "CaptureResults" -> actionCaptureResults()
+                "CaptureResults" -> actionCaptureResults(it.parameters["containerId"]!!.asText())
                 "GetInfo" -> actionGetInfo()
                 "Fail" -> actionFail()
                 "Deregister" -> deregister(false)
                 in extraActions.map { a -> a.name } -> "Called extra action ${it.name}"
-                else -> null
-            }
-        }
-
-        respond<Stream, Any?> {
-            when (it.name) {
-                "CaptureResults" -> actionCaptureResults()
                 else -> null
             }
         }
@@ -83,23 +76,28 @@ class DataOrchestratorAgent(name: String, private val camera_id: String): Abstra
         return matchResult?.value?.replace(Regex("[:.]"), "_") ?: ""
     }
 
-    private fun actionCaptureResults(): String {
+    private fun actionCaptureResults(containerId: String): String {
+        println("___________________CAPTURE ______________________ 1")
         val sanitized_camera_id = sanitizeFileName(camera_id)
         val outputFilePath = "${sanitized_camera_id}_processed.mkv";
-        
-
-        val responseEntity: ResponseEntity<StreamingResponseBody> = sendOutboundStreamRequest("actionGetStream", null, true)
+        println("___________________CAPTURE ______________________ 2")
+        val responseEntity: ResponseEntity<StreamingResponseBody> = sendOutboundStreamRequest("GetStream", null, containerId, false)
+        println("___________________CAPTURE ______________________ 3")
         
         val file = File(outputFilePath)
-        val outputStream = file.outputStream() // Creates a new FileOutputStream
-        
-        responseEntity.body?.apply {
-            writeTo(outputStream)
+        println("___________________CAPTURE ______________________ 4")
+        FileOutputStream(file).use { outputStream ->
+            println("___________________CAPTURE ______________________ 5")
+            responseEntity.body?.apply {
+                outputStream.use { os -> 
+                    this.writeTo(os)
+                }
+            }
         }
-        
-        outputStream.close()
+
         return "Stream is transferred"
     }
+
     
     private fun actionFail() {
         throw RuntimeException("Action Failed (as expected)")

@@ -14,6 +14,9 @@ import java.util.stream.Collectors
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import java.util.concurrent.TimeUnit
+import org.eclipse.jetty.server.AbstractConnector
+
 
 /**
  * Minimal Jetty server for providing the REST interface. There's probably a better way to do this.
@@ -38,9 +41,12 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
             try {
                 checkToken(request)
                 val path = request.pathInfo
+                println("DOOOOOOOOOOOO GEEEEEEEEEEEEET ")
                 
                 // Check if the request is for stream
                 if (path.contains("stream")) {
+                    println("STREAM  ROUTE")
+                    println(path)
                     val invokeActOf = Regex("^/stream/([^/]+)/([^/]+)$").find(path)
                     if (invokeActOf != null) {
                         val action = invokeActOf.groupValues[1]
@@ -54,6 +60,7 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
         
 
                 } else {
+                    println("ANDEREEEE")
                     // handle other get requests
                     val res = handleGet(path)
                     writeResponse(response, 200, res)
@@ -160,6 +167,13 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
         val handler = ServletHandler()
         handler.addServletWithMapping(ServletHolder(servlet), "/*")
         server.handler = handler
+
+        server.connectors.forEach { connector ->
+            if (connector is AbstractConnector) {
+                connector.idleTimeout = TimeUnit.MINUTES.toMillis(15) 
+            }
+        }
+
         server.start()
     }
 

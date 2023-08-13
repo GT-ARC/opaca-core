@@ -180,6 +180,11 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public ResponseEntity<StreamingResponseBody> getStream(String action, String agentId, String containerId, boolean forward) throws IOException {
+        System.out.println("________getStream in der PlatformImpl___________");
+        System.out.println(action);
+        System.out.println(agentId);
+        System.out.println(containerId);
+
         var clients = getClients(containerId, agentId, action, forward);
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {

@@ -52,7 +52,7 @@ public class RestHelper {
     }
 
     public ResponseEntity<StreamingResponseBody> requestStream(String path) throws IOException {
-        log.info(String.format("%s %s%s (%s)", "GET", baseUrl, path));
+        log.info(String.format("%s %s (%s)", "GET", baseUrl, path));
         HttpURLConnection connection = setupConnection("GET", path);
 
         StreamingResponseBody responseBody = response -> {

@@ -170,7 +170,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	}
 
 
-	@RequestMapping(value="/stream/{action}", method=RequestMethod.POST)
+	@RequestMapping(value="/stream/{action}", method=RequestMethod.GET)
 	@Operation(summary="stream data", tags={"agents"})
 	@Override
 	public ResponseEntity<StreamingResponseBody> getStream(
@@ -178,11 +178,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("STREAM: %s, %s", action));
+		log.info(String.format("STREAM: %s ", action));
 		return implementation.getStream(action, containerId, forward);
 	}
 
-	@RequestMapping(value="/stream/{action}/{agentId}", method=RequestMethod.POST)
+	@RequestMapping(value="/stream/{action}/{agentId}", method=RequestMethod.GET)
 	@Operation(summary="stream data", tags={"agents"})
 	@Override
 	public ResponseEntity<StreamingResponseBody> getStream(
@@ -191,7 +191,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("STREAM: %s, %s, %s", action, agentId));
+		log.info(String.format("STREAM: %s, %s", action, agentId));
 		return implementation.getStream(action, agentId, containerId, forward);
 	}	
 	/*

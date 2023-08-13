@@ -72,11 +72,12 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         return RestHelper.mapper.treeToValue(res, type)
     }
 
-    fun sendOutboundStreamRequest(action: String, agentId: String?, forward: Boolean = true): ResponseEntity<StreamingResponseBody> {
-        log.info("Outbound Stream: $action @ $agentId")
+    fun sendOutboundStreamRequest(action: String, agentId: String?, containerId: String, forward: Boolean = true): ResponseEntity<StreamingResponseBody> {
+        println("SEEEEEEEEEEEEEEEEEEND OUTBOUND STREAM REQUEQST")
+        log.info("Outbound Stream: $action @ $containerId")
         return when (agentId) {
-            null -> parentProxy.getStream(action, null, forward)
-            else -> parentProxy.getStream(action, agentId, null, forward)
+            null -> parentProxy.getStream(action, containerId, forward)
+            else -> parentProxy.getStream(action, agentId, containerId, forward)
         }
     }
 

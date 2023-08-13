@@ -81,6 +81,8 @@ class DataStreamAgent(name: String, private val camera_id: String): AbstractCont
     }
 
     private fun actionGetStream(): InputStream {
+        println("_____________________________")
+        println("ICH BIN DRIN")
         val sanitized_camera_id = sanitizeFileName(camera_id)
         
         return FileInputStream("/${sanitized_camera_id}_processed.mkv")
