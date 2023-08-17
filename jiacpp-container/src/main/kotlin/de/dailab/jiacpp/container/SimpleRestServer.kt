@@ -10,6 +10,8 @@ import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
 import java.lang.RuntimeException
+import java.io.InputStream
+import java.io.File
 import java.util.stream.Collectors
 
 import com.fasterxml.jackson.databind.JsonNode
@@ -41,31 +43,54 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
             try {
                 checkToken(request)
                 val path = request.pathInfo
-                println("DOOOOOOOOOOOO GEEEEEEEEEEEEET ")
-                
+                println("DOOOOOOOOOOOO GEEEEEEEEEEEEET up5")
+
                 // Check if the request is for stream
                 if (path.contains("stream")) {
-                    println("STREAM  ROUTE")
+                    println("STREAM ROUTE")
                     println(path)
+
+                    val invokeAct = Regex("^/stream/([^/]+)$").find(path)
+                    println(invokeAct);
+                    if (invokeAct != null) {
+                        val action = invokeAct.groupValues[1]
+                        val responseEntity = impl.getStream(action, "", false)
+
+                        if (responseEntity != null) {
+                            response.status = responseEntity.statusCodeValue
+                            responseEntity.headers.forEach { key, values ->
+                                values.forEach { value ->
+                                    response.addHeader(key, value)
+                                }
+                            }
+                            responseEntity.body?.writeTo(response.outputStream)
+                            response.flushBuffer()
+                        }
+                    }
+                    
                     val invokeActOf = Regex("^/stream/([^/]+)/([^/]+)$").find(path)
+                    println(invokeAct)
                     if (invokeActOf != null) {
                         val action = invokeActOf.groupValues[1]
                         val agentId = invokeActOf.groupValues[2]
                         val responseEntity = impl.getStream(action, agentId, "", false)
 
-                        response.contentType = responseEntity.headers.contentType?.toString()
-                        response.status = responseEntity.statusCodeValue
-                        responseEntity.body?.writeTo(response.outputStream)
+                        if (responseEntity != null) {
+                            response.status = responseEntity.statusCodeValue
+                            responseEntity.headers.forEach { key, values ->
+                                values.forEach { value ->
+                                    response.addHeader(key, value)
+                                }
+                            }
+                            responseEntity.body?.writeTo(response.outputStream)
+                            response.flushBuffer()
+                        }
                     }
-        
-
                 } else {
-                    println("ANDEREEEE")
-                    // handle other get requests
+                    println("OTHER ROUTE")
                     val res = handleGet(path)
-                    writeResponse(response, 200, res)
+                    writeResponse(response, HttpServletResponse.SC_OK, res)
                 }
-
             } catch (e: Exception) {
                 handleError(response, e)
             }

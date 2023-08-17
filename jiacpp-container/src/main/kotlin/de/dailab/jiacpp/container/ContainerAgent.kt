@@ -189,10 +189,12 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 if (error.get() == null) {
                     val body = StreamingResponseBody { outputStream ->
                         IOUtils.copy(result.get(), outputStream)
+                        outputStream.flush()
+                        outputStream.close()
                     }
                 
                     return ResponseEntity.ok()
-                        .contentType(MediaType.TEXT_PLAIN)
+                        .contentType(MediaType.valueOf("video/x-matroska"))
                         .body(body)
                 } else {
                     when (val e = error.get()) {
