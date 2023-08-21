@@ -77,17 +77,12 @@ class DataOrchestratorAgent(name: String, private val camera_id: String): Abstra
     }
 
     private fun actionCaptureResults(containerId: String): String {
-        println("___________________CAPTURE ______________________ 1")
         val sanitized_camera_id = sanitizeFileName(camera_id)
         val outputFilePath = "${sanitized_camera_id}_processed.mkv";
-        println("___________________CAPTURE ______________________ 2")
         val responseEntity: ResponseEntity<StreamingResponseBody> = sendOutboundStreamRequest("GetStream", null, containerId, false)
-        println("___________________CAPTURE ______________________ 3")
-        
+
         val file = File(outputFilePath)
-        println("___________________CAPTURE ______________________ 4")
         FileOutputStream(file).use { outputStream ->
-            println("___________________CAPTURE ______________________ 5")
             responseEntity.body?.apply {
                 outputStream.use { os -> 
                     this.writeTo(os)
