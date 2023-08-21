@@ -111,6 +111,9 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     @Override
     public ResponseEntity<StreamingResponseBody> getStream(String action, String containerId, boolean forward) throws IOException {
         System.out.println("GET STREAM in API PROXY");
+        System.out.println(action);
+        System.out.println(containerId);
+        
         var path = String.format("/stream/%s?%s", action, buildQuery(containerId, forward));
         System.out.println(path);
         return client.getStream(path);
@@ -119,6 +122,9 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     @Override
     public ResponseEntity<StreamingResponseBody> getStream(String action, String agentId, String containerId, boolean forward) throws IOException {
         System.out.println("GET STREAM in API PROXY");
+        System.out.println(action);
+        System.out.println(agentId);
+        System.out.println(containerId);
         var path = String.format("/stream/%s/%s?%s", action, agentId, buildQuery(containerId, forward));
         System.out.println(path);
         return client.getStream(path);

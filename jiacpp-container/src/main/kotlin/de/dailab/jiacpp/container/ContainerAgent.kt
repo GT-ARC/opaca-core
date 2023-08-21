@@ -25,6 +25,7 @@ import org.springframework.http.MediaType
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 import java.io.OutputStreamWriter
 import java.io.InputStream
+import org.springframework.http.HttpHeaders
 import org.apache.commons.io.IOUtils
 
 
@@ -166,35 +167,54 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         override fun getStream(action: String, agentId: String?, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody>? {
             log.info("GET STREAM ACTION OF AGENT: $agentId $action")
-        
+            
             val agent = findRegisteredAgent(agentId, action)
             if (agent != null) {
-                val lock = Semaphore(0) // needs to be released once before it can be acquired
-                val result = AtomicReference<InputStream?>() // holder for action result
-                val error = AtomicReference<Any?>() // holder for error, if any
+                val lock = Semaphore(0)
+                val result = AtomicReference<StreamWithLength?>()
+                val error = AtomicReference<Any?>()
                 val ref = system.resolve(agent)
-                ref invoke ask<InputStream>(Stream(action)) {
-                    log.info("GOT RESULT $it")
-                    result.set(it)
+                
+                ref invoke ask<StreamWithLength>(Stream(action)) { streamWithLength ->
+                    log.info("GOT RESULT $streamWithLength")
+                    result.set(streamWithLength)
                     lock.release()
-                }.error {
-                    log.error("ERROR $it")
-                    error.set(it)
+                }.error { errorResult ->
+                    log.error("ERROR $errorResult")
+                    error.set(errorResult)
                     lock.release()
                 }
-                // TODO handle timeout?
-        
+
                 log.debug("waiting for action result...")
                 lock.acquireUninterruptibly()
+
                 if (error.get() == null) {
+                    val streamWithLength = result.get()
+                    var totalBytesWritten = 0
                     val body = StreamingResponseBody { outputStream ->
-                        IOUtils.copy(result.get(), outputStream)
-                        outputStream.flush()
+                        val inputStream = streamWithLength?.inputStream
+                        println("INPUT STREAM VERGLEICH")
+                        println("Input stream length: ${inputStream?.available()}")
+                        println("Expected length: ${streamWithLength?.length}")
+                        if (inputStream != null) {
+                            val buffer = ByteArray(8192)
+                            var bytesRead: Int
+                            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                                outputStream.write(buffer, 0, bytesRead)
+                                totalBytesWritten += bytesRead
+                            }
+                            outputStream.flush()
+                            inputStream.close() 
+                        }
+                        println("Total bytes written: $totalBytesWritten")
                         outputStream.close()
                     }
-                
+                    println("ContainerAgent")
+                    println(streamWithLength?.length?.toString())
+
                     return ResponseEntity.ok()
                         .contentType(MediaType.valueOf("video/x-matroska"))
+                        .header(HttpHeaders.CONTENT_LENGTH, streamWithLength?.length?.toString())
                         .body(body)
                 } else {
                     when (val e = error.get()) {
@@ -206,7 +226,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 throw NoSuchElementException("Action $action of Agent $agentId not found")
             }
         }
-        
+
 
 
 

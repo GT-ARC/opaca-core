@@ -186,6 +186,8 @@ public class PlatformImpl implements RuntimePlatformApi {
         System.out.println(containerId);
 
         var clients = getClients(containerId, agentId, action, forward);
+        System.out.println("CLIENtS in PlatformImpl");
+        System.out.println(clients);
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {

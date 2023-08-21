@@ -14,6 +14,7 @@ import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.io.BufferedInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
@@ -56,18 +57,23 @@ public class RestHelper {
         HttpURLConnection connection = setupConnection("GET", path);
 
         StreamingResponseBody responseBody = response -> {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.write((line + "\n").getBytes(StandardCharsets.UTF_8));
+            int bytesRead;
+            long totalBytesRead = 0;
+            byte[] buffer = new byte[1024];  // adjust the buffer size if needed
+            try (BufferedInputStream bis = new BufferedInputStream(connection.getInputStream())) {
+                while ((bytesRead = bis.read(buffer)) != -1) {
+                    response.write(buffer, 0, bytesRead);
+                    totalBytesRead += bytesRead;
                 }
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
+
+            log.info(String.format("Streamed %d bytes from %s", totalBytesRead, path));
         };
 
         return ResponseEntity.ok()
-                .contentType(MediaType.TEXT_PLAIN)
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(responseBody);
     }
 

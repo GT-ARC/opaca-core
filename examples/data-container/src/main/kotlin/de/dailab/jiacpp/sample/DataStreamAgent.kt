@@ -4,6 +4,7 @@ import de.dailab.jiacpp.api.AgentContainerApi
 import de.dailab.jiacpp.container.AbstractContainerizedAgent
 import de.dailab.jiacpp.container.Invoke
 import de.dailab.jiacpp.container.Stream
+import de.dailab.jiacpp.container.StreamWithLength
 import de.dailab.jiacpp.model.Action
 import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
@@ -80,7 +81,7 @@ class DataStreamAgent(name: String, private val camera_id: String): AbstractCont
         return matchResult?.value?.replace(Regex("[:.]"), "_") ?: ""
     }
 
-    private fun actionGetStream(): InputStream {
+    private fun actionGetStream(): StreamWithLength {
         println("_____________________________")
         println("actionGetStream ICH BIN DRIN")
         val sanitized_camera_id = sanitizeFileName(camera_id)
@@ -92,7 +93,10 @@ class DataStreamAgent(name: String, private val camera_id: String): AbstractCont
         println("File length: ${file.length()}")
         println("actionGetStream File exists")
         
-        return FileInputStream("${sanitized_camera_id}_processed.mkv")
+        return StreamWithLength(
+            inputStream = FileInputStream("${sanitized_camera_id}_processed.mkv"),
+            length = file.length()
+        )
     }
     
 

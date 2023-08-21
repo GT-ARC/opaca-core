@@ -16,6 +16,7 @@ import java.util.stream.Collectors
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.springframework.http.HttpHeaders
 import java.util.concurrent.TimeUnit
 import org.eclipse.jetty.server.AbstractConnector
 
@@ -63,6 +64,11 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
                                     response.addHeader(key, value)
                                 }
                             }
+                            // Set Content Length
+                            response.contentType = "video/x-matroska"
+                            response.addHeader(HttpHeaders.CONTENT_LENGTH, responseEntity.headers.contentLength.toString())
+                            println("SIMPLE REST SERVER contentlength")
+                            println(responseEntity.headers.contentLength.toString())
                             responseEntity.body?.writeTo(response.outputStream)
                             response.flushBuffer()
                         }
@@ -77,11 +83,8 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
 
                         if (responseEntity != null) {
                             response.status = responseEntity.statusCodeValue
-                            responseEntity.headers.forEach { key, values ->
-                                values.forEach { value ->
-                                    response.addHeader(key, value)
-                                }
-                            }
+                            // Set Content Length
+                            response.addHeader(HttpHeaders.CONTENT_LENGTH, responseEntity.headers.contentLength.toString())
                             responseEntity.body?.writeTo(response.outputStream)
                             response.flushBuffer()
                         }
