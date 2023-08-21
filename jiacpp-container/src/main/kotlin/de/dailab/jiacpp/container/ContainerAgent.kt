@@ -20,12 +20,12 @@ import java.time.ZonedDateTime
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicReference
 import java.util.stream.Collectors
-import org.springframework.http.ResponseEntity
-import org.springframework.http.MediaType
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 import java.io.OutputStreamWriter
 import java.io.InputStream
 import org.springframework.http.HttpHeaders
+import org.springframework.http.ResponseEntity
+import org.springframework.http.MediaType
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 import org.apache.commons.io.IOUtils
 
 
@@ -190,30 +190,21 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
                 if (error.get() == null) {
                     val streamWithLength = result.get()
-                    var totalBytesWritten = 0
                     val body = StreamingResponseBody { outputStream ->
                         val inputStream = streamWithLength?.inputStream
-                        println("INPUT STREAM VERGLEICH")
-                        println("Input stream length: ${inputStream?.available()}")
-                        println("Expected length: ${streamWithLength?.length}")
                         if (inputStream != null) {
                             val buffer = ByteArray(8192)
                             var bytesRead: Int
                             while (inputStream.read(buffer).also { bytesRead = it } != -1) {
                                 outputStream.write(buffer, 0, bytesRead)
-                                totalBytesWritten += bytesRead
                             }
                             outputStream.flush()
                             inputStream.close() 
                         }
-                        println("Total bytes written: $totalBytesWritten")
                         outputStream.close()
                     }
-                    println("ContainerAgent")
-                    println(streamWithLength?.length?.toString())
-
                     return ResponseEntity.ok()
-                        .contentType(MediaType.valueOf("video/x-matroska"))
+                        .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .header(HttpHeaders.CONTENT_LENGTH, streamWithLength?.length?.toString())
                         .body(body)
                 } else {
@@ -226,11 +217,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 throw NoSuchElementException("Action $action of Agent $agentId not found")
             }
         }
-
-
-
-
-
     }
 
 

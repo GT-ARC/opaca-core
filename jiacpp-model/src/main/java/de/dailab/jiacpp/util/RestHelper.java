@@ -49,34 +49,26 @@ public class RestHelper {
     }
 
     public ResponseEntity<StreamingResponseBody> getStream(String path) throws IOException {
-        return requestStream(path);
-    }
-
-    public ResponseEntity<StreamingResponseBody> requestStream(String path) throws IOException {
         log.info(String.format("%s %s (%s)", "GET", baseUrl, path));
         HttpURLConnection connection = setupConnection("GET", path);
 
         StreamingResponseBody responseBody = response -> {
             int bytesRead;
-            long totalBytesRead = 0;
-            byte[] buffer = new byte[1024];  // adjust the buffer size if needed
+            byte[] buffer = new byte[1024];
             try (BufferedInputStream bis = new BufferedInputStream(connection.getInputStream())) {
                 while ((bytesRead = bis.read(buffer)) != -1) {
                     response.write(buffer, 0, bytesRead);
-                    totalBytesRead += bytesRead;
                 }
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
-
-            log.info(String.format("Streamed %d bytes from %s", totalBytesRead, path));
         };
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(responseBody);
     }
-
+    
     private HttpURLConnection setupConnection(String method, String path) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
         connection.setRequestMethod(method);

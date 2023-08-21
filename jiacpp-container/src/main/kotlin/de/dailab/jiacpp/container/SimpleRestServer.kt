@@ -7,18 +7,19 @@ import jakarta.servlet.http.HttpServlet
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.eclipse.jetty.server.Server
+import org.eclipse.jetty.server.AbstractConnector
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
 import java.lang.RuntimeException
 import java.io.InputStream
 import java.io.File
 import java.util.stream.Collectors
-
+import java.util.concurrent.TimeUnit
+import org.springframework.http.MediaType
+import org.springframework.http.HttpHeaders
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.springframework.http.HttpHeaders
-import java.util.concurrent.TimeUnit
-import org.eclipse.jetty.server.AbstractConnector
+
 
 
 /**
@@ -38,59 +39,15 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
     /**
      * servlet handling the different REST routes, delegating to `impl` for actual logic
      */
-    private val servlet = object: HttpServlet() {
-
+    private val servlet = object: HttpServlet() {   
         override fun doGet(request: HttpServletRequest, response: HttpServletResponse) {
             try {
                 checkToken(request)
                 val path = request.pathInfo
-                println("DOOOOOOOOOOOO GEEEEEEEEEEEEET up5")
 
-                // Check if the request is for stream
                 if (path.contains("stream")) {
-                    println("STREAM ROUTE")
-                    println(path)
-
-                    val invokeAct = Regex("^/stream/([^/]+)$").find(path)
-                    println(invokeAct);
-                    if (invokeAct != null) {
-                        val action = invokeAct.groupValues[1]
-                        val responseEntity = impl.getStream(action, "", false)
-
-                        if (responseEntity != null) {
-                            response.status = responseEntity.statusCodeValue
-                            responseEntity.headers.forEach { key, values ->
-                                values.forEach { value ->
-                                    response.addHeader(key, value)
-                                }
-                            }
-                            // Set Content Length
-                            response.contentType = "video/x-matroska"
-                            response.addHeader(HttpHeaders.CONTENT_LENGTH, responseEntity.headers.contentLength.toString())
-                            println("SIMPLE REST SERVER contentlength")
-                            println(responseEntity.headers.contentLength.toString())
-                            responseEntity.body?.writeTo(response.outputStream)
-                            response.flushBuffer()
-                        }
-                    }
-                    
-                    val invokeActOf = Regex("^/stream/([^/]+)/([^/]+)$").find(path)
-                    println(invokeAct)
-                    if (invokeActOf != null) {
-                        val action = invokeActOf.groupValues[1]
-                        val agentId = invokeActOf.groupValues[2]
-                        val responseEntity = impl.getStream(action, agentId, "", false)
-
-                        if (responseEntity != null) {
-                            response.status = responseEntity.statusCodeValue
-                            // Set Content Length
-                            response.addHeader(HttpHeaders.CONTENT_LENGTH, responseEntity.headers.contentLength.toString())
-                            responseEntity.body?.writeTo(response.outputStream)
-                            response.flushBuffer()
-                        }
-                    }
+                    handleStream(request, response)
                 } else {
-                    println("OTHER ROUTE")
                     val res = handleGet(path)
                     writeResponse(response, HttpServletResponse.SC_OK, res)
                 }
@@ -155,6 +112,43 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
             throw NoSuchElementException("Unknown path: $path")
         }
         
+        private fun handleStream(request: HttpServletRequest, response: HttpServletResponse) {
+            val path = request.pathInfo
+
+            val invokeAct = Regex("^/stream/([^/]+)$").find(path)
+            if (invokeAct != null) {
+                val action = invokeAct.groupValues[1]
+                val responseEntity = impl.getStream(action, "", false)
+                if (responseEntity != null) {
+                    response.status = responseEntity.statusCodeValue
+                    responseEntity.headers.forEach { key, values ->
+                        values.forEach { value ->
+                            response.addHeader(key, value)
+                        }
+                    }
+                    response.contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE
+                    response.addHeader(HttpHeaders.CONTENT_LENGTH, responseEntity.headers.contentLength.toString())
+                    responseEntity.body?.writeTo(response.outputStream)
+                    response.flushBuffer()
+                }
+            }
+            
+            val invokeActOf = Regex("^/stream/([^/]+)/([^/]+)$").find(path)
+            if (invokeActOf != null) {
+                val action = invokeActOf.groupValues[1]
+                val agentId = invokeActOf.groupValues[2]
+                val responseEntity = impl.getStream(action, agentId, "", false)
+
+                if (responseEntity != null) {
+                    response.status = responseEntity.statusCodeValue
+                    response.contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE
+                    response.addHeader(HttpHeaders.CONTENT_LENGTH, responseEntity.headers.contentLength.toString())
+                    responseEntity.body?.writeTo(response.outputStream)
+                    response.flushBuffer()
+                }
+            }
+        }     
+
         private fun handlePost(path: String, body: String): Any? {
 
             val send = Regex("^/send/([^/]+)$").find(path)

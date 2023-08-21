@@ -82,16 +82,12 @@ class DataStreamAgent(name: String, private val camera_id: String): AbstractCont
     }
 
     private fun actionGetStream(): StreamWithLength {
-        println("_____________________________")
-        println("actionGetStream ICH BIN DRIN")
         val sanitized_camera_id = sanitizeFileName(camera_id)
         
         val file = File("${sanitized_camera_id}_processed.mkv")
         if (!file.exists()) {
             println("File does not exist")
         }
-        println("File length: ${file.length()}")
-        println("actionGetStream File exists")
         
         return StreamWithLength(
             inputStream = FileInputStream("${sanitized_camera_id}_processed.mkv"),

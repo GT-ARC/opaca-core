@@ -3,23 +3,11 @@ package de.dailab.jiacpp.sample
 import de.dailab.jiacpp.api.AgentContainerApi
 import de.dailab.jiacpp.container.AbstractContainerizedAgent
 import de.dailab.jiacpp.container.Invoke
-import de.dailab.jiacpp.container.Stream
 import de.dailab.jiacpp.model.Action
 import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
 import de.dailab.jiacvi.behaviour.act
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-
-import org.springframework.http.ResponseEntity
-import org.springframework.http.MediaType
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
-import java.io.OutputStreamWriter
-import java.io.InputStream
-import java.io.ByteArrayOutputStream
-import java.io.ByteArrayInputStream
-import java.io.FileInputStream
 
 class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
 
@@ -58,29 +46,27 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         respond<Invoke, Any?> {
             log.info("RESPOND $it")
             when (it.name) {
-                "DoThis" -> actionDoThis()
+                "DoThis" -> actionDoThis(it.parameters["message"]!!.asText(), it.parameters["sleep_seconds"]!!.asInt())
+                "Add" -> actionAdd(it.parameters["x"]!!.asInt(), it.parameters["y"]!!.asInt())
                 "GetInfo" -> actionGetInfo()
                 "Fail" -> actionFail()
+                "CreateAction" -> createAction(it.parameters["name"]!!.asText(), it.parameters["notify"]!!.asBoolean())
+                "SpawnAgent" -> spawnAgent(it.parameters["name"]!!.asText())
                 "Deregister" -> deregister(false)
                 in extraActions.map { a -> a.name } -> "Called extra action ${it.name}"
-                else -> null
-            }
-        }
-
-        respond<Stream, Any?> {
-            when (it.name) {
-                "DoThis" -> actionDoThis()
-                else -> null
+                else -> Unit
             }
         }
 
     }
-    // curl -o test.mkv http://localhost:8082/stream/DoThis/sample2?forward=false
 
-    private fun actionDoThis(): InputStream {
-        return FileInputStream("/app/test.mkv")
+    private fun actionDoThis(message: String, sleep_seconds: Int): String {
+        log.info("in 'DoThis' action, waiting...")
+        println(message)
+        Thread.sleep(1000 * sleep_seconds.toLong())
+        log.info("done waiting")
+        return "Action 'DoThis' of $name called with message=$message and sleep_seconds=$sleep_seconds"
     }
-    
 
     private fun actionAdd(x: Int, y: Int) = x + y
 
