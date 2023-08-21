@@ -1,6 +1,7 @@
 package de.dailab.jiacpp.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,6 +21,9 @@ public class AgentContainer {
 
     /** the Image this container was started from */
     AgentContainerImage image;
+
+    /** Map of Parameters given to the AgentContainer */
+    Map<String, JsonNode> parameters;
 
     /** list of agents running on this container; this might change during its life-time */
     List<AgentDescription> agents;

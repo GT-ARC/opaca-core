@@ -60,6 +60,19 @@ public class AgentContainerImage {
 
     }
 
+    @Data @AllArgsConstructor @NoArgsConstructor
+    public static class ImageParameter {
+
+        String name;
+
+        String type;
+
+        Boolean optional;
+
+        // TODO default value? in what format, just as a json-parsable string? or JsonNode object?
+
+    }
+
     // helper methods allowing the port-attributes to be empty without hassle in other modules
 
     public Integer getApiPort() {
