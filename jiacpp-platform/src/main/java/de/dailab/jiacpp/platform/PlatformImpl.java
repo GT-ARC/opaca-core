@@ -9,10 +9,14 @@ import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
 import de.dailab.jiacpp.platform.containerclient.ContainerClient;
 import de.dailab.jiacpp.platform.containerclient.DockerClient;
 import de.dailab.jiacpp.platform.containerclient.KubernetesClient;
+import de.dailab.jiacpp.platform.session.SessionData;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.dailab.jiacpp.util.EventHistory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.net.URL;
 import java.util.*;
@@ -25,32 +29,41 @@ import java.util.stream.Stream;
  * further, e.g. for agent-forwarding, container-management, and linking to other platforms.
  */
 @Log
+@Component
 public class PlatformImpl implements RuntimePlatformApi {
 
-    final PlatformConfig config;
+    @Autowired
+    private SessionData sessionData;
 
-    final ContainerClient containerClient;
+    @Autowired
+    private PlatformConfig config;
 
-    final JwtUtil jwtUtil;
+    @Autowired
+    private JwtUtil jwtUtil;
 
-    final TokenUserDetailsService userDetailsService;
+    @Autowired
+    private TokenUserDetailsService userDetailsService;
+
+
+    private ContainerClient containerClient;
 
 
     /** Currently running Agent Containers, mapping container ID to description */
-    private final Map<String, AgentContainer> runningContainers = new HashMap<>();
-    private final Map<String, String> tokens = new HashMap<>();
+    private Map<String, AgentContainer> runningContainers;
+    private Map<String, String> tokens;
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
-    private final Map<String, RuntimePlatform> connectedPlatforms = new HashMap<>();
+    private Map<String, RuntimePlatform> connectedPlatforms;
 
     /** Set of remote Runtime Platform URLs with a pending connection request */
     private final Set<String> pendingConnections = new HashSet<>();
 
 
-    public PlatformImpl(PlatformConfig config, TokenUserDetailsService userDetailsService, JwtUtil jwtUtil) {
-        this.config = config;
-        this.userDetailsService = userDetailsService;
-        this.jwtUtil = jwtUtil;
+    @PostConstruct
+    public void initialize() {
+        this.runningContainers = sessionData.runningContainers;
+        this.tokens = sessionData.tokens;
+        this.connectedPlatforms = sessionData.connectedPlatforms;
 
         if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.DOCKER) {
             log.info("Using Docker on host " + config.remoteDockerHost);
@@ -62,7 +75,8 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw new IllegalArgumentException("Invalid environment specified");
         }
 
-        this.containerClient.initialize(config);
+        this.containerClient.initialize(config, sessionData);
+        this.containerClient.testConnectivity();
         // TODO add list of known used ports to config (e.g. the port of the RP itself, or others)
     }
 
@@ -134,20 +148,20 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws IOException, NoSuchElementException {
-        return invoke(action, parameters, null, containerId, forward);
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
+        return invoke(action, parameters, null, timeout, containerId, forward);
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws IOException, NoSuchElementException {
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
         var clients = getClients(containerId, agentId, action, forward);
 
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {
                 return agentId == null
-                        ? client.invoke(action, parameters, containerId, false)
-                        : client.invoke(action, parameters, agentId, containerId, false);
+                        ? client.invoke(action, parameters, timeout, containerId, false)
+                        : client.invoke(action, parameters, agentId, timeout, containerId, false);
             } catch (IOException e) {
                 log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s': %s",
                         action, agentId, client.baseUrl, e));

@@ -8,6 +8,7 @@ import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
+import javax.annotation.PostConstruct;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.List;
@@ -37,6 +38,9 @@ public class PlatformConfig {
 
     @Value("${platform_environment}")
     public PlatformEnvironment platformEnvironment;
+
+    @Value("${session_policy}")
+    public SessionPolicy sessionPolicy;
 
     @Value("${container_timeout_sec}")
     public int containerTimeoutSec;
@@ -88,9 +92,17 @@ public class PlatformConfig {
     @Value("${kubernetes_config}")
     public String kubernetesConfig;
 
+    @PostConstruct
+    private void initialize() {
+        log.info("Started with Config: " + this);
+    }
 
     public enum PlatformEnvironment {
         NATIVE, KUBERNETES
+    }
+
+    public enum SessionPolicy {
+        SHUTDOWN, RESTART, RECONNECT
     }
 
     public enum ContainerEnvironment {

@@ -2,11 +2,9 @@ package de.dailab.jiacpp.platform;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.platform.auth.JwtUtil;
-import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
 import de.dailab.jiacpp.util.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -17,15 +15,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.stream.Collectors;
 
 
 /**
@@ -35,18 +28,14 @@ import java.util.stream.Collectors;
 @Log
 @RestController
 @SecurityRequirement(name = "bearerAuth")
+@CrossOrigin(origins = "*", methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE } )
 public class PlatformRestController implements RuntimePlatformApi {
 
 	@Autowired
-	PlatformConfig config;
+	private JwtUtil jwtUtil;
 
 	@Autowired
-    TokenUserDetailsService tokenUserDetailsService;
-
-	@Autowired
-	JwtUtil jwtUtil;
-
-	RuntimePlatformApi implementation;
+	private RuntimePlatformApi implementation;
 
 
 	/*
@@ -55,31 +44,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 	@PostConstruct
 	public void postConstruct() {
-		log.info("In Post-Construct");
-		log.info("Started with Config: " + config);
-
-		tokenUserDetailsService.addUser(config.usernamePlatform, config.passwordPlatform);
-		implementation = EventProxy.create(new PlatformImpl(config, tokenUserDetailsService, jwtUtil));
-		this.startDefaultImages();
-	}
-
-	@PreDestroy
-	public void preDestroy() throws IOException {
-		log.info("In Destroy, stopping containers...");
-		for (String connection : implementation.getConnections()) {
-			try {
-				implementation.disconnectPlatform(connection);
-			} catch (Exception e) {
-				log.warning("Exception disconnecting from " + connection + ": " + e.getMessage());
-			}
-		}
-		for (AgentContainer container : implementation.getContainers()) {
-			try {
-				implementation.removeContainer(container.getContainerId());
-			} catch (Exception e) {
-				log.warning("Exception stopping container " + container.getContainerId() + ": " + e.getMessage());
-			}
-		}
+		implementation = EventProxy.create(implementation);
 	}
 
 	/*
@@ -201,11 +166,12 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public JsonNode invoke(
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters,
+			@RequestParam(required = false, defaultValue = "-1") int timeout,
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("INVOKE: %s, %s", action, parameters));
-		return implementation.invoke(action, parameters, containerId, forward);
+		return implementation.invoke(action, parameters, timeout, containerId, forward);
 	}
 
 	@RequestMapping(value="/invoke/{action}/{agentId}", method=RequestMethod.POST)
@@ -215,11 +181,12 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters,
 			@PathVariable String agentId,
+			@RequestParam(required = false, defaultValue = "-1") int timeout,
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("INVOKE: %s, %s, %s", action, agentId, parameters));
-		return implementation.invoke(action, parameters, agentId, containerId, forward);
+		return implementation.invoke(action, parameters, agentId, timeout, containerId, forward);
 	}
 
 	/*
@@ -314,37 +281,6 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public boolean notifyUpdatePlatform(@RequestBody String platformUrl) throws IOException {
 		log.info(String.format("NOTIFY: %s", platformUrl));
 		return implementation.notifyUpdatePlatform(platformUrl);
-	}
-
-	/*
-	 * HELPER METHODS
-	 */
-
-	/**
-	 * reads image config files from default container directory
-	 */
-	public List<File> readDefaultImages() {
-		if (Strings.isNullOrEmpty(config.defaultImageDirectory)) return List.of();
-		try {
-			return Files.list(Path.of(config.defaultImageDirectory))
-					.map(Path::toFile)
-					.filter(f -> f.isFile() && f.getName().toLowerCase().endsWith(".json"))
-					.collect(Collectors.toList());
-		} catch (IOException e) {
-			log.severe("Failed to read default images: " + e);
-			return List.of();
-		}
-	}
-
-	private void startDefaultImages() {
-		for (File file: readDefaultImages()) {
-			log.info("Auto-deploying " + file);
-			try {
-				this.addContainer(RestHelper.mapper.readValue(file, AgentContainerImage.class));
-			} catch (Exception e) {
-				log.severe(String.format("Failed to load image specified in file %s: %s", file, e));
-			}
-		}
 	}
 
 }

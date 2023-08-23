@@ -9,7 +9,6 @@ import jakarta.servlet.http.HttpServletResponse
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
-import java.lang.RuntimeException
 import java.util.stream.Collectors
 
 
@@ -47,8 +46,9 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
             try {
                 checkToken(request)
                 val path = request.pathInfo  // NOTE: queryParams (?...) go to request.queryString
+                val query = request.queryString
                 val body: String = request.reader.lines().collect(Collectors.joining())
-                val res = handlePost(path, body)
+                val res = handlePost(path, query, body)
                 writeResponse(response, 200, res)
             } catch (e: Exception) {
                 handleError(response, e)
@@ -99,7 +99,9 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
             throw NoSuchElementException("Unknown path: $path")
         }
 
-        private fun handlePost(path: String, body: String): Any? {
+        private fun handlePost(path: String, query: String?, body: String): Any? {
+            val queryParams = parseQueryString(query)
+            val timeout = queryParams.getOrDefault("timeout", "-1").toInt()
 
             val send = Regex("^/send/([^/]+)$").find(path)
             if (send != null) {
@@ -119,7 +121,7 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
             if (invokeAct != null) {
                 val action = invokeAct.groupValues[1]
                 val parameters = RestHelper.readMap(body)
-                return impl.invoke(action, parameters, "", false)
+                return impl.invoke(action, parameters, timeout, "", false)
             }
 
             val invokeActOf = Regex("^/invoke/([^/]+)/([^/]+)$").find(path)
@@ -127,11 +129,17 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
                 val action = invokeActOf.groupValues[1]
                 val agentId = invokeActOf.groupValues[2]
                 val parameters = RestHelper.readMap(body)
-                return impl.invoke(action, parameters, agentId, "", false)
+                return impl.invoke(action, parameters, agentId, timeout, "", false)
             }
 
             throw NoSuchElementException("Unknown path: $path")
         }
+
+        // adapted from https://stackoverflow.com/a/17472462/1639625
+        fun parseQueryString(queryString: String?) = (queryString ?: "")
+            .split("&")
+            .map { it.split("=") }
+            .associate { Pair(it[0], if (it.size > 1) it[1] else "") }
 
     }
 
