@@ -135,7 +135,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                     return RestHelper.mapper.valueToTree(result.get())
                 } else {
                     when (val e = error.get()) {
-                        is Throwable -> throw RuntimeException(e)
+                        is Throwable -> throw e
                         else -> throw RuntimeException(e.toString())
                     }
                 }

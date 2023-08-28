@@ -203,7 +203,8 @@ public class PlatformTests {
     public void test4InvokeFail() throws Exception {
         var con = request(PLATFORM_A, "POST", "/invoke/Fail", Map.of());
         Assert.assertEquals(502, con.getResponseCode());
-        // TODO this is not ideal yet... the original error may contain a descriptive message that is lost
+        var msg = error(con);
+        Assert.assertTrue(msg.contains("Action Failed (as expected)"));
     }
 
     @Test
