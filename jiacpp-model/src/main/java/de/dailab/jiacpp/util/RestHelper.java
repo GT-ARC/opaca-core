@@ -67,7 +67,7 @@ public class RestHelper {
             if (connection.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST) {
                 return mapper.readValue(connection.getInputStream(), type);
             } else {
-                throw new IOException(mapper.readValue(connection.getErrorStream().readAllBytes(), JsonNode.class).toString());
+                throw new IOException(mapper.readValue(connection.getErrorStream(), JsonNode.class).toString());
             }
         } else {
             return null;

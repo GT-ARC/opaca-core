@@ -89,4 +89,8 @@ public class TestUtils {
         return RestHelper.mapper.readValue(connection.getInputStream(), type);
     }
 
+    public static String error(HttpURLConnection connection) throws IOException {
+        return new String(connection.getErrorStream().readAllBytes());
+    }
+
 }
