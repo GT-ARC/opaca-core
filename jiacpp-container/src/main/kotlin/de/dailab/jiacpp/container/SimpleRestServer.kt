@@ -31,6 +31,16 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
      */
     private val servlet = object: HttpServlet() {
 
+        /**
+         * maps exception classes to error status codes
+         */
+        private val errorStatusCodes = mutableMapOf<Class<out Exception>, Int>()
+
+        init {
+            registerErrorCode(NoSuchElementException::class.java, 404)
+            registerErrorCode(NotAuthenticatedException::class.java, 403)
+        }
+
         override fun doGet(request: HttpServletRequest, response: HttpServletResponse) {
             try {
                 checkToken(request)
@@ -69,13 +79,20 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
         }
 
         private fun handleError(response: HttpServletResponse, e: Exception) {
-            val code = when (e) {
-                is NoSuchElementException -> 404
-                is NotAuthenticatedException -> 403
-                else -> 500
-            }
+            val code = getErrorCode(e)
             val err = mapOf(Pair("details", e.toString()))
             writeResponse(response, code, err)
+        }
+
+        fun getErrorCode(e: Exception): Int {
+            return when (e) {
+                is JiacppException -> e.statusCode
+                else -> errorStatusCodes[e::class.java] ?: 500
+            }
+        }
+
+        fun registerErrorCode(exceptionClass: Class<out Exception>, code: Int) {
+            errorStatusCodes[exceptionClass] = code
         }
 
         private fun handleGet(path: String): Any? {
@@ -154,6 +171,11 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
         server.stop()
     }
 
-    class NotAuthenticatedException(message: String): RuntimeException(message)
+    fun registerErrorCode(exceptionClass: Class<out Exception>, code: Int) {
+        servlet.registerErrorCode(exceptionClass, code)
+    }
 
+    class NotAuthenticatedException(message: String): RuntimeException(message)
+    class JiacppException(val statusCode: Int, message: String): Exception(message)
 }
+

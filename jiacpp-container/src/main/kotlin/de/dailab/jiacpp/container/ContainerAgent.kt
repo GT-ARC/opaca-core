@@ -186,4 +186,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             .firstOrNull()
     }
 
+    fun registerErrorCode(exceptionClass: Class<out Exception>, code: Int) {
+        server.registerErrorCode(exceptionClass, code)
+    }
+
 }
