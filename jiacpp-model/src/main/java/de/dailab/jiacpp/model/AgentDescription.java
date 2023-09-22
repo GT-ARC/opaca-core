@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
+
 
 /**
  * Description of a single running agents, including its capabilities.
@@ -22,5 +24,7 @@ public class AgentDescription {
 
     /** list of actions provided by this agent, if any */
     List<Action> actions;
+
+    Map<String, ObjectDefinition> definitions;
 
 }

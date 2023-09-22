@@ -4,6 +4,7 @@ import de.dailab.jiacpp.api.AgentContainerApi
 import de.dailab.jiacpp.container.AbstractContainerizedAgent
 import de.dailab.jiacpp.container.Invoke
 import de.dailab.jiacpp.model.Action
+import de.dailab.jiacpp.model.ObjectDefinition
 import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
 import de.dailab.jiacvi.behaviour.act
@@ -20,15 +21,26 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         this.name,
         this.javaClass.name,
         listOf(
-            Action("DoThis", mapOf(Pair("message", "String"), Pair("sleep_seconds", "Int")), "String"),
-            Action("GetInfo", mapOf(), "Map"),
-            Action("Add", mapOf(Pair("x", "String"), Pair("y", "Int")), "Int"),
-            Action("Fail", mapOf(), "void"),
+           Action("DoThis", mapOf(Pair("message", mapOf(Pair("name", "message"),Pair("type", "String"), Pair("optional", "true"))),Pair("sleep_seconds", mapOf(Pair("name", "sleep_seconds"),Pair("type", "Int"), Pair("optional", "false")))), "String"),
+           Action("GetInfo", mapOf(), "Map"),
+           Action("Add", mapOf(Pair("x", mapOf(Pair("name", "x"),Pair("type", "String"), Pair("optional", "true"))), Pair("y", mapOf(Pair("name", "y"),Pair("type", "Int"), Pair("optional", "true")))), "Int"),
+           Action("Fail", mapOf(), "void"),
             // actions for testing modifying agents and actions at runtime
-            Action("CreateAction", mapOf(Pair("name", "String"), Pair("notify", "Boolean")), "void"),
-            Action("SpawnAgent", mapOf(Pair("name", "String")), "void"),
-            Action("Deregister", mapOf(), "void")
-        ).plus(extraActions)
+           Action("CreateAction", mapOf(Pair("name", mapOf(Pair("name", "name"),Pair("type", "String"), Pair("optional", "true"))), Pair("notify", mapOf(Pair("name", "notify"),Pair("type", "Boolean"), Pair("optional", "true")))), "void"),
+           Action("SpawnAgent", mapOf(Pair("name", mapOf(Pair("name", "name"),Pair("type", "String"), Pair("optional", "false")))), "void"),
+           Action("Deregister", mapOf(), "void")
+        ).plus(extraActions),
+        mapOf(
+            Pair("car", ObjectDefinition("none", mapOf(
+                Pair("name", mapOf(Pair("name", "name"),Pair("type", "String"), Pair("optional", "false"))),
+                Pair("age", mapOf(Pair("name", "age"),Pair("type", "String"), Pair("optional", "false"))),
+                Pair("orientation", mapOf(Pair("name", "orientation"),Pair("type", "String"), Pair("optional", "false"))),
+                Pair("number", mapOf(Pair("name", "number"),Pair("type", "String"), Pair("optional", "false")))
+                ))),
+            Pair("tesla", ObjectDefinition("none", mapOf(Pair("name", mapOf(Pair("name", "name"),Pair("type", "String"), Pair("optional", "false")))))),
+            Pair("volvo", ObjectDefinition("none", mapOf(Pair("name", mapOf(Pair("name", "name"),Pair("type", "String"), Pair("optional", "false")))))),
+            Pair("benching", ObjectDefinition("none", mapOf(Pair("name", mapOf(Pair("name", "name"),Pair("type", "String"), Pair("optional", "false"))))))
+            )
     )
 
     override fun behaviour() = act {
@@ -54,7 +66,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
                 "SpawnAgent" -> spawnAgent(it.parameters["name"]!!.asText())
                 "Deregister" -> deregister(false)
                 in extraActions.map { a -> a.name } -> "Called extra action ${it.name}"
-                else -> Unit
+                else -> null
             }
         }
 
@@ -65,7 +77,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         println(message)
         Thread.sleep(1000 * sleep_seconds.toLong())
         log.info("done waiting")
-        return "Action 'DoThis' of $name called with message=$message and sleep_seconds=$sleep_seconds"
+        return "Action 'DoThis' of $name called called called with message=$message and sleep_seconds=$sleep_seconds"
     }
 
     private fun actionAdd(x: Int, y: Int) = x + y

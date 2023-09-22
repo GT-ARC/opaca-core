@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
+
 /**
  * Describes an action provided by one or more agents.
  */
@@ -16,7 +17,7 @@ public class Action {
     String name;
 
     /** parameter names and types */
-    Map<String, String> parameters;
+    Map<String, Map<String, String>> parameters;
 
     /** type of result */
     String result;

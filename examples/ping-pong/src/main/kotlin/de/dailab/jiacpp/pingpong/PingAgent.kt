@@ -4,6 +4,7 @@ import de.dailab.jiacpp.container.*
 import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
 import de.dailab.jiacpp.util.RestHelper
+import de.dailab.jiacpp.model.ObjectDefinition
 import de.dailab.jiacvi.behaviour.act
 import java.time.Duration
 import kotlin.random.Random
@@ -14,7 +15,8 @@ class PingAgent: AbstractContainerizedAgent(name="ping-agent") {
     override fun getDescription() = AgentDescription(
         this.name,
         this.javaClass.name,
-        listOf()
+        listOf(),
+        mapOf(Pair("car", ObjectDefinition("none", mapOf(Pair("name", mapOf(Pair("name", "name"),Pair("type", "String"), Pair("optional", "false")))))))
     )
 
     private var lastRequest = -1
