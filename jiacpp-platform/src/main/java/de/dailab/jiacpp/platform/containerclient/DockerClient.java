@@ -1,5 +1,6 @@
 package de.dailab.jiacpp.platform.containerclient;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.exception.InternalServerErrorException;
@@ -15,6 +16,7 @@ import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
+import de.dailab.jiacpp.model.PostAgentContainer;
 import de.dailab.jiacpp.platform.PlatformConfig;
 import de.dailab.jiacpp.platform.session.SessionData;
 import lombok.AllArgsConstructor;
@@ -87,7 +89,8 @@ public class DockerClient implements ContainerClient {
     }
 
     @Override
-    public AgentContainer.Connectivity startContainer(String containerId, String token, AgentContainerImage image) throws IOException, NoSuchElementException {
+    public AgentContainer.Connectivity startContainer(String containerId, String token, PostAgentContainer container) throws IOException, NoSuchElementException {
+        var image = container.getImage();
         var imageName = image.getImageName();
         var extraPorts = image.getExtraPorts();
 
@@ -106,13 +109,11 @@ public class DockerClient implements ContainerClient {
 
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
-                    .withEnv(
-                            String.format("%s=%s", AgentContainerApi.ENV_CONTAINER_ID, containerId),
-                            String.format("%s=%s", AgentContainerApi.ENV_TOKEN, token),
-                            String.format("%s=%s", AgentContainerApi.ENV_PLATFORM_URL, config.getOwnBaseUrl()))
+                    .withEnv(buildEnv(containerId, token, container.getParameters()))
                     .withHostConfig(HostConfig.newHostConfig().withPortBindings(portBindings))
                     .withExposedPorts(portBindings.stream().map(PortBinding::getExposedPort).collect(Collectors.toList()))
                     .exec();
+
             log.info(String.format("Result: %s", res));
 
             log.info("Starting Container...");
@@ -132,6 +133,16 @@ public class DockerClient implements ContainerClient {
             log.warning("Image not found: " + imageName);
             throw new NoSuchElementException("Image not found: " + imageName);
         }
+    }
+
+    private String[] buildEnv(String containerId, String token, Map<String, JsonNode> parameters) {
+        // todo: think of a better way to implement this
+        String[] env = new String[3]; // 3 + (amount of param env variables)
+        env[0] = String.format("%s=%s", AgentContainerApi.ENV_CONTAINER_ID, containerId);
+        env[1] = String.format("%s=%s", AgentContainerApi.ENV_TOKEN, token);
+        env[2] = String.format("%s=%s", AgentContainerApi.ENV_PLATFORM_URL, config.getOwnBaseUrl());
+        // for (param in params) { ... }
+        return env;
     }
 
     @Override

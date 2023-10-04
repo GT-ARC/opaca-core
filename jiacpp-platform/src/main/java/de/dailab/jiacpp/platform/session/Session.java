@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.io.IOException;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ import javax.annotation.PreDestroy;
 import com.google.common.base.Strings;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
+import de.dailab.jiacpp.model.PostAgentContainer;
 import de.dailab.jiacpp.platform.PlatformImpl;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -133,7 +135,10 @@ public class Session {
         for (File file: readDefaultImages()) {
             log.info("Auto-deploying " + file);
             try {
-                implementation.addContainer(RestHelper.mapper.readValue(file, AgentContainerImage.class));
+                // todo: read params?
+                var container = new PostAgentContainer();
+                container.setImage(RestHelper.mapper.readValue(file, AgentContainerImage.class));
+                implementation.addContainer(container);
             } catch (Exception e) {
                 log.severe(String.format("Failed to load image specified in file %s: %s", file, e));
             }
@@ -150,7 +155,11 @@ public class Session {
         data.reset();
         for (AgentContainer agentContainer : lastContainers.values()) {
             try {
-                implementation.addContainer(agentContainer.getImage());
+                // I guess this would require the platform to filter out the "private" params
+                // todo: set params
+                var container = new PostAgentContainer();
+                container.setImage(agentContainer.getImage());
+                implementation.addContainer(container);
             } catch (IOException e) {
                 e.printStackTrace();
             }

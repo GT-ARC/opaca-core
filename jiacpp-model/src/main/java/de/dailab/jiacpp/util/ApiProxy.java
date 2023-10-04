@@ -87,7 +87,7 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     // CONTAINER ROUTES
 
     @Override
-    public String addContainer(AgentContainerImage container) throws IOException {
+    public String addContainer(PostAgentContainer container) throws IOException {
         return client.post("/containers", container, String.class);
     }
 

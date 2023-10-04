@@ -179,28 +179,28 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     @Override
-    public String addContainer(AgentContainerImage image) throws IOException {
+    public String addContainer(PostAgentContainer container) throws IOException {
         String agentContainerId = UUID.randomUUID().toString();
         String token = config.enableAuth ? jwtUtil.generateTokenForAgentContainer(agentContainerId) : "";
 
         // start container... this may raise an Exception, or returns the connectivity info
-        var connectivity = containerClient.startContainer(agentContainerId, token, image);
+        var connectivity = containerClient.startContainer(agentContainerId, token, container);
 
         // wait until container is up and running...
         var start = System.currentTimeMillis();
         var client = getClient(agentContainerId, token);
         String extraMessage = "";
-        while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000) {
+        while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000L) {
             try {
-                var container = client.getContainerInfo();
-                container.setConnectivity(connectivity);
-                runningContainers.put(agentContainerId, container);
+                var containerInfo = client.getContainerInfo();
+                containerInfo.setConnectivity(connectivity);
+                runningContainers.put(agentContainerId, containerInfo);
                 tokens.put(agentContainerId, token);
                 userDetailsService.addUser(agentContainerId, agentContainerId);
                 log.info("Container started: " + agentContainerId);
-                if (! container.getContainerId().equals(agentContainerId)) {
+                if (! containerInfo.getContainerId().equals(agentContainerId)) {
                     log.warning("Agent Container ID does not match: Expected " +
-                            agentContainerId + ", but found " + container.getContainerId());
+                            agentContainerId + ", but found " + containerInfo.getContainerId());
                 }
                 notifyConnectedPlatforms();
                 return agentContainerId;
