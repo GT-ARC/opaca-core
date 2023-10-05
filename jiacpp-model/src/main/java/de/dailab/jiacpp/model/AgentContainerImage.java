@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.awt.*;
 import java.util.List;
 import java.util.Map;
 
@@ -49,6 +50,9 @@ public class AgentContainerImage {
     /** additional ports exposed by the container and the protocols and services those provide */
     Map<Integer, PortDescription> extraPorts;
 
+    /** additional parameters that get handed down to the container as environment variables */
+    List<ImageParameter> parameters;
+
     @Data @AllArgsConstructor @NoArgsConstructor
     public static class PortDescription {
 
@@ -65,11 +69,16 @@ public class AgentContainerImage {
 
         String name;
 
+        // OK: what to you mean by "type"? the data type? or whether it is for the platform or the container?
         String type;
 
-        Boolean optional;
+        Boolean required = false;
+
+        Boolean confidential = false;
 
         // TODO default value? in what format, just as a json-parsable string? or JsonNode object?
+        // OK: I think string makes the most sense, since they get passed to the container as a string anyways.
+        String value;
 
     }
 

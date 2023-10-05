@@ -1,9 +1,9 @@
 package de.dailab.jiacpp.platform.containerclient;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
+import de.dailab.jiacpp.model.AgentContainerImage.ImageParameter;
 import de.dailab.jiacpp.model.PostAgentContainer;
 import de.dailab.jiacpp.platform.PlatformConfig;
 import de.dailab.jiacpp.platform.session.SessionData;
@@ -113,7 +113,7 @@ public class KubernetesClient implements ContainerClient {
                                         .ports(List.of(
                                                 new V1ContainerPort().containerPort(image.getApiPort())
                                         ))
-                                        .env(buildEnv(containerId, token, container.getParameters()))
+                                        .env(buildEnv(containerId, token, image.getParameters()))
                         ))
                         .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)))
                 );
@@ -168,12 +168,14 @@ public class KubernetesClient implements ContainerClient {
         }
     }
 
-    private List<V1EnvVar> buildEnv(String containerId, String token, Map<String, JsonNode> parameters) {
+    private List<V1EnvVar> buildEnv(String containerId, String token, List<ImageParameter> parameters) {
         ArrayList<V1EnvVar> env = new ArrayList<>();
         env.add(new V1EnvVar().name(AgentContainerApi.ENV_CONTAINER_ID).value(containerId));
         env.add(new V1EnvVar().name(AgentContainerApi.ENV_TOKEN).value(token));
         env.add(new V1EnvVar().name(AgentContainerApi.ENV_PLATFORM_URL).value(config.getOwnBaseUrl()));
-        // for (param in params) { ... }
+        for (ImageParameter parameter: parameters) {
+            env.add(new V1EnvVar().name(parameter.getName()).value(parameter.getValue()));
+        }
         return env;
     }
 

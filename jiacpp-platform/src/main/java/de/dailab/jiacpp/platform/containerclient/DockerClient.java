@@ -1,6 +1,5 @@
 package de.dailab.jiacpp.platform.containerclient;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.exception.InternalServerErrorException;
@@ -16,6 +15,7 @@ import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
+import de.dailab.jiacpp.model.AgentContainerImage.ImageParameter;
 import de.dailab.jiacpp.model.PostAgentContainer;
 import de.dailab.jiacpp.platform.PlatformConfig;
 import de.dailab.jiacpp.platform.session.SessionData;
@@ -109,7 +109,7 @@ public class DockerClient implements ContainerClient {
 
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
-                    .withEnv(buildEnv(containerId, token, container.getParameters()))
+                    .withEnv(buildEnv(containerId, token, image.getParameters()))
                     .withHostConfig(HostConfig.newHostConfig().withPortBindings(portBindings))
                     .withExposedPorts(portBindings.stream().map(PortBinding::getExposedPort).collect(Collectors.toList()))
                     .exec();
@@ -135,13 +135,23 @@ public class DockerClient implements ContainerClient {
         }
     }
 
-    private String[] buildEnv(String containerId, String token, Map<String, JsonNode> parameters) {
-        // todo: think of a better way to implement this
-        String[] env = new String[3]; // 3 + (amount of param env variables)
+    /**
+     // todo: think of a better way to implement this
+
+     * @param containerId containerId
+     * @param token token
+     * @param parameters parameters
+     * @return env
+     */
+    private String[] buildEnv(String containerId, String token, List<ImageParameter> parameters) {
+        String[] env = new String[3 + parameters.size()];
         env[0] = String.format("%s=%s", AgentContainerApi.ENV_CONTAINER_ID, containerId);
         env[1] = String.format("%s=%s", AgentContainerApi.ENV_TOKEN, token);
         env[2] = String.format("%s=%s", AgentContainerApi.ENV_PLATFORM_URL, config.getOwnBaseUrl());
-        // for (param in params) { ... }
+        for (int i = 0; i < parameters.size(); ++i) {
+            var parameter = parameters.get(i);
+            env[3 + i] = String.format("%s=%s", parameter.getName(), parameter.getValue());
+        }
         return env;
     }
 
