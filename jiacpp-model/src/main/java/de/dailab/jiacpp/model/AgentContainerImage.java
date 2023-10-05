@@ -49,6 +49,8 @@ public class AgentContainerImage {
     /** additional ports exposed by the container and the protocols and services those provide */
     Map<Integer, PortDescription> extraPorts;
 
+    Map<String, ObjectDefinition> definitions;
+
     @Data @AllArgsConstructor @NoArgsConstructor
     public static class PortDescription {
 
@@ -59,6 +61,7 @@ public class AgentContainerImage {
         String description;
 
     }
+
 
     // helper methods allowing the port-attributes to be empty without hassle in other modules
 

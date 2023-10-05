@@ -17,7 +17,7 @@ public class Action {
     String name;
 
     /** parameter names and types */
-    Map<String, Map<String, String>> parameters;
+    Map<String, Parameter> parameters;
 
     /** type of result */
     String result;

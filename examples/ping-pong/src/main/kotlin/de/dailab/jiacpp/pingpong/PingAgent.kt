@@ -15,8 +15,7 @@ class PingAgent: AbstractContainerizedAgent(name="ping-agent") {
     override fun getDescription() = AgentDescription(
         this.name,
         this.javaClass.name,
-        listOf(),
-        mapOf(Pair("car", ObjectDefinition("none", mapOf(Pair("name", mapOf(Pair("name", "name"),Pair("type", "String"), Pair("optional", "false")))))))
+        listOf()
     )
 
     private var lastRequest = -1

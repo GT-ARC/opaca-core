@@ -19,6 +19,57 @@
       "protocol": "UDP",
       "description": "Simple Web Server for testing UDP port"
     }
+    
+  },
+  "definitions": {
+    "car": {
+      "inherits": "vehicle",
+      "parameters": {
+        "name": {
+          "name": "name",
+          "type": "String",
+          "optional": "false"
+        },
+        "pessengers": {
+          "name": "pessengers",
+          "type": "Array",
+          "optional": "false",
+          "items": {
+            "type": "human"
+          }
+        },
+        "isCar": {
+          "name": "isCar",
+          "type": "Boolean",
+          "optional": "false"
+        },
+        "number": {
+          "name": "number",
+          "type": "String",
+          "optional": "false"
+        },
+        "carNextToMe": {
+          "name": "carNextToMe",
+          "type": "car",
+          "optional": "false"
+        }
+      }
+    },
+    "vehicle": {
+      "inherits": "none",
+      "parameters": {
+        "vehicle license": {
+          "name": "vehicle license",
+          "type": "String",
+          "optional": "false"
+        },
+        "num of wheels": {
+          "name": "num of wheels",
+          "type": "Number",
+          "optional": "false"
+        }
+      }
+    }
   }
 
 }

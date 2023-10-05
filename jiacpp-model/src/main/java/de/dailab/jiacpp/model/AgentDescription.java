@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
-import java.util.Map;
+
 
 
 /**
@@ -24,7 +24,5 @@ public class AgentDescription {
 
     /** list of actions provided by this agent, if any */
     List<Action> actions;
-
-    Map<String, ObjectDefinition> definitions;
 
 }

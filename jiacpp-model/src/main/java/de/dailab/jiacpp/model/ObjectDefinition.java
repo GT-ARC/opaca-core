@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 public class ObjectDefinition {
     
     String inherits;
-    Map<String, Map<String, String>> parameters;
+    Map<String, Parameter> parameters;
 
 
 }

@@ -4,6 +4,8 @@ import de.dailab.jiacpp.api.AgentContainerApi
 import de.dailab.jiacpp.container.AbstractContainerizedAgent
 import de.dailab.jiacpp.container.Invoke
 import de.dailab.jiacpp.model.Action
+import de.dailab.jiacpp.model.Parameter
+import de.dailab.jiacpp.model.Arrayitems
 import de.dailab.jiacpp.model.ObjectDefinition
 import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
@@ -21,26 +23,18 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         this.name,
         this.javaClass.name,
         listOf(
-           Action("DoThis", mapOf(Pair("message", mapOf(Pair("name", "message"),Pair("type", "String"), Pair("optional", "true"))),Pair("sleep_seconds", mapOf(Pair("name", "sleep_seconds"),Pair("type", "Int"), Pair("optional", "false")))), "String"),
-           Action("GetInfo", mapOf(), "Map"),
-           Action("Add", mapOf(Pair("x", mapOf(Pair("name", "x"),Pair("type", "String"), Pair("optional", "true"))), Pair("y", mapOf(Pair("name", "y"),Pair("type", "Int"), Pair("optional", "true")))), "Int"),
-           Action("Fail", mapOf(), "void"),
+         Action("DoThis", mapOf(Pair("message", Parameter("message", "String", true)), Pair("sleep_seconds", Parameter("sleep_seconds", "Int", false))), "String"),
+         Action("GetInfo", mapOf(), "Map"),
+         Action("Add", mapOf(Pair("x", Parameter("x", "String", true)), Pair("y", Parameter("y", "Int", true))), "Int"),
+         Action("Fail", mapOf(), "void"),
             // actions for testing modifying agents and actions at runtime
-           Action("CreateAction", mapOf(Pair("name", mapOf(Pair("name", "name"),Pair("type", "String"), Pair("optional", "true"))), Pair("notify", mapOf(Pair("name", "notify"),Pair("type", "Boolean"), Pair("optional", "true")))), "void"),
-           Action("SpawnAgent", mapOf(Pair("name", mapOf(Pair("name", "name"),Pair("type", "String"), Pair("optional", "false")))), "void"),
-           Action("Deregister", mapOf(), "void")
-        ).plus(extraActions),
-        mapOf(
-            Pair("car", ObjectDefinition("none", mapOf(
-                Pair("name", mapOf(Pair("name", "name"),Pair("type", "String"), Pair("optional", "false"))),
-                Pair("age", mapOf(Pair("name", "age"),Pair("type", "String"), Pair("optional", "false"))),
-                Pair("orientation", mapOf(Pair("name", "orientation"),Pair("type", "String"), Pair("optional", "false"))),
-                Pair("number", mapOf(Pair("name", "number"),Pair("type", "String"), Pair("optional", "false")))
-                ))),
-            Pair("tesla", ObjectDefinition("none", mapOf(Pair("name", mapOf(Pair("name", "name"),Pair("type", "String"), Pair("optional", "false")))))),
-            Pair("volvo", ObjectDefinition("none", mapOf(Pair("name", mapOf(Pair("name", "name"),Pair("type", "String"), Pair("optional", "false")))))),
-            Pair("benching", ObjectDefinition("none", mapOf(Pair("name", mapOf(Pair("name", "name"),Pair("type", "String"), Pair("optional", "false"))))))
-            )
+         Action("CreateAction", mapOf(Pair("name", Parameter("name", "String", false)), Pair("notify",Parameter("notify", "Boolean", false))), "void"),
+         Action("SpawnAgent", mapOf(Pair("name", Parameter("name", "String", false))), "void"),
+         Action("TestAction", mapOf(Pair("Names", Parameter("names", "Array", false, Arrayitems("String"))),Pair("car", Parameter("car", "car", false))), "void"),
+         Action("TestAction2", mapOf(Pair("Names", Parameter("names", "Array", false, Arrayitems("car"))),Pair("car", Parameter("car", "car", false))), "void"),
+         Action("Deregister", mapOf(), "void")
+        ).plus(extraActions)
+        
     )
 
     override fun behaviour() = act {
