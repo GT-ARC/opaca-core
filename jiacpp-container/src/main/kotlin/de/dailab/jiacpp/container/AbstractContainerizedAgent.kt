@@ -73,7 +73,6 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
     }
 
     fun sendOutboundStreamRequest(action: String, agentId: String?, containerId: String, forward: Boolean = true): ResponseEntity<StreamingResponseBody> {
-        println("SEEEEEEEEEEEEEEEEEEND OUTBOUND STREAM REQUEQST")
         log.info("Outbound Stream: $action @ $containerId")
         return when (agentId) {
             null -> parentProxy.getStream(action, containerId, forward)

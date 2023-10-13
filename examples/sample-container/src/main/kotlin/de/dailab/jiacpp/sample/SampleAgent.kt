@@ -3,11 +3,15 @@ package de.dailab.jiacpp.sample
 import de.dailab.jiacpp.api.AgentContainerApi
 import de.dailab.jiacpp.container.AbstractContainerizedAgent
 import de.dailab.jiacpp.container.Invoke
+import de.dailab.jiacpp.container.Stream
 import de.dailab.jiacpp.model.Action
 import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
 import de.dailab.jiacvi.behaviour.act
 
+import java.io.InputStream
+import java.io.ByteArrayInputStream
+import java.nio.charset.Charset
 
 class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
 
@@ -21,6 +25,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         this.javaClass.name,
         listOf(
             Action("DoThis", mapOf(Pair("message", "String"), Pair("sleep_seconds", "Int")), "String"),
+            Action("GetStream", mapOf(), "ByteArrayInputStream"),
             Action("GetInfo", mapOf(), "Map"),
             Action("Add", mapOf(Pair("x", "String"), Pair("y", "Int")), "Int"),
             Action("Fail", mapOf(), "void"),
@@ -58,7 +63,20 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             }
         }
 
+        respond<Stream, Any?> {
+            when (it.name) {
+                "GetStream" -> actionGetStream()
+                else -> null
+            }
+        }
     }
+
+
+    private fun actionGetStream(): ByteArrayInputStream {
+        val data = "{\"key\":\"value\"}".toByteArray(Charset.forName("UTF-8"))
+        return ByteArrayInputStream(data)
+    }
+
 
     private fun actionDoThis(message: String, sleep_seconds: Int): String {
         log.info("in 'DoThis' action, waiting...")

@@ -164,20 +164,19 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             return getStream(action, null, containerId, forward)
         }
         
-
         override fun getStream(action: String, agentId: String?, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody>? {
             log.info("GET STREAM ACTION OF AGENT: $agentId $action")
-            
+
             val agent = findRegisteredAgent(agentId, action)
             if (agent != null) {
                 val lock = Semaphore(0)
-                val result = AtomicReference<StreamWithLength?>()
+                val result = AtomicReference<InputStream?>()
                 val error = AtomicReference<Any?>()
                 val ref = system.resolve(agent)
-                
-                ref invoke ask<StreamWithLength>(Stream(action)) { streamWithLength ->
-                    log.info("GOT RESULT $streamWithLength")
-                    result.set(streamWithLength)
+
+                ref invoke ask<InputStream>(Stream(action)) { inputStream ->
+                    log.info("GOT RESULT $inputStream")
+                    result.set(inputStream)
                     lock.release()
                 }.error { errorResult ->
                     log.error("ERROR $errorResult")
@@ -189,9 +188,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 lock.acquireUninterruptibly()
 
                 if (error.get() == null) {
-                    val streamWithLength = result.get()
                     val body = StreamingResponseBody { outputStream ->
-                        val inputStream = streamWithLength?.inputStream
+                        val inputStream = result.get()
                         if (inputStream != null) {
                             val buffer = ByteArray(8192)
                             var bytesRead: Int
@@ -199,13 +197,12 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                                 outputStream.write(buffer, 0, bytesRead)
                             }
                             outputStream.flush()
-                            inputStream.close() 
+                            inputStream.close()
                         }
                         outputStream.close()
                     }
                     return ResponseEntity.ok()
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                        .header(HttpHeaders.CONTENT_LENGTH, streamWithLength?.length?.toString())
                         .body(body)
                 } else {
                     when (val e = error.get()) {
