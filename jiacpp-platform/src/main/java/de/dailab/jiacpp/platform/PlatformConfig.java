@@ -98,7 +98,7 @@ public class PlatformConfig {
     }
 
     public enum PlatformEnvironment {
-        NATIVE, KUBERNETES
+        NATIVE, DOCKER, KUBERNETES
     }
 
     public enum SessionPolicy {
