@@ -65,6 +65,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         this.tokens = sessionData.tokens;
         this.connectedPlatforms = sessionData.connectedPlatforms;
 
+        // initialize container client based on environment
         if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.DOCKER) {
             log.info("Using Docker on host " + config.remoteDockerHost);
             this.containerClient = new DockerClient();
@@ -74,6 +75,8 @@ public class PlatformImpl implements RuntimePlatformApi {
         } else {
             throw new IllegalArgumentException("Invalid environment specified");
         }
+        // test resolving own base URL and print result
+        log.info("Own Base URL: " + config.getOwnBaseUrl());
 
         this.containerClient.initialize(config, sessionData);
         this.containerClient.testConnectivity();
