@@ -68,11 +68,12 @@ public interface CommonApi {
      *
      * @param action Name of the action
      * @param parameters Map of Parameters
+     * @param timeout timeout for this action, or -1 for no (or default) timeout
      * @param containerId ID of the Container to use (optional)
      * @param forward flag whether to forward the message to connected platforms (optional)
      * @return Action result
      */
-    JsonNode invoke(String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws IOException;
+    JsonNode invoke(String action, Map<String, JsonNode> parameters, int timeout, String containerId, boolean forward) throws IOException;
 
     /**
      * Invoke an action provided by a specific agent on this container.
@@ -82,11 +83,12 @@ public interface CommonApi {
      * @param action Name of the action
      * @param parameters Map of Parameters
      * @param agentId Name of the agent
+     * @param timeout timeout for this action, or -1 for no (or default) timeout
      * @param containerId ID of the Container to use (optional)
      * @param forward flag whether to forward the message to connected platforms (optional)
      * @return Action result
      */
-    JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws IOException;
+    JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException;
 
     // TODO javadoc
     ResponseEntity<StreamingResponseBody> getStream(String action, String containerId, boolean forward) throws IOException;

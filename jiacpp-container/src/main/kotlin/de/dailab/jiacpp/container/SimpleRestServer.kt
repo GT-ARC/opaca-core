@@ -10,7 +10,6 @@ import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.AbstractConnector
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
-import java.lang.RuntimeException
 import java.util.stream.Collectors
 import java.util.concurrent.TimeUnit
 import org.springframework.http.MediaType
@@ -36,6 +35,16 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
      */
     private val servlet = object: HttpServlet() {
 
+        /**
+         * maps exception classes to error status codes
+         */
+        private val errorStatusCodes = mutableMapOf<Class<out Exception>, Int>()
+
+        init {
+            registerErrorCode(NoSuchElementException::class.java, 404)
+            registerErrorCode(NotAuthenticatedException::class.java, 403)
+        }
+
         override fun doGet(request: HttpServletRequest, response: HttpServletResponse) {
             try {
                 checkToken(request)
@@ -56,8 +65,9 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
             try {
                 checkToken(request)
                 val path = request.pathInfo  // NOTE: queryParams (?...) go to request.queryString
+                val query = request.queryString
                 val body: String = request.reader.lines().collect(Collectors.joining())
-                val res = handlePost(path, body)
+                val res = handlePost(path, query, body)
                 writeResponse(response, 200, res)
             } catch (e: Exception) {
                 handleError(response, e)
@@ -78,13 +88,20 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
         }
 
         private fun handleError(response: HttpServletResponse, e: Exception) {
-            val code = when (e) {
-                is NoSuchElementException -> 404
-                is NotAuthenticatedException -> 403
-                else -> 500
-            }
+            val code = getErrorCode(e)
             val err = mapOf(Pair("details", e.toString()))
             writeResponse(response, code, err)
+        }
+
+        fun getErrorCode(e: Exception): Int {
+            return when (e) {
+                is JiacppException -> e.statusCode
+                else -> errorStatusCodes[e::class.java] ?: 500
+            }
+        }
+
+        fun registerErrorCode(exceptionClass: Class<out Exception>, code: Int) {
+            errorStatusCodes[exceptionClass] = code
         }
 
         private fun handleGet(path: String): Any? {
@@ -146,7 +163,9 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
             }
         }     
 
-        private fun handlePost(path: String, body: String): Any? {
+        private fun handlePost(path: String, query: String?, body: String): Any? {
+            val queryParams = parseQueryString(query)
+            val timeout = queryParams.getOrDefault("timeout", "-1").toInt()
 
             val send = Regex("^/send/([^/]+)$").find(path)
             if (send != null) {
@@ -166,7 +185,7 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
             if (invokeAct != null) {
                 val action = invokeAct.groupValues[1]
                 val parameters = RestHelper.readMap(body)
-                return impl.invoke(action, parameters, "", false)
+                return impl.invoke(action, parameters, timeout, "", false)
             }
 
             val invokeActOf = Regex("^/invoke/([^/]+)/([^/]+)$").find(path)
@@ -174,11 +193,17 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
                 val action = invokeActOf.groupValues[1]
                 val agentId = invokeActOf.groupValues[2]
                 val parameters = RestHelper.readMap(body)
-                return impl.invoke(action, parameters, agentId, "", false)
+                return impl.invoke(action, parameters, agentId, timeout, "", false)
             }
 
             throw NoSuchElementException("Unknown path: $path")
         }
+
+        // adapted from https://stackoverflow.com/a/17472462/1639625
+        fun parseQueryString(queryString: String?) = (queryString ?: "")
+            .split("&")
+            .map { it.split("=") }
+            .associate { Pair(it[0], if (it.size > 1) it[1] else "") }
 
     }
 
@@ -200,6 +225,11 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
         server.stop()
     }
 
-    class NotAuthenticatedException(message: String): RuntimeException(message)
+    fun registerErrorCode(exceptionClass: Class<out Exception>, code: Int) {
+        servlet.registerErrorCode(exceptionClass, code)
+    }
 
+    class NotAuthenticatedException(message: String): RuntimeException(message)
+    class JiacppException(val statusCode: Int, message: String): Exception(message)
 }
+

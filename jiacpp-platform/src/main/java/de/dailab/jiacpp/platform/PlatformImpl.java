@@ -3,22 +3,20 @@ package de.dailab.jiacpp.platform;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
-import de.dailab.jiacpp.model.AgentContainer;
-import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.model.AgentDescription;
-import de.dailab.jiacpp.model.Event;
-import de.dailab.jiacpp.model.Message;
-import de.dailab.jiacpp.model.RuntimePlatform;
+import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.platform.auth.JwtUtil;
 import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
 import de.dailab.jiacpp.platform.containerclient.ContainerClient;
 import de.dailab.jiacpp.platform.containerclient.DockerClient;
 import de.dailab.jiacpp.platform.containerclient.KubernetesClient;
-import de.dailab.jiacpp.session.SessionData;
+import de.dailab.jiacpp.platform.session.SessionData;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.dailab.jiacpp.util.EventHistory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.net.URL;
 import java.util.*;
@@ -34,35 +32,43 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
  * further, e.g. for agent-forwarding, container-management, and linking to other platforms.
  */
 @Log
+@Component
 public class PlatformImpl implements RuntimePlatformApi {
 
-    final SessionData sessionData;
-    
-    final PlatformConfig config;
+    @Autowired
+    private SessionData sessionData;
 
-    final ContainerClient containerClient;
+    @Autowired
+    private PlatformConfig config;
 
-    public Set<String> pendingConnections = new HashSet<>();
+    @Autowired
+    private JwtUtil jwtUtil;
 
-    final JwtUtil jwtUtil;
+    @Autowired
+    private TokenUserDetailsService userDetailsService;
 
-    final TokenUserDetailsService userDetailsService;
 
-    private Map<String, RuntimePlatform> connectedPlatforms;
+    private ContainerClient containerClient;
 
+
+    /** Currently running Agent Containers, mapping container ID to description */
+    private Map<String, AgentContainer> runningContainers;
     private Map<String, String> tokens;
 
-    private Map<String, AgentContainer> runningContainers;
+    /** Currently connected other Runtime Platforms, mapping URL to description */
+    private Map<String, RuntimePlatform> connectedPlatforms;
 
-    public PlatformImpl(PlatformConfig config, TokenUserDetailsService userDetailsService, JwtUtil jwtUtil, SessionData sessionData) {
-        this.sessionData = sessionData;
+    /** Set of remote Runtime Platform URLs with a pending connection request */
+    private final Set<String> pendingConnections = new HashSet<>();
+
+
+    @PostConstruct
+    public void initialize() {
         this.runningContainers = sessionData.runningContainers;
         this.tokens = sessionData.tokens;
         this.connectedPlatforms = sessionData.connectedPlatforms;
-        this.config = config;
-        this.userDetailsService = userDetailsService;
-        this.jwtUtil = jwtUtil;    
 
+        // initialize container client based on environment
         if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.DOCKER) {
             log.info("Using Docker on host " + config.remoteDockerHost);
             this.containerClient = new DockerClient();
@@ -72,9 +78,11 @@ public class PlatformImpl implements RuntimePlatformApi {
         } else {
             throw new IllegalArgumentException("Invalid environment specified");
         }
+        // test resolving own base URL and print result
+        log.info("Own Base URL: " + config.getOwnBaseUrl());
 
         this.containerClient.initialize(config, sessionData);
-
+        this.containerClient.testConnectivity();
         // TODO add list of known used ports to config (e.g. the port of the RP itself, or others)
     }
 
@@ -146,20 +154,20 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String containerId, boolean forward) throws IOException, NoSuchElementException {
-        return invoke(action, parameters, null, containerId, forward);
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
+        return invoke(action, parameters, null, timeout, containerId, forward);
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws IOException, NoSuchElementException {
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
         var clients = getClients(containerId, agentId, action, null, forward);
 
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {
                 return agentId == null
-                        ? client.invoke(action, parameters, containerId, false)
-                        : client.invoke(action, parameters, agentId, containerId, false);
+                        ? client.invoke(action, parameters, timeout, containerId, false)
+                        : client.invoke(action, parameters, agentId, timeout, containerId, false);
             } catch (IOException e) {
                 log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s': %s",
                         action, agentId, client.baseUrl, e));
@@ -204,7 +212,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         String agentContainerId = UUID.randomUUID().toString();
         String token = config.enableAuth ? jwtUtil.generateTokenForAgentContainer(agentContainerId) : "";
 
-        System.out.println(image);
         // start container... this may raise an Exception, or returns the connectivity info
         var connectivity = containerClient.startContainer(agentContainerId, token, image);
 

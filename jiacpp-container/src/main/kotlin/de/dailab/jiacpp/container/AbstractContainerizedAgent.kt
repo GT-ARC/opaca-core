@@ -65,8 +65,8 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         val jsonParameters = parameters.entries
             .associate { Pair<String, JsonNode>(it.key, RestHelper.mapper.valueToTree(it.value)) }
         val res = when (agentId) {
-            null -> parentProxy.invoke(action, jsonParameters, null, true)
-            else -> parentProxy.invoke(action, jsonParameters, agentId, null, true)
+            null -> parentProxy.invoke(action, jsonParameters, -1, null, true)
+            else -> parentProxy.invoke(action, jsonParameters, agentId, -1, null, true)
         }
         return RestHelper.mapper.treeToValue(res, type)
     }

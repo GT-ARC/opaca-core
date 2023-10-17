@@ -4,7 +4,7 @@ import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
 import de.dailab.jiacpp.platform.PlatformConfig;
-import de.dailab.jiacpp.session.SessionData;
+import de.dailab.jiacpp.platform.session.SessionData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.java.Log;
@@ -16,22 +16,16 @@ import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.*;
 import io.kubernetes.client.custom.IntOrString;
-import io.kubernetes.client.util.Watch;
 import io.kubernetes.client.util.Config;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.Arrays;
 import java.util.Set;
 import java.util.List;
-import java.util.HashSet;
 import java.util.NoSuchElementException;
-import java.util.Collections;
-import com.google.gson.reflect.TypeToken;
 
 /**
  * Container Client for running Agent Containers in Kubernetes.
@@ -55,8 +49,7 @@ public class KubernetesClient implements ContainerClient {
 
     @Data
     @AllArgsConstructor
-    public
-    static class PodInfo {
+    public static class PodInfo {
         String containerId;
         String internalIp;
         AgentContainer.Connectivity connectivity;
@@ -90,6 +83,15 @@ public class KubernetesClient implements ContainerClient {
         this.auth = loadKubernetesSecrets();
         this.pods = sessionData.pods;
         this.usedPorts = sessionData.usedPorts;
+    }
+
+    @Override
+    public void testConnectivity() {
+        try {
+            this.coreApi.listNamespacedPod(this.namespace, null, null, null, null, null, null, null, null, null, null);
+        } catch (ApiException e) {
+            throw new RuntimeException("Could not initialize Kubernetes Client", e);
+        }
     }
 
     @Override

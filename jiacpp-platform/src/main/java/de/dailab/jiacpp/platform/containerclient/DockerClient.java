@@ -16,7 +16,7 @@ import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
 import de.dailab.jiacpp.platform.PlatformConfig;
-import de.dailab.jiacpp.session.SessionData;
+import de.dailab.jiacpp.platform.session.SessionData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.java.Log;
@@ -35,8 +35,7 @@ import java.util.stream.Stream;
  * - https://github.com/docker-java/docker-java/blob/master/docs/getting_started.md
  * - https://www.baeldung.com/docker-java-api
  */
-
- @Log
+@Log
 public class DockerClient implements ContainerClient {
 
     private PlatformConfig config;
@@ -44,27 +43,25 @@ public class DockerClient implements ContainerClient {
     /** Client for accessing (remote) Docker runtime */
     private com.github.dockerjava.api.DockerClient dockerClient;
 
+    /** additional Docker-specific information on agent containers */
+    private Map<String, DockerContainerInfo> dockerContainers;
+
     /** Available Docker Auth */
     private Map<String, AuthConfig> auth;
 
+    /** Set of already used ports on target Docker host */
     private Set<Integer> usedPorts;
-
-    private Map<String, DockerContainerInfo> dockerContainers;
 
     @Data
     @AllArgsConstructor
     public static class DockerContainerInfo {
         String containerId;
         AgentContainer.Connectivity connectivity;
-        
     }
 
     @Override
     public void initialize(PlatformConfig config, SessionData sessionData) {
         this.config = config;
-        this.usedPorts = sessionData.usedPorts;
-        this.dockerContainers = sessionData.dockerContainers;
-
 
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
                 .withDockerHost(getDockerHost())
@@ -80,17 +77,25 @@ public class DockerClient implements ContainerClient {
 
         this.auth = loadDockerAuth();
         this.dockerClient = DockerClientImpl.getInstance(dockerConfig, dockerHttpClient);
+        this.dockerContainers = sessionData.dockerContainers;
+        this.usedPorts = sessionData.usedPorts;
+    }
+
+    @Override
+    public void testConnectivity() {
+        this.dockerClient.listContainersCmd().exec();
     }
 
     @Override
     public AgentContainer.Connectivity startContainer(String containerId, String token, AgentContainerImage image) throws IOException, NoSuchElementException {
-
         var imageName = image.getImageName();
         var extraPorts = image.getExtraPorts();
+
         try {
             if (! isImagePresent(imageName)) {
                 pullDockerImage(imageName);
             }
+
             // port mappings for API- and Extra-Ports
             Map<Integer, Integer> portMap = Stream.concat(Stream.of(image.getApiPort()), extraPorts.keySet().stream())
                     .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
@@ -98,6 +103,7 @@ public class DockerClient implements ContainerClient {
             List<PortBinding> portBindings = portMap.entrySet().stream()
                     .map(e -> PortBinding.parse(e.getValue() + ":" + e.getKey() + "/" + getProtocol(e.getKey(), image)))
                     .collect(Collectors.toList());
+
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
                     .withEnv(
@@ -108,14 +114,17 @@ public class DockerClient implements ContainerClient {
                     .withExposedPorts(portBindings.stream().map(PortBinding::getExposedPort).collect(Collectors.toList()))
                     .exec();
             log.info(String.format("Result: %s", res));
+
             log.info("Starting Container...");
             dockerClient.startContainerCmd(res.getId()).exec();
+
             var connectivity = new AgentContainer.Connectivity(
                     getContainerBaseUrl(),
                     portMap.get(image.getApiPort()),
                     extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );
             dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), connectivity));
+
             return connectivity;
 
         } catch (NotFoundException e) {

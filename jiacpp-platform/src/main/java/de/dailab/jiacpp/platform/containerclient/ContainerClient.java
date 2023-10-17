@@ -3,7 +3,7 @@ package de.dailab.jiacpp.platform.containerclient;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
 import de.dailab.jiacpp.platform.PlatformConfig;
-import de.dailab.jiacpp.session.*;
+import de.dailab.jiacpp.platform.session.SessionData;
 
 import java.io.IOException;
 import java.util.NoSuchElementException;
@@ -14,7 +14,6 @@ import java.util.NoSuchElementException;
  * somewhat clean, the main point of this is so that the same PlatformImpl can be used with different
  * container clients, e.g. via configuration.
  */
-
 public interface ContainerClient {
 
     /**
@@ -22,6 +21,13 @@ public interface ContainerClient {
      * require different attributes.
      */
     void initialize(PlatformConfig config, SessionData SessionData);
+
+    /**
+     * Test connection to the Backend, e.g. Docker or Kubernetes. This is called right after initialize,
+     * but made this a separate method to make it more explicit. This should raise an Exception (with
+     * some details, if possible) that will then crash the Service right after the start.
+     */
+    void testConnectivity();
 
     /**
      * Start a container with the given container ID (for later reference) and image name. If all goes well,

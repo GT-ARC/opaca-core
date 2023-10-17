@@ -5,15 +5,15 @@ import java.util.Map;
 
 import javax.annotation.PostConstruct;
 
+import de.dailab.jiacpp.platform.PlatformConfig;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import de.dailab.jiacpp.session.SessionData;
+import de.dailab.jiacpp.platform.session.SessionData;
 
 
 /**
@@ -24,13 +24,20 @@ import de.dailab.jiacpp.session.SessionData;
 public class TokenUserDetailsService implements UserDetailsService {
 
     @Autowired
-    SessionData sessionData;
+    private SessionData sessionData;
+
+    @Autowired
+    private PlatformConfig config;
+
 
     private Map<String, String> userCredentials;
 
     @PostConstruct
 	public void postConstruct() {
 		userCredentials = sessionData.userCredentials;
+        if (userCredentials.isEmpty()) {
+            addUser(config.usernamePlatform, config.passwordPlatform);
+        }
 	}
 
     /** Returns the user as a standardized 'User' object */
@@ -42,7 +49,6 @@ public class TokenUserDetailsService implements UserDetailsService {
             throw new UsernameNotFoundException("User not found: " + username);
         }
     }
-
 
     /**
      * Adding user to the credentials map. Those user credentials can be a human's credentials

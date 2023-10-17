@@ -1,16 +1,12 @@
 package de.dailab.jiacpp.platform.tests;
 
 import de.dailab.jiacpp.api.AgentContainerApi;
-import de.dailab.jiacpp.model.AgentContainer;
-import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.model.AgentDescription;
-import de.dailab.jiacpp.model.RuntimePlatform;
+import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.platform.Application;
 import de.dailab.jiacpp.platform.PlatformRestController;
-import de.dailab.jiacpp.session.*;
-
 import static de.dailab.jiacpp.platform.tests.TestUtils.*;
 
+import de.dailab.jiacpp.platform.session.Session;
 import org.junit.*;
 import org.junit.runners.MethodSorters;
 
@@ -83,7 +79,7 @@ public class PlatformTests {
      */
     @Test
     public void test1DefaultImage() throws Exception {
-        var restController = ((PlatformRestController) platformA.getBean("platformRestController"));
+        var session = (Session) platformA.getBean("session");
 
         // create image file
         var imageFile = new File("./default-test-images/sample.json");
@@ -93,7 +89,7 @@ public class PlatformTests {
             writer.write("{ \"imageName\": \"" + TEST_IMAGE + "\" }");
         }
 
-        var defaultImages = restController.readDefaultImages();
+        var defaultImages = session.readDefaultImages();
         Assert.assertEquals(defaultImages.size(), 1);
         Assert.assertEquals(defaultImages.get(0).getAbsolutePath(), imageFile.getAbsolutePath());
 
@@ -216,6 +212,15 @@ public class PlatformTests {
     @Test
     public void test4InvokeFail() throws Exception {
         var con = request(PLATFORM_A, "POST", "/invoke/Fail", Map.of());
+        Assert.assertEquals(502, con.getResponseCode());
+        var msg = error(con);
+        Assert.assertTrue(msg.contains("Action Failed (as expected)"));
+    }
+
+    @Test
+    public void test4InvokeTimeout() throws Exception {
+        var params = Map.of("message", "timeout-test", "sleep_seconds", 5);
+        var con = request(PLATFORM_A, "POST", "/invoke/DoThis?timeout=2", params);
         Assert.assertEquals(502, con.getResponseCode());
         // TODO this is not ideal yet... the original error may contain a descriptive message that is lost
     }
