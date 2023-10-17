@@ -9,7 +9,6 @@ import de.dailab.jiacpp.util.RestHelper
 import de.dailab.jiacvi.Agent
 
 import org.springframework.http.ResponseEntity
-import org.springframework.http.MediaType
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 
 /**
@@ -72,11 +71,11 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         return RestHelper.mapper.treeToValue(res, type)
     }
 
-    fun sendOutboundStreamRequest(action: String, agentId: String?, containerId: String, forward: Boolean = true): ResponseEntity<StreamingResponseBody> {
-        log.info("Outbound Stream: $action @ $containerId")
+    fun sendOutboundStreamRequest(stream: String, agentId: String?, containerId: String, forward: Boolean = true): ResponseEntity<StreamingResponseBody> {
+        log.info("Outbound Stream: $stream @ $containerId")
         return when (agentId) {
-            null -> parentProxy.getStream(action, containerId, forward)
-            else -> parentProxy.getStream(action, agentId, containerId, forward)
+            null -> parentProxy.getStream(stream, containerId, forward)
+            else -> parentProxy.getStream(stream, agentId, containerId, forward)
         }
     }
 

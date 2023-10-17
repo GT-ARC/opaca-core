@@ -2,7 +2,6 @@ package de.dailab.jiacpp.container
 
 import com.fasterxml.jackson.databind.JsonNode
 import de.dailab.jiacpp.model.AgentDescription
-import java.io.InputStream
 
 
 // Messages for Registering an Agent with the Container Agent (or updating an already registered agent)
@@ -21,4 +20,3 @@ data class DeRegister(val agentId: String, val notify: Boolean)
 data class Invoke(val name: String, val parameters: Map<String, JsonNode>)
 
 data class StreamInvoke(val name: String)
-

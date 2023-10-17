@@ -40,7 +40,8 @@ public class AgentContainerImage {
     /** Optional longer description of what the container does */
     String description;
 
-    /**Optional config for the container */
+    /** Optional config for the container */
+    // TODO this does not really belong into this merge request
     JsonNode config;
 
     /** provider of the container, e.g. institute or researcher */

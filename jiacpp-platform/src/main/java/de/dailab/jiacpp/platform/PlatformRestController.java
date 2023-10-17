@@ -169,31 +169,6 @@ public class PlatformRestController implements RuntimePlatformApi {
 		return implementation.getHistory();
 	}
 
-
-	@RequestMapping(value="/stream/{action}", method=RequestMethod.GET)
-	@Operation(summary="stream data", tags={"agents"})
-	@Override
-	public ResponseEntity<StreamingResponseBody> getStream(
-			@PathVariable String action,
-			@RequestParam(required = false) String containerId,
-			@RequestParam(required = false, defaultValue = "true") boolean forward
-	) throws IOException {
-		log.info(String.format("STREAM: %s ", action));
-		return implementation.getStream(action, containerId, forward);
-	}
-
-	@RequestMapping(value="/stream/{action}/{agentId}", method=RequestMethod.GET)
-	@Operation(summary="stream data", tags={"agents"})
-	@Override
-	public ResponseEntity<StreamingResponseBody> getStream(
-			@PathVariable String action,
-			@PathVariable String agentId,
-			@RequestParam(required = false) String containerId,
-			@RequestParam(required = false, defaultValue = "true") boolean forward
-	) throws IOException {
-		log.info(String.format("STREAM: %s, %s", action, agentId));
-		return implementation.getStream(action, agentId, containerId, forward);
-	}	
 	/*
 	 * AGENTS ROUTES
 	 */
@@ -267,6 +242,31 @@ public class PlatformRestController implements RuntimePlatformApi {
 	) throws IOException {
 		log.info(String.format("INVOKE: %s, %s, %s", action, agentId, parameters));
 		return implementation.invoke(action, parameters, agentId, containerId, forward);
+	}
+
+	@RequestMapping(value="/stream/{stream}", method=RequestMethod.GET)
+	@Operation(summary="stream data", tags={"agents"})
+	@Override
+	public ResponseEntity<StreamingResponseBody> getStream(
+			@PathVariable String stream,
+			@RequestParam(required = false) String containerId,
+			@RequestParam(required = false, defaultValue = "true") boolean forward
+	) throws IOException {
+		log.info(String.format("STREAM: %s ", stream));
+		return implementation.getStream(stream, containerId, forward);
+	}
+
+	@RequestMapping(value="/stream/{stream}/{agentId}", method=RequestMethod.GET)
+	@Operation(summary="stream data", tags={"agents"})
+	@Override
+	public ResponseEntity<StreamingResponseBody> getStream(
+			@PathVariable String stream,
+			@PathVariable String agentId,
+			@RequestParam(required = false) String containerId,
+			@RequestParam(required = false, defaultValue = "true") boolean forward
+	) throws IOException {
+		log.info(String.format("STREAM: %s, %s", stream, agentId));
+		return implementation.getStream(stream, agentId, containerId, forward);
 	}
 
 	/*

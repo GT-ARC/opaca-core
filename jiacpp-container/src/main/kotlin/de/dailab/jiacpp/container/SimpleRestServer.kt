@@ -11,15 +11,10 @@ import org.eclipse.jetty.server.AbstractConnector
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
 import java.lang.RuntimeException
-import java.io.InputStream
-import java.io.File
 import java.util.stream.Collectors
 import java.util.concurrent.TimeUnit
 import org.springframework.http.MediaType
 import org.springframework.http.HttpHeaders
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-
 
 
 /**
@@ -39,7 +34,8 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
     /**
      * servlet handling the different REST routes, delegating to `impl` for actual logic
      */
-    private val servlet = object: HttpServlet() {   
+    private val servlet = object: HttpServlet() {
+
         override fun doGet(request: HttpServletRequest, response: HttpServletResponse) {
             try {
                 checkToken(request)
@@ -92,23 +88,23 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
         }
 
         private fun handleGet(path: String): Any? {
-           
+
             val info = Regex("^/info$").find(path)
             if (info != null) {
                 return impl.containerInfo
             }
-        
+
             val agents = Regex("^/agents$").find(path)
             if (agents != null) {
                 return impl.agents
             }
-        
+
             val agentWithId = Regex("^/agents/([^/]+)$").find(path)
             if (agentWithId != null) {
                 val id = agentWithId.groupValues[1]
                 return impl.getAgent(id)
             }
-        
+
             throw NoSuchElementException("Unknown path: $path")
         }
         
@@ -119,6 +115,7 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
             if (invokeAct != null) {
                 val action = invokeAct.groupValues[1]
                 val responseEntity = impl.getStream(action, "", false)
+                // TODO unify with the block below, why is here this headers loop?
                 if (responseEntity != null) {
                     response.status = responseEntity.statusCodeValue
                     responseEntity.headers.forEach { key, values ->

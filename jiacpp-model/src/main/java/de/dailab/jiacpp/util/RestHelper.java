@@ -7,9 +7,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import lombok.AllArgsConstructor;
 import lombok.extern.java.Log;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.net.HttpURLConnection;
@@ -70,6 +68,7 @@ public class RestHelper {
     }
     
     private HttpURLConnection setupConnection(String method, String path) throws IOException {
+        // TODO nice helper method, but why is this only used for stream and not for request?
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
         connection.setRequestMethod(method);
 
@@ -105,7 +104,7 @@ public class RestHelper {
         } else {
             connection.connect();
         }
-        
+
         if (type != null) {
             return mapper.readValue(connection.getInputStream(), type);
         } else {

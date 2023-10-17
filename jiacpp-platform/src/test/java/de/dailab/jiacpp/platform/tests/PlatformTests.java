@@ -188,7 +188,6 @@ public class PlatformTests {
         }
     }
 
-
     /**
      * invoke long-running action at two agents in parallel; the agents may be "busy" until the first action is through
      * (and indeed they are in the JIAC VI reference impl), but the ContainerAgent (and of course the Swagger UI) are

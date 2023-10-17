@@ -163,8 +163,6 @@ public class PlatformImpl implements RuntimePlatformApi {
             } catch (IOException e) {
                 log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s': %s",
                         action, agentId, client.baseUrl, e));
-                log.warning("CAUSE " + e.getCause());
-                log.warning("MESSAGE " + e.getMessage());
                 lastException = e;
             }
         }
@@ -173,31 +171,28 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public ResponseEntity<StreamingResponseBody> getStream(String action, String containerId, boolean forward) throws IOException, NoSuchElementException {
-        return getStream(action, null, containerId, forward);
+    public ResponseEntity<StreamingResponseBody> getStream(String stream, String containerId, boolean forward) throws IOException, NoSuchElementException {
+        return getStream(stream, null, containerId, forward);
     }
 
-
     @Override
-    public ResponseEntity<StreamingResponseBody> getStream(String action, String agentId, String containerId, boolean forward) throws IOException {
-        var clients = getClients(containerId, agentId, action, forward);
+    public ResponseEntity<StreamingResponseBody> getStream(String stream, String agentId, String containerId, boolean forward) throws IOException {
+        var clients = getClients(containerId, agentId, stream, forward);
         
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {
                 return agentId == null
-                        ? client.getStream(action, containerId, false)
-                        : client.getStream(action, agentId, containerId, false);
+                        ? client.getStream(stream, containerId, false)
+                        : client.getStream(stream, agentId, containerId, false);
             } catch (IOException e) {
-                log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s': %s",
-                        action, agentId, client.baseUrl, e));
-                log.warning("CAUSE " + e.getCause());
-                log.warning("MESSAGE " + e.getMessage());
+                log.warning(String.format("Failed to get stream '%s' @ agent '%s' and client '%s': %s",
+                        stream, agentId, client.baseUrl, e));
                 lastException = e;
             }
         }
         if (lastException != null) throw lastException;
-        throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s'", action, agentId));
+        throw new NoSuchElementException(String.format("Not found: stream '%s' @ agent '%s'", stream, agentId));
     }
     
     /*

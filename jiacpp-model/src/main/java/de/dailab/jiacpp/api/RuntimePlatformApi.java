@@ -5,14 +5,8 @@ import de.dailab.jiacpp.model.AgentContainerImage;
 import de.dailab.jiacpp.model.RuntimePlatform;
 import de.dailab.jiacpp.model.Event;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 /**
  * API functions for the Runtime Platform. Of course, the platform should provide all those

@@ -88,7 +88,10 @@ public interface CommonApi {
      */
     JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, String containerId, boolean forward) throws IOException;
 
+    // TODO javadoc
     ResponseEntity<StreamingResponseBody> getStream(String action, String containerId, boolean forward) throws IOException;
+
+    // TODO javadoc
     ResponseEntity<StreamingResponseBody> getStream(String action, String agentId, String containerId, boolean forward) throws IOException;
 
 }

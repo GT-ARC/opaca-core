@@ -87,6 +87,17 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         return client.post(path, parameters, JsonNode.class);
     }
 
+    @Override
+    public ResponseEntity<StreamingResponseBody> getStream(String stream, String containerId, boolean forward) throws IOException {
+        var path = String.format("/stream/%s?%s", stream, buildQuery(containerId, forward));
+        return client.getStream(path);
+    }
+
+    @Override
+    public ResponseEntity<StreamingResponseBody> getStream(String stream, String agentId, String containerId, boolean forward) throws IOException {
+        var path = String.format("/stream/%s/%s?%s", stream, agentId, buildQuery(containerId, forward));
+        return client.getStream(path);
+    }
 
     // CONTAINER ROUTES
 
@@ -105,19 +116,6 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     public AgentContainer getContainer(String containerId) throws IOException {
         var path = String.format("/containers/%s", containerId);
         return client.get(path, AgentContainer.class);
-    }
-
-
-    @Override
-    public ResponseEntity<StreamingResponseBody> getStream(String action, String containerId, boolean forward) throws IOException {       
-        var path = String.format("/stream/%s?%s", action, buildQuery(containerId, forward));
-        return client.getStream(path);
-    }
-
-    @Override
-    public ResponseEntity<StreamingResponseBody> getStream(String action, String agentId, String containerId, boolean forward) throws IOException {
-        var path = String.format("/stream/%s/%s?%s", action, agentId, buildQuery(containerId, forward));
-        return client.getStream(path);
     }
 
     @Override

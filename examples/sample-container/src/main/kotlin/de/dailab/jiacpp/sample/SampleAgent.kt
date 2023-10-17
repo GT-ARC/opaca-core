@@ -10,7 +10,6 @@ import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
 import de.dailab.jiacvi.behaviour.act
 
-import java.io.InputStream
 import java.io.ByteArrayInputStream
 import java.nio.charset.Charset
 
@@ -62,7 +61,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
                 "SpawnAgent" -> spawnAgent(it.parameters["name"]!!.asText())
                 "Deregister" -> deregister(false)
                 in extraActions.map { a -> a.name } -> "Called extra action ${it.name}"
-                else -> Unit
+                else -> null
             }
         }
 
@@ -79,7 +78,6 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         val data = "{\"key\":\"value\"}".toByteArray(Charset.forName("UTF-8"))
         return ByteArrayInputStream(data)
     }
-
 
     private fun actionDoThis(message: String, sleep_seconds: Int): String {
         log.info("in 'DoThis' action, waiting...")
