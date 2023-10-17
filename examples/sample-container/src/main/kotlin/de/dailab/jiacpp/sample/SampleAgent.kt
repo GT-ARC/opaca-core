@@ -26,7 +26,6 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         this.javaClass.name,
         listOf(
             Action("DoThis", mapOf(Pair("message", "String"), Pair("sleep_seconds", "Int")), "String"),
-            Action("GetStream", mapOf(), "ByteArrayInputStream"),
             Action("GetInfo", mapOf(), "Map"),
             Action("Add", mapOf(Pair("x", "String"), Pair("y", "Int")), "Int"),
             Action("Fail", mapOf(), "void"),
