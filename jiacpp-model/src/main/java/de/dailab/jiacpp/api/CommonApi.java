@@ -90,10 +90,29 @@ public interface CommonApi {
      */
     JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException;
 
-    // TODO javadoc
-    ResponseEntity<StreamingResponseBody> getStream(String action, String containerId, boolean forward) throws IOException;
+    /**
+     * Get a stream provided by a specific agent on this container.
+     *
+     * REST: POST /stream/{stream}/{agent}?containerId={containerId}&forward={true|false}`
+     *
+     * @param stream Name of the stream
+     * @param containerId ID of the Container to use (optional)
+     * @param forward flag whether to forward the message to connected platforms (optional)
+     * @return Action result
+     */
+    ResponseEntity<StreamingResponseBody> getStream(String stream, String containerId, boolean forward) throws IOException;
 
-    // TODO javadoc
-    ResponseEntity<StreamingResponseBody> getStream(String action, String agentId, String containerId, boolean forward) throws IOException;
+    /**
+     * Get a stream provided by a specific agent on this container.
+     *
+     * REST: POST /stream/{stream}/{agent}?containerId={containerId}&forward={true|false}`
+     *
+     * @param stream Name of the stream
+     * @param agentId Name of the agent
+     * @param containerId ID of the Container to use (optional)
+     * @param forward flag whether to forward the message to connected platforms (optional)
+     * @return Action result
+     */
+    ResponseEntity<StreamingResponseBody> getStream(String stream, String agentId, String containerId, boolean forward) throws IOException;
 
 }
