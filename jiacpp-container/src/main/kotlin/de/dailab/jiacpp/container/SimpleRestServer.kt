@@ -13,7 +13,8 @@ import org.eclipse.jetty.servlet.ServletHolder
 import java.util.stream.Collectors
 import java.util.concurrent.TimeUnit
 import org.springframework.http.MediaType
-import org.springframework.http.HttpHeaders
+import org.springframework.http.ResponseEntity
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 
 
 /**
@@ -49,13 +50,8 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
             try {
                 checkToken(request)
                 val path = request.pathInfo
-
-                if (path.contains("stream")) {
-                    handleStream(request, response)
-                } else {
-                    val res = handleGet(path)
-                    writeResponse(response, HttpServletResponse.SC_OK, res)
-                }
+                val res = handleGet(path)
+                writeResponse(response, HttpServletResponse.SC_OK, res)
             } catch (e: Exception) {
                 handleError(response, e)
             }
@@ -82,9 +78,23 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
         }
 
         private fun writeResponse(response: HttpServletResponse, code: Int, result: Any?) {
-            response.contentType = "application/json"
-            response.status = code
-            response.writer.write(RestHelper.writeJson(result))
+            if (result !is ResponseEntity<*>) {
+                // regular JSON result
+                response.contentType = MediaType.APPLICATION_JSON_VALUE;
+                response.status = code
+                response.writer.write(RestHelper.writeJson(result))
+            } else {
+                // streaming result
+                response.contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE
+                response.status = result.statusCodeValue
+                result.headers.forEach { (key, values) ->
+                    values.forEach { response.addHeader(key, it)}
+                }
+                when (val body = result.body) {
+                    is StreamingResponseBody -> body.writeTo(response.outputStream)
+                }
+                response.flushBuffer()
+            }
         }
 
         private fun handleError(response: HttpServletResponse, e: Exception) {
@@ -122,46 +132,21 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
                 return impl.getAgent(id)
             }
 
+            val getStream = Regex("^/stream/([^/]+)$").find(path)
+            if (getStream != null) {
+                val stream = getStream.groupValues[1]
+                return impl.getStream(stream, "", false)
+            }
+
+            val getStreamOf = Regex("^/stream/([^/]+)/([^/]+)$").find(path)
+            if (getStreamOf != null) {
+                val stream = getStreamOf.groupValues[1]
+                val agentId = getStreamOf.groupValues[2]
+                return impl.getStream(stream, agentId, "", false)
+            }
+
             throw NoSuchElementException("Unknown path: $path")
         }
-        
-        private fun handleStream(request: HttpServletRequest, response: HttpServletResponse) {
-            val path = request.pathInfo
-
-            val invokeAct = Regex("^/stream/([^/]+)$").find(path)
-            if (invokeAct != null) {
-                val action = invokeAct.groupValues[1]
-                val responseEntity = impl.getStream(action, "", false)
-                // TODO unify with the block below, why is here this headers loop?
-                if (responseEntity != null) {
-                    response.status = responseEntity.statusCodeValue
-                    responseEntity.headers.forEach { key, values ->
-                        values.forEach { value ->
-                            response.addHeader(key, value)
-                        }
-                    }
-                    response.contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE
-                    response.addHeader(HttpHeaders.CONTENT_LENGTH, responseEntity.headers.contentLength.toString())
-                    responseEntity.body?.writeTo(response.outputStream)
-                    response.flushBuffer()
-                }
-            }
-            
-            val invokeActOf = Regex("^/stream/([^/]+)/([^/]+)$").find(path)
-            if (invokeActOf != null) {
-                val action = invokeActOf.groupValues[1]
-                val agentId = invokeActOf.groupValues[2]
-                val responseEntity = impl.getStream(action, agentId, "", false)
-
-                if (responseEntity != null) {
-                    response.status = responseEntity.statusCodeValue
-                    response.contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE
-                    response.addHeader(HttpHeaders.CONTENT_LENGTH, responseEntity.headers.contentLength.toString())
-                    responseEntity.body?.writeTo(response.outputStream)
-                    response.flushBuffer()
-                }
-            }
-        }     
 
         private fun handlePost(path: String, query: String?, body: String): Any? {
             val queryParams = parseQueryString(query)
