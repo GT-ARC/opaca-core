@@ -103,14 +103,7 @@ public class KubernetesClient implements ContainerClient {
         Map<Integer, Integer> portMap = extraPorts.keySet().stream()
                 .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
 
-        boolean hostNetwork = false;
-        if (image.getConfig() != null && image.getConfig().has("hostNetwork") && 
-            image.getConfig().get("hostNetwork").asBoolean()) {
-            hostNetwork = true;
-        }
-
         V1PodSpec podSpec = new V1PodSpec()
-                        .hostNetwork(hostNetwork)
                         .containers(List.of(
                                 new V1Container()
                                         .name(containerId)
@@ -124,11 +117,16 @@ public class KubernetesClient implements ContainerClient {
                                                 new V1EnvVar().name(AgentContainerApi.ENV_PLATFORM_URL).value(config.getOwnBaseUrl())
                                         ))
                         ))
-                        .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)));
+                        .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)))
+                ;
 
-        
-        if (image.getConfig() != null && image.getConfig().has("nodeName")) {
-            podSpec.nodeName(image.getConfig().get("nodeName").asText());
+        if (image.getConfig() != null) {
+            if (image.getConfig().has("hostNetwork")) {
+                podSpec.hostNetwork(image.getConfig().get("hostNetwork").asBoolean());
+            }
+            if (image.getConfig().has("nodeName")) {
+                podSpec.nodeName(image.getConfig().get("nodeName").asText());
+            }
         }
         
         V1PodTemplateSpec podTemplateSpec = new V1PodTemplateSpec()
