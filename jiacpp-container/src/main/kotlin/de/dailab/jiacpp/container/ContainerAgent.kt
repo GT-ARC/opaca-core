@@ -159,22 +159,22 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
 
 
-        override fun getStream(action: String, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody>? {
-            log.info("GET STREAM ACTION: $action")
-            return getStream(action, null, containerId, forward)
+        override fun getStream(streamId: String, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody>? {
+            log.info("GET STREAM: $streamId")
+            return getStream(streamId, null, containerId, forward)
         }
         
-        override fun getStream(action: String, agentId: String?, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody>? {
-            log.info("GET STREAM ACTION OF AGENT: $agentId $action")
+        override fun getStream(streamId: String, agentId: String?, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody>? {
+            log.info("GET STREAM OF AGENT: $agentId $streamId")
 
-            val agent = findRegisteredAgent(agentId, action)
+            val agent = findRegisteredAgent(agentId, streamId)
             if (agent != null) {
                 val lock = Semaphore(0)
                 val result = AtomicReference<InputStream?>()
                 val error = AtomicReference<Any?>()
                 val ref = system.resolve(agent)
 
-                ref invoke ask<InputStream>(Stream(action)) { inputStream ->
+                ref invoke ask<InputStream>(StreamInvoke(streamId)) { inputStream ->
                     log.info("GOT RESULT $inputStream")
                     result.set(inputStream)
                     lock.release()
@@ -184,7 +184,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                     lock.release()
                 }
 
-                log.debug("waiting for action result...")
+                log.debug("waiting for stream result...")
                 lock.acquireUninterruptibly()
 
                 if (error.get() == null) {
@@ -211,7 +211,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                     }
                 }
             } else {
-                throw NoSuchElementException("Action $action of Agent $agentId not found")
+                throw NoSuchElementException("Stream $streamId of Agent $agentId not found")
             }
         }
     }

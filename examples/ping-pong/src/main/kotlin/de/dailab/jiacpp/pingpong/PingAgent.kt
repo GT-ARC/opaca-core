@@ -14,6 +14,7 @@ class PingAgent: AbstractContainerizedAgent(name="ping-agent") {
     override fun getDescription() = AgentDescription(
         this.name,
         this.javaClass.name,
+        listOf(),
         listOf()
     )
 

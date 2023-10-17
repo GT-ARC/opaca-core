@@ -23,4 +23,7 @@ public class AgentDescription {
     /** list of actions provided by this agent, if any */
     List<Action> actions;
 
+    /** list of endpoints for sending or receiving streaming data */
+    List<Stream> streams;
+
 }
