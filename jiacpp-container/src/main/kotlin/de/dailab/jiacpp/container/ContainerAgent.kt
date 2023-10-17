@@ -119,35 +119,12 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
             val agent = findRegisteredAgent(agentId, action, null)
             if (agent != null) {
-                val lock = Semaphore(0) // needs to be released once before it can be acquired
-                val result = AtomicReference<Any?>() // holder for action result
-                val error = AtomicReference<Any?>() // holder for error, if any
-                val ref = system.resolve(agent)
-                ref invoke ask<Any>(Invoke(action, parameters)) {
-                    log.info("GOT RESULT $it")
-                    result.set(it)
-                    lock.release()
-                }.error {
-                    log.error("ERROR $it")
-                    error.set(it)
-                    lock.release()
-                }.timeout(Duration.ofSeconds(if (timeout > 0) timeout.toLong() else 30)) // 30 is default in JIAC VI
-
-                log.debug("waiting for action result...")
-                lock.acquireUninterruptibly()
-                if (error.get() == null) {
-                    return RestHelper.mapper.valueToTree(result.get())
-                } else {
-                    when (val e = error.get()) {
-                        is Throwable -> throw e
-                        else -> throw RuntimeException(e.toString())
-                    }
-                }
+                val res: Any = invokeAskWait(agent, Invoke(action, parameters), timeout)
+                return RestHelper.mapper.valueToTree(res)
             } else {
                 throw NoSuchElementException("Action $action of Agent $agentId not found")
             }
         }
-
 
         override fun getStream(streamId: String, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody>? {
             log.info("GET STREAM: $streamId")
@@ -159,49 +136,54 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
             val agent = findRegisteredAgent(agentId, null, streamId)
             if (agent != null) {
-                val lock = Semaphore(0)
-                val result = AtomicReference<InputStream?>()
-                val error = AtomicReference<Any?>()
-                val ref = system.resolve(agent)
-
-                ref invoke ask<InputStream>(StreamInvoke(streamId)) { inputStream ->
-                    log.info("GOT RESULT $inputStream")
-                    result.set(inputStream)
-                    lock.release()
-                }.error { errorResult ->
-                    log.error("ERROR $errorResult")
-                    error.set(errorResult)
-                    lock.release()
-                }
-
-                log.debug("waiting for stream result...")
-                lock.acquireUninterruptibly()
-
-                if (error.get() == null) {
-                    val body = StreamingResponseBody { outputStream ->
-                        val inputStream = result.get()
-                        if (inputStream != null) {
-                            val buffer = ByteArray(8192)
-                            var bytesRead: Int
-                            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                                outputStream.write(buffer, 0, bytesRead)
-                            }
-                            outputStream.flush()
-                            inputStream.close()
-                        }
-                        outputStream.close()
+                val inputStream: InputStream = invokeAskWait(agent, StreamInvoke(streamId), -1)
+                val body = StreamingResponseBody { outputStream ->
+                    val buffer = ByteArray(8192)
+                    var bytesRead: Int
+                    while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                        outputStream.write(buffer, 0, bytesRead)
                     }
-                    return ResponseEntity.ok()
-                        .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                        .body(body)
-                } else {
-                    when (val e = error.get()) {
-                        is Throwable -> throw RuntimeException(e)
-                        else -> throw RuntimeException(e.toString())
-                    }
+                    outputStream.flush()
+                    inputStream.close()
+                    outputStream.close()
                 }
+                return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(body)
+
             } else {
                 throw NoSuchElementException("Stream $streamId of Agent $agentId not found")
+            }
+        }
+    }
+
+    /**
+     * Call "ref invoke ask" at given JIAC VI agent, but wait for result and return it.
+     */
+    private fun <T> invokeAskWait(agentId: String, request: Any, timeout: Int): T {
+        val lock = Semaphore(0)
+        val result = AtomicReference<T>()
+        val error = AtomicReference<Any>()
+        val ref = system.resolve(agentId)
+        ref invoke ask<T>(request) {
+            log.info("GOT RESULT $it")
+            result.set(it)
+            lock.release()
+        }.error {
+            log.error("ERROR $it")
+            error.set(it)
+            lock.release()
+        }.timeout(Duration.ofSeconds(if (timeout > 0) timeout.toLong() else 30))
+
+        log.debug("waiting for invoke-ask result...")
+        lock.acquireUninterruptibly()
+
+        if (error.get() == null) {
+            return result.get()
+        } else {
+            when (val e = error.get()) {
+                is Throwable -> throw e
+                else -> throw RuntimeException(e.toString())
             }
         }
     }
