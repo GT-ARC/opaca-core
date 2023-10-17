@@ -94,7 +94,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         override fun send(agentId: String, message: Message, containerId: String, forward: Boolean) {
             log.info("SEND: $agentId $message")
-            val agent = findRegisteredAgent(agentId, action=null)
+            val agent = findRegisteredAgent(agentId, action=null, stream=null)
             if (agent != null) {
                 val ref = system.resolve(agent)
                 ref tell message
@@ -116,7 +116,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         override fun invoke(action: String, parameters: Map<String, JsonNode>, agentId: String?, containerId: String, forward: Boolean): JsonNode? {
             log.info("INVOKE ACTION OF AGENT: $agentId $action $parameters")
 
-            val agent = findRegisteredAgent(agentId, action)
+            val agent = findRegisteredAgent(agentId, action, null)
             if (agent != null) {
                 val lock = Semaphore(0) // needs to be released once before it can be acquired
                 val result = AtomicReference<Any?>() // holder for action result
@@ -157,7 +157,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         override fun getStream(streamId: String, agentId: String?, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody>? {
             log.info("GET STREAM OF AGENT: $agentId $streamId")
 
-            val agent = findRegisteredAgent(agentId, streamId)
+            val agent = findRegisteredAgent(agentId, null, streamId)
             if (agent != null) {
                 val lock = Semaphore(0)
                 val result = AtomicReference<InputStream?>()
@@ -238,10 +238,11 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         parentProxy.notifyUpdateContainer(containerId)
     }
 
-    private fun findRegisteredAgent(agentId: String?, action: String?): String? {
+    private fun findRegisteredAgent(agentId: String?, action: String?, stream: String?): String? {
         return registeredAgents.values
             .filter { agt -> agentId == null || agt.agentId == agentId }
             .filter { agt -> action == null || agt.actions.any { act -> act.name == action } }
+            .filter { agt -> stream == null || agt.streams.any { str -> str.name == stream } }
             // TODO also check action parameters?
             .map { it.agentId }
             .firstOrNull()
