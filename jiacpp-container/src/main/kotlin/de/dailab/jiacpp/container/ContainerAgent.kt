@@ -1,6 +1,7 @@
 package de.dailab.jiacpp.container
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.TextNode
 import de.dailab.jiacpp.api.AgentContainerApi
 import de.dailab.jiacpp.model.*
 import de.dailab.jiacpp.util.ApiProxy
@@ -76,7 +77,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         override fun getContainerInfo(): AgentContainer {
             log.info("GET INFO")
-            return AgentContainer(containerId, image, agents, startedAt, null)
+            return AgentContainer(containerId, image, getParameters(), agents, startedAt, null)
         }
 
         override fun getAgents(): List<AgentDescription> {
@@ -184,6 +185,12 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             // TODO also check action parameters?
             .map { it.agentId }
             .firstOrNull()
+    }
+
+    private fun getParameters(): Map<String, JsonNode> {
+        return image.parameters
+            .filter { ! it.confidential }
+            .associate { Pair(it.name, TextNode(System.getenv().getOrDefault(it.name, "${it.value}"))) }
     }
 
 }
