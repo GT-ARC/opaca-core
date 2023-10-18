@@ -175,7 +175,13 @@ public class PlatformConfig {
         env.put(AgentContainerApi.ENV_PLATFORM_URL, getOwnBaseUrl());
         // additional user-defined parameters
         for (AgentContainerImage.ImageParameter param : expectedParameters) {
-            env.put(param.getName(), String.valueOf(actualParameters.getOrDefault(param.getName(), param.getValue())));
+            if (actualParameters.containsKey(param.getName())) {
+                env.put(param.getName(), String.valueOf(actualParameters.get(param.getName())));
+            } else if (! param.getRequired()) {
+                env.put(param.getName(), String.valueOf(param.getValue()));
+            } else {
+                throw new IllegalArgumentException("Missing required parameter: " + param.getName());
+            }
         }
         return env;
     }
