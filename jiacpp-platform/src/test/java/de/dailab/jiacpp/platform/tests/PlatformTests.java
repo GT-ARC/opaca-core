@@ -735,8 +735,8 @@ public class PlatformTests {
      */
     @Test
     public void testXDeployUnknown() throws Exception {
-        var container = new AgentContainerImage();
-        container.setImageName("does-not-exist-container-image");
+        var container = getSampleContainerImage();
+        container.getImage().setImageName("does-not-exist-container-image");
         var con = request(PLATFORM_A, "POST", "/containers", container);
         Assert.assertEquals(404, con.getResponseCode());
     }
@@ -748,8 +748,8 @@ public class PlatformTests {
      */
     @Test
     public void testXDeployInvalid() throws Exception {
-        var container = new AgentContainerImage();
-        container.setImageName("hello-world");
+        var container = getSampleContainerImage();
+        container.getImage().setImageName("hello-world");
         var con = request(PLATFORM_A, "POST", "/containers", container);
         Assert.assertEquals(502, con.getResponseCode());
 

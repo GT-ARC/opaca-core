@@ -1,6 +1,7 @@
 package de.dailab.jiacpp.platform.tests;
 
 import de.dailab.jiacpp.model.AgentContainerImage;
+import de.dailab.jiacpp.model.PostAgentContainer;
 import de.dailab.jiacpp.util.RestHelper;
 
 import java.io.IOException;
@@ -29,14 +30,14 @@ public class TestUtils {
      * HELPER METHODS
      */
 
-    public static AgentContainerImage getSampleContainerImage() {
+    public static PostAgentContainer getSampleContainerImage() {
         var image = new AgentContainerImage();
         image.setImageName(TEST_IMAGE);
         image.setExtraPorts(Map.of(
                 8888, new AgentContainerImage.PortDescription("TCP", "TCP Test Port"),
                 8889, new AgentContainerImage.PortDescription("UDP", "UDP Test Port")
         ));
-        return image;
+        return new PostAgentContainer(image, null);
     }
 
 
