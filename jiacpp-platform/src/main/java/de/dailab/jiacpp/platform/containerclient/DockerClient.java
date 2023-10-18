@@ -1,5 +1,6 @@
 package de.dailab.jiacpp.platform.containerclient;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.exception.InternalServerErrorException;
@@ -109,7 +110,7 @@ public class DockerClient implements ContainerClient {
 
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
-                    .withEnv(buildEnv(containerId, token, image.getParameters()))
+                    .withEnv(buildEnv(containerId, token, image.getParameters(), container.getParameters()))
                     .withHostConfig(HostConfig.newHostConfig().withPortBindings(portBindings))
                     .withExposedPorts(portBindings.stream().map(PortBinding::getExposedPort).collect(Collectors.toList()))
                     .exec();
@@ -135,24 +136,10 @@ public class DockerClient implements ContainerClient {
         }
     }
 
-    /**
-     // todo: think of a better way to implement this
-
-     * @param containerId containerId
-     * @param token token
-     * @param parameters parameters
-     * @return env
-     */
-    private String[] buildEnv(String containerId, String token, List<ImageParameter> parameters) {
-        String[] env = new String[3 + parameters.size()];
-        env[0] = String.format("%s=%s", AgentContainerApi.ENV_CONTAINER_ID, containerId);
-        env[1] = String.format("%s=%s", AgentContainerApi.ENV_TOKEN, token);
-        env[2] = String.format("%s=%s", AgentContainerApi.ENV_PLATFORM_URL, config.getOwnBaseUrl());
-        for (int i = 0; i < parameters.size(); ++i) {
-            var parameter = parameters.get(i);
-            env[3 + i] = String.format("%s=%s", parameter.getName(), parameter.getValue());
-        }
-        return env;
+    private String[] buildEnv(String containerId, String token, List<ImageParameter> expectedParameters, Map<String, JsonNode> actualParameters) {
+        return config.buildContainerEnv(containerId, token, expectedParameters, actualParameters).entrySet().stream()
+                .map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
+                .toArray(String[]::new);
     }
 
     @Override

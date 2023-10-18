@@ -1,5 +1,6 @@
 package de.dailab.jiacpp.model;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -69,16 +70,13 @@ public class AgentContainerImage {
 
         String name;
 
-        // OK: what to you mean by "type"? the data type? or whether it is for the platform or the container?
         String type;
 
         Boolean required = false;
 
         Boolean confidential = false;
 
-        // TODO default value? in what format, just as a json-parsable string? or JsonNode object?
-        // OK: I think string makes the most sense, since they get passed to the container as a string anyways.
-        String value;
+        JsonNode value = null;
 
     }
 
