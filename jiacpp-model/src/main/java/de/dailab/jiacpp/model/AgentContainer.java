@@ -23,7 +23,7 @@ public class AgentContainer {
     AgentContainerImage image;
 
     /** Map of Parameters given to the AgentContainer */
-    Map<String, JsonNode> parameters;
+    Map<String, JsonNode> parameters = Map.of();
 
     /** list of agents running on this container; this might change during its life-time */
     List<AgentDescription> agents;

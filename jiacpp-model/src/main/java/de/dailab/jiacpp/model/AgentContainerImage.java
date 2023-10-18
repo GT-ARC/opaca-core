@@ -24,10 +24,10 @@ public class AgentContainerImage {
     String imageName;
 
     /** list of required features, e.g. available agents, actions, or platform features */
-    List<String> requires;
+    List<String> requires = List.of();
 
     /** special features provided by this container */
-    List<String> provides;
+    List<String> provides = List.of();
 
     // OPTIONAL attributes for description of the container (e.g. in a repository, or of the container itself)
 
@@ -46,13 +46,13 @@ public class AgentContainerImage {
     // OPTIONAL attributes for API port (if not default) and extra ports (if any)
 
     /** the port where the container provides the JIAC++ API; by default this is 8082 but another may be used */
-    Integer apiPort;
+    Integer apiPort = AgentContainerApi.DEFAULT_PORT;
 
     /** additional ports exposed by the container and the protocols and services those provide */
-    Map<Integer, PortDescription> extraPorts;
+    Map<Integer, PortDescription> extraPorts = Map.of();
 
     /** additional parameters that get handed down to the container as environment variables */
-    List<ImageParameter> parameters;
+    List<ImageParameter> parameters = List.of();
 
     @Data @AllArgsConstructor @NoArgsConstructor
     public static class PortDescription {
@@ -80,13 +80,4 @@ public class AgentContainerImage {
 
     }
 
-    // helper methods allowing the port-attributes to be empty without hassle in other modules
-
-    public Integer getApiPort() {
-        return apiPort != null ? apiPort : AgentContainerApi.DEFAULT_PORT;
-    }
-
-    public Map<Integer, PortDescription> getExtraPorts() {
-        return extraPorts != null ? extraPorts : Map.of();
-    }
 }
