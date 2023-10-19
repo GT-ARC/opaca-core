@@ -36,7 +36,7 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 
 ### General
 * `PORT` (default: 8000) The port where the Runtime Platform itself exposes its API and Swagger Web UI.
-* `PUBLIC_URL` (default: null) Public URL of the Runtime Platform; if not set, it will try to guess its own IP.
+* `PUBLIC_URL` (default: null) Public URL of the Runtime Platform, including protocol and port; if not set, it will try to guess its own IP.
 * `CONTAINER_TIMEOUT_SEC` (default: 10) Timeout in seconds how long the RP will try to reach a newly started container's `/info` route before it assumes it did not start properly and stops it again.
 * `PLATFORM_ENVIRONMENT` (default: "native") The environment where the platform itself is running, which determine the way to find its own IP address and other details.
 * `CONTAINER_ENVIRONMENT` (default: "docker") The environment where the Agent Containers should be running; possible values are `docker` and `kubernetes`.
