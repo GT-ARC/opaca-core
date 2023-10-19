@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 import java.util.Map;
+import com.fasterxml.jackson.databind.JsonNode;
+
 
 /**
  * Description of an Agent Container Image to be started on a Runtime Platform.
@@ -37,6 +39,10 @@ public class AgentContainerImage {
 
     /** Optional longer description of what the container does */
     String description;
+
+    /** Optional config for the container */
+    // TODO this does not really belong into this merge request
+    JsonNode config;
 
     /** provider of the container, e.g. institute or researcher */
     String provider;

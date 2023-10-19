@@ -8,6 +8,8 @@ import de.dailab.jiacpp.util.ApiProxy
 import de.dailab.jiacpp.util.RestHelper
 import de.dailab.jiacvi.Agent
 
+import org.springframework.http.ResponseEntity
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 
 /**
  * Abstract superclass for containerized agents, handling the registration with the container agent.
@@ -67,6 +69,14 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
             else -> parentProxy.invoke(action, jsonParameters, agentId, -1, null, true)
         }
         return RestHelper.mapper.treeToValue(res, type)
+    }
+
+    fun sendOutboundStreamRequest(stream: String, agentId: String?, containerId: String, forward: Boolean = true): ResponseEntity<StreamingResponseBody> {
+        log.info("Outbound Stream: $stream @ $containerId")
+        return when (agentId) {
+            null -> parentProxy.getStream(stream, containerId, forward)
+            else -> parentProxy.getStream(stream, agentId, containerId, forward)
+        }
     }
 
     /**

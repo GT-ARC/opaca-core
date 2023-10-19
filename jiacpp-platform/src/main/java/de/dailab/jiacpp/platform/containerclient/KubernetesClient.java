@@ -105,9 +105,7 @@ public class KubernetesClient implements ContainerClient {
         Map<Integer, Integer> portMap = extraPorts.keySet().stream()
                 .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
 
-        V1PodTemplateSpec podTemplateSpec = new V1PodTemplateSpec()
-                .metadata(new V1ObjectMeta().labels(Map.of("app", containerId)))
-                .spec(new V1PodSpec()
+        V1PodSpec podSpec = new V1PodSpec()
                         .containers(List.of(
                                 new V1Container()
                                         .name(containerId)
@@ -122,7 +120,20 @@ public class KubernetesClient implements ContainerClient {
                                         ))
                         ))
                         .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)))
-                );
+                ;
+
+        if (image.getConfig() != null) {
+            if (image.getConfig().has("hostNetwork")) {
+                podSpec.hostNetwork(image.getConfig().get("hostNetwork").asBoolean());
+            }
+            if (image.getConfig().has("nodeName")) {
+                podSpec.nodeName(image.getConfig().get("nodeName").asText());
+            }
+        }
+        
+        V1PodTemplateSpec podTemplateSpec = new V1PodTemplateSpec()
+                .metadata(new V1ObjectMeta().labels(Map.of("app", containerId)))
+                .spec(podSpec);
 
         V1Deployment deployment = new V1Deployment()
                 .metadata(new V1ObjectMeta().name(containerId))

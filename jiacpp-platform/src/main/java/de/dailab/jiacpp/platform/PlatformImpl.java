@@ -23,6 +23,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
 
 /**
  * This class provides the actual implementation of the API routes. Might also be split up
@@ -119,7 +122,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public void send(String agentId, Message message, String containerId, boolean forward) throws IOException, NoSuchElementException {
-        var clients = getClients(containerId, agentId, null, forward);
+        var clients = getClients(containerId, agentId, null, null, forward);
 
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
@@ -138,7 +141,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public void broadcast(String channel, Message message, String containerId, boolean forward) {
-        var clients = getClients(containerId, null, null, forward);
+        var clients = getClients(containerId, null, null, null, forward);
 
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             log.info("Forwarding /broadcast to " + client.baseUrl);
@@ -157,7 +160,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
-        var clients = getClients(containerId, agentId, action, forward);
+        var clients = getClients(containerId, agentId, action, null, forward);
 
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
@@ -168,8 +171,6 @@ public class PlatformImpl implements RuntimePlatformApi {
             } catch (IOException e) {
                 log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s': %s",
                         action, agentId, client.baseUrl, e));
-                log.warning("CAUSE " + e.getCause());
-                log.warning("MESSAGE " + e.getMessage());
                 lastException = e;
             }
         }
@@ -177,6 +178,31 @@ public class PlatformImpl implements RuntimePlatformApi {
         throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s'", action, agentId));
     }
 
+    @Override
+    public ResponseEntity<StreamingResponseBody> getStream(String stream, String containerId, boolean forward) throws IOException, NoSuchElementException {
+        return getStream(stream, null, containerId, forward);
+    }
+
+    @Override
+    public ResponseEntity<StreamingResponseBody> getStream(String stream, String agentId, String containerId, boolean forward) throws IOException {
+        var clients = getClients(containerId, agentId, null, stream, forward);
+        
+        IOException lastException = null;
+        for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
+            try {
+                return agentId == null
+                        ? client.getStream(stream, containerId, false)
+                        : client.getStream(stream, agentId, containerId, false);
+            } catch (IOException e) {
+                log.warning(String.format("Failed to get stream '%s' @ agent '%s' and client '%s': %s",
+                        stream, agentId, client.baseUrl, e));
+                lastException = e;
+            }
+        }
+        if (lastException != null) throw lastException;
+        throw new NoSuchElementException(String.format("Not found: stream '%s' @ agent '%s'", stream, agentId));
+    }
+    
     /*
      * CONTAINERS ROUTES
      */
@@ -380,17 +406,17 @@ public class PlatformImpl implements RuntimePlatformApi {
      * @param includeConnected Whether to also forward to connected Runtime Platforms
      * @return list of clients to send requests to these valid containers/platforms
      */
-    private Stream<ApiProxy> getClients(String containerId, String agentId, String action, boolean includeConnected) {
+    private Stream<ApiProxy> getClients(String containerId, String agentId, String action, String stream, boolean includeConnected) {
         // local containers
         var containerClients = runningContainers.values().stream()
-                .filter(c -> matches(c, containerId, agentId, action))
+                .filter(c -> matches(c, containerId, agentId, action, stream))
                 .map(c -> getClient(c.getContainerId(), tokens.get(c.getContainerId())));
 
         if (!includeConnected) return containerClients;
 
         // remote platforms
         var platformClients = connectedPlatforms.values().stream()
-                .filter(p -> p.getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action)))
+                .filter(p -> p.getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action, stream)))
                 .map(p -> new ApiProxy(p.getBaseUrl()));
 
         return Stream.concat(containerClients, platformClients);
@@ -399,12 +425,13 @@ public class PlatformImpl implements RuntimePlatformApi {
     /**
      * Check if Container ID matches and has matching agent and/or action.
      */
-    private boolean matches(AgentContainer container, String containerId, String agentId, String action) {
+    private boolean matches(AgentContainer container, String containerId, String agentId, String action, String stream) {
         return (containerId == null || container.getContainerId().equals(containerId)) &&
                 container.getAgents().stream()
                         .anyMatch(a -> (agentId == null || a.getAgentId().equals(agentId))
-                                && (action == null || a.getActions().stream()
-                                .anyMatch(x -> x.getName().equals(action))));
+                                && (action == null || a.getActions().stream().anyMatch(x -> x.getName().equals(action)))
+                                && (stream == null || a.getStreams().stream().anyMatch(x -> x.getName().equals(stream)))
+                        );
     }
 
     private ApiProxy getClient(AgentContainer container) {

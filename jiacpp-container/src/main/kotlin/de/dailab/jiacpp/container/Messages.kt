@@ -18,3 +18,5 @@ data class DeRegister(val agentId: String, val notify: Boolean)
 // and its parameters, to be handled by an invoke-ask "respond" handler.
 
 data class Invoke(val name: String, val parameters: Map<String, JsonNode>)
+
+data class StreamInvoke(val name: String)

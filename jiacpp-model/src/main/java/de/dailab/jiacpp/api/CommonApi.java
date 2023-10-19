@@ -8,6 +8,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
 /**
  * API for both, Agent Containers and Runtime Platform. In fact, those are primarily the
  * Agent Container functions, but separated here, since the Agent Container will also have
@@ -86,5 +89,30 @@ public interface CommonApi {
      * @return Action result
      */
     JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException;
+
+    /**
+     * Get a stream provided by a specific agent on this container.
+     *
+     * REST: POST /stream/{stream}/{agent}?containerId={containerId}&forward={true|false}`
+     *
+     * @param stream Name of the stream
+     * @param containerId ID of the Container to use (optional)
+     * @param forward flag whether to forward the message to connected platforms (optional)
+     * @return Action result
+     */
+    ResponseEntity<StreamingResponseBody> getStream(String stream, String containerId, boolean forward) throws IOException;
+
+    /**
+     * Get a stream provided by a specific agent on this container.
+     *
+     * REST: POST /stream/{stream}/{agent}?containerId={containerId}&forward={true|false}`
+     *
+     * @param stream Name of the stream
+     * @param agentId Name of the agent
+     * @param containerId ID of the Container to use (optional)
+     * @param forward flag whether to forward the message to connected platforms (optional)
+     * @return Action result
+     */
+    ResponseEntity<StreamingResponseBody> getStream(String stream, String agentId, String containerId, boolean forward) throws IOException;
 
 }
