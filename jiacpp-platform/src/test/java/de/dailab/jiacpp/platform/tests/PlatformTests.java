@@ -162,6 +162,16 @@ public class PlatformTests {
         Assert.assertEquals(65L, res.longValue());
     }
 
+    @Test
+    public void test4InvokeGetStream() throws Exception {
+        var con = request(PLATFORM_A, "GET", "/stream/GetStream", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var inputStream = con.getInputStream();
+        var bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+        var response = bufferedReader.readLine();
+        Assert.assertEquals("{\"key\":\"value\"}", response);
+    }
+
     /**
      * call invoke with agent, check result
      */

@@ -14,6 +14,10 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicReference
+import java.io.InputStream
+import org.springframework.http.ResponseEntity
+import org.springframework.http.MediaType
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 
 
 const val CONTAINER_AGENT = "container-agent"
@@ -91,7 +95,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         override fun send(agentId: String, message: Message, containerId: String, forward: Boolean) {
             log.info("SEND: $agentId $message")
-            val agent = findRegisteredAgent(agentId, action=null)
+            val agent = findRegisteredAgent(agentId, action=null, stream=null)
             if (agent != null) {
                 val ref = system.resolve(agent)
                 ref tell message
@@ -113,34 +117,73 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         override fun invoke(action: String, parameters: Map<String, JsonNode>, agentId: String?, timeout: Int, containerId: String, forward: Boolean): JsonNode? {
             log.info("INVOKE ACTION OF AGENT: $agentId $action $parameters")
 
-            val agent = findRegisteredAgent(agentId, action)
+            val agent = findRegisteredAgent(agentId, action, null)
             if (agent != null) {
-                val lock = Semaphore(0) // needs to be released once before it can be acquired
-                val result = AtomicReference<Any?>() // holder for action result
-                val error = AtomicReference<Any?>() // holder for error, if any
-                val ref = system.resolve(agent)
-                ref invoke ask<Any>(Invoke(action, parameters)) {
-                    log.info("GOT RESULT $it")
-                    result.set(it)
-                    lock.release()
-                }.error {
-                    log.error("ERROR $it")
-                    error.set(it)
-                    lock.release()
-                }.timeout(Duration.ofSeconds(if (timeout > 0) timeout.toLong() else 30)) // 30 is default in JIAC VI
-
-                log.debug("waiting for action result...")
-                lock.acquireUninterruptibly()
-                if (error.get() == null) {
-                    return RestHelper.mapper.valueToTree(result.get())
-                } else {
-                    when (val e = error.get()) {
-                        is Throwable -> throw e
-                        else -> throw RuntimeException(e.toString())
-                    }
-                }
+                val res: Any = invokeAskWait(agent, Invoke(action, parameters), timeout)
+                return RestHelper.mapper.valueToTree(res)
             } else {
                 throw NoSuchElementException("Action $action of Agent $agentId not found")
+            }
+        }
+
+        override fun getStream(streamId: String, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody>? {
+            log.info("GET STREAM: $streamId")
+            return getStream(streamId, null, containerId, forward)
+        }
+        
+        override fun getStream(streamId: String, agentId: String?, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody>? {
+            log.info("GET STREAM OF AGENT: $agentId $streamId")
+
+            val agent = findRegisteredAgent(agentId, null, streamId)
+            if (agent != null) {
+                val inputStream: InputStream = invokeAskWait(agent, StreamInvoke(streamId), -1)
+                val body = StreamingResponseBody { outputStream ->
+                    val buffer = ByteArray(8192)
+                    var bytesRead: Int
+                    while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                        outputStream.write(buffer, 0, bytesRead)
+                    }
+                    outputStream.flush()
+                    inputStream.close()
+                    outputStream.close()
+                }
+                return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(body)
+
+            } else {
+                throw NoSuchElementException("Stream $streamId of Agent $agentId not found")
+            }
+        }
+    }
+
+    /**
+     * Call "ref invoke ask" at given JIAC VI agent, but wait for result and return it.
+     */
+    private fun <T> invokeAskWait(agentId: String, request: Any, timeout: Int): T {
+        val lock = Semaphore(0)
+        val result = AtomicReference<T>()
+        val error = AtomicReference<Any>()
+        val ref = system.resolve(agentId)
+        ref invoke ask<T>(request) {
+            log.info("GOT RESULT $it")
+            result.set(it)
+            lock.release()
+        }.error {
+            log.error("ERROR $it")
+            error.set(it)
+            lock.release()
+        }.timeout(Duration.ofSeconds(if (timeout > 0) timeout.toLong() else 30))
+
+        log.debug("waiting for invoke-ask result...")
+        lock.acquireUninterruptibly()
+
+        if (error.get() == null) {
+            return result.get()
+        } else {
+            when (val e = error.get()) {
+                is Throwable -> throw e
+                else -> throw RuntimeException(e.toString())
             }
         }
     }
@@ -177,10 +220,11 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         parentProxy.notifyUpdateContainer(containerId)
     }
 
-    private fun findRegisteredAgent(agentId: String?, action: String?): String? {
+    private fun findRegisteredAgent(agentId: String?, action: String?, stream: String?): String? {
         return registeredAgents.values
             .filter { agt -> agentId == null || agt.agentId == agentId }
             .filter { agt -> action == null || agt.actions.any { act -> act.name == action } }
+            .filter { agt -> stream == null || agt.streams.any { str -> str.name == stream } }
             // TODO also check action parameters?
             .map { it.agentId }
             .firstOrNull()

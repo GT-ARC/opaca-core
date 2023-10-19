@@ -7,9 +7,14 @@ import jakarta.servlet.http.HttpServlet
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.eclipse.jetty.server.Server
+import org.eclipse.jetty.server.AbstractConnector
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
 import java.util.stream.Collectors
+import java.util.concurrent.TimeUnit
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 
 
 /**
@@ -46,7 +51,7 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
                 checkToken(request)
                 val path = request.pathInfo
                 val res = handleGet(path)
-                writeResponse(response, 200, res)
+                writeResponse(response, HttpServletResponse.SC_OK, res)
             } catch (e: Exception) {
                 handleError(response, e)
             }
@@ -73,9 +78,23 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
         }
 
         private fun writeResponse(response: HttpServletResponse, code: Int, result: Any?) {
-            response.contentType = "application/json"
-            response.status = code
-            response.writer.write(RestHelper.writeJson(result))
+            if (result !is ResponseEntity<*>) {
+                // regular JSON result
+                response.contentType = MediaType.APPLICATION_JSON_VALUE;
+                response.status = code
+                response.writer.write(RestHelper.writeJson(result))
+            } else {
+                // streaming result
+                response.contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE
+                response.status = result.statusCodeValue
+                result.headers.forEach { (key, values) ->
+                    values.forEach { response.addHeader(key, it)}
+                }
+                when (val body = result.body) {
+                    is StreamingResponseBody -> body.writeTo(response.outputStream)
+                }
+                response.flushBuffer()
+            }
         }
 
         private fun handleError(response: HttpServletResponse, e: Exception) {
@@ -104,13 +123,26 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
 
             val agents = Regex("^/agents$").find(path)
             if (agents != null) {
-                return  impl.agents
+                return impl.agents
             }
 
             val agentWithId = Regex("^/agents/([^/]+)$").find(path)
             if (agentWithId != null) {
                 val id = agentWithId.groupValues[1]
                 return impl.getAgent(id)
+            }
+
+            val getStream = Regex("^/stream/([^/]+)$").find(path)
+            if (getStream != null) {
+                val stream = getStream.groupValues[1]
+                return impl.getStream(stream, "", false)
+            }
+
+            val getStreamOf = Regex("^/stream/([^/]+)/([^/]+)$").find(path)
+            if (getStreamOf != null) {
+                val stream = getStreamOf.groupValues[1]
+                val agentId = getStreamOf.groupValues[2]
+                return impl.getStream(stream, agentId, "", false)
             }
 
             throw NoSuchElementException("Unknown path: $path")
@@ -164,6 +196,13 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
         val handler = ServletHandler()
         handler.addServletWithMapping(ServletHolder(servlet), "/*")
         server.handler = handler
+
+        server.connectors.forEach { connector ->
+            if (connector is AbstractConnector) {
+                connector.idleTimeout = TimeUnit.MINUTES.toMillis(15) 
+            }
+        }
+
         server.start()
     }
 
