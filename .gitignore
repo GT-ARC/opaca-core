@@ -6,3 +6,4 @@ default-images
 Session.json
 .vscode
 *.log
+*.log.*

@@ -3,11 +3,15 @@ package de.dailab.jiacpp.sample
 import de.dailab.jiacpp.api.AgentContainerApi
 import de.dailab.jiacpp.container.AbstractContainerizedAgent
 import de.dailab.jiacpp.container.Invoke
+import de.dailab.jiacpp.container.StreamInvoke
 import de.dailab.jiacpp.model.Action
+import de.dailab.jiacpp.model.Stream
 import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
 import de.dailab.jiacvi.behaviour.act
 
+import java.io.ByteArrayInputStream
+import java.nio.charset.Charset
 
 class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
 
@@ -28,7 +32,10 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             Action("CreateAction", mapOf(Pair("name", "String"), Pair("notify", "Boolean")), "void"),
             Action("SpawnAgent", mapOf(Pair("name", "String")), "void"),
             Action("Deregister", mapOf(), "void")
-        ).plus(extraActions)
+        ).plus(extraActions),
+        listOf(
+            Stream("GetStream", Stream.Mode.GET)
+        )
     )
 
     override fun behaviour() = act {
@@ -58,6 +65,18 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             }
         }
 
+        respond<StreamInvoke, Any?> {
+            when (it.name) {
+                "GetStream" -> actionGetStream()
+                else -> null
+            }
+        }
+    }
+
+
+    private fun actionGetStream(): ByteArrayInputStream {
+        val data = "{\"key\":\"value\"}".toByteArray(Charset.forName("UTF-8"))
+        return ByteArrayInputStream(data)
     }
 
     private fun actionDoThis(message: String, sleep_seconds: Int): String {

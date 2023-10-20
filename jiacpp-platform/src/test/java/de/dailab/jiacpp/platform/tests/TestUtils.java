@@ -24,7 +24,7 @@ public class TestUtils {
      * > docker tag test-image registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:vXYZ
      * > docker push registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:vXYZ
      */
-    static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v12";
+    static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v14";
 
     /*
      * HELPER METHODS
@@ -88,6 +88,10 @@ public class TestUtils {
 
     public static <T> T result(HttpURLConnection connection, Class<T> type) throws IOException {
         return RestHelper.mapper.readValue(connection.getInputStream(), type);
+    }
+
+    public static String error(HttpURLConnection connection) throws IOException {
+        return new String(connection.getErrorStream().readAllBytes());
     }
 
 }

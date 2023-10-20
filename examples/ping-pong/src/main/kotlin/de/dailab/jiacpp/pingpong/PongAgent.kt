@@ -17,7 +17,8 @@ class PongAgent: AbstractContainerizedAgent(name="pong-agent-${Random.nextInt()}
         this.javaClass.name,
         listOf(
             Action("PongAction", mapOf(Pair("request", "Int"), Pair("offer", "Int")), "String")
-        )
+        ),
+        listOf()
     )
 
     override fun behaviour() = act {

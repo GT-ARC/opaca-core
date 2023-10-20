@@ -9,7 +9,19 @@ Both the Runtime Platform and the Agent Containers can be executed in different 
 
 The simplest way to execute the Runtime Platform. Just follow the steps in the "Quick Testing Guide" of the main [Readme](../README.md).
 
-Note: You can also use the `Native` environment to execute the Runtime Platform in Docker (Compose), but there seem to be some problems with resolving the Runtime Platform's own IP in this case (which is needed to connect to the containers). To work around this problem, use the `PUBLIC_URL` environment variable to set the proper (internal) IP or actual public URL of the Runtime Platform to be used.
+Note: Native execution has been tested to work on Windows and Linux. We were not yet able to verify correct functioning on Mac. It it does not work, please try the Docker environment below.
+
+### Docker
+
+Use this to execute the Runtime Platform in Docker-Compose; see `docker-compose.yml` in the `jiacpp-platform` directory. Note that at the moment it is not possible to resolve the host's IP address, needed for the communication between Runtime Platform and Agent Containers, from within the Docker container. To work around this problem, use the `PUBLIC_URL` environment variable to set the proper (internal) IP or actual public URL of the Runtime Platform's host system.
+
+For testing purposes, you can get the correct IP address from `ifconfig` (on Linux and Mac) before starting the platform, using a shell-script like the following, where `$INTERFACE` is the name of the network interface to use. Note that the output of `ifconfig` can be platform dependant and the script may need to be adapted accordingly.
+
+```
+IP=`ifconfig "$INTERFACE" | grep -o -P "(\d{1,3}\.){3}\d{1,3}" | head -1`
+export PUBLIC_URL="http://$IP:8000"
+docker-compose up --build
+```
 
 ### Kubernetes
 

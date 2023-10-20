@@ -162,6 +162,16 @@ public class PlatformTests {
         Assert.assertEquals(65L, res.longValue());
     }
 
+    @Test
+    public void test4InvokeGetStream() throws Exception {
+        var con = request(PLATFORM_A, "GET", "/stream/GetStream", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var inputStream = con.getInputStream();
+        var bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+        var response = bufferedReader.readLine();
+        Assert.assertEquals("{\"key\":\"value\"}", response);
+    }
+
     /**
      * call invoke with agent, check result
      */
@@ -203,7 +213,8 @@ public class PlatformTests {
     public void test4InvokeFail() throws Exception {
         var con = request(PLATFORM_A, "POST", "/invoke/Fail", Map.of());
         Assert.assertEquals(502, con.getResponseCode());
-        // TODO this is not ideal yet... the original error may contain a descriptive message that is lost
+        var msg = error(con);
+        Assert.assertTrue(msg.contains("Action Failed (as expected)"));
     }
 
     @Test

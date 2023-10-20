@@ -9,10 +9,16 @@ import lombok.extern.java.Log;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.io.BufferedInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 /**
  * Helper class for issuing different REST calls in Java.
@@ -40,6 +46,42 @@ public class RestHelper {
         return request("DELETE", path, payload, type);
     }
 
+    public ResponseEntity<StreamingResponseBody> getStream(String path) throws IOException {
+        log.info(String.format("%s %s (%s)", "GET", baseUrl, path));
+        HttpURLConnection connection = setupConnection("GET", path);
+
+        StreamingResponseBody responseBody = response -> {
+            int bytesRead;
+            byte[] buffer = new byte[1024];
+            try (BufferedInputStream bis = new BufferedInputStream(connection.getInputStream())) {
+                while ((bytesRead = bis.read(buffer)) != -1) {
+                    response.write(buffer, 0, bytesRead);
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        };
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(responseBody);
+    }
+    
+    private HttpURLConnection setupConnection(String method, String path) throws IOException {
+        // TODO nice helper method, but why is this only used for stream and not for request?
+        HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
+        connection.setRequestMethod(method);
+
+        if (token != null && !token.isEmpty()) {
+            connection.setRequestProperty("Authorization", "Bearer " + token);
+        }
+
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+        connection.connect();
+        return connection;
+    }
+
     public <T> T request(String method, String path, Object payload, Class<T> type) throws IOException {
         log.info(String.format("%s %s%s (%s)", method, baseUrl, path, payload));
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
@@ -64,7 +106,11 @@ public class RestHelper {
         }
 
         if (type != null) {
-            return mapper.readValue(connection.getInputStream(), type);
+            if (connection.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST) {
+                return mapper.readValue(connection.getInputStream(), type);
+            } else {
+                throw new IOException(mapper.readValue(connection.getErrorStream(), JsonNode.class).toString());
+            }
         } else {
             return null;
         }

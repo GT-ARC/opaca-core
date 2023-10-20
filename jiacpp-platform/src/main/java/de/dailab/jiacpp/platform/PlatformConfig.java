@@ -27,7 +27,7 @@ import java.util.stream.IntStream;
  */
 @Log
 @Configuration
-@ToString(exclude = {"registryPasswords", "passwordPlatform"})
+@ToString(exclude = {"registryPasswords", "passwordPlatform", "secret"})
 public class PlatformConfig {
 
     // GENERAL SETTINGS
@@ -103,7 +103,7 @@ public class PlatformConfig {
     }
 
     public enum PlatformEnvironment {
-        NATIVE, KUBERNETES
+        NATIVE, DOCKER, KUBERNETES
     }
 
     public enum SessionPolicy {
@@ -132,6 +132,9 @@ public class PlatformConfig {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
+        } else if (platformEnvironment == PlatformEnvironment.DOCKER) {
+            // TODO for now, just require publicUrl != null; later find some way to get IP of host?
+            throw new RuntimeException("For PLATFORM_ENVIRONMENT = DOCKER, please always use explicit PUBLIC_URL!");
         } else if (platformEnvironment == PlatformEnvironment.KUBERNETES) {
             host = "agents-platform-service." + kubernetesNamespace + ".svc.cluster.local";
         } else {
