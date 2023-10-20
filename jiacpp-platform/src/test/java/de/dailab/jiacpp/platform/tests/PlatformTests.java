@@ -85,7 +85,7 @@ public class PlatformTests {
         if (!imageFile.getParentFile().exists()) imageFile.getParentFile().mkdirs();
         try (var writer = new FileWriter(imageFile)) {
             imageFile.createNewFile();
-            writer.write("{ \"imageName\": \"" + TEST_IMAGE + "\" }");
+            writer.write("{ \"image\": { \"imageName\": \"" + TEST_IMAGE + "\" } }");
         }
 
         var defaultImages = session.readDefaultImages();

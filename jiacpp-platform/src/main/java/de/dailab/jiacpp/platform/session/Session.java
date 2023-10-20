@@ -135,9 +135,7 @@ public class Session {
         for (File file: readDefaultImages()) {
             log.info("Auto-deploying " + file);
             try {
-                // todo: read params?
-                var container = new PostAgentContainer();
-                container.setImage(RestHelper.mapper.readValue(file, AgentContainerImage.class));
+                var container = RestHelper.mapper.readValue(file, PostAgentContainer.class);
                 implementation.addContainer(container);
             } catch (Exception e) {
                 log.severe(String.format("Failed to load image specified in file %s: %s", file, e));
@@ -155,10 +153,11 @@ public class Session {
         data.reset();
         for (AgentContainer agentContainer : lastContainers.values()) {
             try {
-                // I guess this would require the platform to filter out the "private" params
-                // todo: set params
+                // TODO recreate private parameters? they are not part of container info and thus not stored
+                //  instead of the running containers, we should probably store the original requests for creating them
                 var container = new PostAgentContainer();
                 container.setImage(agentContainer.getImage());
+                container.setParameters(agentContainer.getParameters());
                 implementation.addContainer(container);
             } catch (IOException e) {
                 e.printStackTrace();
