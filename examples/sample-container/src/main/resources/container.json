@@ -19,6 +19,26 @@
       "protocol": "UDP",
       "description": "Simple Web Server for testing UDP port"
     }
-  }
+  },
+
+  "parameters": [
+    {
+      "name": "database",
+      "type": "string",
+      "required": false,
+      "confidential": false,
+      "defaultValue": "mongodb"
+    },{
+      "name": "username",
+      "type": "string",
+      "required": true,
+      "confidential": false
+    },{
+      "name": "password",
+      "type": "string",
+      "required": true,
+      "confidential": true
+    }
+  ]
 
 }

@@ -3,7 +3,6 @@ package de.dailab.jiacpp.platform.tests;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.platform.Application;
-import de.dailab.jiacpp.platform.PlatformRestController;
 import static de.dailab.jiacpp.platform.tests.TestUtils.*;
 
 import de.dailab.jiacpp.platform.session.Session;
@@ -140,6 +139,54 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, List.class);
         Assert.assertEquals(2, res.size());
+    }
+
+    @Test
+    public void test3ImageParams() throws Exception {
+        var image = getSampleContainerImage();
+        addImageParameters(image);
+        image.setParameters(Map.of(
+                "username", "theusername",
+                "password", "thepassword",
+                "unknown", "whatever"
+        ));
+        // deploy container with parameters
+        var con = request(PLATFORM_A, "POST", "/containers", image);
+        Assert.assertEquals(200, con.getResponseCode());
+        var newContainerId = result(con);
+
+        try {
+            // check parameters in public /container info
+            con = request(PLATFORM_A, "GET", "/containers/" + newContainerId, null);
+            var res1 = result(con, AgentContainer.class);
+            Assert.assertEquals("mongodb", res1.getParameters().get("database"));
+            Assert.assertEquals("theusername", res1.getParameters().get("username"));
+            Assert.assertFalse(res1.getParameters().containsKey("password"));
+            Assert.assertFalse(res1.getParameters().containsKey("unknown"));
+
+            // check parameters in container's own Environment
+            con = request(PLATFORM_A, "POST", "/invoke/GetEnv", Map.of());
+            Assert.assertEquals(200, con.getResponseCode());
+            var res2 = result(con, Map.class);
+            Assert.assertEquals("mongodb", res2.get("database"));
+            Assert.assertEquals("theusername", res2.get("username"));
+            Assert.assertEquals("thepassword", res2.get("password"));
+            Assert.assertFalse(res2.containsKey("unknown"));
+        } finally {
+            // stop container
+            con = request(PLATFORM_A, "DELETE", "/containers/" + newContainerId, null);
+            Assert.assertEquals(200, con.getResponseCode());
+        }
+    }
+
+    @Test
+    public void testImageParamsMissing() throws Exception {
+        // missing required parameter -> container creation should fail
+        var image = getSampleContainerImage();
+        addImageParameters(image);
+        System.out.println("IMAGE " + image);
+        var con = request(PLATFORM_A, "POST", "/containers", image);
+        Assert.assertEquals(400, con.getResponseCode());
     }
 
     @Test

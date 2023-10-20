@@ -1,6 +1,7 @@
 package de.dailab.jiacpp.platform.tests;
 
 import de.dailab.jiacpp.model.AgentContainerImage;
+import de.dailab.jiacpp.model.AgentContainerImage.ImageParameter;
 import de.dailab.jiacpp.model.PostAgentContainer;
 import de.dailab.jiacpp.util.RestHelper;
 
@@ -9,6 +10,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 
 public class TestUtils {
@@ -24,7 +26,7 @@ public class TestUtils {
      * > docker tag test-image registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:vXYZ
      * > docker push registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:vXYZ
      */
-    static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v14";
+    static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v15";
 
     /*
      * HELPER METHODS
@@ -37,9 +39,17 @@ public class TestUtils {
                 8888, new AgentContainerImage.PortDescription("TCP", "TCP Test Port"),
                 8889, new AgentContainerImage.PortDescription("UDP", "UDP Test Port")
         ));
-        return new PostAgentContainer(image, null);
+        return new PostAgentContainer(image, Map.of());
     }
 
+    public static void addImageParameters(PostAgentContainer sampleRequest) {
+        // parameters should match those defined in the sample-agent-container-image's own container.json!
+        sampleRequest.getImage().setParameters(List.of(
+                new ImageParameter("database", "string", false, false, "mongodb"),
+                new ImageParameter("username", "string", true, false, null),
+                new ImageParameter("password", "string", true, true, null)
+        ));
+    }
 
     public static String buildQuery(Map<String, Object> params) {
         if (params != null) {

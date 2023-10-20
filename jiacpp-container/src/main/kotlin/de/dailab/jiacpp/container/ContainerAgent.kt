@@ -1,7 +1,6 @@
 package de.dailab.jiacpp.container
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.TextNode
 import de.dailab.jiacpp.api.AgentContainerApi
 import de.dailab.jiacpp.model.*
 import de.dailab.jiacpp.util.ApiProxy
