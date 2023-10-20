@@ -187,10 +187,10 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             .firstOrNull()
     }
 
-    private fun getParameters(): Map<String, JsonNode> {
+    private fun getParameters(): Map<String, String> {
         return image.parameters
             .filter { ! it.confidential }
-            .associate { Pair(it.name, TextNode(System.getenv().getOrDefault(it.name, "${it.value}"))) }
+            .associate { Pair(it.name, System.getenv().getOrDefault(it.name, it.defaultValue)) }
     }
 
 }

@@ -169,7 +169,7 @@ public class KubernetesClient implements ContainerClient {
         }
     }
 
-    private List<V1EnvVar> buildEnv(String containerId, String token, List<ImageParameter> expectedParameters, Map<String, JsonNode> actualParameters) {
+    private List<V1EnvVar> buildEnv(String containerId, String token, List<ImageParameter> expectedParameters, Map<String, String> actualParameters) {
         return config.buildContainerEnv(containerId, token, expectedParameters, actualParameters).entrySet().stream()
                 .map(e -> new V1EnvVar().name(e.getKey()).value(e.getValue()))
                 .collect(Collectors.toList());

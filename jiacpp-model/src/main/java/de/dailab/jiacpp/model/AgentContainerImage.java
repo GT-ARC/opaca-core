@@ -76,7 +76,7 @@ public class AgentContainerImage {
 
         Boolean confidential = false;
 
-        JsonNode value = null;
+        String defaultValue = null;
 
     }
 

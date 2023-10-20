@@ -20,6 +20,6 @@ public class PostAgentContainer {
     AgentContainerImage image;
 
     /** Map of Parameters given to the AgentContainer */
-    Map<String, JsonNode> parameters = Map.of();
+    Map<String, String> parameters = Map.of();
 
 }

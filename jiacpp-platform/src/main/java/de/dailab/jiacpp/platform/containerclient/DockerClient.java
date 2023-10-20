@@ -136,7 +136,7 @@ public class DockerClient implements ContainerClient {
         }
     }
 
-    private String[] buildEnv(String containerId, String token, List<ImageParameter> expectedParameters, Map<String, JsonNode> actualParameters) {
+    private String[] buildEnv(String containerId, String token, List<ImageParameter> expectedParameters, Map<String, String> actualParameters) {
         return config.buildContainerEnv(containerId, token, expectedParameters, actualParameters).entrySet().stream()
                 .map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
                 .toArray(String[]::new);
