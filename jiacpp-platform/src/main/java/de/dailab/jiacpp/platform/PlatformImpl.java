@@ -53,6 +53,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     /** Currently running Agent Containers, mapping container ID to description */
     private Map<String, AgentContainer> runningContainers;
+    private Map<String, PostAgentContainer> startedContainers;
     private Map<String, String> tokens;
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
@@ -65,6 +66,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @PostConstruct
     public void initialize() {
         this.runningContainers = sessionData.runningContainers;
+        this.startedContainers = sessionData.startContainerRequests;
         this.tokens = sessionData.tokens;
         this.connectedPlatforms = sessionData.connectedPlatforms;
 
@@ -224,6 +226,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 var container = client.getContainerInfo();
                 container.setConnectivity(connectivity);
                 runningContainers.put(agentContainerId, container);
+                startedContainers.put(agentContainerId, postContainer);
                 tokens.put(agentContainerId, token);
                 userDetailsService.addUser(agentContainerId, agentContainerId);
                 log.info("Container started: " + agentContainerId);
@@ -271,6 +274,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         AgentContainer container = runningContainers.get(containerId);
         if (container != null) {
             runningContainers.remove(containerId);
+            startedContainers.remove(containerId);
             userDetailsService.removeUser(containerId);
             containerClient.stopContainer(containerId);
             notifyConnectedPlatforms();

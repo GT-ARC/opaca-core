@@ -93,6 +93,7 @@ public class Session {
                 this.data.reset();
                 this.data.tokens.putAll(lastdata.tokens);
                 this.data.runningContainers.putAll(lastdata.runningContainers);
+                this.data.startContainerRequests.putAll(lastdata.startContainerRequests);
                 this.data.connectedPlatforms.putAll(lastdata.connectedPlatforms);
                 this.data.dockerContainers.putAll(lastdata.dockerContainers);
                 this.data.usedPorts.addAll(lastdata.usedPorts);
@@ -149,16 +150,11 @@ public class Session {
 
     private void restartContainers() {
         log.info("Restarting Last Containers...");
-        Map<String, AgentContainer> lastContainers = new HashMap<>(data.runningContainers);
+        List<PostAgentContainer> startedContainers = List.copyOf(data.startContainerRequests.values());
         data.reset();
-        for (AgentContainer agentContainer : lastContainers.values()) {
+        for (PostAgentContainer postContainer : startedContainers) {
             try {
-                // TODO recreate private parameters? they are not part of container info and thus not stored
-                //  instead of the running containers, we should probably store the original requests for creating them
-                var container = new PostAgentContainer();
-                container.setImage(agentContainer.getImage());
-                container.setParameters(agentContainer.getParameters());
-                implementation.addContainer(container);
+                implementation.addContainer(postContainer);
             } catch (IOException e) {
                 e.printStackTrace();
             }
