@@ -89,8 +89,8 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public String login(
 			@RequestParam String username,
 			@RequestParam String password
-	) {
-		return jwtUtil.generateTokenForUser(username, password);
+	) throws IOException {
+		return implementation.login(username, password);
 	}
 
 	/*

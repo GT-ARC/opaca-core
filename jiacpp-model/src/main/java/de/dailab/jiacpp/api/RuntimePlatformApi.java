@@ -8,6 +8,8 @@ import de.dailab.jiacpp.model.Event;
 import java.io.IOException;
 import java.util.List;
 
+import org.springframework.security.core.userdetails.UserDetails;
+
 /**
  * API functions for the Runtime Platform. Of course, the platform should provide all those
  * routes as REST services (see routes in Javadocs), so this interface is more of a to-do list
@@ -54,6 +56,9 @@ public interface RuntimePlatformApi extends CommonApi {
      * @return ID of the started container
      */
     String addContainer(AgentContainerImage container) throws IOException;
+
+    String login(String username, String password) throws IOException;
+
 
     /**
      * Get descriptions of all currently running Agent Containers.

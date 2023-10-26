@@ -6,9 +6,11 @@ import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
@@ -128,7 +130,16 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
 
     @Override
     public boolean connectPlatform(String url) throws IOException {
-        return client.post("/connections", url, Boolean.class);
+        return client.post("/connections", url,  Boolean.class);
+    }
+
+
+    @Override
+    public String login(String username, String password) throws IOException {
+        Map<String, String> credentials = new HashMap<>();
+        credentials.put("username", username);
+        credentials.put("password", password);
+        return client.post("/login", credentials, String.class);
     }
 
     @SuppressWarnings({"unchecked"})

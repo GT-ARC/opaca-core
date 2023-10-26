@@ -120,6 +120,13 @@ public class PlatformImpl implements RuntimePlatformApi {
                 .findAny().orElse(null);
     }
 
+
+    @Override
+    public String login(String username, String password) {
+        return jwtUtil.generateTokenForUser(username, password);
+    }
+    
+
     @Override
     public void send(String agentId, Message message, String containerId, boolean forward) throws IOException, NoSuchElementException {
         var clients = getClients(containerId, agentId, null, null, forward);
@@ -294,13 +301,20 @@ public class PlatformImpl implements RuntimePlatformApi {
             return true;
         } else {
             try {
+                String username = "test";
+                String password = "test2";
                 pendingConnections.add(url);
+
                 var client = new ApiProxy(url);
-                var res = client.connectPlatform(config.getOwnBaseUrl());
-                if (res) {
-                    var info = client.getPlatformInfo();
-                    connectedPlatforms.put(url, info);
-                }
+                var token = client.login(username, password);
+
+                var loggedClient = new ApiProxy(url, token);
+
+                var info = loggedClient.getPlatformInfo();
+                connectedPlatforms.put(url, info);
+                tokens.put(url, token);
+
+    
                 return true;
             } finally {
                 // also remove from pending in case client.post fails
@@ -313,6 +327,8 @@ public class PlatformImpl implements RuntimePlatformApi {
     public List<String> getConnections() {
         return List.copyOf(connectedPlatforms.keySet());
     }
+
+
 
     @Override
     public boolean disconnectPlatform(String url) throws IOException {
@@ -417,7 +433,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         // remote platforms
         var platformClients = connectedPlatforms.values().stream()
                 .filter(p -> p.getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action, stream)))
-                .map(p -> new ApiProxy(p.getBaseUrl()));
+                .map(p -> new ApiProxy(p.getBaseUrl(), tokens.get(p.getBaseUrl())));
 
         return Stream.concat(containerClients, platformClients);
     }
