@@ -24,9 +24,10 @@
   "definitions": {
     "car": {
       "inherits": "vehicle",
+      "type": "car",
       "parameters": {
-        "name": {
-          "name": "name",
+        "model": {
+          "name": "model",
           "type": "String",
           "optional": "false"
         },
@@ -35,34 +36,26 @@
           "type": "Array",
           "optional": "false",
           "items": {
-            "type": "human"
+            "type": "String"
           }
         },
-        "isCar": {
-          "name": "isCar",
+        "isFunctional": {
+          "name": "isFunctional",
           "type": "Boolean",
           "optional": "false"
         },
-        "number": {
-          "name": "number",
-          "type": "String",
-          "optional": "false"
-        },
-        "carNextToMe": {
-          "name": "carNextToMe",
-          "type": "car",
+        "construction year": {
+          "name": "construction year",
+          "type": "Int",
           "optional": "false"
         }
       }
     },
     "vehicle": {
-      "inherits": "none",
+      "type":"vehicle",
+      "inherits": null,
       "parameters": {
-        "vehicle license": {
-          "name": "vehicle license",
-          "type": "String",
-          "optional": "false"
-        },
+
         "num of wheels": {
           "name": "num of wheels",
           "type": "Number",

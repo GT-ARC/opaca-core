@@ -11,27 +11,23 @@ import de.dailab.jiacpp.model.Message
 import de.dailab.jiacvi.behaviour.act
 
 
-class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
+class bachelorAgent(name: String): AbstractContainerizedAgent(name=name) {
 
     private var lastMessage: Any? = null
     private var lastBroadcast: Any? = null
-
+    
+    
     private var extraActions = mutableListOf<Action>()
 
     override fun getDescription() = AgentDescription(
         this.name,
         this.javaClass.name,
         listOf(
-         Action("DoThis", mapOf(Pair("message", Parameter("message", "String", true)), Pair("sleep_seconds", Parameter("sleep_seconds", "Int", false))), "String"),
-         Action("GetInfo", mapOf(), "Map"),
          Action("Add", mapOf(Pair("x", Parameter("x", "String", true)), Pair("y", Parameter("y", "Int", true))), "Int"),
-         Action("Fail", mapOf(), "void"),
+         
             // actions for testing modifying agents and actions at runtime
-         Action("CreateAction", mapOf(Pair("name", Parameter("name", "String", false)), Pair("notify",Parameter("notify", "Boolean", false))), "void"),
-         Action("SpawnAgent", mapOf(Pair("name", Parameter("name", "String", false))), "void"),
-         Action("TestAction", mapOf(Pair("Names", Parameter("names", "Array", false, "String")),Pair("car", Parameter("car", "car", false))), "void"),
-         Action("TestAction2", mapOf(Pair("Names", Parameter("names", "Array", false, "car")),Pair("car", Parameter("car", "car", false))), "void"),
-         Action("Deregister", mapOf(), "void")
+         Action("TestAction", mapOf(Pair("Names", Parameter("names", "Array", false, "String")),Pair("Shared car", Parameter("Shared car", "car", false))), "void")
+         
         ).plus(extraActions)
         
     )
@@ -94,7 +90,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     }
 
     private fun spawnAgent(name: String) {
-        system.spawnAgent(SampleAgent(name))
+        system.spawnAgent(bachelorAgent(name))
     }
 
 }

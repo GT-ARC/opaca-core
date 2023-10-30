@@ -11,9 +11,10 @@ fun main() {
         enable(LocalBroker)
         agents {
             add(ContainerAgent(image))
-            add(SampleAgent("sample1"))
-            add(SampleAgent("sample2"))
+            //add(SampleAgent("sample1"))
+            add(SampleAgent("ErikaMusterfrau"))
             add(SimpleUIAgent())
+            add(bachelorAgent("MaxMustermann"))
         }
     }.start()
 }
