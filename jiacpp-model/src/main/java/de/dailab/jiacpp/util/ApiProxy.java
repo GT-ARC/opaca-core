@@ -129,17 +129,29 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     // CONNECTING ROUTES
 
     @Override
-    public boolean connectPlatform(String url) throws IOException {
-        return client.post("/connections", url,  Boolean.class);
-    }
+    public boolean connectPlatform(String url, String username, String password) throws IOException {
+        var path = String.format("/connections?%s", buildQuery(username, password));
+        var payload = new HashMap<>();
+        payload.put("url", url);
 
+        return client.post(path, payload, Boolean.class);
+    }
+    
+    private Object buildQuery(String username, String password) {
+        String result = "";
+        if (username != null) {
+            result += String.format("&username=%s", username);
+        }
+        if (password != null) {
+            result += String.format("&password=%s", password);
+        }
+        return result.replaceFirst("&", "");
+    }
 
     @Override
     public String login(String username, String password) throws IOException {
-        Map<String, String> credentials = new HashMap<>();
-        credentials.put("username", username);
-        credentials.put("password", password);
-        return client.post("/login", credentials, String.class);
+        var path = String.format("/login?%s", buildQuery(username, password));
+        return client.post(path, null, String.class);
     }
 
     @SuppressWarnings({"unchecked"})

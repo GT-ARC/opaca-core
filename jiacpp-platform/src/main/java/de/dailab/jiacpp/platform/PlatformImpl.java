@@ -291,7 +291,7 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     @Override
-    public boolean connectPlatform(String url) throws IOException {
+    public boolean connectPlatform(String url, String username, String password) throws IOException {
         url = normalizeString(url);
         checkUrl(url);
         if (url.equals(config.getOwnBaseUrl()) || connectedPlatforms.containsKey(url)) {
@@ -301,12 +301,13 @@ public class PlatformImpl implements RuntimePlatformApi {
             return true;
         } else {
             try {
-                String username = "test";
-                String password = "test2";
+                System.out.println("______________");
                 pendingConnections.add(url);
-
+                System.out.println(url);
                 var client = new ApiProxy(url);
-                var token = client.login(username, password);
+                System.out.println(client);
+                String token = client.login(username, password);
+                System.out.println(token);
 
                 var loggedClient = new ApiProxy(url, token);
 

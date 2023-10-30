@@ -113,7 +113,7 @@ public interface RuntimePlatformApi extends CommonApi {
      * @param url The base URL of that other Runtime Platform
      * @return Connection successful?
      */
-    boolean connectPlatform(String url) throws IOException;
+    boolean connectPlatform(String url, String username, String password) throws IOException;
 
     /**
      * Get list uf base-URLs of connected other Runtime Platforms

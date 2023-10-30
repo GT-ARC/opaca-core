@@ -90,6 +90,10 @@ public class PlatformRestController implements RuntimePlatformApi {
 			@RequestParam String username,
 			@RequestParam String password
 	) throws IOException {
+		System.out.println("_____zz_____");
+		System.out.println(username);
+		System.out.println(password);
+
 		return implementation.login(username, password);
 	}
 
@@ -267,11 +271,16 @@ public class PlatformRestController implements RuntimePlatformApi {
 			"return false if platform already connected", tags={"connections"})
 	@Override
 	public boolean connectPlatform(
-			@RequestBody String url
+			@RequestBody String url,
+			@RequestParam String username,
+			@RequestParam String password
 	) throws IOException {
 		// TODO handle IO Exception (platform not found or does not respond, could be either 404 or 502)
 		log.info(String.format("CONNECT PLATFORM: %s", url));
-		return implementation.connectPlatform(url);
+		System.out.println("_____RE_____________");
+		System.out.println(username);
+		System.out.println(password);
+		return implementation.connectPlatform(url, username, password);
 	}
 
 	@RequestMapping(value="/connections", method=RequestMethod.GET)
