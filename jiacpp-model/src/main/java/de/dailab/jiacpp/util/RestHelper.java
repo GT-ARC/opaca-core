@@ -111,7 +111,6 @@ public class RestHelper {
         if (type != null) {
             if (connection.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST) {
             if (path.contains("login") && type == String.class) {
-                // Return the token for login
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
                     StringBuilder response = new StringBuilder();
                     String line;
