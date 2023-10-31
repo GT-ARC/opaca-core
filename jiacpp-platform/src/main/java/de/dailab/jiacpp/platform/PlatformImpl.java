@@ -301,13 +301,9 @@ public class PlatformImpl implements RuntimePlatformApi {
             return true;
         } else {
             try {
-                System.out.println("______________");
                 pendingConnections.add(url);
-                System.out.println(url);
                 var client = new ApiProxy(url);
-                System.out.println(client);
                 String token = client.login(username, password);
-                System.out.println(token);
 
                 var loggedClient = new ApiProxy(url, token);
 

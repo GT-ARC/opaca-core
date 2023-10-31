@@ -8,11 +8,13 @@ import lombok.AllArgsConstructor;
 import lombok.extern.java.Log;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
@@ -39,6 +41,7 @@ public class RestHelper {
     }
 
     public <T> T post(String path, Object payload, Class<T> type) throws IOException {
+        System.out.println(baseUrl);
         return request("POST", path, payload, type);
     }
 
@@ -85,8 +88,8 @@ public class RestHelper {
     public <T> T request(String method, String path, Object payload, Class<T> type) throws IOException {
         log.info(String.format("%s %s%s (%s)", method, baseUrl, path, payload));
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
+        
         connection.setRequestMethod(method);
-
         if (token != null && ! token.isEmpty()) {
             connection.setRequestProperty("Authorization", "Bearer " + token);
         }
@@ -107,7 +110,19 @@ public class RestHelper {
 
         if (type != null) {
             if (connection.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST) {
+            if (path.contains("login") && type == String.class) {
+                // Return the token for login
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    return (T) response.toString();
+                }
+            } else {
                 return mapper.readValue(connection.getInputStream(), type);
+            }
             } else {
                 throw new IOException(mapper.readValue(connection.getErrorStream(), JsonNode.class).toString());
             }

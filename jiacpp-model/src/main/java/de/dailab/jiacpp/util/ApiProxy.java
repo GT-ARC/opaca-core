@@ -150,7 +150,9 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
 
     @Override
     public String login(String username, String password) throws IOException {
+        System.out.println("1");
         var path = String.format("/login?%s", buildQuery(username, password));
+        System.out.println(path);
         return client.post(path, null, String.class);
     }
 
