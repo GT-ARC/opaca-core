@@ -170,16 +170,16 @@ public class PlatformConfig {
      * Get Environment for AgentContainers, including both the standard parameters defined by the Runtime Platform,
      * and any user-defined image-specific parameters.
      */
-    public Map<String, String> buildContainerEnv(String containerId, String token, List<AgentContainerImage.ImageParameter> expectedParameters, Map<String, String> actualParameters) {
+    public Map<String, String> buildContainerEnv(String containerId, String token, List<AgentContainerImage.ImageParameter> parameters, Map<String, String> arguments) {
         Map<String, String> env = new HashMap<>();
         // standard env vars passed from Runtime Platform to Agent Container
         env.put(AgentContainerApi.ENV_CONTAINER_ID, containerId);
         env.put(AgentContainerApi.ENV_TOKEN, token);
         env.put(AgentContainerApi.ENV_PLATFORM_URL, getOwnBaseUrl());
         // additional user-defined parameters
-        for (AgentContainerImage.ImageParameter param : expectedParameters) {
-            if (actualParameters.containsKey(param.getName())) {
-                env.put(param.getName(), actualParameters.get(param.getName()));
+        for (AgentContainerImage.ImageParameter param : parameters) {
+            if (arguments.containsKey(param.getName())) {
+                env.put(param.getName(), arguments.get(param.getName()));
             } else if (! param.getRequired()) {
                 env.put(param.getName(), param.getDefaultValue());
             } else {

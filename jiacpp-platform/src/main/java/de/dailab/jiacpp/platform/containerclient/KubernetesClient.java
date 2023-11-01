@@ -112,7 +112,7 @@ public class KubernetesClient implements ContainerClient {
                                         .ports(List.of(
                                                 new V1ContainerPort().containerPort(image.getApiPort())
                                         ))
-                                        .env(buildEnv(containerId, token, image.getParameters(), container.getParameters()))
+                                        .env(buildEnv(containerId, token, image.getParameters(), container.getArguments()))
                         ))
                         .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)))
                 ;
@@ -180,8 +180,8 @@ public class KubernetesClient implements ContainerClient {
         }
     }
 
-    private List<V1EnvVar> buildEnv(String containerId, String token, List<ImageParameter> expectedParameters, Map<String, String> actualParameters) {
-        return config.buildContainerEnv(containerId, token, expectedParameters, actualParameters).entrySet().stream()
+    private List<V1EnvVar> buildEnv(String containerId, String token, List<ImageParameter> parameters, Map<String, String> arguments) {
+        return config.buildContainerEnv(containerId, token, parameters, arguments).entrySet().stream()
                 .map(e -> new V1EnvVar().name(e.getKey()).value(e.getValue()))
                 .collect(Collectors.toList());
     }

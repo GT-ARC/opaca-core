@@ -19,7 +19,7 @@ public class PostAgentContainer {
     /** the Image this container will be started from */
     AgentContainerImage image;
 
-    /** Map of Parameters given to the AgentContainer */
-    Map<String, String> parameters = Map.of();
+    /** Map of Arguments given to the AgentContainer for the Parameters of the Image */
+    Map<String, String> arguments = Map.of();
 
 }

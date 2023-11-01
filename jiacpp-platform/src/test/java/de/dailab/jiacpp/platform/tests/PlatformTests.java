@@ -145,7 +145,7 @@ public class PlatformTests {
     public void test3ImageParams() throws Exception {
         var image = getSampleContainerImage();
         addImageParameters(image);
-        image.setParameters(Map.of(
+        image.setArguments(Map.of(
                 "username", "theusername",
                 "password", "thepassword",
                 "unknown", "whatever"
@@ -159,10 +159,10 @@ public class PlatformTests {
             // check parameters in public /container info
             con = request(PLATFORM_A, "GET", "/containers/" + newContainerId, null);
             var res1 = result(con, AgentContainer.class);
-            Assert.assertEquals("mongodb", res1.getParameters().get("database"));
-            Assert.assertEquals("theusername", res1.getParameters().get("username"));
-            Assert.assertFalse(res1.getParameters().containsKey("password"));
-            Assert.assertFalse(res1.getParameters().containsKey("unknown"));
+            Assert.assertEquals("mongodb", res1.getArguments().get("database"));
+            Assert.assertEquals("theusername", res1.getArguments().get("username"));
+            Assert.assertFalse(res1.getArguments().containsKey("password"));
+            Assert.assertFalse(res1.getArguments().containsKey("unknown"));
 
             // check parameters in container's own Environment
             con = request(PLATFORM_A, "POST", "/invoke/GetEnv", Map.of());
