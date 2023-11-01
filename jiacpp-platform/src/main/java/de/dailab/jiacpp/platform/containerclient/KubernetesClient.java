@@ -1,6 +1,5 @@
 package de.dailab.jiacpp.platform.containerclient;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;

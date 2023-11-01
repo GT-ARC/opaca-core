@@ -1,15 +1,11 @@
 package de.dailab.jiacpp.platform.containerclient;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
-import de.dailab.jiacpp.model.AgentContainerImage;
 import de.dailab.jiacpp.model.PostAgentContainer;
 import de.dailab.jiacpp.platform.PlatformConfig;
 import de.dailab.jiacpp.platform.session.SessionData;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.NoSuchElementException;
 
 /**
