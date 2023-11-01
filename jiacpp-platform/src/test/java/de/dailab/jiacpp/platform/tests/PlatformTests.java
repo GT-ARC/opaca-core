@@ -165,7 +165,8 @@ public class PlatformTests {
             Assert.assertFalse(res1.getArguments().containsKey("unknown"));
 
             // check parameters in container's own Environment
-            con = request(PLATFORM_A, "POST", "/invoke/GetEnv", Map.of());
+            var query = TestUtils.buildQuery(Map.of("containerId", newContainerId));
+            con = request(PLATFORM_A, "POST", "/invoke/GetEnv" + query, Map.of());
             Assert.assertEquals(200, con.getResponseCode());
             var res2 = result(con, Map.class);
             Assert.assertEquals("mongodb", res2.get("database"));
