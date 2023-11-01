@@ -49,7 +49,7 @@ public class PostAgentContainer {
 
         String nodeName;
 
-        boolean hostNetwork;
+        Boolean hostNetwork;
     }
 
 }
