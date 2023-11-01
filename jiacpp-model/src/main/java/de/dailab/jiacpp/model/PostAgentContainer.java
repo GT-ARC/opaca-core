@@ -1,6 +1,7 @@
 package de.dailab.jiacpp.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,5 +22,34 @@ public class PostAgentContainer {
 
     /** Map of Arguments given to the AgentContainer for the Parameters of the Image */
     Map<String, String> arguments = Map.of();
+
+    /** optional configuration for container client */
+    ClientConfig clientConfig;
+
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(value = {
+            @JsonSubTypes.Type(value=DockerConfig.class, name="docker"),
+            @JsonSubTypes.Type(value=KubernetesConfig.class, name="kubernetes"),
+    })
+    interface ClientConfig {}
+
+    @Data @AllArgsConstructor @NoArgsConstructor
+    public static class DockerConfig implements ClientConfig {
+
+        String type = "docker";
+
+        // nothing here yet, but e.g. gpu-support would be nice
+    }
+
+    @Data @AllArgsConstructor @NoArgsConstructor
+    public static class KubernetesConfig implements ClientConfig {
+
+        String type = "kubernetes";
+
+        String nodeName;
+
+        boolean hostNetwork;
+    }
 
 }
