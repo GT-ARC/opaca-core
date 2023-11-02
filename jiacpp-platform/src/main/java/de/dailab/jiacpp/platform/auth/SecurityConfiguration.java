@@ -80,15 +80,15 @@ public class SecurityConfiguration {
             http
                     .csrf(csrf -> csrf.disable())
                     .authorizeHttpRequests((auth) -> auth
-                            .anyRequest().authenticated()
+                            .anyRequest().permitAll()
                     );
         }
         return http.build();
     }
 
     @Bean
-    public AuthenticationManager authenticationManagerBean(
-            AuthenticationConfiguration authenticationConfiguration) throws Exception {
+    AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+            throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
