@@ -3,15 +3,16 @@ package de.dailab.jiacpp.platform.auth;
 import de.dailab.jiacpp.platform.PlatformConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 
@@ -24,10 +25,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
@@ -35,8 +36,9 @@ import java.io.IOException;
  * application. The inner class JwtRequestFilter is the filter that is applied to ensure that only authenticated and
  * authorized users are allowed for requesting the platform.
  */
+@Configuration
 @EnableWebSecurity
-public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
+public class SecurityConfiguration {
 
     @Autowired
     private UserDetailsService myUserDetailsService;
@@ -47,43 +49,47 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Autowired
     private PlatformConfig config;
 
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(myUserDetailsService);
-    }
-
-    /* Configure the filter applied to the REST routes */
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         if (config.enableAuth) {
             JwtRequestFilter jwtRequestFilter = new JwtRequestFilter();
-            http.csrf().disable()
-                    .authorizeRequests()
-                    .antMatchers("/v2/api-docs",
-                            "/swagger-resources",
-                            "/swagger-resources/**",
-                            "/swagger-ui/**",
-                            "/v3/api-docs/**",
-                            "/login",
-                            "/configuration/ui",
-                            "/configuration/security",
-                            "/swagger-ui.html",
-                            "/webjars/**").permitAll()
-                    .anyRequest().authenticated().and()
-                    .exceptionHandling().and().sessionManagement()
-                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-            http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
-        } else {
-            http.csrf().disable() 
-                .authorizeRequests()
-                .antMatchers("/**").permitAll();
+            http
+                    .csrf(csrf -> csrf.disable())
+                    .authorizeHttpRequests((auth) -> auth
+                            .requestMatchers(
+                                    "/v2/api-docs",
+                                    "/swagger-resources",
+                                    "/swagger-resources/**",
+                                    "/swagger-ui/**",
+                                    "/v3/api-docs/**",
+                                    "/login",
+                                    "/configuration/ui",
+                                    "/configuration/security",
+                                    "/swagger-ui.html",
+                                    "/webjars/**"
+                            ).permitAll()
+                            .anyRequest().authenticated()
+                    )
+                    // .exceptionHandling() TODO how to handle exceptions
+                    .sessionManagement((session) -> session
+                            .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                    )
+                    .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
         }
+        else {
+            http
+                    .csrf(csrf -> csrf.disable())
+                    .authorizeHttpRequests((auth) -> auth
+                            .anyRequest().authenticated()
+                    );
+        }
+        return http.build();
     }
 
-    @Override
     @Bean
-    public AuthenticationManager authenticationManagerBean() throws Exception {
-        return super.authenticationManagerBean();
+    public AuthenticationManager authenticationManagerBean(
+            AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
     }
 
     @Bean
@@ -98,10 +104,10 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
         protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
                 throws ServletException, IOException {
             String requestURI = request.getRequestURI();
-        
+
             // TODO check exact match of path, not contained in URL
-            
-            /* Some routes, such as /login and those related to the Swagger UI, 
+
+            /* Some routes, such as /login and those related to the Swagger UI,
              * are not included in the token authorization process.
              * /login is used to generate a token and Swagger UI should
              * always be accessible, to perform actions such as /login.
@@ -116,14 +122,14 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                     try {
                         username = jwtUtil.getUsernameFromToken(jwtToken);
                     } catch (IllegalArgumentException e) {
-                        handleException(response, HttpStatus.UNAUTHORIZED, e.getMessage());                   
+                        handleException(response, HttpStatus.UNAUTHORIZED, e.getMessage());
                     } catch (MalformedJwtException e) {
                         handleException(response, HttpStatus.BAD_REQUEST, e.getMessage());
                     }
                 } else {
                     handleException(response, HttpStatus.BAD_REQUEST, "Missing Token.");
                 }
-        
+
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     UserDetails userDetails = myUserDetailsService.loadUserByUsername(username);
                     if (jwtUtil.validateToken(jwtToken, userDetails)) {
@@ -142,14 +148,14 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
         private boolean isSwagger(String url) {
             // TODO (almost) same list in SecurityConfiguration -> extract to some constant?
             return url.contains("/swagger-resources")
-                || url.contains("/v2/api-docs")
-                || url.contains("/swagger-resources/")
-                || url.contains("/configuration/ui")
-                || url.contains("/configuration/security")
-                || url.contains("/swagger-ui.html")
-                || url.contains("/webjars/")
-                || url.contains("/v3/api-docs/")
-                || url.contains("/swagger-ui/");
+                    || url.contains("/v2/api-docs")
+                    || url.contains("/swagger-resources/")
+                    || url.contains("/configuration/ui")
+                    || url.contains("/configuration/security")
+                    || url.contains("/swagger-ui.html")
+                    || url.contains("/webjars/")
+                    || url.contains("/v3/api-docs/")
+                    || url.contains("/swagger-ui/");
         }
 
         private void handleException(HttpServletResponse response, HttpStatus status, String message)
