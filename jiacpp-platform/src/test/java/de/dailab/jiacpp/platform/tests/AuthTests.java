@@ -172,7 +172,7 @@ public class AuthTests {
      // Authentication against the connected platforms
     
     @Test
-    public void test9ConnectPlatformWrongPwd() throws Exception {
+    public void test8ConnectPlatformWrongPwd() throws Exception {
         String username = "testUser";
         String password = "wrongPwd";
 
@@ -185,12 +185,13 @@ public class AuthTests {
     }
 
     @Test
-    public void test9ConnectPlatformWrongUser() throws Exception {
+    public void test8ConnectPlatformWrongUser() throws Exception {
         String username = "wrongUser";
         String password = "testPwd";
 
         var con = requestWithToken(PLATFORM_B, "POST", "/connections?username=" + username + "&password=" + password, PLATFORM_A, token_B);
-
+        System.out.println("________k");
+        System.out.println(result(con));
         Assert.assertEquals(200, con.getResponseCode());
 
         boolean result = Boolean.parseBoolean(result(con));
@@ -198,12 +199,11 @@ public class AuthTests {
     }
 
     @Test
-    public void test9ConnectPlatform() throws Exception {
+    public void test8ConnectPlatform() throws Exception {
         String username = "testUser";
         String password = "testPwd";
 
         var con = requestWithToken(PLATFORM_B, "POST", "/connections?username=" + username + "&password=" + password, PLATFORM_A, token_B);
-
         Assert.assertEquals(200, con.getResponseCode());
 
         boolean result = Boolean.parseBoolean(result(con));
@@ -211,7 +211,7 @@ public class AuthTests {
     }
 
     @Test
-    public void test4InvokeInfoAtDifferentPlatform() throws Exception {
+    public void test9invokeInfoAtDifferentPlatform() throws Exception {
         var con = requestWithToken(PLATFORM_B, "POST", "/invoke/GetInfo", Map.of(), token_B);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
