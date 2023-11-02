@@ -12,6 +12,7 @@ import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
@@ -89,11 +90,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	public String login(
 			@RequestParam String username,
 			@RequestParam String password
-	) throws IOException {
-		System.out.println("_____zz_____");
-		System.out.println(username);
-		System.out.println(password);
-
+	) throws BadCredentialsException, IOException {
 		return implementation.login(username, password);
 	}
 
@@ -277,9 +274,6 @@ public class PlatformRestController implements RuntimePlatformApi {
 	) throws IOException {
 		// TODO handle IO Exception (platform not found or does not respond, could be either 404 or 502)
 		log.info(String.format("CONNECT PLATFORM: %s", url));
-		System.out.println("_____RE_____________");
-		System.out.println(username);
-		System.out.println(password);
 		return implementation.connectPlatform(url, username, password);
 	}
 

@@ -20,6 +20,7 @@ import java.util.Map;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 /**
@@ -85,7 +86,7 @@ public class RestHelper {
         return connection;
     }
 
-    public <T> T request(String method, String path, Object payload, Class<T> type) throws IOException {
+    public <T> T request(String method, String path, Object payload, Class<T> type) throws BadCredentialsException, IOException {
         log.info(String.format("%s %s%s (%s)", method, baseUrl, path, payload));
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
         

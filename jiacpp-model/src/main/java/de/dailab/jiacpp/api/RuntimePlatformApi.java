@@ -8,7 +8,7 @@ import de.dailab.jiacpp.model.Event;
 import java.io.IOException;
 import java.util.List;
 
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.authentication.BadCredentialsException;
 
 /**
  * API functions for the Runtime Platform. Of course, the platform should provide all those
@@ -57,7 +57,7 @@ public interface RuntimePlatformApi extends CommonApi {
      */
     String addContainer(AgentContainerImage container) throws IOException;
 
-    String login(String username, String password) throws IOException;
+    String login(String username, String password) throws BadCredentialsException, IOException;
 
 
     /**

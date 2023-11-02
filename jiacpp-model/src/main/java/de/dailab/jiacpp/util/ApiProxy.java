@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
@@ -149,10 +149,8 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
-    public String login(String username, String password) throws IOException {
-        System.out.println("1");
+    public String login(String username, String password) throws BadCredentialsException, IOException {
         var path = String.format("/login?%s", buildQuery(username, password));
-        System.out.println(path);
         return client.post(path, null, String.class);
     }
 

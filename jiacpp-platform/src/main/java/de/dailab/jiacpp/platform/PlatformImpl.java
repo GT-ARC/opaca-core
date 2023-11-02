@@ -304,14 +304,12 @@ public class PlatformImpl implements RuntimePlatformApi {
                 pendingConnections.add(url);
                 var client = new ApiProxy(url);
                 String token = client.login(username, password);
-
                 var loggedClient = new ApiProxy(url, token);
 
                 var info = loggedClient.getPlatformInfo();
                 connectedPlatforms.put(url, info);
                 tokens.put(url, token);
 
-    
                 return true;
             } finally {
                 // also remove from pending in case client.post fails
@@ -428,10 +426,11 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (!includeConnected) return containerClients;
 
         // remote platforms
-        var platformClients = connectedPlatforms.values().stream()
-                .filter(p -> p.getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action, stream)))
-                .map(p -> new ApiProxy(p.getBaseUrl(), tokens.get(p.getBaseUrl())));
-
+        var platformClients = connectedPlatforms.entrySet().stream()
+            .filter(entry -> entry.getValue().getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action, stream)))
+            .map(entry -> new ApiProxy(entry.getKey(), tokens.get(entry.getKey())));
+        System.out.println("AUSBEUTE PLAT");
+        System.out.println(platformClients);
         return Stream.concat(containerClients, platformClients);
     }
 
