@@ -88,10 +88,13 @@ public class AuthTests {
 
     @Test
     public void test2WithToken() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "GET", "/info", null, token_A);
-        Assert.assertEquals(200, con.getResponseCode());
+        var con_A = requestWithToken(PLATFORM_A, "GET", "/info", null, token_A);
+        Assert.assertEquals(200, con_A.getResponseCode());
+        var con_B = requestWithToken(PLATFORM_B, "GET", "/info", null, token_B);
+        Assert.assertEquals(200, con_B.getResponseCode());
     }
 
+    
     @Test
     public void test2WithWrongToken() throws Exception {
         var invalidToken = "wrong-token";
@@ -165,31 +168,50 @@ public class AuthTests {
         Assert.assertEquals(403, con.getResponseCode());
     }
 
-    public void test9ConnectPlatform() throws Exception {
-        var path = "/connections";
-        var payload = new HashMap<>();
-        payload.put("url", PLATFORM_A);
-        payload.put("username", "testUser");
-        payload.put("password", "testPwd");
+
+     // Authentication against the connected platforms
     
-        var con = requestWithToken(PLATFORM_B, "POST", path, payload, token_B);
+    @Test
+    public void test9ConnectPlatformWrongPwd() throws Exception {
+        String username = "testUser";
+        String password = "wrongPwd";
+
+        var con = requestWithToken(PLATFORM_B, "POST", "/connections?username=" + username + "&password=" + password, PLATFORM_A, token_B);
+
         Assert.assertEquals(200, con.getResponseCode());
+
+        boolean result = Boolean.parseBoolean(result(con));
+        Assert.assertFalse(result);
     }
 
     @Test
-    public void test9ConnectPlatformWithWrongCredentials() throws Exception {
-        var path = "/connections";
-        var payload = new HashMap<>();
-        payload.put("url", PLATFORM_A);
-        payload.put("username", "testUser");
-        payload.put("password", "wrongPassword");
-    
-        var con = requestWithToken(PLATFORM_B, "POST", path, payload, token_B);
-        Assert.assertNotEquals(200, con.getResponseCode());
+    public void test9ConnectPlatformWrongUser() throws Exception {
+        String username = "wrongUser";
+        String password = "testPwd";
+
+        var con = requestWithToken(PLATFORM_B, "POST", "/connections?username=" + username + "&password=" + password, PLATFORM_A, token_B);
+
+        Assert.assertEquals(200, con.getResponseCode());
+
+        boolean result = Boolean.parseBoolean(result(con));
+        Assert.assertFalse(result);
     }
 
     @Test
-    public void test10GetContainerTokenFromContainerOfOtherPlatform() throws Exception {
+    public void test9ConnectPlatform() throws Exception {
+        String username = "testUser";
+        String password = "testPwd";
+
+        var con = requestWithToken(PLATFORM_B, "POST", "/connections?username=" + username + "&password=" + password, PLATFORM_A, token_B);
+
+        Assert.assertEquals(200, con.getResponseCode());
+
+        boolean result = Boolean.parseBoolean(result(con));
+        Assert.assertTrue(result);
+    }
+
+    @Test
+    public void test4InvokeInfoAtDifferentPlatform() throws Exception {
         var con = requestWithToken(PLATFORM_B, "POST", "/invoke/GetInfo", Map.of(), token_B);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
@@ -197,12 +219,10 @@ public class AuthTests {
         Assert.assertTrue(containerToken != null && ! containerToken.equals(""));
     }
 
-
     // Helper methods
 
     private String authQuery(String username, String password) {
         return buildQuery(Map.of("username", username, "password", password));
     }
-
 
 }
