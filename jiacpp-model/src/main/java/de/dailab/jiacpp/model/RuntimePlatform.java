@@ -16,12 +16,12 @@ public class RuntimePlatform {
     String baseUrl;
 
     /** Agent Containers managed by this platform */
-    List<AgentContainer> containers;
+    List<AgentContainer> containers = List.of();
 
     /** List of capabilities this platform provides, e.g. "gpu-support"; format to be specified */
-    List<String> provides;
+    List<String> provides = List.of();
 
     /** List of base URLs of other platforms this platform is connected with */
-    List<String> connections;
+    List<String> connections = List.of();
 
 }

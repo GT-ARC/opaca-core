@@ -124,8 +124,8 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 ### `POST /containers`
 
-* deploy new Agent Container onto this platform
-* body: `AgentContainerImage`
+* deploy new Agent Container onto this platform; the body specifies the image to be deployed (not all fields have to be present, e.g. no "description", but image-name, ports, and parameters, if any) and any arguments (i.e. values for the parameters, passed as environment variables)
+* body: `PostAgentContainer`
 * output: ID of the created AgentContainer (string)
 * errors: 404 if image not found, 502 (bad gateway) if container did not start properly
 
@@ -196,6 +196,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 {
     "containerId": string,
     "image": AgentContainerImage,
+    "arguments": {string: string}
     "agents": [ AgentDescription ],
     "runningSince": "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
     "connectivity": {
@@ -221,6 +222,9 @@ When an Agent Container is started by the Runtime Platform, a number of environm
     "description": string,
     "provider": string
     "apiPort": int, // default: 8082
+    "parameters": [
+        {"name": string, "type": string, "required": boolean, "confidential": boolean, "defaultValue": string}
+    ],
     "extraPorts": {
         int: {
             "protocol": string,

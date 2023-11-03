@@ -26,6 +26,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         listOf(
             Action("DoThis", mapOf(Pair("message", "String"), Pair("sleep_seconds", "Int")), "String"),
             Action("GetInfo", mapOf(), "Map"),
+            Action("GetEnv", mapOf(), "Map"),
             Action("Add", mapOf(Pair("x", "String"), Pair("y", "Int")), "Int"),
             Action("Fail", mapOf(), "void"),
             // actions for testing modifying agents and actions at runtime
@@ -56,6 +57,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
                 "DoThis" -> actionDoThis(it.parameters["message"]!!.asText(), it.parameters["sleep_seconds"]!!.asInt())
                 "Add" -> actionAdd(it.parameters["x"]!!.asInt(), it.parameters["y"]!!.asInt())
                 "GetInfo" -> actionGetInfo()
+                "GetEnv" -> actionGetEnv()
                 "Fail" -> actionFail()
                 "CreateAction" -> createAction(it.parameters["name"]!!.asText(), it.parameters["notify"]!!.asBoolean())
                 "SpawnAgent" -> spawnAgent(it.parameters["name"]!!.asText())
@@ -101,6 +103,8 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         Pair(AgentContainerApi.ENV_PLATFORM_URL, System.getenv(AgentContainerApi.ENV_PLATFORM_URL)),
         Pair(AgentContainerApi.ENV_TOKEN, System.getenv(AgentContainerApi.ENV_TOKEN))
     )
+
+    private fun actionGetEnv() = System.getenv()
 
     private fun createAction(name: String, notify: Boolean) {
         extraActions.add(Action(name, mapOf(), "String"))

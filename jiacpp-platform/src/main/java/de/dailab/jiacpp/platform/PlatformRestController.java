@@ -223,7 +223,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Operation(summary="Start a new Agent Container on this platform", tags={"containers"})
 	@Override
 	public String addContainer(
-			@RequestBody AgentContainerImage container
+			@RequestBody PostAgentContainer container
 	) throws IOException {
 		log.info(String.format("ADD CONTAINER: %s", container));
 		return implementation.addContainer(container);

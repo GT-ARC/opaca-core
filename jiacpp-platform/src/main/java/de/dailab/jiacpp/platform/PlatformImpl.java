@@ -53,6 +53,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     /** Currently running Agent Containers, mapping container ID to description */
     private Map<String, AgentContainer> runningContainers;
+    private Map<String, PostAgentContainer> startedContainers;
     private Map<String, String> tokens;
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
@@ -65,6 +66,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @PostConstruct
     public void initialize() {
         this.runningContainers = sessionData.runningContainers;
+        this.startedContainers = sessionData.startContainerRequests;
         this.tokens = sessionData.tokens;
         this.connectedPlatforms = sessionData.connectedPlatforms;
 
@@ -208,22 +210,23 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     @Override
-    public String addContainer(AgentContainerImage image) throws IOException {
+    public String addContainer(PostAgentContainer postContainer) throws IOException {
         String agentContainerId = UUID.randomUUID().toString();
         String token = config.enableAuth ? jwtUtil.generateTokenForAgentContainer(agentContainerId) : "";
 
         // start container... this may raise an Exception, or returns the connectivity info
-        var connectivity = containerClient.startContainer(agentContainerId, token, image);
+        var connectivity = containerClient.startContainer(agentContainerId, token, postContainer);
 
         // wait until container is up and running...
         var start = System.currentTimeMillis();
         var client = getClient(agentContainerId, token);
         String extraMessage = "";
-        while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000) {
+        while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000L) {
             try {
                 var container = client.getContainerInfo();
                 container.setConnectivity(connectivity);
                 runningContainers.put(agentContainerId, container);
+                startedContainers.put(agentContainerId, postContainer);
                 tokens.put(agentContainerId, token);
                 userDetailsService.addUser(agentContainerId, agentContainerId);
                 log.info("Container started: " + agentContainerId);
@@ -271,6 +274,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         AgentContainer container = runningContainers.get(containerId);
         if (container != null) {
             runningContainers.remove(containerId);
+            startedContainers.remove(containerId);
             userDetailsService.removeUser(containerId);
             containerClient.stopContainer(containerId);
             notifyConnectedPlatforms();
