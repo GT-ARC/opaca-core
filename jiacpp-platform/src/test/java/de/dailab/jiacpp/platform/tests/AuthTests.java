@@ -149,6 +149,27 @@ public class AuthTests {
         Assert.assertEquals(403, con.getResponseCode());
     }
 
+    @Test
+    public void test9AdminActionSuccess() throws Exception {
+        // create new agent action
+        var con = requestWithToken(PLATFORM, "POST", "/invoke/CreateAction", Map.of("name", "TestActionAdmin", "notify", "true"), token);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        con = requestWithToken(PLATFORM, "POST", "/invoke/TestActionAdmin", Map.of(), token);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    @Test
+    public void test9GodActionFailure() throws Exception {
+        // create new agent action
+        var con = requestWithToken(PLATFORM, "POST", "/invoke/CreateAction", Map.of("name", "TestActionGod", "notify", "true"), token);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        con = requestWithToken(PLATFORM, "POST", "/invoke/TestActionGod", Map.of(), token);
+        Assert.assertEquals(403, con.getResponseCode());
+    }
+
+
     // Helper methods
 
     private String authQuery(String username, String password) {

@@ -69,6 +69,8 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                             "/configuration/security",
                             "/swagger-ui.html",
                             "/webjars/**").permitAll()
+                    .antMatchers("/invoke/TestActionAdmin").hasRole("ADMIN")        // for testing purposes
+                    .antMatchers("/invoke/TestActionGod").hasRole("GOD")            // for testing purposes
                     .anyRequest().authenticated().and()
                     .exceptionHandling().and().sessionManagement()
                     .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
