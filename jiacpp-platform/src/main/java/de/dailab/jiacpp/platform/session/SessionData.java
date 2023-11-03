@@ -1,10 +1,8 @@
 package de.dailab.jiacpp.platform.session;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
+import de.dailab.jiacpp.platform.auth.Role;
 import org.springframework.stereotype.Component;
 
 import de.dailab.jiacpp.model.AgentContainer;
@@ -34,6 +32,7 @@ public class SessionData {
 
     /* TokensUserDetailsService variables */
     public Map<String, String> userCredentials = new HashMap<>();
+    public Map<String, Collection<Role>> userRoles = new HashMap<>();
 
     public void reset() {
         this.tokens.clear();
@@ -42,6 +41,7 @@ public class SessionData {
         this.dockerContainers.clear();
         this.usedPorts.clear();
         this.userCredentials.clear();
+        this.userRoles.clear();
         this.pods.clear();
     }
 
