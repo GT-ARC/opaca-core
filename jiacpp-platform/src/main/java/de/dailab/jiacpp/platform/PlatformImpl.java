@@ -309,7 +309,6 @@ public class PlatformImpl implements RuntimePlatformApi {
                 var info = loggedClient.getPlatformInfo();
                 connectedPlatforms.put(url, info);
                 tokens.put(url, token);
-
                 return true;
             } finally {
                 // also remove from pending in case client.post fails
@@ -428,12 +427,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         // remote platforms
         var platformClients = connectedPlatforms.entrySet().stream()
             .filter(entry -> entry.getValue().getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action, stream)))
-            .map(entry -> new ApiProxy(entry.getKey(), tokens.get(entry.getKey())));
-        System.out.println("AUSBEUTE PLAT");
-        System.out.println(platformClients);
+            .map(entry -> {return new ApiProxy(entry.getKey(), tokens.get(entry.getKey()));});
+
         return Stream.concat(containerClients, platformClients);
     }
-
     /**
      * Check if Container ID matches and has matching agent and/or action.
      */

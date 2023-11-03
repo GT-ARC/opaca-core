@@ -42,7 +42,6 @@ public class RestHelper {
     }
 
     public <T> T post(String path, Object payload, Class<T> type) throws IOException {
-        System.out.println(baseUrl);
         return request("POST", path, payload, type);
     }
 

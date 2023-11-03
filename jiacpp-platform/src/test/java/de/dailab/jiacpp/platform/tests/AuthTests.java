@@ -190,8 +190,6 @@ public class AuthTests {
         String password = "testPwd";
 
         var con = requestWithToken(PLATFORM_B, "POST", "/connections?username=" + username + "&password=" + password, PLATFORM_A, token_B);
-        System.out.println("________k");
-        System.out.println(result(con));
         Assert.assertEquals(200, con.getResponseCode());
 
         boolean result = Boolean.parseBoolean(result(con));
