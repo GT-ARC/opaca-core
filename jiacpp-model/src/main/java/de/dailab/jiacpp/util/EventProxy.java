@@ -11,6 +11,7 @@ import java.lang.reflect.Proxy;
  * This class provides the Event Proxy. Whenever an API method is called, it is passed
  * through the proxy, before getting executed.
  */
+@Deprecated
 public class EventProxy<T> implements InvocationHandler {
 
     /** the object whose method invocations to log */
@@ -59,15 +60,15 @@ public class EventProxy<T> implements InvocationHandler {
     }
 
     private Event createCallEvent(String method, Object[] params) {
-        return new Event(Event.EventType.API_CALL, method, params, null, null);
+        return new Event(Event.EventType.CALL, method, null, null);
     }
 
     private Event createResultEvent(Event related, Object result) {
-        return new Event(Event.EventType.API_RESULT, null, null, result, related.getId());
+        return new Event(Event.EventType.RESULT, null, related.getId(), null);
     }
 
     private Event createErrorEvent(Event related, Object error) {
-        return new Event(Event.EventType.API_ERROR, null, null, error, related.getId());
+        return new Event(Event.EventType.ERROR, null, related.getId(), null);
     }
 
 }

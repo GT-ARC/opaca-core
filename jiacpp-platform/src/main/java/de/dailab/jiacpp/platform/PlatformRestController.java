@@ -40,15 +40,6 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 
 	/*
-	 * LIFECYCLE
-	 */
-
-	@PostConstruct
-	public void postConstruct() {
-		implementation = EventProxy.create(implementation);
-	}
-
-	/*
 	 * GENERIC/AUTOMATIC EXCEPTION HANDLING
 	 */
 

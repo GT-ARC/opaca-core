@@ -25,21 +25,19 @@ public class Event {
     /** name of the API method that was called */
     String methodName;
 
-    /** input parameters of the API method */
-    Object[] inputParams;
-
-    /** result of the API call, if any */
-    Object result;
-
     /** optional ID of a different event this event relates to */
     String relatedId;
+
+    /** the ID of the sending AgentContainer or RuntimePlatform, if set in the header */
+    String senderId;
 
     /**
      * Nested EventType enum
      */
     public enum EventType {
-        API_CALL,
-        API_RESULT,
-        API_ERROR
+        CALL,
+        FORWARD,
+        RESULT,
+        ERROR
     }
 }
