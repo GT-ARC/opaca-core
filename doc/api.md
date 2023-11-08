@@ -16,6 +16,12 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 * provided by the Agent Container, and by the Runtime Platform (the latter just forwarding to the former)
 
+### `GET /info`
+
+* get information about this agent container
+* input: none
+* output: `AgentContainer`
+* errors: none
 
 ### `GET /agents`
 
@@ -103,7 +109,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 ### `GET /history`
 
-* get history on this Runtime Platform
+* get history on this Runtime Platform, i.e. what routes have been called (except simple GET requests)
 * input : none
 * output: `[ Event ]`
 * errors: none
