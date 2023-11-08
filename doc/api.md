@@ -16,12 +16,6 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 * provided by the Agent Container, and by the Runtime Platform (the latter just forwarding to the former)
 
-### `GET /info`
-
-* get information about this agent container
-* input: none
-* output: `AgentContainer`
-* errors: none
 
 ### `GET /agents`
 
@@ -107,6 +101,13 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * output: `RuntimePlatform`
 * errors: none
 
+### `GET /history`
+
+* get history on this Runtime Platform
+* input : none
+* output: `[ Event ]`
+* errors: none
+
 ### `GET /containers`
 
 * get list of agent containers currently running on this platform
@@ -171,6 +172,19 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * body: the base URL of the other Runtime Platform
 * output: `true/false` whether it was disconnected
 * errors: 502 if not reachable (only if it was connected before)
+
+
+## Authentication
+
+### `POST /login`
+
+* login with user credentials
+* input:
+    * username
+    * password
+* output: Token
+* errors: 403 if user is not registered
+
 
 ### Common Themes of different Routes
 
