@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import de.dailab.jiacpp.model.Event;
 import lombok.AllArgsConstructor;
 import lombok.extern.java.Log;
 
@@ -74,7 +75,7 @@ public class RestHelper {
         connection.setRequestMethod(method);
 
         if (senderId != null && ! senderId.isEmpty()) {
-            connection.setRequestProperty("senderId", senderId);
+            connection.setRequestProperty(Event.HEADER_SENDER_ID, senderId);
         }
         if (token != null && ! token.isEmpty()) {
             connection.setRequestProperty("Authorization", "Bearer " + token);
@@ -92,7 +93,7 @@ public class RestHelper {
         connection.setRequestMethod(method);
 
         if (senderId != null && ! senderId.isEmpty()) {
-            connection.setRequestProperty("senderId", senderId);
+            connection.setRequestProperty(Event.HEADER_SENDER_ID, senderId);
         }
         if (token != null && ! token.isEmpty()) {
             connection.setRequestProperty("Authorization", "Bearer " + token);

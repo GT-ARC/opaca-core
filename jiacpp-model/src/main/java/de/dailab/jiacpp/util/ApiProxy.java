@@ -22,6 +22,7 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     public final String baseUrl;
     private final RestHelper client;
 
+    @Deprecated
     public ApiProxy(String baseUrl) {
         this(baseUrl, null, null);
     }

@@ -299,7 +299,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         } else {
             try {
                 pendingConnections.add(url);
-                var client = new ApiProxy(url);
+                var client = getPlatformClient(url);
                 var res = client.connectPlatform(config.getOwnBaseUrl());
                 if (res) {
                     var info = client.getPlatformInfo();
@@ -323,7 +323,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         url = normalizeString(url);
         checkUrl(url);
         if (connectedPlatforms.remove(url) != null) {
-            var client = new ApiProxy(url);
+            var client = getPlatformClient(url);
             var res = client.disconnectPlatform(config.getOwnBaseUrl());
             log.info(String.format("Disconnected from %s: %s", url, res));
             // TODO how to handle IO Exception here? other platform still there but refuses to disconnect?
@@ -368,7 +368,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw new NoSuchElementException(msg);
         }
         try {
-            var client = new ApiProxy(platformUrl);
+            var client = getPlatformClient(platformUrl);
             var platformInfo = client.getPlatformInfo();
             connectedPlatforms.put(platformUrl, platformInfo);
             return true;
@@ -392,7 +392,7 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
     private void notifyConnectedPlatforms() {
         for (String platformUrl : connectedPlatforms.keySet()) {
-            var client = new ApiProxy(platformUrl);
+            var client = getPlatformClient(platformUrl);
             try {
                 client.notifyUpdatePlatform(config.getOwnBaseUrl());
             } catch (IOException e) {
@@ -421,7 +421,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         // remote platforms
         var platformClients = connectedPlatforms.values().stream()
                 .filter(p -> p.getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action, stream)))
-                .map(p -> new ApiProxy(p.getBaseUrl()));
+                .map(p -> getPlatformClient(p.getBaseUrl()));
 
         return Stream.concat(containerClients, platformClients);
     }
@@ -450,6 +450,10 @@ public class PlatformImpl implements RuntimePlatformApi {
     private ApiProxy getClient(String containerId, String token) {
         var url = containerClient.getUrl(containerId);
         return new ApiProxy(url, config.getOwnBaseUrl(), token);
+    }
+
+    private ApiProxy getPlatformClient(String url) {
+        return new ApiProxy(url, config.getOwnBaseUrl(), null);
     }
 
     private String normalizeString(String string) {

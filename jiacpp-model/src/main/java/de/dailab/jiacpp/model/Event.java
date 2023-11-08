@@ -13,6 +13,9 @@ import lombok.NoArgsConstructor;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Event {
 
+    public static final String HEADER_SENDER_ID = "sender-id";
+
+
     /** unique ID of this event */
     final String id = UUID.randomUUID().toString();
 

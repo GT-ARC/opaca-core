@@ -34,7 +34,7 @@ public class EventsFilter implements Filter {
 
             // create call event
             String method = String.format("%s %s", httpRequest.getMethod(), httpRequest.getRequestURI());
-            String sender = httpRequest.getHeader("senderId");
+            String sender = httpRequest.getHeader(Event.HEADER_SENDER_ID);
             Event callEvent = createCallEvent(method, sender);
             addEvent(callEvent);
 
@@ -69,7 +69,7 @@ public class EventsFilter implements Filter {
     }
 
     private Event createCallEvent(String method, String sender) {
-        return new Event(Event.EventType.CALL, method, null, null);
+        return new Event(Event.EventType.CALL, method, null, sender);
     }
 
     private Event createResultEvent(Event related) {
