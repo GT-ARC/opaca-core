@@ -28,6 +28,7 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 public class RestHelper {
 
     public final String baseUrl;
+    public final String senderId;
     public final String token;
 
     public static final ObjectMapper mapper = JsonMapper.builder()
@@ -72,7 +73,10 @@ public class RestHelper {
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
         connection.setRequestMethod(method);
 
-        if (token != null && !token.isEmpty()) {
+        if (senderId != null && ! senderId.isEmpty()) {
+            connection.setRequestProperty("senderId", senderId);
+        }
+        if (token != null && ! token.isEmpty()) {
             connection.setRequestProperty("Authorization", "Bearer " + token);
         }
 
@@ -87,6 +91,9 @@ public class RestHelper {
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
         connection.setRequestMethod(method);
 
+        if (senderId != null && ! senderId.isEmpty()) {
+            connection.setRequestProperty("senderId", senderId);
+        }
         if (token != null && ! token.isEmpty()) {
             connection.setRequestProperty("Authorization", "Bearer " + token);
         }

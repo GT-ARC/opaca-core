@@ -444,12 +444,12 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     private ApiProxy getClient(String containerId) {
         var url = containerClient.getUrl(containerId);
-        return new ApiProxy(url);
+        return new ApiProxy(url, config.getOwnBaseUrl(), null);
     }
 
     private ApiProxy getClient(String containerId, String token) {
         var url = containerClient.getUrl(containerId);
-        return new ApiProxy(url, token);
+        return new ApiProxy(url, config.getOwnBaseUrl(), token);
     }
 
     private String normalizeString(String string) {

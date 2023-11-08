@@ -10,7 +10,7 @@ import de.dailab.jiacpp.model.AgentDescription
 
 data class Register(val description: AgentDescription, val notify: Boolean)
 
-data class Registered(val parentUrl: String?, val authToken: String?)
+data class Registered(val parentUrl: String?, val containerId: String, val authToken: String?)
 
 data class DeRegister(val agentId: String, val notify: Boolean)
 

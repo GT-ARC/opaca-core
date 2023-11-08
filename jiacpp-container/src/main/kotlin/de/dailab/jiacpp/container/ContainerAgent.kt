@@ -48,7 +48,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     /** the token for accessing the parent Runtime Platform, received on initialization */
     private val token = System.getenv(AgentContainerApi.ENV_TOKEN)
 
-    private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl, token) }
+    private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl, containerId, token) }
 
     /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
@@ -202,7 +202,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             if (it.notify) {
                 notifyPlatform()
             }
-            Registered(runtimePlatformUrl, token)
+            Registered(runtimePlatformUrl, containerId, token)
         }
 
         // in case agents want to de-register themselves before the container as a whole terminates

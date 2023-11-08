@@ -27,8 +27,9 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
 
     /** proxy to parent Runtime Platform for forwarding outgoing calls */
     private var runtimePlatformUrl: String? = null
+    private var containerId: String? = null
     private var token: String? = null
-    private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl, token) }
+    private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl, containerId, token) }
 
     override fun preStart() {
         super.preStart()
@@ -42,6 +43,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         ref invoke ask<Registered>(Register(desc, notify)) {
             log.info("REGISTERED: Parent URL is ${it.parentUrl}")
             runtimePlatformUrl = it.parentUrl
+            containerId = it.containerId
             token = it.authToken
         }
     }
