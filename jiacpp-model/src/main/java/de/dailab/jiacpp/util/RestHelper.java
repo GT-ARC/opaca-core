@@ -15,7 +15,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.io.BufferedInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -51,6 +53,8 @@ public class RestHelper {
     public ResponseEntity<StreamingResponseBody> getStream(String path) throws IOException {
         log.info(String.format("%s %s (%s)", "GET", baseUrl, path));
         HttpURLConnection connection = setupConnection("GET", path);
+
+        createForwardEvent("GET", path);
 
         StreamingResponseBody responseBody = response -> {
             int bytesRead;
@@ -113,6 +117,8 @@ public class RestHelper {
             connection.connect();
         }
 
+        createForwardEvent(method, path);
+
         if (type != null) {
             if (connection.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST) {
                 return mapper.readValue(connection.getInputStream(), type);
@@ -139,6 +145,22 @@ public class RestHelper {
 
     public static String writeJson(Object obj) throws IOException {
         return mapper.writeValueAsString(obj);
+    }
+
+    /**
+     * Get the latest CALL Event with same method and add FORWARD event related to that, if any.
+     * This does nothing if the Event History is empty, e.g. in the AgentContainer.
+     */
+    private void createForwardEvent(String method, String path) {
+        var key = String.format("%s %s", method, path.split("\\?")[0]);
+        System.out.println("FORWARDING? " + key);
+        Optional<Event> related = EventHistory.getInstance().getEvents().stream()
+                .filter(x -> x.getEventType() == Event.EventType.CALL && x.getRoute().equals(key))
+                .max(Comparator.comparing(Event::getTimestamp));
+        if (related.isPresent()) {
+            Event event = new Event(Event.EventType.FORWARD, null, null, baseUrl, null, related.get().getId());
+            EventHistory.getInstance().addEvent(event);
+        }
     }
 
 }
