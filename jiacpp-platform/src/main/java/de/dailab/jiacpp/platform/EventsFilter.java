@@ -33,9 +33,9 @@ public class EventsFilter implements Filter {
             HttpServletResponse httpResponse = (HttpServletResponse) response;
 
             // create call event
-            String method = String.format("%s %s", httpRequest.getMethod(), httpRequest.getRequestURI());
+            String route = String.format("%s %s", httpRequest.getMethod(), httpRequest.getRequestURI());
             String sender = httpRequest.getHeader(Event.HEADER_SENDER_ID);
-            Event callEvent = createCallEvent(method, sender);
+            Event callEvent = createCallEvent(route, sender);
             addEvent(callEvent);
 
             // process the request
@@ -45,7 +45,7 @@ public class EventsFilter implements Filter {
             if (httpResponse.getStatus() >= 200 & httpResponse.getStatus() < 300 ) {
                 addEvent(createResultEvent(callEvent));
             } else {
-                addEvent(createErrorEvent(callEvent));
+                addEvent(createErrorEvent(callEvent, httpResponse.getStatus()));
             }
         } else {
             // just process the request
@@ -68,16 +68,16 @@ public class EventsFilter implements Filter {
         EventHistory.getInstance().addEvent(event);
     }
 
-    private Event createCallEvent(String method, String sender) {
-        return new Event(Event.EventType.CALL, method, null, sender);
+    private Event createCallEvent(String route, String sender) {
+        return new Event(Event.EventType.CALL, route, sender, null, null, null);
     }
 
     private Event createResultEvent(Event related) {
-        return new Event(Event.EventType.RESULT, null, related.getId(), null);
+        return new Event(Event.EventType.SUCCESS, null, null, null, null, related.getId());
     }
 
-    private Event createErrorEvent(Event related) {
-        return new Event(Event.EventType.ERROR, null, related.getId(), null);
+    private Event createErrorEvent(Event related, int status) {
+        return new Event(Event.EventType.ERROR, null, null, null, status, related.getId());
     }
 
 }

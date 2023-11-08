@@ -25,14 +25,21 @@ public class Event {
     /** to differentiate certain types of events */
     EventType eventType;
 
-    /** name of the API method that was called */
-    String methodName;
+    /** method and route of the API, for CALL event */
+    String route;
+
+    /** the ID of the sending AgentContainer or RuntimePlatform, if set in the header, for CALL event */
+    String senderId;
+
+    /** receiver of forwarded call, for FORWARD event */
+    String receiver;
+
+    /** HTTP status code, for ERROR event */
+    Integer statusCode;
 
     /** optional ID of a different event this event relates to */
     String relatedId;
 
-    /** the ID of the sending AgentContainer or RuntimePlatform, if set in the header */
-    String senderId;
 
     /**
      * Nested EventType enum
@@ -40,7 +47,7 @@ public class Event {
     public enum EventType {
         CALL,
         FORWARD,
-        RESULT,
+        SUCCESS,
         ERROR
     }
 }
