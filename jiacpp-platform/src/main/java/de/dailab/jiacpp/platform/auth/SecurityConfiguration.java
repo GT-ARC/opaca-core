@@ -3,6 +3,9 @@ package de.dailab.jiacpp.platform.auth;
 import de.dailab.jiacpp.platform.PlatformConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -12,6 +15,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 
@@ -59,6 +63,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
             JwtRequestFilter jwtRequestFilter = new JwtRequestFilter();
             http.csrf().disable()
                     .authorizeRequests()
+                    .expressionHandler(defaultWebSecurityExpressionHandler())
                     .antMatchers("/v2/api-docs",
                             "/swagger-resources",
                             "/swagger-resources/**",
@@ -69,8 +74,13 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                             "/configuration/security",
                             "/swagger-ui.html",
                             "/webjars/**").permitAll()
-                    .antMatchers("/invoke/TestActionAdmin").hasRole("ADMIN")        // for testing purposes
-                    .antMatchers("/invoke/TestActionGod").hasRole("GOD")            // for testing purposes
+                    // Check role authority for specific routes/requests
+                    .antMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**").hasRole("GUEST")
+                    .antMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole("USER")
+                    .antMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**").hasRole("USER")
+                    .antMatchers(HttpMethod.POST, "/containers/**").hasRole("CONTRIBUTOR")
+                    .antMatchers(HttpMethod.DELETE, "/containers/**").hasRole("CONTRIBUTOR")
+                    .antMatchers("/connections/**").hasRole("ADMIN")
                     .anyRequest().authenticated().and()
                     .exceptionHandling().and().sessionManagement()
                     .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
@@ -91,6 +101,21 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public RoleHierarchy roleHierarchy() {
+        RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
+        String hierarchy = "ROLE_ADMIN > ROLE_CONTRIBUTOR \n ROLE_CONTRIBUTOR > ROLE_USER \n ROLE_USER > ROLE_GUEST";
+        roleHierarchy.setHierarchy(hierarchy);
+        return roleHierarchy;
+    }
+
+    @Bean
+    public DefaultWebSecurityExpressionHandler defaultWebSecurityExpressionHandler() {
+        DefaultWebSecurityExpressionHandler expressionHandler = new DefaultWebSecurityExpressionHandler();
+        expressionHandler.setRoleHierarchy(roleHierarchy());
+        return expressionHandler;
     }
 
     public class JwtRequestFilter extends OncePerRequestFilter {
