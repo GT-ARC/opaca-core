@@ -8,9 +8,9 @@ import java.util.Collection;
 public class Role {
 
     private String name;
-    private Collection<Privilege> privileges;
+    private Collection<String> privileges;
 
-    public Role(String name, Collection<Privilege> privileges) {
+    public Role(String name, Collection<String> privileges) {
         this.name = name;
         this.privileges = privileges;
     }

@@ -71,7 +71,7 @@ public class TokenUserDetailsService implements UserDetailsService {
         List<GrantedAuthority> authorities = new ArrayList<>();
         for (Role role : roles) {
             authorities.add(new SimpleGrantedAuthority(role.getName()));
-            role.getPrivileges().stream().map(p -> new SimpleGrantedAuthority(p.getName()))
+            role.getPrivileges().stream().map(SimpleGrantedAuthority::new)
                     .forEach(authorities::add);
         }
 
@@ -80,6 +80,6 @@ public class TokenUserDetailsService implements UserDetailsService {
 
     // This temp method is just for testing to get the admin role
     public Collection<Role> getDebugRole() {
-        return Arrays.asList(new Role("ROLE_ADMIN", Arrays.asList(new Privilege("ADMIN_PRIVILEGE"))));
+        return Arrays.asList(new Role("ROLE_ADMIN", Arrays.asList("ADMIN_PRIVILEGE")));
     }
 }
