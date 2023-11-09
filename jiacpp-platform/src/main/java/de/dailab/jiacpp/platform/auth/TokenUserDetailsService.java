@@ -31,15 +31,12 @@ public class TokenUserDetailsService implements UserDetailsService {
     private PlatformConfig config;
 
 
-    private Map<String, String> userCredentials;
-
-    private Map<String, Collection<Role>> userRoles;
+    private Map<String, TokenUser> tokenUsers;
 
     @PostConstruct
 	public void postConstruct() {
-		userCredentials = sessionData.userCredentials;
-        userRoles = sessionData.userRoles;
-        if (userCredentials.isEmpty() || userRoles.isEmpty()) {
+		tokenUsers = sessionData.tokenUsers;
+        if (tokenUsers.isEmpty()) {
             addUser(config.usernamePlatform, config.passwordPlatform, getDebugRole());
         }
 	}
@@ -47,24 +44,31 @@ public class TokenUserDetailsService implements UserDetailsService {
     /** Returns the user as a standardized 'User' object */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        if (userCredentials.containsKey(username)) {
-            return new User(username, userCredentials.get(username), getAuthorities(userRoles.get(username)));
+        if (tokenUsers.containsKey(username)) {
+            return new User(username, tokenUsers.get(username).getPassword(),
+                    getAuthorities(tokenUsers.get(username).getRoles()));
         } else {
             throw new UsernameNotFoundException("User not found: " + username);
         }
     }
 
     /**
-     * Adding user to the credentials map. Those user credentials can be a human's credentials
-     * as [username:password] or agent container credentials as [containerID:containerID].
+     * Adding users to the set of tokenUsers. Users can be human [username, password, roles]
+     * or containers [containerID, containerID, roles]
+     * If a User already exists, throw an exception
      */
     public void addUser(String username, String password, Collection<Role> roles) {
-        userCredentials.put(username, password);
-        userRoles.put(username, roles);
+        if (tokenUsers.containsKey(username)) {
+            throw new UserAlreadyExistsException(username);
+        }
+        else {
+            TokenUser user = new TokenUser(username, password, roles);
+            tokenUsers.put(username, user);
+        }
     }
 
     public void removeUser(String username) {
-        userCredentials.remove(username);
+        tokenUsers.remove(username);
     }
 
     private Collection<? extends GrantedAuthority> getAuthorities(Collection<Role> roles) {
@@ -81,5 +85,14 @@ public class TokenUserDetailsService implements UserDetailsService {
     // This temp method is just for testing to get the admin role
     public Collection<Role> getDebugRole() {
         return Arrays.asList(new Role("ROLE_ADMIN", Arrays.asList("ADMIN_PRIVILEGE")));
+    }
+
+    /**
+     * Exception thrown during user creation if a given user already exists
+     */
+    static class UserAlreadyExistsException extends RuntimeException {
+        public UserAlreadyExistsException(String username) {
+            super("User with username '" + username + "' already exists!");
+        }
     }
 }

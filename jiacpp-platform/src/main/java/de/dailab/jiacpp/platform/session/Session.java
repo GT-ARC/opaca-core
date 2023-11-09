@@ -94,7 +94,7 @@ public class Session {
                 this.data.connectedPlatforms.putAll(lastdata.connectedPlatforms);
                 this.data.dockerContainers.putAll(lastdata.dockerContainers);
                 this.data.usedPorts.addAll(lastdata.usedPorts);
-                this.data.userCredentials.putAll(lastdata.userCredentials);
+                this.data.tokenUsers.putAll(lastdata.tokenUsers);
     
             } catch (IOException e) {
                 log.severe("Could not load Session data: " + e);
