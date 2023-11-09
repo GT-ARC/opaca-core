@@ -76,8 +76,10 @@ public class TokenUserDetailsService implements UserDetailsService {
         List<GrantedAuthority> authorities = new ArrayList<>();
         for (Role role : roles) {
             authorities.add(new SimpleGrantedAuthority(role.getName()));
-            role.getPrivileges().stream().map(SimpleGrantedAuthority::new)
-                    .forEach(authorities::add);
+            if (role.getPrivileges() != null) {
+                role.getPrivileges().stream().map(SimpleGrantedAuthority::new)
+                        .forEach(authorities::add);
+            }
         }
 
         return authorities;
