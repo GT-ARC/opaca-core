@@ -37,7 +37,8 @@ public class TokenUserDetailsService implements UserDetailsService {
 	public void postConstruct() {
 		tokenUsers = sessionData.tokenUsers;
         if (tokenUsers.isEmpty()) {
-            addUser(config.usernamePlatform, config.passwordPlatform, getDebugRole());
+            addUser(config.usernamePlatform, config.passwordPlatform,
+                    Arrays.asList(new Role("ROLE_" + config.rolePlatform)));
         }
 	}
 

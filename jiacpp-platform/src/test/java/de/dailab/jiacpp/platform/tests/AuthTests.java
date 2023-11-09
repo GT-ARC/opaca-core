@@ -29,7 +29,8 @@ public class AuthTests {
         platform = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_PORT,
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
-                "--username_platform=testUser", "--password_platform=testPwd");
+                "--username_platform=testUser", "--password_platform=testPwd",
+                "--role_platform=ADMIN");
     }
 
     @AfterClass
