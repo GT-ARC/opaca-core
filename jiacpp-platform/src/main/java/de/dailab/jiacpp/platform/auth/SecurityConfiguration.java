@@ -49,6 +49,11 @@ public class SecurityConfiguration {
     @Autowired
     private PlatformConfig config;
 
+    /*
+    The security filter chain establishes the required permissions for a user to have
+    in order to access the specified routes. The swagger ui routes, along with "/login"
+    and "/error", are always permitted.
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         if (config.enableAuth) {
@@ -71,7 +76,6 @@ public class SecurityConfiguration {
                             ).permitAll()
                             .anyRequest().authenticated()
                     )
-                    // .exceptionHandling() TODO how to handle exceptions
                     .sessionManagement((session) -> session
                             .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                     )
