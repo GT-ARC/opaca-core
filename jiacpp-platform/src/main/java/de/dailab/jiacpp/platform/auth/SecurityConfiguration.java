@@ -63,6 +63,7 @@ public class SecurityConfiguration {
                                     "/swagger-ui/**",
                                     "/v3/api-docs/**",
                                     "/login",
+                                    "/error",
                                     "/configuration/ui",
                                     "/configuration/security",
                                     "/swagger-ui.html",
