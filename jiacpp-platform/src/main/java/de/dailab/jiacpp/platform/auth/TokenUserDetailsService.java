@@ -32,6 +32,7 @@ public class TokenUserDetailsService implements UserDetailsService {
 
 
     private Map<String, TokenUser> tokenUsers;
+    private String currentUser;
 
     @PostConstruct
 	public void postConstruct() {
@@ -39,6 +40,7 @@ public class TokenUserDetailsService implements UserDetailsService {
         if (tokenUsers.isEmpty()) {
             addUser(config.usernamePlatform, config.passwordPlatform,
                     Arrays.asList(new Role("ROLE_" + config.rolePlatform)));
+            currentUser = config.usernamePlatform;
         }
 	}
 
@@ -72,6 +74,22 @@ public class TokenUserDetailsService implements UserDetailsService {
         tokenUsers.remove(username);
     }
 
+    public Collection<Role> getCurrentUserRoles() {
+        return tokenUsers.get(currentUser).getRoles();
+    }
+
+    /**
+     * Return the granted authorities of the current user.
+     * @return
+     */
+    public Collection<? extends GrantedAuthority> getCurrentUserAuthorities() {
+        return getAuthorities(tokenUsers.get(currentUser).getRoles());
+    }
+
+    /**
+     * Returns the roles and privileges as granted authorities based on the given
+     * collection of roles.
+     */
     private Collection<? extends GrantedAuthority> getAuthorities(Collection<Role> roles) {
         List<GrantedAuthority> authorities = new ArrayList<>();
         for (Role role : roles) {
