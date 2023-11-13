@@ -288,6 +288,37 @@ public class AuthTests {
     }
 
 
+    // Container authorities started by users.
+
+    @Test
+    public void testXContributorContainer() throws Exception {
+        var auth = authQuery("contributor", "contributorPwd");
+        var con = request(PLATFORM_A, "POST", "/login" + auth, null);
+        Assert.assertEquals(200, con.getResponseCode());
+        token = result(con);
+        Assert.assertNotNull(token);
+
+        var image = getSampleContainerImage();
+        con = requestWithToken(PLATFORM_A, "POST", "/containers", image, token);
+        Assert.assertEquals(200, con.getResponseCode());
+        var newContainerId = result(con);
+
+        con = requestWithToken(PLATFORM_A, "POST", "/invoke/GetInfo?containerID=" + newContainerId,
+                Map.of(), token);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+        containerToken = (String) res.get("TOKEN");
+        System.out.println(containerToken);
+        Assert.assertTrue(containerToken != null && ! containerToken.equals(""));
+
+        con = requestWithToken(PLATFORM_A, "POST", "/containers", image, containerToken);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        con = requestWithToken(PLATFORM_A, "POST", "/connections", platformBBaseUrl, containerToken);
+        Assert.assertEquals(403, con.getResponseCode());
+    }
+
+
     // Helper methods
 
     private String authQuery(String username, String password) {
