@@ -265,8 +265,8 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public boolean connectPlatform(
 			@RequestBody String url,
-			@RequestParam String username,
-			@RequestParam String password
+			@RequestParam(required = false) String username,
+			@RequestParam(required = false) String password
 	) throws IOException {
 		// TODO handle IO Exception (platform not found or does not respond, could be either 404 or 502)
 		log.info(String.format("CONNECT PLATFORM: %s", url));
