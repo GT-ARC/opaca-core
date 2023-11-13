@@ -9,7 +9,6 @@ import org.junit.runners.MethodSorters;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
-import java.util.HashMap;
 import java.util.Map;
 
 
@@ -47,6 +46,7 @@ public class AuthTests {
     @AfterClass
     public static void stopPlatform() {
         platform_A.close();
+        platform_B.close();
     }
 
 
@@ -179,8 +179,9 @@ public class AuthTests {
         var con = requestWithToken(PLATFORM_B, "POST", "/connections?username=" + username + "&password=" + password, PLATFORM_A, token_B);
 
         Assert.assertEquals(200, con.getResponseCode());
+        // TODO should this actually be a 200/False? not 403 or 502?
 
-        boolean result = Boolean.parseBoolean(result(con));
+        boolean result = result(con, Boolean.class);
         Assert.assertFalse(result);
     }
 
@@ -192,7 +193,7 @@ public class AuthTests {
         var con = requestWithToken(PLATFORM_B, "POST", "/connections?username=" + username + "&password=" + password, PLATFORM_A, token_B);
         Assert.assertEquals(200, con.getResponseCode());
 
-        boolean result = Boolean.parseBoolean(result(con));
+        boolean result = result(con, Boolean.class);
         Assert.assertFalse(result);
     }
 
@@ -204,7 +205,7 @@ public class AuthTests {
         var con = requestWithToken(PLATFORM_B, "POST", "/connections?username=" + username + "&password=" + password, PLATFORM_A, token_B);
         Assert.assertEquals(200, con.getResponseCode());
 
-        boolean result = Boolean.parseBoolean(result(con));
+        boolean result = result(con, Boolean.class);
         Assert.assertTrue(result);
     }
 
