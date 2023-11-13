@@ -53,3 +53,31 @@ Keep in mind that, when running the Agent Containers on a remote Docker or Kuber
 ### Kubernetes
 
 For productive use, this is the preferred execution environment. The Runtime Platform will use the default Kubernetes Config (or an alternative config provided in the `KUBERNETES_CONFIG` environment variable) to connect to a Kubernetes cluster and start the Agent Container pods in the namespace given in the `KUBERNETES_NAMESPACE` variable.
+
+## Operating System
+
+### Mac
+To use the API on Mac, make sure to setup your Docker properly. The following configuration is tested and works fine:
+```
+Client:
+ Cloud integration: v1.0.35+desktop.5
+ Version:           24.0.6
+ API version:       1.43
+ Go version:        go1.20.7
+ OS/Arch:           darwin/arm64
+ Context:           desktop-linux
+
+Server: Docker Desktop 4.25.0 (126437)
+ Engine:
+  Version:          24.0.6
+  API version:      1.43 (minimum version 1.12)
+  Go version:       go1.20.7
+  Git commit:       1a79695
+  OS/Arch:          linux/arm64
+ containerd:
+  Version:          1.6.22
+ runc:
+  Version:          1.1.8
+ docker-init:
+  Version:          0.19.0
+```
