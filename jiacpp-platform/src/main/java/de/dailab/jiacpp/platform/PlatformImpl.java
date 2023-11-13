@@ -300,20 +300,27 @@ public class PlatformImpl implements RuntimePlatformApi {
             // callback from remote platform following our own request for connection
             return true;
         } else {
-            try {
-                pendingConnections.add(url);
-                var client = new ApiProxy(url);
-                String token = client.login(username, password);
-                var loggedClient = new ApiProxy(url, token);
-
-                var info = loggedClient.getPlatformInfo();
+            if (username != null) {
+                // with auth, unidirectional
+                var token = new ApiProxy(url).login(username, password);
+                var info = new ApiProxy(url, token).getPlatformInfo();
                 connectedPlatforms.put(url, info);
                 tokens.put(url, token);
-                return true;
-            } finally {
-                // also remove from pending in case client.post fails
-                pendingConnections.remove(url);
+            } else {
+                // without auth, bidirectional
+                try {
+                    pendingConnections.add(url);
+                    var client = new ApiProxy(url);
+                    if (client.connectPlatform(config.getOwnBaseUrl(), null, null)) {
+                        var info = client.getPlatformInfo();
+                        connectedPlatforms.put(url, info);
+                    }
+                } finally {
+                    // also remove from pending in case client.post fails
+                    pendingConnections.remove(url);
+                }
             }
+            return true;
         }
     }
 
@@ -329,10 +336,12 @@ public class PlatformImpl implements RuntimePlatformApi {
         url = normalizeString(url);
         checkUrl(url);
         if (connectedPlatforms.remove(url) != null) {
-            var client = new ApiProxy(url);
-            var res = client.disconnectPlatform(config.getOwnBaseUrl());
-            log.info(String.format("Disconnected from %s: %s", url, res));
-            // TODO how to handle IO Exception here? other platform still there but refuses to disconnect?
+            if (tokens.containsKey(url)) {
+                tokens.remove(url);
+            } else {
+                new ApiProxy(url).disconnectPlatform(config.getOwnBaseUrl());
+            }
+            log.info(String.format("Disconnected from %s", url));
             return true;
         }
         return false;
@@ -397,6 +406,8 @@ public class PlatformImpl implements RuntimePlatformApi {
      *      asynchronous (without too much fuzz) so it does not block those other calls?
      */
     private void notifyConnectedPlatforms() {
+        // TODO with connect not being bidirectional, this does not really make sense anymore
+        //  adapt to possible new /subscribe route, or change entirely?
         for (String platformUrl : connectedPlatforms.keySet()) {
             var client = new ApiProxy(platformUrl);
             try {
