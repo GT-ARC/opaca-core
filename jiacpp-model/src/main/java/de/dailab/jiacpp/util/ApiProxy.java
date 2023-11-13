@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
@@ -49,6 +48,15 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     @Override
     public AgentContainer getContainerInfo() throws IOException {
         return client.get("/info", AgentContainer.class);
+    }
+
+    // AUTHENTICATION
+
+    @Override
+    public String login(String username, String password) throws IOException {
+        var query = buildQuery(Map.of("username", username, "password", password));
+        var path = String.format("/login?%s", query);
+        return client.post(path, null, String.class);
     }
 
     // AGENT ROUTES
@@ -130,28 +138,12 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
 
     @Override
     public boolean connectPlatform(String url, String username, String password) throws IOException {
-        var path = String.format("/connections?%s", buildQuery(username, password));
+        var query = buildQuery(Map.of("username", username, "password", password));
+        var path = String.format("/connections?%s", query);
         var payload = new HashMap<>();
         payload.put("url", url);
 
         return client.post(path, payload, Boolean.class);
-    }
-    
-    private Object buildQuery(String username, String password) {
-        String result = "";
-        if (username != null) {
-            result += String.format("&username=%s", username);
-        }
-        if (password != null) {
-            result += String.format("&password=%s", password);
-        }
-        return result.replaceFirst("&", "");
-    }
-
-    @Override
-    public String login(String username, String password) throws BadCredentialsException, IOException {
-        var path = String.format("/login?%s", buildQuery(username, password));
-        return client.post(path, null, String.class);
     }
 
     @SuppressWarnings({"unchecked"})
@@ -179,17 +171,21 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
      * Helper method for building Query string (without initial ?); will be more useful when there are more.
      */
     private String buildQuery(String containerId, Boolean forward, Integer timeout) {
-        String result = "";
-        if (containerId != null) {
-            result += String.format("&containerId=%s", containerId);
+        Map<String, Object> params = new HashMap<>(); // Map.of does not work with nullable values
+        params.put("containerId", containerId);
+        params.put("forward", forward);
+        params.put("timeout", timeout);
+        return buildQuery(params);
+    }
+
+    private String buildQuery(Map<String, Object> params) {
+        StringBuilder builder = new StringBuilder();
+        for (Map.Entry<String, ?> entry : params.entrySet()) {
+            if (entry.getValue() != null) {
+                builder.append(String.format("&%s=%s", entry.getKey(), entry.getValue()));
+            }
         }
-        if (forward != null) {
-            result += String.format("&forward=%s", forward);
-        }
-        if (timeout != null) {
-            result += String.format("&timeout=%s", timeout);
-        }
-        return result.replaceFirst("&", "");
+        return builder.toString().replaceFirst("&", "");
     }
 
 }

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
-import de.dailab.jiacpp.platform.auth.JwtUtil;
 import de.dailab.jiacpp.util.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -12,7 +11,6 @@ import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
@@ -32,9 +30,6 @@ import java.util.NoSuchElementException;
 @SecurityRequirement(name = "bearerAuth")
 @CrossOrigin(origins = "*", methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE } )
 public class PlatformRestController implements RuntimePlatformApi {
-
-	@Autowired
-	private JwtUtil jwtUtil;
 
 	@Autowired
 	private RuntimePlatformApi implementation;
@@ -87,10 +82,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 	@RequestMapping(value="/login", method=RequestMethod.POST)
 	@Operation(summary="Login with username and password", tags={"authentication"})
+	@Override
 	public String login(
 			@RequestParam String username,
 			@RequestParam String password
-	) throws BadCredentialsException, IOException {
+	) throws IOException {
 		return implementation.login(username, password);
 	}
 
