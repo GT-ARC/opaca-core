@@ -1,11 +1,14 @@
+# using shared Shell runner with Java 17
+variables:
+  JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
+default:
+  tags:
+    - shared
+
 stages:
   - build
   - test
   - deploy
-
-default:
-  tags:
-    - shared
 
 mvn-build:
   stage: build
