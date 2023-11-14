@@ -6,6 +6,7 @@ import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -47,6 +48,16 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     @Override
     public AgentContainer getContainerInfo() throws IOException {
         return client.get("/info", AgentContainer.class);
+    }
+
+    // AUTHENTICATION
+
+    @Override
+    public String login(String username, String password) throws IOException {
+        var query = buildLoginQuery(username, password);
+        var path = String.format("/login?%s", query);
+        // token should be raw string
+        return client.readStream(client.request("POST", path, null));
     }
 
     // AGENT ROUTES
@@ -127,8 +138,10 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     // CONNECTING ROUTES
 
     @Override
-    public boolean connectPlatform(String url) throws IOException {
-        return client.post("/connections", url, Boolean.class);
+    public boolean connectPlatform(String url, String username, String password) throws IOException {
+        var query = buildLoginQuery(username, password);
+        var path = String.format("/connections?%s", query);
+        return client.post(path, url, Boolean.class);
     }
 
     @SuppressWarnings({"unchecked"})
@@ -156,17 +169,28 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
      * Helper method for building Query string (without initial ?); will be more useful when there are more.
      */
     private String buildQuery(String containerId, Boolean forward, Integer timeout) {
-        String result = "";
-        if (containerId != null) {
-            result += String.format("&containerId=%s", containerId);
+        Map<String, Object> params = new HashMap<>(); // Map.of does not work with nullable values
+        params.put("containerId", containerId);
+        params.put("forward", forward);
+        params.put("timeout", timeout);
+        return buildQuery(params);
+    }
+
+    private String buildLoginQuery(String username, String password) {
+        Map<String, Object> params = new HashMap<>(); // Map.of does not work with nullable values
+        params.put("username", username);
+        params.put("password", password);
+        return buildQuery(params);
+    }
+
+    private String buildQuery(Map<String, Object> params) {
+        StringBuilder builder = new StringBuilder();
+        for (Map.Entry<String, ?> entry : params.entrySet()) {
+            if (entry.getValue() != null) {
+                builder.append(String.format("&%s=%s", entry.getKey(), entry.getValue()));
+            }
         }
-        if (forward != null) {
-            result += String.format("&forward=%s", forward);
-        }
-        if (timeout != null) {
-            result += String.format("&timeout=%s", timeout);
-        }
-        return result.replaceFirst("&", "");
+        return builder.toString().replaceFirst("&", "");
     }
 
 }

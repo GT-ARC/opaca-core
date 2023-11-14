@@ -160,7 +160,8 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 ### `POST /connections`
 
-* connect platform to another remote Runtime Platform (both directions)
+* connect platform to another remote Runtime Platform (both directions, unless remote requires authentication, then just one direction)
+* input: username & password (optional, if remote RP requires authentication)
 * body: the base URL of that other Runtime Platform
 * output: `true/false` whether the platform was newly connected or already known
 * errors: 502 (bad gateway) if not reachable
