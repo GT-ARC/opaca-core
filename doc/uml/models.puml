@@ -13,13 +13,19 @@ class RuntimePlatform {
 RuntimePlatform *- "*" AgentContainer: containers
 
 
+class PostAgentContainer {
+    arguments: {string: string}
+}
+PostAgentContainer *-- AgentContainerImage: image
+
 class AgentContainer {
     containerId: string
     runningSince: datetime
+    arguments: {string: string}
 }
 AgentContainer *-- "*" AgentDescription: agents
 AgentContainer *--  AgentContainerImage: image
-AgentContainer *-- Connectivity: connectivity;
+AgentContainer *-- Connectivity: connectivity
 
 class Connectivity {
     publicUrl: URL
@@ -38,6 +44,7 @@ class AgentContainerImage {
     apiPort: integer
 }
 AgentContainerImage *-- "*" PortDescription: extraPorts
+AgentContainerImage *-- "*" ImageParameter: parameters
 
 class PortDescription {
     port: integer
@@ -45,6 +52,14 @@ class PortDescription {
     description: string
 }
 ' actually "port" is not an attribute but the key in a hash map
+
+class ImageParameter {
+    name: string
+    type: string
+    required: boolean
+    confidential: boolean
+    defaultValue: string
+}
 
 class AgentDescription {
     agentId: string

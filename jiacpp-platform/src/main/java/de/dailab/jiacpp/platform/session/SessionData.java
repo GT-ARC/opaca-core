@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import de.dailab.jiacpp.model.PostAgentContainer;
 import org.springframework.stereotype.Component;
 
 import de.dailab.jiacpp.model.AgentContainer;
@@ -23,6 +24,7 @@ public class SessionData {
     /* PlatformImpl variables */
     public Map<String, String> tokens = new HashMap<>();
     public Map<String, AgentContainer> runningContainers = new HashMap<>();
+    public Map<String, PostAgentContainer> startContainerRequests = new HashMap<>();
     public Map<String, RuntimePlatform> connectedPlatforms = new HashMap<>();
 
     /* DockerClient variables */
@@ -38,6 +40,7 @@ public class SessionData {
     public void reset() {
         this.tokens.clear();
         this.runningContainers.clear();
+        this.startContainerRequests.clear();
         this.connectedPlatforms.clear();
         this.dockerContainers.clear();
         this.usedPorts.clear();

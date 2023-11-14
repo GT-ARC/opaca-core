@@ -3,6 +3,8 @@ package de.dailab.jiacpp.platform.containerclient;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
+import de.dailab.jiacpp.model.AgentContainerImage.ImageParameter;
+import de.dailab.jiacpp.model.PostAgentContainer;
 import de.dailab.jiacpp.platform.PlatformConfig;
 import de.dailab.jiacpp.platform.session.SessionData;
 import lombok.AllArgsConstructor;
@@ -20,12 +22,8 @@ import io.kubernetes.client.util.Config;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
-import java.util.Set;
-import java.util.List;
-import java.util.NoSuchElementException;
 
 /**
  * Container Client for running Agent Containers in Kubernetes.
@@ -95,8 +93,8 @@ public class KubernetesClient implements ContainerClient {
     }
 
     @Override
-    public AgentContainer.Connectivity startContainer(String containerId, String token, AgentContainerImage image) throws IOException, NoSuchElementException {
-        
+    public AgentContainer.Connectivity startContainer(String containerId, String token, PostAgentContainer container) throws IOException, NoSuchElementException {
+        var image = container.getImage();
         var imageName = image.getImageName();
         var registry = imageName.split("/")[0];
         String registrySecret = this.auth.get(registry);
@@ -113,11 +111,7 @@ public class KubernetesClient implements ContainerClient {
                                         .ports(List.of(
                                                 new V1ContainerPort().containerPort(image.getApiPort())
                                         ))
-                                        .env(List.of(
-                                                new V1EnvVar().name(AgentContainerApi.ENV_CONTAINER_ID).value(containerId),
-                                                new V1EnvVar().name(AgentContainerApi.ENV_TOKEN).value(token),
-                                                new V1EnvVar().name(AgentContainerApi.ENV_PLATFORM_URL).value(config.getOwnBaseUrl())
-                                        ))
+                                        .env(buildEnv(containerId, token, image.getParameters(), container.getArguments()))
                         ))
                         .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)))
                 ;
@@ -183,6 +177,12 @@ public class KubernetesClient implements ContainerClient {
             log.severe("Error creating pod: " + e.getMessage());
             throw new IOException("Failed to create Pod: " + e.getMessage());
         }
+    }
+
+    private List<V1EnvVar> buildEnv(String containerId, String token, List<ImageParameter> parameters, Map<String, String> arguments) {
+        return config.buildContainerEnv(containerId, token, parameters, arguments).entrySet().stream()
+                .map(e -> new V1EnvVar().name(e.getKey()).value(e.getValue()))
+                .collect(Collectors.toList());
     }
 
     @Override

@@ -1,6 +1,8 @@
 package de.dailab.jiacpp.platform;
 
 import com.google.common.base.Strings;
+import de.dailab.jiacpp.api.AgentContainerApi;
+import de.dailab.jiacpp.model.AgentContainerImage;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.ToString;
@@ -11,7 +13,9 @@ import org.springframework.context.annotation.Configuration;
 import jakarta.annotation.PostConstruct;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -159,6 +163,29 @@ public class PlatformConfig {
                     .mapToObj(i -> new ImageRegistryAuth(registries[i], logins[i], passwords[i]))
                     .collect(Collectors.toList());
         }
+    }
+
+    /**
+     * Get Environment for AgentContainers, including both the standard parameters defined by the Runtime Platform,
+     * and any user-defined image-specific parameters.
+     */
+    public Map<String, String> buildContainerEnv(String containerId, String token, List<AgentContainerImage.ImageParameter> parameters, Map<String, String> arguments) {
+        Map<String, String> env = new HashMap<>();
+        // standard env vars passed from Runtime Platform to Agent Container
+        env.put(AgentContainerApi.ENV_CONTAINER_ID, containerId);
+        env.put(AgentContainerApi.ENV_TOKEN, token);
+        env.put(AgentContainerApi.ENV_PLATFORM_URL, getOwnBaseUrl());
+        // additional user-defined parameters
+        for (AgentContainerImage.ImageParameter param : parameters) {
+            if (arguments.containsKey(param.getName())) {
+                env.put(param.getName(), arguments.get(param.getName()));
+            } else if (! param.getRequired()) {
+                env.put(param.getName(), param.getDefaultValue());
+            } else {
+                throw new IllegalArgumentException("Missing required parameter: " + param.getName());
+            }
+        }
+        return env;
     }
 
     @Data @AllArgsConstructor
