@@ -5,9 +5,7 @@ stages:
 
 default:
   tags:
-    - docker
-
-image: maven:3.8.5-openjdk-17
+    - shared
 
 mvn-build:
   stage: build
