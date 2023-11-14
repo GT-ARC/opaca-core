@@ -136,7 +136,7 @@ public class AuthTests {
     }
 
     @Test
-    public void test7TriggerAutoNotify() throws Exception {
+    public void test4TriggerAutoNotify() throws Exception {
         // create new agent action
         var con = requestWithToken(PLATFORM_A, "POST", "/invoke/CreateAction", Map.of("name", "TestAction", "notify", "true"), token_A);
         Assert.assertEquals(200, con.getResponseCode());
@@ -150,20 +150,20 @@ public class AuthTests {
     // Authentication against the containers
 
     @Test
-    public void test8WithToken() throws Exception {
+    public void test4WithToken() throws Exception {
         var con = requestWithToken(containerIP, "GET", "/info", null, containerToken);
         Assert.assertEquals(200, con.getResponseCode());
     }
     
     @Test
-    public void test8WithWrongToken() throws Exception {
+    public void test4WithWrongToken() throws Exception {
         var invalidToken = "wrong-token";
         var con = requestWithToken(containerIP, "GET", "/info", null, invalidToken);
         Assert.assertEquals(403, con.getResponseCode());
     }
 
     @Test
-    public void test8WithoutToken() throws Exception {
+    public void test4WithoutToken() throws Exception {
         var con = requestWithToken(containerIP, "GET", "/info", null, null);
         Assert.assertEquals(403, con.getResponseCode());
     }
@@ -172,45 +172,29 @@ public class AuthTests {
      // Authentication against the connected platforms
     
     @Test
-    public void test8ConnectPlatformWrongPwd() throws Exception {
-        String username = "testUser";
-        String password = "wrongPwd";
-
-        var con = requestWithToken(PLATFORM_B, "POST", "/connections?username=" + username + "&password=" + password, PLATFORM_A, token_B);
-
-        Assert.assertEquals(200, con.getResponseCode());
-        // TODO should this actually be a 200/False? not 403 or 502?
-
-        boolean result = result(con, Boolean.class);
-        Assert.assertFalse(result);
+    public void test5ConnectPlatformWrongPwd() throws Exception {
+        var auth = authQuery("testUser", "wrongPwd");
+        var con = requestWithToken(PLATFORM_B, "POST", "/connections" + auth, PLATFORM_A, token_B);
+        Assert.assertEquals(502, con.getResponseCode());
     }
 
     @Test
-    public void test8ConnectPlatformWrongUser() throws Exception {
-        String username = "wrongUser";
-        String password = "testPwd";
-
-        var con = requestWithToken(PLATFORM_B, "POST", "/connections?username=" + username + "&password=" + password, PLATFORM_A, token_B);
-        Assert.assertEquals(200, con.getResponseCode());
-
-        boolean result = result(con, Boolean.class);
-        Assert.assertFalse(result);
+    public void test5ConnectPlatformWrongUser() throws Exception {
+        var auth = authQuery("wrongUser", "testPwd");
+        var con = requestWithToken(PLATFORM_B, "POST", "/connections" + auth, PLATFORM_A, token_B);
+        Assert.assertEquals(502, con.getResponseCode());
     }
 
     @Test
-    public void test8ConnectPlatform() throws Exception {
-        String username = "testUser";
-        String password = "testPwd";
-
-        var con = requestWithToken(PLATFORM_B, "POST", "/connections?username=" + username + "&password=" + password, PLATFORM_A, token_B);
+    public void test6ConnectPlatform() throws Exception {
+        var auth = authQuery("testUser", "testPwd");
+        var con = requestWithToken(PLATFORM_B, "POST", "/connections" + auth, PLATFORM_A, token_B);
         Assert.assertEquals(200, con.getResponseCode());
-
-        boolean result = result(con, Boolean.class);
-        Assert.assertTrue(result);
+        Assert.assertTrue(result(con, Boolean.class));
     }
 
     @Test
-    public void test9invokeInfoAtDifferentPlatform() throws Exception {
+    public void test7invokeInfoAtDifferentPlatform() throws Exception {
         var con = requestWithToken(PLATFORM_B, "POST", "/invoke/GetInfo", Map.of(), token_B);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
