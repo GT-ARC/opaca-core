@@ -21,6 +21,9 @@ public class AgentContainer {
     /** the Image this container was started from */
     AgentContainerImage image;
 
+    /** Map of Arguments given to the AgentContainer for the Parameters of the Image */
+    Map<String, String> arguments = Map.of();
+
     /** list of agents running on this container; this might change during its life-time */
     List<AgentDescription> agents;
 

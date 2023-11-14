@@ -80,7 +80,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         override fun getContainerInfo(): AgentContainer {
             log.info("GET INFO")
-            return AgentContainer(containerId, image, agents, startedAt, null)
+            return AgentContainer(containerId, image, getParameters(), agents, startedAt, null)
         }
 
         override fun getAgents(): List<AgentDescription> {
@@ -228,6 +228,12 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             // TODO also check action parameters?
             .map { it.agentId }
             .firstOrNull()
+    }
+
+    private fun getParameters(): Map<String, String> {
+        return image.parameters
+            .filter { !it.confidential }
+            .associate { Pair(it.name, System.getenv().getOrDefault(it.name, it.defaultValue)) }
     }
 
     fun registerErrorCode(exceptionClass: Class<out Exception>, code: Int) {

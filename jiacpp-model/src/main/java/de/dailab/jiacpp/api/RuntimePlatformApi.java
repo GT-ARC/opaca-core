@@ -1,9 +1,6 @@
 package de.dailab.jiacpp.api;
 
-import de.dailab.jiacpp.model.AgentContainer;
-import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.model.RuntimePlatform;
-import de.dailab.jiacpp.model.Event;
+import de.dailab.jiacpp.model.*;
 
 import java.io.IOException;
 import java.util.List;
@@ -68,7 +65,7 @@ public interface RuntimePlatformApi extends CommonApi {
      * @param container The container to start
      * @return ID of the started container
      */
-    String addContainer(AgentContainerImage container) throws IOException;
+    String addContainer(PostAgentContainer container) throws IOException;
 
     /**
      * Get descriptions of all currently running Agent Containers.
