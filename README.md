@@ -29,6 +29,8 @@ and first tests in order to find out what of this makes sense etc.
 
 See [Execution Environments](doc/environments.md) for more information on different ways to execute the platform and agent containers.
 
+Note: The Runtime Platform requires Java version 17 or higher.
+
 
 ## Environment Variables (Runtime Platform)
 
