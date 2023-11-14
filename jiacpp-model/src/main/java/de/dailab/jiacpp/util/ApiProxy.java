@@ -56,7 +56,8 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     public String login(String username, String password) throws IOException {
         var query = buildLoginQuery(username, password);
         var path = String.format("/login?%s", query);
-        return client.post(path, null, String.class);
+        // token should be raw string
+        return client.readStream(client.request("POST", path, null));
     }
 
     // AGENT ROUTES
