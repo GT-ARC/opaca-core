@@ -25,7 +25,7 @@ public class AgentContainer {
     Map<String, String> arguments = Map.of();
 
     /** list of agents running on this container; this might change during its life-time */
-    List<AgentDescription> agents;
+    List<AgentDescription> agents = List.of();
 
     /** when the container was started */
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "Z")
@@ -44,7 +44,7 @@ public class AgentContainer {
         Integer apiPortMapping;
 
         /** where additional ports exposed by the container are mapped to */
-        Map<Integer, AgentContainerImage.PortDescription> extraPortMappings;
+        Map<Integer, AgentContainerImage.PortDescription> extraPortMappings = Map.of();
 
     }
 

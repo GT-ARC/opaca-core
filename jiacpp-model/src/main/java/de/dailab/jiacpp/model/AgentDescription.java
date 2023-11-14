@@ -21,9 +21,9 @@ public class AgentDescription {
     String agentType;
 
     /** list of actions provided by this agent, if any */
-    List<Action> actions;
+    List<Action> actions = List.of();
 
     /** list of endpoints for sending or receiving streaming data */
-    List<Stream> streams;
+    List<Stream> streams = List.of();
 
 }

@@ -16,7 +16,7 @@ public class Action {
     String name;
 
     /** parameter names and types */
-    Map<String, String> parameters;
+    Map<String, String> parameters = Map.of();
 
     /** type of result */
     String result;
