@@ -16,7 +16,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 
@@ -118,13 +117,6 @@ public class SecurityConfiguration {
         String hierarchy = "ROLE_ADMIN > ROLE_CONTRIBUTOR \n ROLE_CONTRIBUTOR > ROLE_USER \n ROLE_USER > ROLE_GUEST";
         roleHierarchy.setHierarchy(hierarchy);
         return roleHierarchy;
-    }
-
-    @Bean
-    public DefaultWebSecurityExpressionHandler defaultWebSecurityExpressionHandler() {
-        DefaultWebSecurityExpressionHandler expressionHandler = new DefaultWebSecurityExpressionHandler();
-        expressionHandler.setRoleHierarchy(roleHierarchy());
-        return expressionHandler;
     }
 
     public class JwtRequestFilter extends OncePerRequestFilter {
