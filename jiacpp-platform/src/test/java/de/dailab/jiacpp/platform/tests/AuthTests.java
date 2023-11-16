@@ -4,6 +4,7 @@ import de.dailab.jiacpp.model.RuntimePlatform;
 import de.dailab.jiacpp.platform.Application;
 import static de.dailab.jiacpp.platform.tests.TestUtils.*;
 
+import de.dailab.jiacpp.platform.user.Privilege;
 import de.dailab.jiacpp.platform.user.Role;
 import de.dailab.jiacpp.platform.user.TokenUserDetailsService;
 import org.junit.*;
@@ -374,7 +375,9 @@ public class AuthTests {
     }
 
     private void addUser(String username, String password, String role) {
-        tokenUserDetailsService.createUser(username, password, Arrays.asList(new Role(role)));
+        Privilege userPrivilege = tokenUserDetailsService.createPrivilegeIfNotFound(role + "_PRIVILEGE");
+        Role userRole = tokenUserDetailsService.createRoleIfNotFound(role, Arrays.asList(userPrivilege));
+        tokenUserDetailsService.createUser(username, password, Arrays.asList(userRole));
     }
 
 }

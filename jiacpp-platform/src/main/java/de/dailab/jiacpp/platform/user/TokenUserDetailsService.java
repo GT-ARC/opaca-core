@@ -23,6 +23,7 @@ import de.dailab.jiacpp.platform.session.SessionData;
  * for authentication and authorization purposes in our Spring application. 
  */
 @Service
+@Transactional
 public class TokenUserDetailsService implements UserDetailsService {
 
     @Autowired
@@ -47,15 +48,15 @@ public class TokenUserDetailsService implements UserDetailsService {
         roleRepository = sessionData.roleRepository;
         privilegeRepository = sessionData.privilegeRepository;
         if (tokenUserRepository.findByUsername(config.usernamePlatform) == null) {
-            Role role = createRoleIfNotFound("ROLE_" + config.rolePlatform,
-                    Arrays.asList(createPrivilegeIfNotFound("ADMIN_PRIVILEGE")));
-            createUser(config.usernamePlatform, config.passwordPlatform,
-                    Arrays.asList(role));
+            Privilege privilege = createPrivilegeIfNotFound("ADMIN_PRIVILEGE");
+            Role role = createRoleIfNotFound("ROLE_" + config.rolePlatform, Arrays.asList(privilege));
+            createUser(config.usernamePlatform, config.passwordPlatform, Arrays.asList(role));
         }
 	}
 
     /** Returns the user as a standardized 'User' object */
     @Override
+    @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         TokenUser user = tokenUserRepository.findByUsername(username);
         if (user != null) {
@@ -71,6 +72,7 @@ public class TokenUserDetailsService implements UserDetailsService {
      * or containers [containerID, containerID, roles]
      * If a User already exists, throw an exception
      */
+    @Transactional
     public void createUser(String username, String password, Collection<Role> roles) {
         if (tokenUserRepository.findByUsername(username) != null) {
             throw new UserAlreadyExistsException(username);
@@ -81,6 +83,7 @@ public class TokenUserDetailsService implements UserDetailsService {
         }
     }
 
+    @Transactional
     public void removeUser(String username) {
         tokenUserRepository.deleteByUsername(username);
     }
@@ -136,6 +139,7 @@ public class TokenUserDetailsService implements UserDetailsService {
     }
 
     // This temp method is just for testing to get the admin role
+    @Transactional
     public Collection<Role> getDebugRole() {
         return Arrays.asList(roleRepository.findByName("ROLE_ADMIN"));
     }
