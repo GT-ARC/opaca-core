@@ -1,9 +1,6 @@
 package de.dailab.jiacpp.api;
 
-import de.dailab.jiacpp.model.AgentContainer;
-import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.model.RuntimePlatform;
-import de.dailab.jiacpp.model.Event;
+import de.dailab.jiacpp.model.*;
 
 import java.io.IOException;
 import java.util.List;
@@ -35,6 +32,21 @@ public interface RuntimePlatformApi extends CommonApi {
     List<Event> getHistory() throws IOException;
 
     /*
+     * AUTHENTICATION
+     */
+
+    /**
+     * Retrieve Access Token for given user to be passed as header for secured routes.
+     *
+     * REST: GET /login
+     *
+     * @param username The name of the user
+     * @param password The password
+     * @return JWT access token
+     */
+    String login(String username, String password) throws IOException;
+
+    /*
      * AGENT CONTAINER ROUTES
      */
 
@@ -53,7 +65,7 @@ public interface RuntimePlatformApi extends CommonApi {
      * @param container The container to start
      * @return ID of the started container
      */
-    String addContainer(AgentContainerImage container) throws IOException;
+    String addContainer(PostAgentContainer container) throws IOException;
 
     /**
      * Get descriptions of all currently running Agent Containers.
@@ -108,7 +120,7 @@ public interface RuntimePlatformApi extends CommonApi {
      * @param url The base URL of that other Runtime Platform
      * @return Connection successful?
      */
-    boolean connectPlatform(String url) throws IOException;
+    boolean connectPlatform(String url, String username, String password) throws IOException;
 
     /**
      * Get list uf base-URLs of connected other Runtime Platforms

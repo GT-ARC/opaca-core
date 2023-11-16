@@ -7,14 +7,12 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import lombok.AllArgsConstructor;
 import lombok.extern.java.Log;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UncheckedIOException;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.io.BufferedInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -35,25 +33,26 @@ public class RestHelper {
 
 
     public <T> T get(String path, Class<T> type) throws IOException {
-        return request("GET", path, null, type);
+        var stream = request("GET", path, null);
+        return type == null ? null : mapper.readValue(stream, type);
     }
 
     public <T> T post(String path, Object payload, Class<T> type) throws IOException {
-        return request("POST", path, payload, type);
+        var stream = request("POST", path, payload);
+        return type == null ? null : mapper.readValue(stream, type);
     }
 
     public <T> T delete(String path, Object payload, Class<T> type) throws IOException {
-        return request("DELETE", path, payload, type);
+        var stream = request("DELETE", path, payload);
+        return type == null ? null : mapper.readValue(stream, type);
     }
 
-    public ResponseEntity<StreamingResponseBody> getStream(String path) throws IOException {
-        log.info(String.format("%s %s (%s)", "GET", baseUrl, path));
-        HttpURLConnection connection = setupConnection("GET", path);
-
+    public ResponseEntity<StreamingResponseBody> getStream(String path) {
         StreamingResponseBody responseBody = response -> {
+            InputStream stream = request("GET", path, null);
             int bytesRead;
             byte[] buffer = new byte[1024];
-            try (BufferedInputStream bis = new BufferedInputStream(connection.getInputStream())) {
+            try (BufferedInputStream bis = new BufferedInputStream(stream)) {
                 while ((bytesRead = bis.read(buffer)) != -1) {
                     response.write(buffer, 0, bytesRead);
                 }
@@ -66,26 +65,12 @@ public class RestHelper {
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(responseBody);
     }
-    
-    private HttpURLConnection setupConnection(String method, String path) throws IOException {
-        // TODO nice helper method, but why is this only used for stream and not for request?
-        HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
-        connection.setRequestMethod(method);
 
-        if (token != null && !token.isEmpty()) {
-            connection.setRequestProperty("Authorization", "Bearer " + token);
-        }
-
-        connection.setDoOutput(true);
-        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-        connection.connect();
-        return connection;
-    }
-
-    public <T> T request(String method, String path, Object payload, Class<T> type) throws IOException {
+    public InputStream request(String method, String path, Object payload) throws IOException {
         log.info(String.format("%s %s%s (%s)", method, baseUrl, path, payload));
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
         connection.setRequestMethod(method);
+        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
 
         if (token != null && ! token.isEmpty()) {
             connection.setRequestProperty("Authorization", "Bearer " + token);
@@ -96,7 +81,6 @@ public class RestHelper {
             byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
             connection.setDoOutput(true);
             connection.setFixedLengthStreamingMode(bytes.length);
-            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
             connection.connect();
             try (OutputStream os = connection.getOutputStream()) {
                 os.write(bytes);
@@ -105,14 +89,11 @@ public class RestHelper {
             connection.connect();
         }
 
-        if (type != null) {
-            if (connection.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST) {
-                return mapper.readValue(connection.getInputStream(), type);
-            } else {
-                throw new IOException(mapper.readValue(connection.getErrorStream(), JsonNode.class).toString());
-            }
+        if (connection.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST) {
+            return connection.getInputStream();
         } else {
-            return null;
+            throw new IOException(String.format("%s: %s",
+                    connection.getResponseCode(), readStream(connection.getErrorStream())));
         }
     }
     
@@ -131,6 +112,12 @@ public class RestHelper {
 
     public static String writeJson(Object obj) throws IOException {
         return mapper.writeValueAsString(obj);
+    }
+
+    public String readStream(InputStream stream) {
+        return stream == null ? null : new BufferedReader(new InputStreamReader(stream))
+                .lines().collect(Collectors.joining("\n"));
+
     }
 
 }

@@ -2,7 +2,7 @@ package de.dailab.jiacpp.platform.auth;
 
 import java.util.*;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
 import de.dailab.jiacpp.platform.PlatformConfig;
 import org.springframework.beans.factory.annotation.Autowired;

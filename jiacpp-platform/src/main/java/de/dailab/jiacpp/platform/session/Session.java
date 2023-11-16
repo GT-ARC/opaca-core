@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.io.IOException;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,12 +15,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 
 import com.google.common.base.Strings;
 import de.dailab.jiacpp.model.AgentContainer;
 import de.dailab.jiacpp.model.AgentContainerImage;
+import de.dailab.jiacpp.model.PostAgentContainer;
 import de.dailab.jiacpp.platform.PlatformImpl;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -91,6 +93,7 @@ public class Session {
                 this.data.reset();
                 this.data.tokens.putAll(lastdata.tokens);
                 this.data.runningContainers.putAll(lastdata.runningContainers);
+                this.data.startContainerRequests.putAll(lastdata.startContainerRequests);
                 this.data.connectedPlatforms.putAll(lastdata.connectedPlatforms);
                 this.data.dockerContainers.putAll(lastdata.dockerContainers);
                 this.data.usedPorts.addAll(lastdata.usedPorts);
@@ -133,7 +136,8 @@ public class Session {
         for (File file: readDefaultImages()) {
             log.info("Auto-deploying " + file);
             try {
-                implementation.addContainer(RestHelper.mapper.readValue(file, AgentContainerImage.class));
+                var container = RestHelper.mapper.readValue(file, PostAgentContainer.class);
+                implementation.addContainer(container);
             } catch (Exception e) {
                 log.severe(String.format("Failed to load image specified in file %s: %s", file, e));
             }
@@ -146,11 +150,11 @@ public class Session {
 
     private void restartContainers() {
         log.info("Restarting Last Containers...");
-        Map<String, AgentContainer> lastContainers = new HashMap<>(data.runningContainers);
+        List<PostAgentContainer> startedContainers = List.copyOf(data.startContainerRequests.values());
         data.reset();
-        for (AgentContainer agentContainer : lastContainers.values()) {
+        for (PostAgentContainer postContainer : startedContainers) {
             try {
-                implementation.addContainer(agentContainer.getImage());
+                implementation.addContainer(postContainer);
             } catch (IOException e) {
                 e.printStackTrace();
             }

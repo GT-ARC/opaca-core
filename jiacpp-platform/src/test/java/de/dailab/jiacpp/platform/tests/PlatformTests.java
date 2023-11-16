@@ -3,7 +3,6 @@ package de.dailab.jiacpp.platform.tests;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.platform.Application;
-import de.dailab.jiacpp.platform.PlatformRestController;
 import static de.dailab.jiacpp.platform.tests.TestUtils.*;
 
 import de.dailab.jiacpp.platform.session.Session;
@@ -86,7 +85,7 @@ public class PlatformTests {
         if (!imageFile.getParentFile().exists()) imageFile.getParentFile().mkdirs();
         try (var writer = new FileWriter(imageFile)) {
             imageFile.createNewFile();
-            writer.write("{ \"imageName\": \"" + TEST_IMAGE + "\" }");
+            writer.write("{ \"image\": { \"imageName\": \"" + TEST_IMAGE + "\" } }");
         }
 
         var defaultImages = session.readDefaultImages();
@@ -140,6 +139,55 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, List.class);
         Assert.assertEquals(2, res.size());
+    }
+
+    @Test
+    public void test3ImageParams() throws Exception {
+        var image = getSampleContainerImage();
+        addImageParameters(image);
+        image.setArguments(Map.of(
+                "username", "theusername",
+                "password", "thepassword",
+                "unknown", "whatever"
+        ));
+        // deploy container with parameters
+        var con = request(PLATFORM_A, "POST", "/containers", image);
+        Assert.assertEquals(200, con.getResponseCode());
+        var newContainerId = result(con);
+
+        try {
+            // check parameters in public /container info
+            con = request(PLATFORM_A, "GET", "/containers/" + newContainerId, null);
+            var res1 = result(con, AgentContainer.class);
+            Assert.assertEquals("mongodb", res1.getArguments().get("database"));
+            Assert.assertEquals("theusername", res1.getArguments().get("username"));
+            Assert.assertFalse(res1.getArguments().containsKey("password"));
+            Assert.assertFalse(res1.getArguments().containsKey("unknown"));
+
+            // check parameters in container's own Environment
+            var query = TestUtils.buildQuery(Map.of("containerId", newContainerId));
+            con = request(PLATFORM_A, "POST", "/invoke/GetEnv" + query, Map.of());
+            Assert.assertEquals(200, con.getResponseCode());
+            var res2 = result(con, Map.class);
+            Assert.assertEquals("mongodb", res2.get("database"));
+            Assert.assertEquals("theusername", res2.get("username"));
+            Assert.assertEquals("thepassword", res2.get("password"));
+            Assert.assertFalse(res2.containsKey("unknown"));
+        } finally {
+            // stop container
+            con = request(PLATFORM_A, "DELETE", "/containers/" + newContainerId, null);
+            Assert.assertEquals(200, con.getResponseCode());
+        }
+    }
+
+    @Test
+    public void testImageParamsMissing() throws Exception {
+        // missing required parameter -> container creation should fail
+        var image = getSampleContainerImage();
+        addImageParameters(image);
+        System.out.println("IMAGE " + image);
+        var con = request(PLATFORM_A, "POST", "/containers", image);
+        Assert.assertEquals(400, con.getResponseCode());
     }
 
     @Test
@@ -230,7 +278,7 @@ public class PlatformTests {
      */
     @Test
     public void test4InvokeParamMismatch() throws Exception {
-        var con = request(PLATFORM_A, "POST", "/invoke/DoThis/",
+        var con = request(PLATFORM_A, "POST", "/invoke/DoThis",
                 Map.of("message", "missing 'sleep_seconds' parameter!"));
         Assert.assertEquals(502, con.getResponseCode());
         // TODO case of missing parameter could also be handled by platform, resulting in 422 error
@@ -746,8 +794,8 @@ public class PlatformTests {
      */
     @Test
     public void testXDeployUnknown() throws Exception {
-        var container = new AgentContainerImage();
-        container.setImageName("does-not-exist-container-image");
+        var container = getSampleContainerImage();
+        container.getImage().setImageName("does-not-exist-container-image");
         var con = request(PLATFORM_A, "POST", "/containers", container);
         Assert.assertEquals(404, con.getResponseCode());
     }
@@ -759,8 +807,8 @@ public class PlatformTests {
      */
     @Test
     public void testXDeployInvalid() throws Exception {
-        var container = new AgentContainerImage();
-        container.setImageName("hello-world");
+        var container = getSampleContainerImage();
+        container.getImage().setImageName("hello-world");
         var con = request(PLATFORM_A, "POST", "/containers", container);
         Assert.assertEquals(502, con.getResponseCode());
 

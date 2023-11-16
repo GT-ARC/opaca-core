@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
-import de.dailab.jiacpp.platform.auth.JwtUtil;
 import de.dailab.jiacpp.util.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -15,7 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -31,9 +30,6 @@ import java.util.NoSuchElementException;
 @SecurityRequirement(name = "bearerAuth")
 @CrossOrigin(origins = "*", methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE } )
 public class PlatformRestController implements RuntimePlatformApi {
-
-	@Autowired
-	private JwtUtil jwtUtil;
 
 	@Autowired
 	private RuntimePlatformApi implementation;
@@ -86,11 +82,12 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 	@RequestMapping(value="/login", method=RequestMethod.POST)
 	@Operation(summary="Login with username and password", tags={"authentication"})
+	@Override
 	public String login(
 			@RequestParam String username,
 			@RequestParam String password
-	) {
-		return jwtUtil.generateTokenForUser(username, password);
+	) throws IOException {
+		return implementation.login(username, password);
 	}
 
 	/*
@@ -223,7 +220,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Operation(summary="Start a new Agent Container on this platform", tags={"containers"})
 	@Override
 	public String addContainer(
-			@RequestBody AgentContainerImage container
+			@RequestBody PostAgentContainer container
 	) throws IOException {
 		log.info(String.format("ADD CONTAINER: %s", container));
 		return implementation.addContainer(container);
@@ -267,11 +264,13 @@ public class PlatformRestController implements RuntimePlatformApi {
 			"return false if platform already connected", tags={"connections"})
 	@Override
 	public boolean connectPlatform(
-			@RequestBody String url
+			@RequestBody String url,
+			@RequestParam(required = false) String username,
+			@RequestParam(required = false) String password
 	) throws IOException {
 		// TODO handle IO Exception (platform not found or does not respond, could be either 404 or 502)
 		log.info(String.format("CONNECT PLATFORM: %s", url));
-		return implementation.connectPlatform(url);
+		return implementation.connectPlatform(url, username, password);
 	}
 
 	@RequestMapping(value="/connections", method=RequestMethod.GET)

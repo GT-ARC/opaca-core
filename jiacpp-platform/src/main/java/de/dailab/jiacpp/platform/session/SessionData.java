@@ -2,6 +2,7 @@ package de.dailab.jiacpp.platform.session;
 
 import java.util.*;
 
+import de.dailab.jiacpp.model.PostAgentContainer;
 import de.dailab.jiacpp.platform.auth.TokenUser;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,7 @@ public class SessionData {
     /* PlatformImpl variables */
     public Map<String, String> tokens = new HashMap<>();
     public Map<String, AgentContainer> runningContainers = new HashMap<>();
+    public Map<String, PostAgentContainer> startContainerRequests = new HashMap<>();
     public Map<String, RuntimePlatform> connectedPlatforms = new HashMap<>();
 
     /* DockerClient variables */
@@ -36,6 +38,7 @@ public class SessionData {
     public void reset() {
         this.tokens.clear();
         this.runningContainers.clear();
+        this.startContainerRequests.clear();
         this.connectedPlatforms.clear();
         this.dockerContainers.clear();
         this.usedPorts.clear();
