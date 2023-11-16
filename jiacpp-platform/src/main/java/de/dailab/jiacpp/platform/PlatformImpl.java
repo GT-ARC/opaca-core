@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.platform.auth.JwtUtil;
-import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
+import de.dailab.jiacpp.platform.user.TokenUserDetailsService;
 import de.dailab.jiacpp.platform.containerclient.ContainerClient;
 import de.dailab.jiacpp.platform.containerclient.DockerClient;
 import de.dailab.jiacpp.platform.containerclient.KubernetesClient;
@@ -235,8 +235,8 @@ public class PlatformImpl implements RuntimePlatformApi {
                 runningContainers.put(agentContainerId, container);
                 startedContainers.put(agentContainerId, postContainer);
                 tokens.put(agentContainerId, token);
-                userDetailsService.addUser(agentContainerId, agentContainerId,
-                        userDetailsService.getCurrentUserRoles());
+                userDetailsService.createUser(agentContainerId, agentContainerId,
+                        userDetailsService.getDebugRole());
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
                     log.warning("Agent Container ID does not match: Expected " +

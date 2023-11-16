@@ -6,10 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.io.IOException;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -20,7 +17,6 @@ import jakarta.annotation.PreDestroy;
 
 import com.google.common.base.Strings;
 import de.dailab.jiacpp.model.AgentContainer;
-import de.dailab.jiacpp.model.AgentContainerImage;
 import de.dailab.jiacpp.model.PostAgentContainer;
 import de.dailab.jiacpp.platform.PlatformImpl;
 import lombok.extern.java.Log;
@@ -97,7 +93,9 @@ public class Session {
                 this.data.connectedPlatforms.putAll(lastdata.connectedPlatforms);
                 this.data.dockerContainers.putAll(lastdata.dockerContainers);
                 this.data.usedPorts.addAll(lastdata.usedPorts);
-                this.data.tokenUsers.putAll(lastdata.tokenUsers);
+                this.data.tokenUserRepository.findAll();
+                this.data.roleRepository.findAll();
+                this.data.privilegeRepository.findAll();
     
             } catch (IOException e) {
                 log.severe("Could not load Session data: " + e);

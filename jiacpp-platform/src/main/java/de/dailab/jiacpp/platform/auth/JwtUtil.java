@@ -1,5 +1,6 @@
 package de.dailab.jiacpp.platform.auth;
 
+import de.dailab.jiacpp.platform.user.TokenUserDetailsService;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.Jwts;
 

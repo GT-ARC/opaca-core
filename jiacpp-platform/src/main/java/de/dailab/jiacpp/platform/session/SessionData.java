@@ -3,7 +3,10 @@ package de.dailab.jiacpp.platform.session;
 import java.util.*;
 
 import de.dailab.jiacpp.model.PostAgentContainer;
-import de.dailab.jiacpp.platform.auth.TokenUser;
+import de.dailab.jiacpp.platform.user.PrivilegeRepository;
+import de.dailab.jiacpp.platform.user.RoleRepository;
+import de.dailab.jiacpp.platform.user.TokenUserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import de.dailab.jiacpp.model.AgentContainer;
@@ -33,7 +36,15 @@ public class SessionData {
     public Map<String, PodInfo> pods = new HashMap<>();
 
     /* TokensUserDetailsService variables */
-    public Map<String, TokenUser> tokenUsers = new HashMap<>();
+    // public Map<String, TokenUser> tokenUsers = new HashMap<>();
+
+    /* TokenUser In-Memory Database Repositories */
+    @Autowired
+    public TokenUserRepository tokenUserRepository;
+    @Autowired
+    public RoleRepository roleRepository;
+    @Autowired
+    public PrivilegeRepository privilegeRepository;
 
     public void reset() {
         this.tokens.clear();
@@ -42,7 +53,13 @@ public class SessionData {
         this.connectedPlatforms.clear();
         this.dockerContainers.clear();
         this.usedPorts.clear();
-        this.tokenUsers.clear();
+        // this.tokenUsers.clear();
+        this.tokenUserRepository.deleteAll();
+        this.tokenUserRepository.flush();
+        this.roleRepository.deleteAll();
+        this.roleRepository.flush();
+        this.privilegeRepository.deleteAll();
+        this.privilegeRepository.flush();
         this.pods.clear();
     }
 

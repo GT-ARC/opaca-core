@@ -4,8 +4,8 @@ import de.dailab.jiacpp.model.RuntimePlatform;
 import de.dailab.jiacpp.platform.Application;
 import static de.dailab.jiacpp.platform.tests.TestUtils.*;
 
-import de.dailab.jiacpp.platform.auth.Role;
-import de.dailab.jiacpp.platform.auth.TokenUserDetailsService;
+import de.dailab.jiacpp.platform.user.Role;
+import de.dailab.jiacpp.platform.user.TokenUserDetailsService;
 import org.junit.*;
 import org.junit.runners.MethodSorters;
 
@@ -374,7 +374,7 @@ public class AuthTests {
     }
 
     private void addUser(String username, String password, String role) {
-        tokenUserDetailsService.addUser(username, password, Arrays.asList(new Role(role)));
+        tokenUserDetailsService.createUser(username, password, Arrays.asList(new Role(role)));
     }
 
 }
