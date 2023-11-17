@@ -152,4 +152,60 @@ public interface RuntimePlatformApi extends CommonApi {
      */
     boolean notifyUpdatePlatform(String platformUrl) throws IOException;
 
+    /*
+     * USER MANAGEMENT
+     */
+
+    /**
+     * Adds a new user to the connected database.
+     *
+     * REST: POST /users
+     *
+     * @param username The unique username of a user
+     * @param password The password of a user
+     * @param roles A list of assigned roles to the user // TODO probably changes in the future to a list
+     * @return true if adding a new user was successful, false otherwise
+     */
+    boolean addUser(String username, String password, String roles) throws IOException;
+
+    /**
+     * Deletes a user from the connected database.
+     *
+     * REST: DELETE /users/{username}
+     *
+     * @param username The unique username of a user
+     * @return True if the deletion was successful, false otherwise
+     */
+    boolean deleteUser(String username) throws IOException;
+
+    /**
+     * Returns a single user from the connected database by its unique username.
+     *
+     * REST: GET /users/{username}
+     *
+     * @param username The unique username of a user
+     * @return Information about a single user
+     */
+    String getUser(String username) throws IOException;
+
+    /**
+     * Get list of information about all users registered to the connected database.
+     *
+     * REST: GET /users
+     *
+     * @return List of all users in the database
+     */
+    List<String> getUsers() throws IOException;
+
+    /**
+     * Updates an existing user with new information
+     *
+     * @param username The unique username of a user
+     * @param newUsername The new unique username of a user
+     * @param password The password of a user
+     * @param roles A list of assigned roles to the user // TODO probably changes in the future to a list
+     * @return The updated user information
+     */
+    String updateUser(String username, String newUsername, String password, String roles) throws IOException;
+
 }

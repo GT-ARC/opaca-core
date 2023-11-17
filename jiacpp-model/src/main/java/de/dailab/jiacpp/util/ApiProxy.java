@@ -165,6 +165,39 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         return client.post("/connections/notify", platformUrl, Boolean.class);
     }
 
+    /*
+     * USER MANAGEMENT
+     */
+
+    @Override
+    public boolean addUser(String username, String password, String roles) throws IOException {
+        return client.post("/users", buildUserQuery(username, password, roles), Boolean.class);
+    }
+
+    @Override
+    public boolean deleteUser(String username) throws IOException {
+        var path = String.format("/users/%s", username);
+        return client.delete(path, null, Boolean.class);
+    }
+
+    @Override
+    public String getUser(String username) throws IOException {
+        var path = String.format("/users/%s", username);
+        return client.get(path, String.class);
+    }
+
+    @SuppressWarnings({"unchecked"})
+    @Override
+    public List<String> getUsers() throws IOException {
+        return client.get("/users", List.class);
+    }
+
+    @Override
+    public String updateUser(String username, String newUsername, String password, String roles) throws IOException {
+        var path = String.format("/users/%s", username);
+        return client.put(path, buildUserQuery(newUsername, password, roles), String.class);
+    }
+
     /**
      * Helper method for building Query string (without initial ?); will be more useful when there are more.
      */
@@ -191,6 +224,14 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
             }
         }
         return builder.toString().replaceFirst("&", "");
+    }
+
+    private String buildUserQuery(String username, String password, String roles) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("username", username);
+        params.put("password", password);
+        params.put("roles", roles);
+        return buildQuery(params);
     }
 
 }
