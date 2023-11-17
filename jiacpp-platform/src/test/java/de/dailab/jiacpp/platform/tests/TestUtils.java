@@ -26,7 +26,7 @@ public class TestUtils {
      * > docker tag test-image registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:vXYZ
      * > docker push registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:vXYZ
      */
-    static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v16";
+    static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v17";
 
     /*
      * HELPER METHODS
@@ -39,7 +39,7 @@ public class TestUtils {
                 8888, new AgentContainerImage.PortDescription("TCP", "TCP Test Port"),
                 8889, new AgentContainerImage.PortDescription("UDP", "UDP Test Port")
         ));
-        return new PostAgentContainer(image, Map.of());
+        return new PostAgentContainer(image, Map.of(), null);
     }
 
     public static void addImageParameters(PostAgentContainer sampleRequest) {

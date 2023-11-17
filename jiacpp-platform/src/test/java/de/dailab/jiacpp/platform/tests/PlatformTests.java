@@ -123,6 +123,18 @@ public class PlatformTests {
     }
 
     /**
+     * deploy sample container, but with mismatched client config
+     */
+    @Test
+    public void test2DeployMismatchedConfig() throws Exception {
+        var image = getSampleContainerImage();
+        image.setClientConfig(new PostAgentContainer.KubernetesConfig());
+        var con = request(PLATFORM_A, "POST", "/containers", image);
+        Assert.assertEquals(400, con.getResponseCode());
+        Assert.assertTrue(error(con).contains("does not match"));
+    }
+
+    /**
      * get container info
      */
     @Test
