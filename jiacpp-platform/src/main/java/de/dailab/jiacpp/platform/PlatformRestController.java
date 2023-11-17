@@ -308,4 +308,60 @@ public class PlatformRestController implements RuntimePlatformApi {
 		return implementation.notifyUpdatePlatform(platformUrl);
 	}
 
+	/*
+	 * USER MANAGEMENT
+	 */
+
+	@RequestMapping(value="/users", method=RequestMethod.POST)
+	@Operation(summary="Add a new user to the connected database", tags={"users"})
+	@Override
+	public boolean addUser(
+			@RequestParam String username,
+			@RequestParam String password,
+			@RequestParam(required = false) String roles)
+			throws IOException {
+		log.info(String.format("ADD USER: %s with roles: %s", username, roles));
+		return implementation.addUser(username, password, roles);
+	}
+
+	@RequestMapping(value="/users/{username}", method=RequestMethod.DELETE)
+	@Operation(summary="Delete an existing user from the connected database", tags={"users"})
+	@Override
+	public boolean deleteUser(@PathVariable String username) throws IOException {
+		log.info(String.format("DELETE USER: %s", username));
+		return implementation.deleteUser(username);
+	}
+
+	@RequestMapping(value="/users/{username}", method=RequestMethod.GET)
+	@Operation(summary="Get an existing user from the connected database", tags={"users"})
+	@Override
+	public String getUser(@PathVariable String username) throws IOException {
+		log.info(String.format("GET USER: %s", username));
+		return implementation.getUser(username);
+	}
+
+	@RequestMapping(value="/users", method=RequestMethod.GET)
+	@Operation(summary="Get all users from the connected database", tags={"users"})
+	@Override
+	public List<String> getUsers() throws IOException {
+		log.info("GET USERS");
+		return implementation.getUsers();
+	}
+
+	@RequestMapping(value="/users/{username}", method=RequestMethod.PUT)
+	@Operation(summary="Update the information of an existing user in the connected database", tags={"users"})
+	@Override
+	public String updateUser(
+			@PathVariable String username,
+			@RequestParam(required = false) String newUsername,
+			@RequestParam(required = false) String password,
+			@RequestParam(required = false) String roles) throws IOException {
+		String logOut = String.format("UPDATE USER: %s (", username);
+		if (newUsername != null) logOut += String.format("NEW USERNAME: %s ", newUsername);
+		if (password != null) logOut += "NEW PASSWORD ";
+		if (roles != null) logOut += String.format("NEW ROLES: %s", roles);
+		log.info(logOut + ")");
+		return implementation.updateUser(username, newUsername, password, roles);
+	}
+
 }

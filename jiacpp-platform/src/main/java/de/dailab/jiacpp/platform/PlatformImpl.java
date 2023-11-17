@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.platform.auth.JwtUtil;
+import de.dailab.jiacpp.platform.user.Privilege;
+import de.dailab.jiacpp.platform.user.Role;
 import de.dailab.jiacpp.platform.user.TokenUserDetailsService;
 import de.dailab.jiacpp.platform.containerclient.ContainerClient;
 import de.dailab.jiacpp.platform.containerclient.DockerClient;
@@ -397,6 +399,42 @@ public class PlatformImpl implements RuntimePlatformApi {
             connectedPlatforms.remove(platformUrl);
             return false;
         }
+    }
+
+    /*
+     * USER MANAGEMENT
+     */
+
+    @Override
+    public boolean addUser(String username, String password, String roles) throws IOException {
+        // TODO handle roles/privileges correctly
+        // TODO check if user creation was successful
+        Privilege privilege = userDetailsService.createPrivilegeIfNotFound("TEST_PRIVILEGE");
+        Role userRoles = userDetailsService.createRoleIfNotFound(roles, Arrays.asList(privilege));
+        userDetailsService.createUser(username, password, Arrays.asList(userRoles));
+        return true;
+    }
+
+    @Override
+    public boolean deleteUser(String username) throws IOException {
+        return userDetailsService.removeUser(username);
+    }
+
+    @Override
+    public String getUser(String username) throws IOException {
+        return userDetailsService.getUser(username);
+    }
+
+    @Override
+    public List<String> getUsers() throws IOException {
+        return List.copyOf(userDetailsService.getUsers());
+    }
+
+    @Override
+    public String updateUser(String username, String newUsername, String password, String roles) throws IOException {
+        Privilege privilege = userDetailsService.createPrivilegeIfNotFound("TEST_PRIVILEGE");
+        Role userRoles = userDetailsService.createRoleIfNotFound(roles, Arrays.asList(privilege));
+        return userDetailsService.updateUser(username, newUsername, password, Arrays.asList(userRoles));
     }
 
     /*

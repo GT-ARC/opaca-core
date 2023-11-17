@@ -1,6 +1,7 @@
 package de.dailab.jiacpp.platform.user;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import jakarta.annotation.PostConstruct;
 
@@ -13,6 +14,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import de.dailab.jiacpp.platform.session.SessionData;
@@ -84,8 +86,30 @@ public class TokenUserDetailsService implements UserDetailsService {
     }
 
     @Transactional
-    public void removeUser(String username) {
-        tokenUserRepository.deleteByUsername(username);
+    public String getUser(String username) {
+        TokenUser user = tokenUserRepository.findByUsername(username);
+        if (user == null) return "No user found with name: " + username;
+        return user.toString();
+    }
+
+    @Transactional
+    public List<String> getUsers() {
+        return tokenUserRepository.findAll().stream().map(TokenUser::toString).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public Boolean removeUser(String username) {
+        return tokenUserRepository.deleteByUsername(username) > 0;
+    }
+
+    @Transactional
+    public String updateUser(String username, String newUsername, String password, Collection<Role> roles) {
+        TokenUser user = tokenUserRepository.findByUsername(username);
+        if (user == null) return "No user found with name: " + username;
+        if (password != null) user.setPassword(password);
+        if (roles != null) user.setRoles(roles);
+        if (newUsername != null) user.setUsername(newUsername);
+        return getUser(newUsername);
     }
 
     @Transactional

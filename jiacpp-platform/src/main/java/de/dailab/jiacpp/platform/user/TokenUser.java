@@ -34,4 +34,9 @@ public class TokenUser {
         this.roles = roles;
     }
 
+    @Override
+    public String toString() {
+        return "User{" + "id=" + this.id + ", username='" + this.username + "'}";
+    }
+
 }
