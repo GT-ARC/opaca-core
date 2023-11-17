@@ -24,4 +24,9 @@ public class Privilege {
         this.name = name;
     }
 
+    @Override
+    public String toString() {
+        return "Privilege{id=" + this.id + ", name='" + this.name + "'}";
+    }
+
 }

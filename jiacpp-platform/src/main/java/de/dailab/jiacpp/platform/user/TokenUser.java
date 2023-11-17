@@ -36,7 +36,7 @@ public class TokenUser {
 
     @Override
     public String toString() {
-        return "User{" + "id=" + this.id + ", username='" + this.username + "'}";
+        return "User{" + "id=" + this.id + ", username='" + this.username + "', roles=" + this.roles.toString() + "}";
     }
 
 }
