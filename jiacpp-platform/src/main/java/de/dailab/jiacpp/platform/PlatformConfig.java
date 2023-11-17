@@ -97,6 +97,9 @@ public class PlatformConfig {
     @Value("${kubernetes_config}")
     public String kubernetesConfig;
 
+    // cached value; either publicUrl, if set, or derived from runtime environment and port
+    private String ownBaseUrl = null;
+
     @PostConstruct
     private void initialize() {
         log.info("Started with Config: " + this);
@@ -119,7 +122,9 @@ public class PlatformConfig {
         if (publicUrl != null) {
             return publicUrl;
         }
-
+        if (ownBaseUrl != null) {
+            return ownBaseUrl;
+        }
         String host;
         if (platformEnvironment == PlatformEnvironment.NATIVE) {
             try (DatagramSocket socket = new DatagramSocket()) {
@@ -136,7 +141,8 @@ public class PlatformConfig {
         } else {
             throw new RuntimeException("Error determining base URL: Unsupported environment");
         }
-        return "http://" + host + ":" + serverPort;
+        ownBaseUrl = "http://" + host + ":" + serverPort;
+        return ownBaseUrl;
     }
 
     /**
