@@ -2,6 +2,8 @@
 
 Both the Runtime Platform and the Agent Containers can be executed in different environments. Which environment should be used is controlled using the `PLATFORM_ENVIRONMENT` and `CONTAINER_ENVIRONMENT` environment variables. Where the Platform and Containers are running should in general have no effect on their behavior, and execution environments for Runtime Platform and Agent Containers can be combined freely.
 
+When starting an AgentContainer, a `clientConfig` can be povided, determining certain parameters of the Container Environment. This config is optional, but if it is provided, it has to match the Container Environment in use.
+
 
 ## Platform Environments
 
