@@ -3,6 +3,7 @@ package de.dailab.jiacpp.platform;
 import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainerImage;
+import de.dailab.jiacpp.model.PostAgentContainer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.ToString;
@@ -38,7 +39,7 @@ public class PlatformConfig {
     public String publicUrl;
 
     @Value("${container_environment}")
-    public ContainerEnvironment containerEnvironment;
+    public PostAgentContainer.ContainerEnvironment containerEnvironment;
 
     @Value("${platform_environment}")
     public PlatformEnvironment platformEnvironment;
@@ -107,10 +108,6 @@ public class PlatformConfig {
 
     public enum SessionPolicy {
         SHUTDOWN, RESTART, RECONNECT
-    }
-
-    public enum ContainerEnvironment {
-        DOCKER, KUBERNETES
     }
 
 

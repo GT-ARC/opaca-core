@@ -17,6 +17,10 @@ import java.util.Map;
 @Data @AllArgsConstructor @NoArgsConstructor
 public class PostAgentContainer {
 
+    public enum ContainerEnvironment {
+        DOCKER, KUBERNETES
+    }
+
     /** the Image this container will be started from */
     AgentContainerImage image;
 
@@ -29,15 +33,17 @@ public class PostAgentContainer {
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes(value = {
-            @JsonSubTypes.Type(value=DockerConfig.class, name="docker"),
-            @JsonSubTypes.Type(value=KubernetesConfig.class, name="kubernetes"),
+            @JsonSubTypes.Type(value=DockerConfig.class, name="DOCKER"),
+            @JsonSubTypes.Type(value=KubernetesConfig.class, name="KUBERNETES"),
     })
-    interface ClientConfig {}
+    public interface ClientConfig {
+        ContainerEnvironment getType();
+    }
 
     @Data @AllArgsConstructor @NoArgsConstructor
     public static class DockerConfig implements ClientConfig {
 
-        String type = "docker";
+        ContainerEnvironment type = ContainerEnvironment.DOCKER;
 
         // nothing here yet, but e.g. gpu-support would be nice
     }
@@ -45,7 +51,7 @@ public class PostAgentContainer {
     @Data @AllArgsConstructor @NoArgsConstructor
     public static class KubernetesConfig implements ClientConfig {
 
-        String type = "kubernetes";
+        ContainerEnvironment type = ContainerEnvironment.KUBERNETES;
 
         String nodeName;
 

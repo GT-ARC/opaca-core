@@ -71,10 +71,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         this.connectedPlatforms = sessionData.connectedPlatforms;
 
         // initialize container client based on environment
-        if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.DOCKER) {
+        if (config.containerEnvironment == PostAgentContainer.ContainerEnvironment.DOCKER) {
             log.info("Using Docker on host " + config.remoteDockerHost);
             this.containerClient = new DockerClient();
-        } else if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.KUBERNETES) {
+        } else if (config.containerEnvironment == PostAgentContainer.ContainerEnvironment.KUBERNETES) {
             log.info("Using Kubernetes with namespace " + config.kubernetesNamespace);
             this.containerClient = new KubernetesClient();
         } else {
