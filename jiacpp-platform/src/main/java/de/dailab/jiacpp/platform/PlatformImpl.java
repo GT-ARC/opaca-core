@@ -313,10 +313,10 @@ public class PlatformImpl implements RuntimePlatformApi {
             } else {
                 // without auth, bidirectional
                 try {
+                    var info = new ApiProxy(url).getPlatformInfo();
+                    url = info.getBaseUrl();
                     pendingConnections.add(url);
-                    var client = new ApiProxy(url);
-                    if (client.connectPlatform(config.getOwnBaseUrl(), null, null)) {
-                        var info = client.getPlatformInfo();
+                    if (new ApiProxy(url).connectPlatform(config.getOwnBaseUrl(), null, null)) {
                         connectedPlatforms.put(url, info);
                     }
                 } finally {
