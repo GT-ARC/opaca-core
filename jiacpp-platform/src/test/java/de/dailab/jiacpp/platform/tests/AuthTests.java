@@ -47,6 +47,7 @@ public class AuthTests {
                 "--username_platform=testUser", "--password_platform=testPwd", "--role_platform=ADMIN");
         // this is kinda ugly, should add proper functionality to add a "real" user
         tokenUserDetailsService = platformA.getBean(TokenUserDetailsService.class);
+        registerAllUser();
     }
 
     @AfterClass
@@ -244,15 +245,10 @@ public class AuthTests {
 
     @Test
     public void test8ContributorAuth() throws Exception {
-        // Create new user with ROLE_USER and get token
-        this.addUser("contributor", "contributorPwd", "ROLE_CONTRIBUTOR");
-        var auth = authQuery("contributor", "contributorPwd");
-        var con = request(PLATFORM_A, "POST", "/login" + auth, null);
-        Assert.assertEquals(200, con.getResponseCode());
-        var token_cont = result(con);
+        var token_cont = getUserToken("contributor");
         Assert.assertNotNull(token_cont);
 
-        con = requestWithToken(PLATFORM_A, "GET", "/info", null, token_cont);
+        var con = requestWithToken(PLATFORM_A, "GET", "/info", null, token_cont);
         Assert.assertEquals(200, con.getResponseCode());
 
         con = requestWithToken(PLATFORM_A, "GET", "/connections", null, token_cont);
@@ -276,15 +272,10 @@ public class AuthTests {
 
     @Test
     public void test8UserAuth() throws Exception {
-        // Create new user with ROLE_USER and get token
-        this.addUser("user", "userPwd", "ROLE_USER");
-        var auth = authQuery("user", "userPwd");
-        var con = request(PLATFORM_A, "POST", "/login" + auth, null);
-        Assert.assertEquals(200, con.getResponseCode());
-        var token_user = result(con);
+        var token_user = getUserToken("user");
         Assert.assertNotNull(token_user);
 
-        con = requestWithToken(PLATFORM_A, "GET", "/info", null, token_user);
+        var con = requestWithToken(PLATFORM_A, "GET", "/info", null, token_user);
         Assert.assertEquals(200, con.getResponseCode());
 
         con = requestWithToken(PLATFORM_A, "GET", "/connections", null, token_user);
@@ -304,15 +295,10 @@ public class AuthTests {
 
     @Test
     public void test8GuestAuth() throws Exception {
-        // Create new guest user with ROLE_GUEST and get token
-        this.addUser("guest", "guestPwd", "ROLE_GUEST");
-        var auth = authQuery("guest", "guestPwd");
-        var con = request(PLATFORM_A, "POST", "/login" + auth, null);
-        Assert.assertEquals(200, con.getResponseCode());
-        var token_guest = result(con);
+        var token_guest = getUserToken("guest");
         Assert.assertNotNull(token_guest);
 
-        con = requestWithToken(PLATFORM_A, "GET", "/info", null, token_guest);
+        var con = requestWithToken(PLATFORM_A, "GET", "/info", null, token_guest);
         Assert.assertEquals(200, con.getResponseCode());
 
         con = requestWithToken(PLATFORM_A, "GET", "/agents", null, token_guest);
@@ -374,10 +360,27 @@ public class AuthTests {
         return buildQuery(Map.of("username", username, "password", password));
     }
 
-    private void addUser(String username, String password, String role) {
+    private static void addUser(String username, String password, String role) {
         Privilege userPrivilege = tokenUserDetailsService.createPrivilegeIfNotFound(role + "_PRIVILEGE");
         Role userRole = tokenUserDetailsService.createRoleIfNotFound(role, Arrays.asList(userPrivilege));
         tokenUserDetailsService.createUser(username, password, Arrays.asList(userRole));
+    }
+
+    private static void registerAllUser() {
+        // ROLE_GUEST
+        addUser("guest", "guestPwd", "ROLE_GUEST");
+        // ROLE_USER
+        addUser("user", "userPwd", "ROLE_USER");
+        // ROLE_CONTRIBUTOR
+        addUser("contributor", "contributorPwd", "ROLE_CONTRIBUTOR");
+        // ROLE_ADMIN
+        addUser("admin", "adminPwd", "ROLE_ADMIN");
+    }
+
+    private String getUserToken(String userType) throws Exception {
+        var auth = authQuery(userType, userType + "Pwd");
+        var con = request(PLATFORM_A, "POST", "/login" + auth, null);
+        return result(con);
     }
 
 }
