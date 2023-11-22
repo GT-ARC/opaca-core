@@ -232,7 +232,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     private fun getParameters(): Map<String, String> {
         return image.parameters
-            .filter { !it.confidential }
+            .filter { !it.isConfidential }
             .associate { Pair(it.name, System.getenv().getOrDefault(it.name, it.defaultValue)) }
     }
 
