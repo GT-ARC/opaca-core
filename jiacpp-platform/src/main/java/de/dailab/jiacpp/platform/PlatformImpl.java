@@ -71,10 +71,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         this.connectedPlatforms = sessionData.connectedPlatforms;
 
         // initialize container client based on environment
-        if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.DOCKER) {
+        if (config.containerEnvironment == PostAgentContainer.ContainerEnvironment.DOCKER) {
             log.info("Using Docker on host " + config.remoteDockerHost);
             this.containerClient = new DockerClient();
-        } else if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.KUBERNETES) {
+        } else if (config.containerEnvironment == PostAgentContainer.ContainerEnvironment.KUBERNETES) {
             log.info("Using Kubernetes with namespace " + config.kubernetesNamespace);
             this.containerClient = new KubernetesClient();
         } else {
@@ -218,6 +218,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public String addContainer(PostAgentContainer postContainer) throws IOException {
+        checkConfig(postContainer);
         String agentContainerId = UUID.randomUUID().toString();
         String token = config.enableAuth ? jwtUtil.generateTokenForAgentContainer(agentContainerId) : "";
 
@@ -482,6 +483,13 @@ public class PlatformImpl implements RuntimePlatformApi {
             new URL(url);
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid URL: " + e.getMessage());
+        }
+    }
+
+    private void checkConfig(PostAgentContainer request) {
+        if (request.getClientConfig() != null && request.getClientConfig().getType() != config.containerEnvironment) {
+            throw new IllegalArgumentException(String.format("Client Config %s does not match Container Environment %s",
+                    request.getClientConfig().getType(), config.containerEnvironment));
         }
     }
 

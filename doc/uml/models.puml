@@ -15,6 +15,7 @@ RuntimePlatform *- "*" AgentContainer: containers
 
 class PostAgentContainer {
     arguments: {string: string}
+    clientConfig: {string: any}
 }
 PostAgentContainer *-- AgentContainerImage: image
 

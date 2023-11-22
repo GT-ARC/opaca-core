@@ -1,6 +1,7 @@
 package de.dailab.jiacpp.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,10 +17,45 @@ import java.util.Map;
 @Data @AllArgsConstructor @NoArgsConstructor
 public class PostAgentContainer {
 
+    public enum ContainerEnvironment {
+        DOCKER, KUBERNETES
+    }
+
     /** the Image this container will be started from */
     AgentContainerImage image;
 
     /** Map of Arguments given to the AgentContainer for the Parameters of the Image */
     Map<String, String> arguments = Map.of();
+
+    /** optional configuration for container client */
+    ClientConfig clientConfig;
+
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(value = {
+            @JsonSubTypes.Type(value=DockerConfig.class, name="DOCKER"),
+            @JsonSubTypes.Type(value=KubernetesConfig.class, name="KUBERNETES"),
+    })
+    public interface ClientConfig {
+        ContainerEnvironment getType();
+    }
+
+    @Data @AllArgsConstructor @NoArgsConstructor
+    public static class DockerConfig implements ClientConfig {
+
+        ContainerEnvironment type = ContainerEnvironment.DOCKER;
+
+        // nothing here yet, but e.g. gpu-support would be nice
+    }
+
+    @Data @AllArgsConstructor @NoArgsConstructor
+    public static class KubernetesConfig implements ClientConfig {
+
+        ContainerEnvironment type = ContainerEnvironment.KUBERNETES;
+
+        String nodeName;
+
+        Boolean hostNetwork;
+    }
 
 }
