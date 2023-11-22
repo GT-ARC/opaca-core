@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 
 import java.util.Map;
 
@@ -20,6 +21,7 @@ public class PostAgentContainer {
     AgentContainerImage image;
 
     /** Map of Arguments given to the AgentContainer for the Parameters of the Image */
+    @NonNull
     Map<String, String> arguments = Map.of();
 
 }
