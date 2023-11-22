@@ -278,7 +278,7 @@ public class PlatformTests {
      */
     @Test
     public void test4InvokeParamMismatch() throws Exception {
-        var con = request(PLATFORM_A, "POST", "/invoke/DoThis/",
+        var con = request(PLATFORM_A, "POST", "/invoke/DoThis",
                 Map.of("message", "missing 'sleep_seconds' parameter!"));
         Assert.assertEquals(502, con.getResponseCode());
         // TODO case of missing parameter could also be handled by platform, resulting in 422 error

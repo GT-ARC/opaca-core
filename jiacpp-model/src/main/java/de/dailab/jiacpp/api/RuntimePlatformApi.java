@@ -32,6 +32,21 @@ public interface RuntimePlatformApi extends CommonApi {
     List<Event> getHistory() throws IOException;
 
     /*
+     * AUTHENTICATION
+     */
+
+    /**
+     * Retrieve Access Token for given user to be passed as header for secured routes.
+     *
+     * REST: GET /login
+     *
+     * @param username The name of the user
+     * @param password The password
+     * @return JWT access token
+     */
+    String login(String username, String password) throws IOException;
+
+    /*
      * AGENT CONTAINER ROUTES
      */
 
@@ -105,7 +120,7 @@ public interface RuntimePlatformApi extends CommonApi {
      * @param url The base URL of that other Runtime Platform
      * @return Connection successful?
      */
-    boolean connectPlatform(String url) throws IOException;
+    boolean connectPlatform(String url, String username, String password) throws IOException;
 
     /**
      * Get list uf base-URLs of connected other Runtime Platforms

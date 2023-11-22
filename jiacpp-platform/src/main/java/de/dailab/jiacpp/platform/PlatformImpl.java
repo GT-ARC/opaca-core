@@ -16,7 +16,7 @@ import de.dailab.jiacpp.util.EventHistory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.net.URL;
 import java.util.*;
@@ -121,6 +121,13 @@ public class PlatformImpl implements RuntimePlatformApi {
                 .filter(a -> a.getAgentId().equals(agentId))
                 .findAny().orElse(null);
     }
+
+
+    @Override
+    public String login(String username, String password) {
+        return jwtUtil.generateTokenForUser(username, password);
+    }
+    
 
     @Override
     public void send(String agentId, Message message, String containerId, boolean forward) throws IOException, NoSuchElementException {
@@ -288,7 +295,7 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     @Override
-    public boolean connectPlatform(String url) throws IOException {
+    public boolean connectPlatform(String url, String username, String password) throws IOException {
         url = normalizeString(url);
         checkUrl(url);
         if (url.equals(config.getOwnBaseUrl()) || connectedPlatforms.containsKey(url)) {
@@ -297,19 +304,27 @@ public class PlatformImpl implements RuntimePlatformApi {
             // callback from remote platform following our own request for connection
             return true;
         } else {
-            try {
-                pendingConnections.add(url);
-                var client = new ApiProxy(url);
-                var res = client.connectPlatform(config.getOwnBaseUrl());
-                if (res) {
-                    var info = client.getPlatformInfo();
-                    connectedPlatforms.put(url, info);
+            if (username != null) {
+                // with auth, unidirectional
+                var token = new ApiProxy(url).login(username, password);
+                var info = new ApiProxy(url, token).getPlatformInfo();
+                connectedPlatforms.put(url, info);
+                tokens.put(url, token);
+            } else {
+                // without auth, bidirectional
+                try {
+                    var info = new ApiProxy(url).getPlatformInfo();
+                    url = info.getBaseUrl();
+                    pendingConnections.add(url);
+                    if (new ApiProxy(url).connectPlatform(config.getOwnBaseUrl(), null, null)) {
+                        connectedPlatforms.put(url, info);
+                    }
+                } finally {
+                    // also remove from pending in case client.post fails
+                    pendingConnections.remove(url);
                 }
-                return true;
-            } finally {
-                // also remove from pending in case client.post fails
-                pendingConnections.remove(url);
             }
+            return true;
         }
     }
 
@@ -318,15 +333,19 @@ public class PlatformImpl implements RuntimePlatformApi {
         return List.copyOf(connectedPlatforms.keySet());
     }
 
+
+
     @Override
     public boolean disconnectPlatform(String url) throws IOException {
         url = normalizeString(url);
         checkUrl(url);
         if (connectedPlatforms.remove(url) != null) {
-            var client = new ApiProxy(url);
-            var res = client.disconnectPlatform(config.getOwnBaseUrl());
-            log.info(String.format("Disconnected from %s: %s", url, res));
-            // TODO how to handle IO Exception here? other platform still there but refuses to disconnect?
+            if (tokens.containsKey(url)) {
+                tokens.remove(url);
+            } else {
+                new ApiProxy(url).disconnectPlatform(config.getOwnBaseUrl());
+            }
+            log.info(String.format("Disconnected from %s", url));
             return true;
         }
         return false;
@@ -391,6 +410,8 @@ public class PlatformImpl implements RuntimePlatformApi {
      *      asynchronous (without too much fuzz) so it does not block those other calls?
      */
     private void notifyConnectedPlatforms() {
+        // TODO with connect not being bidirectional, this does not really make sense anymore
+        //  adapt to possible new /subscribe route, or change entirely?
         for (String platformUrl : connectedPlatforms.keySet()) {
             var client = new ApiProxy(platformUrl);
             try {
@@ -419,13 +440,12 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (!includeConnected) return containerClients;
 
         // remote platforms
-        var platformClients = connectedPlatforms.values().stream()
-                .filter(p -> p.getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action, stream)))
-                .map(p -> new ApiProxy(p.getBaseUrl()));
+        var platformClients = connectedPlatforms.entrySet().stream()
+            .filter(entry -> entry.getValue().getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action, stream)))
+            .map(entry -> {return new ApiProxy(entry.getKey(), tokens.get(entry.getKey()));});
 
         return Stream.concat(containerClients, platformClients);
     }
-
     /**
      * Check if Container ID matches and has matching agent and/or action.
      */
