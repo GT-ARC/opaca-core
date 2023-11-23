@@ -101,11 +101,15 @@ public class TokenUserDetailsService implements UserDetailsService {
      * Returns a user based on its username.
      * If the user was not found, throw an exception.
      */
-    @Transactional
     public String getUser(String username) {
+        return getTokenUser(username).toString();
+    }
+
+    @Transactional
+    public TokenUser getTokenUser(String username) {
         TokenUser user = tokenUserRepository.findByUsername(username);
         if (user == null) throw new UsernameNotFoundException(username);
-        return user.toString();
+        return user;
     }
 
     /**
@@ -212,6 +216,21 @@ public class TokenUserDetailsService implements UserDetailsService {
         Map<String, List<String>> adminRole = new HashMap<>();
         adminRole.put("ROLE_ADMIN", Arrays.asList("ADMIN_PRIVILEGE"));
         return adminRole;
+    }
+
+    @Transactional
+    public Map<String, List<String>> getUserRoles(String username) {
+        TokenUser user = tokenUserRepository.findByUsername(username);
+        if (user == null) throw new UsernameNotFoundException(username);
+        Map<String, List<String>> userRoles = new HashMap<>();
+        for (Role role : user.getRoles()) {
+            List<String> privileges = new ArrayList<>();
+            for (Privilege privilege : role.getPrivileges()) {
+                privileges.add(privilege.getName());
+            }
+            userRoles.put(role.getName(), privileges);
+        }
+        return userRoles;
     }
 
     /**

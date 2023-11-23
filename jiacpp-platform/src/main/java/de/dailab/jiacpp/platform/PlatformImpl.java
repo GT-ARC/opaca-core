@@ -237,8 +237,9 @@ public class PlatformImpl implements RuntimePlatformApi {
                 runningContainers.put(agentContainerId, container);
                 startedContainers.put(agentContainerId, postContainer);
                 tokens.put(agentContainerId, token);
+                String requestUsername = userDetailsService.getTokenUser(jwtUtil.getCurrentRequestUser()).getUsername();
                 userDetailsService.createUser(agentContainerId, agentContainerId,
-                        userDetailsService.getDebugRole());
+                        userDetailsService.getUserRoles(requestUsername));
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
                     log.warning("Agent Container ID does not match: Expected " +

@@ -351,8 +351,8 @@ public class AuthTests {
         Assert.assertEquals(200, con.getResponseCode());
 
         // This test does not work until container_auth equals user_auth who started container
-        // con = requestWithToken(PLATFORM_A, "POST", "/connections", platformBBaseUrl, containerToken);
-        // Assert.assertEquals(403, con.getResponseCode());
+        con = requestWithToken(PLATFORM_A, "POST", "/connections", platformBBaseUrl, containerToken);
+        Assert.assertEquals(403, con.getResponseCode());
     }
 
 

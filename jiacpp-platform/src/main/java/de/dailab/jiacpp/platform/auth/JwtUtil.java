@@ -4,6 +4,8 @@ import de.dailab.jiacpp.platform.user.TokenUserDetailsService;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.Jwts;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,6 +22,7 @@ import java.util.Date;
  * JSON Web Tokens (JWT) for authentication and authorization purposes. It provides 
  * methods for generating tokens for users and agent containers, as well as 
  * validating tokens against user details.
+ * It also stores the username from the last successful authentication attempt.
  */
 @Service
 public class JwtUtil {
@@ -32,6 +35,9 @@ public class JwtUtil {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Getter @Setter
+    private String currentRequestUser;
 
     public String generateTokenForUser(String username, String password) {
         UserDetails userDetails = tokenUserDetailsService.loadUserByUsername(username);
