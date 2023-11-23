@@ -406,12 +406,8 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     @Override
-    public boolean addUser(String username, String password, String roles) throws IOException {
-        // TODO handle roles/privileges correctly
-        // TODO check if user creation was successful
-        Privilege privilege = userDetailsService.createPrivilegeIfNotFound("TEST_PRIVILEGE");
-        Role userRoles = userDetailsService.createRoleIfNotFound(roles, Arrays.asList(privilege));
-        userDetailsService.createUser(username, password, Arrays.asList(userRoles));
+    public boolean addUser(User user) throws IOException {
+        userDetailsService.createUser(user.getUsername(), user.getPassword(), convertRoles(user.getRoles()));
         return true;
     }
 
@@ -431,10 +427,9 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public String updateUser(String username, String newUsername, String password, String roles) throws IOException {
-        Privilege privilege = userDetailsService.createPrivilegeIfNotFound("TEST_PRIVILEGE");
-        Role userRoles = userDetailsService.createRoleIfNotFound(roles, Arrays.asList(privilege));
-        return userDetailsService.updateUser(username, newUsername, password, Arrays.asList(userRoles));
+    public String updateUser(String username, User user) throws IOException {
+        return userDetailsService.updateUser(username, user.getUsername(), user.getPassword(),
+                convertRoles(user.getRoles()));
     }
 
     /*
@@ -522,6 +517,14 @@ public class PlatformImpl implements RuntimePlatformApi {
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid URL: " + e.getMessage());
         }
+    }
+
+    private Map<String, List<String>> convertRoles(List<User.Role> roles) {
+        Map<String, List<String>> userRoles = new HashMap<>();
+        for (de.dailab.jiacpp.model.User.Role role : roles) {
+            userRoles.put(role.getName(), role.getPrivileges());
+        }
+        return userRoles;
     }
 
 }

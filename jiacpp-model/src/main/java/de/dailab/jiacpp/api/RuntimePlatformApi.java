@@ -161,12 +161,10 @@ public interface RuntimePlatformApi extends CommonApi {
      *
      * REST: POST /users
      *
-     * @param username The unique username of a user
-     * @param password The password of a user
-     * @param roles A list of assigned roles to the user // TODO probably changes in the future to a list
+     * @param user The new user to be added to the connected database
      * @return true if adding a new user was successful, false otherwise
      */
-    boolean addUser(String username, String password, String roles) throws IOException;
+    boolean addUser(User user) throws IOException;
 
     /**
      * Deletes a user from the connected database.
@@ -200,12 +198,10 @@ public interface RuntimePlatformApi extends CommonApi {
     /**
      * Updates an existing user with new information
      *
-     * @param username The unique username of a user
-     * @param newUsername The new unique username of a user
-     * @param password The password of a user
-     * @param roles A list of assigned roles to the user // TODO probably changes in the future to a list
+     * @param username The unique username of an existing user
+     * @param user The updated user information given in a new user format
      * @return The updated user information
      */
-    String updateUser(String username, String newUsername, String password, String roles) throws IOException;
+    String updateUser(String username, User user) throws IOException;
 
 }

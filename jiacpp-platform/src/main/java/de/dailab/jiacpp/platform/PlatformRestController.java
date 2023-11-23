@@ -316,12 +316,10 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Operation(summary="Add a new user to the connected database", tags={"users"})
 	@Override
 	public boolean addUser(
-			@RequestParam String username,
-			@RequestParam String password,
-			@RequestParam(required = false) String roles)
+			@RequestBody User user)
 			throws IOException {
-		log.info(String.format("ADD USER: %s with roles: %s", username, roles));
-		return implementation.addUser(username, password, roles);
+		log.info(String.format("ADD USER: %s with roles: %s", user.getUsername(), user.getRoles()));
+		return implementation.addUser(user);
 	}
 
 	@RequestMapping(value="/users/{username}", method=RequestMethod.DELETE)
@@ -353,15 +351,13 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
 	public String updateUser(
 			@PathVariable String username,
-			@RequestParam(required = false) String newUsername,
-			@RequestParam(required = false) String password,
-			@RequestParam(required = false) String roles) throws IOException {
+			@RequestBody User user) throws IOException {
 		String logOut = String.format("UPDATE USER: %s (", username);
-		if (newUsername != null) logOut += String.format("NEW USERNAME: %s ", newUsername);
-		if (password != null) logOut += "NEW PASSWORD ";
-		if (roles != null) logOut += String.format("NEW ROLES: %s", roles);
+		if (user.getUsername() != null) logOut += String.format("NEW USERNAME: %s ", user.getUsername());
+		if (user.getPassword() != null) logOut += "NEW PASSWORD ";
+		if (!user.getRoles().isEmpty()) logOut += String.format("NEW ROLES: %s", user.getRoles());
 		log.info(logOut + ")");
-		return implementation.updateUser(username, newUsername, password, roles);
+		return implementation.updateUser(username, user);
 	}
 
 }

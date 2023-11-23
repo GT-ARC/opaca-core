@@ -8,14 +8,12 @@ import jakarta.annotation.PostConstruct;
 import de.dailab.jiacpp.platform.PlatformConfig;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +22,10 @@ import de.dailab.jiacpp.platform.session.SessionData;
 
 /**
  * The purpose of the TokenUserDetailsService class is to provide user details 
- * for authentication and authorization purposes in our Spring application. 
+ * for authentication and authorization purposes in our Spring application.
+ * It further stores information about Users/Roles/Privileges as it holds
+ * their repositories and offers methods to add/edit/get/remove information
+ * within them.
  */
 @Service
 @Transactional
@@ -55,9 +56,9 @@ public class TokenUserDetailsService implements UserDetailsService {
         roleRepository = sessionData.roleRepository;
         privilegeRepository = sessionData.privilegeRepository;
         if (tokenUserRepository.findByUsername(config.usernamePlatform) == null) {
-            Privilege privilege = createPrivilegeIfNotFound("ADMIN_PRIVILEGE");
-            Role role = createRoleIfNotFound("ROLE_" + config.rolePlatform, Arrays.asList(privilege));
-            createUser(config.usernamePlatform, config.passwordPlatform, Arrays.asList(role));
+            Map<String, List<String>> userRoles = new HashMap<>();
+            userRoles.put("ROLE_" + config.rolePlatform, Arrays.asList("ADMIN_PRIVILEGE"));
+            createUser(config.usernamePlatform, config.passwordPlatform, userRoles);
         }
 	}
 
@@ -75,50 +76,68 @@ public class TokenUserDetailsService implements UserDetailsService {
     }
 
     /**
-     * Adding users to the set of tokenUsers. Users can be human [username, password, roles]
+     * Adding a new user to the UserRepository. Users can be human [username, password, roles]
      * or containers [containerID, containerID, roles]
      * If a User already exists, throw an exception
      * If there was no password given, just create a default password
      * (this should be changed in the future)
+     * Creates Roles/Privileges if they have never been used before
      */
     @Transactional
-    public void createUser(String username, String password, Collection<Role> roles) {
+    public void createUser(String username, String password, Map<String, List<String>> roles) {
         if (tokenUserRepository.findByUsername(username) != null) {
             throw new UserAlreadyExistsException(username);
         }
         else {
+            Collection<Role> userRoles = createRolesIfNotFound(roles);
             // TODO make a password a requirement
             String pwd = config.enableAuth ? password : "defaultPwd";
-            TokenUser user = new TokenUser(username, passwordEncoder.encode(pwd), roles);
+            TokenUser user = new TokenUser(username, passwordEncoder.encode(pwd), userRoles);
             tokenUserRepository.save(user);
         }
     }
 
+    /**
+     * Returns a user based on its username.
+     * If the user was not found, throw an exception.
+     */
     @Transactional
     public String getUser(String username) {
         TokenUser user = tokenUserRepository.findByUsername(username);
-        if (user == null) return "No user found with name: " + username;
+        if (user == null) throw new UsernameNotFoundException(username);
         return user.toString();
     }
 
+    /**
+     * Return all users in the UserRepository
+     */
     @Transactional
     public List<String> getUsers() {
         return tokenUserRepository.findAll().stream().map(TokenUser::toString).collect(Collectors.toList());
     }
 
+    /**
+     * Removes a user from the UserRepository.
+     * Return true if the user was deleted, false if not.
+     */
     @Transactional
     public Boolean removeUser(String username) {
         return tokenUserRepository.deleteByUsername(username) > 0;
     }
 
+    /**
+     * Update an existing user in the UserRepository.
+     * Check for each user field if it exists and if so, update it.
+     * Return the updated user.
+     */
     @Transactional
-    public String updateUser(String username, String newUsername, String password, Collection<Role> roles) {
+    public String updateUser(String username, String newUsername, String password, Map<String, List<String>> roles) {
         TokenUser user = tokenUserRepository.findByUsername(username);
-        if (user == null) return "No user found with name: " + username;
+        if (user == null) throw new UsernameNotFoundException(username);
         if (password != null) user.setPassword(password);
-        if (roles != null) user.setRoles(roles);
+        if (roles != null) createRolesIfNotFound(roles);
         if (newUsername != null) user.setUsername(newUsername);
-        return getUser(newUsername);
+        return getUser(user.getUsername());
     }
 
     @Transactional
@@ -140,6 +159,22 @@ public class TokenUserDetailsService implements UserDetailsService {
             roleRepository.save(role);
         }
         return role;
+    }
+
+    /**
+     * Create new Roles/Privileges based on a map containing their
+     * info as strings {RoleName: [PrivilegeName, ...], ...}
+     */
+    public Collection<Role> createRolesIfNotFound(Map<String, List<String>> roles) {
+        List<Role> userRoles = new ArrayList<>();
+        for (String role : roles.keySet()) {
+            List<Privilege> privileges = new ArrayList<>();
+            for (String privilege : roles.get(role)) {
+                privileges.add(createPrivilegeIfNotFound(privilege));
+            }
+            userRoles.add(createRoleIfNotFound(role, privileges));
+        }
+        return userRoles;
     }
 
     /**
@@ -173,12 +208,14 @@ public class TokenUserDetailsService implements UserDetailsService {
 
     // This temp method is just for testing to get the admin role
     @Transactional
-    public Collection<Role> getDebugRole() {
-        return Arrays.asList(roleRepository.findByName("ROLE_ADMIN"));
+    public Map<String, List<String>> getDebugRole() {
+        Map<String, List<String>> adminRole = new HashMap<>();
+        adminRole.put("ROLE_ADMIN", Arrays.asList("ADMIN_PRIVILEGE"));
+        return adminRole;
     }
 
     /**
-     * Exception thrown during user creation if a given user already exists
+     * Exceptions thrown during user creation if a given user already exists
      */
     static class UserAlreadyExistsException extends RuntimeException {
         public UserAlreadyExistsException(String username) {

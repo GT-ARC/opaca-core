@@ -170,8 +170,8 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
      */
 
     @Override
-    public boolean addUser(String username, String password, String roles) throws IOException {
-        return client.post("/users", buildUserQuery(username, password, roles), Boolean.class);
+    public boolean addUser(User user) throws IOException {
+        return client.post("/users", user, Boolean.class);
     }
 
     @Override
@@ -193,9 +193,9 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
-    public String updateUser(String username, String newUsername, String password, String roles) throws IOException {
+    public String updateUser(String username, User user) throws IOException {
         var path = String.format("/users/%s", username);
-        return client.put(path, buildUserQuery(newUsername, password, roles), String.class);
+        return client.put(path, user, String.class);
     }
 
     /**
@@ -225,13 +225,4 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         }
         return builder.toString().replaceFirst("&", "");
     }
-
-    private String buildUserQuery(String username, String password, String roles) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("username", username);
-        params.put("password", password);
-        params.put("roles", roles);
-        return buildQuery(params);
-    }
-
 }

@@ -14,6 +14,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -361,9 +363,9 @@ public class AuthTests {
     }
 
     private static void addUser(String username, String password, String role) {
-        Privilege userPrivilege = tokenUserDetailsService.createPrivilegeIfNotFound(role + "_PRIVILEGE");
-        Role userRole = tokenUserDetailsService.createRoleIfNotFound(role, Arrays.asList(userPrivilege));
-        tokenUserDetailsService.createUser(username, password, Arrays.asList(userRole));
+        Map<String, List<String>> userRoles = new HashMap<>();
+        userRoles.put(role, Arrays.asList(role + "_PRIVILEGE"));
+        tokenUserDetailsService.createUser(username, password, userRoles);
     }
 
     private static void registerAllUser() {
