@@ -78,6 +78,8 @@ public class TokenUserDetailsService implements UserDetailsService {
      * Adding users to the set of tokenUsers. Users can be human [username, password, roles]
      * or containers [containerID, containerID, roles]
      * If a User already exists, throw an exception
+     * If there was no password given, just create a default password
+     * (this should be changed in the future)
      */
     @Transactional
     public void createUser(String username, String password, Collection<Role> roles) {
@@ -85,7 +87,9 @@ public class TokenUserDetailsService implements UserDetailsService {
             throw new UserAlreadyExistsException(username);
         }
         else {
-            TokenUser user = new TokenUser(username, passwordEncoder.encode(password), roles);
+            // TODO make a password a requirement
+            String pwd = config.enableAuth ? password : "defaultPwd";
+            TokenUser user = new TokenUser(username, passwordEncoder.encode(pwd), roles);
             tokenUserRepository.save(user);
         }
     }
