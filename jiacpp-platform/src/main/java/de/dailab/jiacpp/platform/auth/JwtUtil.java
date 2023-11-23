@@ -7,6 +7,7 @@ import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import de.dailab.jiacpp.platform.PlatformConfig;
@@ -29,9 +30,12 @@ public class JwtUtil {
     @Autowired
     private TokenUserDetailsService tokenUserDetailsService;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     public String generateTokenForUser(String username, String password) {
         UserDetails userDetails = tokenUserDetailsService.loadUserByUsername(username);
-        if (userDetails.getPassword().equals(password)) {
+        if (passwordEncoder.matches(password, userDetails.getPassword())) {
             return createToken(username, Duration.ofHours(1));
         } else {
             throw new BadCredentialsException("Wrong password");

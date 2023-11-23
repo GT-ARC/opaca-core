@@ -78,11 +78,11 @@ public class SecurityConfiguration {
                                     "/webjars/**"
                             ).permitAll()
                             .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**").hasRole("GUEST")
-                            .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole("USER")
+                            .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**", "/users").hasRole("USER")
                             .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**").hasRole("USER")
                             .requestMatchers(HttpMethod.POST, "/containers/**").hasRole("CONTRIBUTOR")
                             .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole("CONTRIBUTOR")
-                            .requestMatchers("/connections/**").hasRole("ADMIN")
+                            .requestMatchers("/connections/**", "/users/**").hasRole("ADMIN")
                             .anyRequest().authenticated()
                     )
                     .sessionManagement((session) -> session
@@ -104,11 +104,6 @@ public class SecurityConfiguration {
     AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
             throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 
     @Bean
