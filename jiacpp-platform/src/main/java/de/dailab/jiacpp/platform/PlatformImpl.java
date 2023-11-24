@@ -260,7 +260,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
         // if we reach this point, container did not start in time or does not provide /info route
         try {
-            removeContainerUnsafe(agentContainerId);
+            containerClient.stopContainer(agentContainerId);
         } catch (Exception e) {
             log.warning("Failed to stop container: " + e.getMessage());
         }
@@ -281,18 +281,14 @@ public class PlatformImpl implements RuntimePlatformApi {
     public boolean removeContainer(String containerId) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
         if (container != null) {
-            removeContainerUnsafe(containerId);
+            runningContainers.remove(containerId);
+            startedContainers.remove(containerId);
+            userDetailsService.removeUser(containerId);
+            containerClient.stopContainer(containerId);
+            notifyConnectedPlatforms();
             return true;
         }
         return false;
-    }
-
-    private void removeContainerUnsafe(String containerId) throws IOException {
-        runningContainers.remove(containerId);
-        startedContainers.remove(containerId);
-        userDetailsService.removeUser(containerId);
-        containerClient.stopContainer(containerId);
-        notifyConnectedPlatforms();
     }
 
     /*

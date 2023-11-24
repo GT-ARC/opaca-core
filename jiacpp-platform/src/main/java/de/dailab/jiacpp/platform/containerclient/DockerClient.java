@@ -143,13 +143,10 @@ public class DockerClient implements ContainerClient {
     @Override
     public void stopContainer(String containerId) throws IOException {
         try {
-            // remove container info, stop container
             var containerInfo = dockerContainers.remove(containerId);
-            dockerClient.stopContainerCmd(containerInfo.containerId).exec();
-            // free up ports used by this container
-            // TODO do this first, or in finally?
             usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
             usedPorts.removeAll(containerInfo.connectivity.getExtraPortMappings().keySet());
+            dockerClient.stopContainerCmd(containerInfo.containerId).exec();
         } catch (NotModifiedException e) {
             var msg = "Could not stop Container " + containerId + "; already stopped?";
             log.warning(msg);
