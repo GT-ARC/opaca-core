@@ -391,11 +391,7 @@ public class AuthTests {
         Assert.assertEquals(200, con.getResponseCode());
         var newContainerId = result(con);
 
-        con = requestWithToken(PLATFORM_A, "POST", "/invoke/GetInfo?containerID=" + newContainerId,
-                Map.of(), token_cont);
-        Assert.assertEquals(200, con.getResponseCode());
-        var res = result(con, Map.class);
-        var contContainerToken = (String) res.get("TOKEN");
+        var contContainerToken = getToken(newContainerId, newContainerId);
         Assert.assertTrue(contContainerToken != null && !contContainerToken.isEmpty());
 
         con = requestWithToken(PLATFORM_A, "POST", "/containers", image, contContainerToken);
@@ -429,7 +425,11 @@ public class AuthTests {
     }
 
     private String getUserToken(String userType) throws Exception {
-        var auth = authQuery(userType, userType + "Pwd");
+        return getToken(userType, userType + "Pwd");
+    }
+
+    private String getToken(String user, String password) throws Exception {
+        var auth = authQuery(user, password);
         var con = request(PLATFORM_A, "POST", "/login" + auth, null);
         return result(con);
     }
