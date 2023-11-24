@@ -403,37 +403,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     /*
-     * USER MANAGEMENT
-     */
-
-    @Override
-    public boolean addUser(User user) {
-        userDetailsService.createUser(user.getUsername(), user.getPassword(), convertRoles(user.getRoles()));
-        return true;
-    }
-
-    @Override
-    public boolean deleteUser(String username) {
-        return userDetailsService.removeUser(username);
-    }
-
-    @Override
-    public String getUser(String username) {
-        return userDetailsService.getUser(username);
-    }
-
-    @Override
-    public List<String> getUsers() {
-        return List.copyOf(userDetailsService.getUsers());
-    }
-
-    @Override
-    public String updateUser(String username, User user) {
-        return userDetailsService.updateUser(username, user.getUsername(), user.getPassword(),
-                convertRoles(user.getRoles()));
-    }
-
-    /*
      * HELPER METHODS
      */
 
@@ -518,14 +487,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid URL: " + e.getMessage());
         }
-    }
-
-    private Map<String, List<String>> convertRoles(List<User.Role> roles) {
-        Map<String, List<String>> userRoles = new HashMap<>();
-        for (de.dailab.jiacpp.model.User.Role role : roles) {
-            userRoles.put(role.getName(), role.getPrivileges());
-        }
-        return userRoles;
     }
 
 }

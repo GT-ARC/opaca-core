@@ -165,39 +165,6 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         return client.post("/connections/notify", platformUrl, Boolean.class);
     }
 
-    /*
-     * USER MANAGEMENT
-     */
-
-    @Override
-    public boolean addUser(User user) throws IOException {
-        return client.post("/users", user, Boolean.class);
-    }
-
-    @Override
-    public boolean deleteUser(String username) throws IOException {
-        var path = String.format("/users/%s", username);
-        return client.delete(path, null, Boolean.class);
-    }
-
-    @Override
-    public String getUser(String username) throws IOException {
-        var path = String.format("/users/%s", username);
-        return client.get(path, String.class);
-    }
-
-    @SuppressWarnings({"unchecked"})
-    @Override
-    public List<String> getUsers() throws IOException {
-        return client.get("/users", List.class);
-    }
-
-    @Override
-    public String updateUser(String username, User user) throws IOException {
-        var path = String.format("/users/%s", username);
-        return client.put(path, user, String.class);
-    }
-
     /**
      * Helper method for building Query string (without initial ?); will be more useful when there are more.
      */
