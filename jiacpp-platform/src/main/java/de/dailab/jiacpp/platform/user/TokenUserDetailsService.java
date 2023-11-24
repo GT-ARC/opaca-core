@@ -138,9 +138,12 @@ public class TokenUserDetailsService implements UserDetailsService {
     public String updateUser(String username, String newUsername, String password, Map<String, List<String>> roles) {
         TokenUser user = tokenUserRepository.findByUsername(username);
         if (user == null) throw new UsernameNotFoundException(username);
-        if (password != null) user.setPassword(password);
-        if (roles != null) createRolesIfNotFound(roles);
+        if (tokenUserRepository.findByUsername(newUsername) != null &&
+                !Objects.equals(username, newUsername)) throw new UserAlreadyExistsException(newUsername);
+        if (password != null) user.setPassword(passwordEncoder.encode(password));
+        if (roles != null) user.setRoles(createRolesIfNotFound(roles));
         if (newUsername != null) user.setUsername(newUsername);
+        tokenUserRepository.save(user);
         return getUser(user.getUsername());
     }
 
@@ -208,14 +211,6 @@ public class TokenUserDetailsService implements UserDetailsService {
             authorities.add(new SimpleGrantedAuthority(privilege));
         }
         return authorities;
-    }
-
-    // This temp method is just for testing to get the admin role
-    @Transactional
-    public Map<String, List<String>> getDebugRole() {
-        Map<String, List<String>> adminRole = new HashMap<>();
-        adminRole.put("ROLE_ADMIN", Arrays.asList("ADMIN_PRIVILEGE"));
-        return adminRole;
     }
 
     @Transactional

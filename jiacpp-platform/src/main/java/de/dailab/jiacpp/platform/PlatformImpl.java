@@ -407,28 +407,28 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     @Override
-    public boolean addUser(User user) throws IOException {
+    public boolean addUser(User user) {
         userDetailsService.createUser(user.getUsername(), user.getPassword(), convertRoles(user.getRoles()));
         return true;
     }
 
     @Override
-    public boolean deleteUser(String username) throws IOException {
+    public boolean deleteUser(String username) {
         return userDetailsService.removeUser(username);
     }
 
     @Override
-    public String getUser(String username) throws IOException {
+    public String getUser(String username) {
         return userDetailsService.getUser(username);
     }
 
     @Override
-    public List<String> getUsers() throws IOException {
+    public List<String> getUsers() {
         return List.copyOf(userDetailsService.getUsers());
     }
 
     @Override
-    public String updateUser(String username, User user) throws IOException {
+    public String updateUser(String username, User user) {
         return userDetailsService.updateUser(username, user.getUsername(), user.getPassword(),
                 convertRoles(user.getRoles()));
     }
