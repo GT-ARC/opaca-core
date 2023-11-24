@@ -1,11 +1,10 @@
 package de.dailab.jiacpp.platform.tests;
 
 import de.dailab.jiacpp.model.RuntimePlatform;
+import de.dailab.jiacpp.model.User;
 import de.dailab.jiacpp.platform.Application;
 import static de.dailab.jiacpp.platform.tests.TestUtils.*;
 
-import de.dailab.jiacpp.platform.user.Privilege;
-import de.dailab.jiacpp.platform.user.Role;
 import de.dailab.jiacpp.platform.user.TokenUserDetailsService;
 import org.junit.*;
 import org.junit.runners.MethodSorters;
@@ -14,7 +13,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -49,7 +47,7 @@ public class AuthTests {
                 "--username_platform=testUser", "--password_platform=testPwd", "--role_platform=ADMIN");
         // this is kinda ugly, should add proper functionality to add a "real" user
         tokenUserDetailsService = platformA.getBean(TokenUserDetailsService.class);
-        registerAllUser();
+        // registerAllUser();
     }
 
     @AfterClass
@@ -60,7 +58,7 @@ public class AuthTests {
 
 
     @Test
-    public void test1LoginA() throws Exception {
+    public void test01LoginA() throws Exception {
         var auth_A = authQuery("testUser", "testPwd");
         var con_A = request(PLATFORM_A, "POST", "/login" + auth_A, null);
         Assert.assertEquals(200, con_A.getResponseCode());
@@ -74,20 +72,20 @@ public class AuthTests {
     }
 
     @Test
-    public void test1LoginMissingAuth() throws Exception {
+    public void test01LoginMissingAuth() throws Exception {
         var con = request(PLATFORM_A, "POST", "/login", null);
         Assert.assertEquals(400, con.getResponseCode());
     }
 
     @Test
-    public void test1LoginWrongUser() throws Exception {
+    public void test01LoginWrongUser() throws Exception {
         var auth = authQuery("wrongUser", "testPwd");
         var con = request(PLATFORM_A, "POST", "/login" + auth, null);
         Assert.assertEquals(403, con.getResponseCode());
     }
 
     @Test
-    public void test1LoginWrongPwd() throws Exception {
+    public void test01LoginWrongPwd() throws Exception {
         var auth = authQuery("testUser", "wrongPwd");
         var con = request(PLATFORM_A, "POST", "/login" + auth, null);
         Assert.assertEquals(403, con.getResponseCode());
@@ -97,7 +95,7 @@ public class AuthTests {
     // Authentication against the Platform
 
     @Test
-    public void test2WithToken() throws Exception {
+    public void test02WithToken() throws Exception {
         var con_A = requestWithToken(PLATFORM_A, "GET", "/info", null, token_A);
         Assert.assertEquals(200, con_A.getResponseCode());
 
@@ -109,21 +107,21 @@ public class AuthTests {
     }
 
     @Test
-    public void test2WithWrongToken() throws Exception {
+    public void test02WithWrongToken() throws Exception {
         var invalidToken = "wrong-token";
         var con = requestWithToken(PLATFORM_A, "GET", "/info", null, invalidToken);
         Assert.assertEquals(403, con.getResponseCode());
     }
 
     @Test
-    public void test2WithoutToken() throws Exception {
+    public void test02WithoutToken() throws Exception {
         var con = request(PLATFORM_A, "GET", "/info", null);
         Assert.assertEquals(403, con.getResponseCode());
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    public void test3Deploy() throws Exception {
+    public void test03Deploy() throws Exception {
         var image = getSampleContainerImage();
         var con = requestWithToken(PLATFORM_A, "POST", "/containers", image, token_A);
         Assert.assertEquals(200, con.getResponseCode());
@@ -136,7 +134,7 @@ public class AuthTests {
     }
 
     @Test
-    public void test4GetContainerToken() throws Exception {
+    public void test04GetContainerToken() throws Exception {
         var con = requestWithToken(PLATFORM_A, "POST", "/invoke/GetInfo", Map.of(), token_A);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
@@ -149,7 +147,7 @@ public class AuthTests {
     }
 
     @Test
-    public void test4TriggerAutoNotify() throws Exception {
+    public void test04TriggerAutoNotify() throws Exception {
         // create new agent action
         var con = requestWithToken(PLATFORM_A, "POST", "/invoke/CreateAction", Map.of("name", "TestAction", "notify", "true"), token_A);
         Assert.assertEquals(200, con.getResponseCode());
@@ -163,20 +161,20 @@ public class AuthTests {
     // Authentication against the containers
 
     @Test
-    public void test4WithToken() throws Exception {
+    public void test04WithToken() throws Exception {
         var con = requestWithToken(containerIP, "GET", "/info", null, containerToken);
         Assert.assertEquals(200, con.getResponseCode());
     }
     
     @Test
-    public void test4WithWrongToken() throws Exception {
+    public void test04WithWrongToken() throws Exception {
         var invalidToken = "wrong-token";
         var con = requestWithToken(containerIP, "GET", "/info", null, invalidToken);
         Assert.assertEquals(403, con.getResponseCode());
     }
 
     @Test
-    public void test4WithoutToken() throws Exception {
+    public void test04WithoutToken() throws Exception {
         var con = requestWithToken(containerIP, "GET", "/info", null, null);
         Assert.assertEquals(403, con.getResponseCode());
     }
@@ -185,21 +183,21 @@ public class AuthTests {
      // Authentication against the connected platforms
 
     @Test
-    public void test5ConnectPlatformWrongPwd() throws Exception {
+    public void test05ConnectPlatformWrongPwd() throws Exception {
         var auth = authQuery("testUser", "wrongPwd");
         var con = requestWithToken(PLATFORM_B, "POST", "/connections" + auth, PLATFORM_A, token_B);
         Assert.assertEquals(502, con.getResponseCode());
     }
 
     @Test
-    public void test5ConnectPlatformWrongUser() throws Exception {
+    public void test05ConnectPlatformWrongUser() throws Exception {
         var auth = authQuery("wrongUser", "testPwd");
         var con = requestWithToken(PLATFORM_B, "POST", "/connections" + auth, PLATFORM_A, token_B);
         Assert.assertEquals(502, con.getResponseCode());
     }
 
     @Test
-    public void test6ConnectPlatform() throws Exception {
+    public void test06ConnectPlatform() throws Exception {
         var auth = authQuery("testUser", "testPwd");
         var con = requestWithToken(PLATFORM_B, "POST", "/connections" + auth, PLATFORM_A, token_B);
         Assert.assertEquals(200, con.getResponseCode());
@@ -207,7 +205,7 @@ public class AuthTests {
     }
 
     @Test
-    public void test7invokeInfoAtDifferentPlatform() throws Exception {
+    public void test07invokeInfoAtDifferentPlatform() throws Exception {
         var con = requestWithToken(PLATFORM_B, "POST", "/invoke/GetInfo", Map.of(), token_B);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
@@ -215,10 +213,66 @@ public class AuthTests {
         Assert.assertTrue(containerToken != null && ! containerToken.equals(""));
     }
 
+    // User Management
+
+    @Test
+    public void test08AddUser() throws Exception {
+        // GUEST USER
+        var con = requestWithToken(PLATFORM_A, "POST", "/users",
+                getUser("guest", "guestPwd", "ROLE_GUEST"), token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // (NORMAL) USER
+        con = requestWithToken(PLATFORM_A, "POST", "/users",
+                getUser("user", "userPwd", "ROLE_USER"), token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // CONTRIBUTOR USER
+        con = requestWithToken(PLATFORM_A, "POST", "/users",
+                getUser("contributor", "contributorPwd", "ROLE_CONTRIBUTOR"), token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // ADMIN USER
+        con = requestWithToken(PLATFORM_A, "POST", "/users",
+                getUser("admin", "adminPwd", "ROLE_ADMIN"), token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // TEST USER
+        con = requestWithToken(PLATFORM_A, "POST", "/users",
+                getUser("test", "testPwd", "ROLE_GUEST"), token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    @Test
+    public void test08GetUsers() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "GET", "/users", null, token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    @Test
+    public void test08GetUser() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "GET", "/users/test", null, token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+
+    }
+
+    @Test
+    public void test08EditUser() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "PUT", "/users/test",
+                getUser(null, null, "ROLE_IRRELEVANT"), token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    @Test
+    public void test08RemoveUser() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "DELETE", "/users/test", null, token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
     // Role Authorization
 
     @Test
-    public void test8AdminAuth() throws Exception {
+    public void test09AdminAuth() throws Exception {
         var con = requestWithToken(PLATFORM_B, "GET", "/info", null, token_A);
         Assert.assertEquals(200, con.getResponseCode());
         var info = result(con, RuntimePlatform.class);
@@ -246,7 +300,7 @@ public class AuthTests {
     }
 
     @Test
-    public void test8ContributorAuth() throws Exception {
+    public void test09ContributorAuth() throws Exception {
         var token_cont = getUserToken("contributor");
         Assert.assertNotNull(token_cont);
 
@@ -273,7 +327,7 @@ public class AuthTests {
     }
 
     @Test
-    public void test8UserAuth() throws Exception {
+    public void test09UserAuth() throws Exception {
         var token_user = getUserToken("user");
         Assert.assertNotNull(token_user);
 
@@ -296,7 +350,7 @@ public class AuthTests {
     }
 
     @Test
-    public void test8GuestAuth() throws Exception {
+    public void test09GuestAuth() throws Exception {
         var token_guest = getUserToken("guest");
         Assert.assertNotNull(token_guest);
 
@@ -328,15 +382,12 @@ public class AuthTests {
     // Container authorities started by users.
 
     @Test
-    public void test9ContributorContainer() throws Exception {
-        var auth = authQuery("contributor", "contributorPwd");
-        var con = request(PLATFORM_A, "POST", "/login" + auth, null);
-        Assert.assertEquals(200, con.getResponseCode());
-        var token_cont = result(con);
+    public void test10ContributorContainer() throws Exception {
+        var token_cont = getUserToken("contributor");
         Assert.assertNotNull(token_cont);
 
         var image = getSampleContainerImage();
-        con = requestWithToken(PLATFORM_A, "POST", "/containers", image, token_cont);
+        var con = requestWithToken(PLATFORM_A, "POST", "/containers", image, token_cont);
         Assert.assertEquals(200, con.getResponseCode());
         var newContainerId = result(con);
 
@@ -344,14 +395,14 @@ public class AuthTests {
                 Map.of(), token_cont);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
-        containerToken = (String) res.get("TOKEN");
-        Assert.assertTrue(containerToken != null && ! containerToken.equals(""));
+        var contContainerToken = (String) res.get("TOKEN");
+        Assert.assertTrue(contContainerToken != null && !contContainerToken.isEmpty());
 
-        con = requestWithToken(PLATFORM_A, "POST", "/containers", image, containerToken);
+        con = requestWithToken(PLATFORM_A, "POST", "/containers", image, contContainerToken);
         Assert.assertEquals(200, con.getResponseCode());
 
-        // This test does not work until container_auth equals user_auth who started container
-        con = requestWithToken(PLATFORM_A, "POST", "/connections", platformBBaseUrl, containerToken);
+        con = requestWithToken(PLATFORM_A, "POST", "/users",
+                getUser("forbiddenUser", "forbidden", "ROLE_GUEST"), contContainerToken);
         Assert.assertEquals(403, con.getResponseCode());
     }
 
@@ -362,21 +413,19 @@ public class AuthTests {
         return buildQuery(Map.of("username", username, "password", password));
     }
 
-    private static void addUser(String username, String password, String role) {
-        Map<String, List<String>> userRoles = new HashMap<>();
-        userRoles.put(role, Arrays.asList(role + "_PRIVILEGE"));
-        tokenUserDetailsService.createUser(username, password, userRoles);
+    private User getUser(String username, String password, String role) {
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(password);
+        user.setRoles(getUserRole(role));
+        return user;
     }
 
-    private static void registerAllUser() {
-        // ROLE_GUEST
-        addUser("guest", "guestPwd", "ROLE_GUEST");
-        // ROLE_USER
-        addUser("user", "userPwd", "ROLE_USER");
-        // ROLE_CONTRIBUTOR
-        addUser("contributor", "contributorPwd", "ROLE_CONTRIBUTOR");
-        // ROLE_ADMIN
-        addUser("admin", "adminPwd", "ROLE_ADMIN");
+    private List<User.Role> getUserRole(String role) {
+        User.Role newRole = new User.Role();
+        newRole.setName(role);
+        newRole.setPrivileges(Arrays.asList("PLACEHOLDER_PRIVILEGE"));
+        return Arrays.asList(newRole);
     }
 
     private String getUserToken(String userType) throws Exception {
