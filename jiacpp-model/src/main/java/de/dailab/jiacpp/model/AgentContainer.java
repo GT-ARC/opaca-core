@@ -27,6 +27,9 @@ public class AgentContainer {
     /** list of agents running on this container; this might change during its life-time */
     List<AgentDescription> agents;
 
+    /** User who started the container; Gives this user special privileges on a container */
+    String owner;
+
     /** when the container was started */
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "Z")
     ZonedDateTime runningSince;

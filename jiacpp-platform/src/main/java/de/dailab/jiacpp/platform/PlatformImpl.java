@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import de.dailab.jiacpp.api.RuntimePlatformApi;
 import de.dailab.jiacpp.model.*;
 import de.dailab.jiacpp.platform.auth.JwtUtil;
-import de.dailab.jiacpp.platform.user.Privilege;
-import de.dailab.jiacpp.platform.user.Role;
 import de.dailab.jiacpp.platform.user.TokenUserDetailsService;
 import de.dailab.jiacpp.platform.containerclient.ContainerClient;
 import de.dailab.jiacpp.platform.containerclient.DockerClient;
@@ -16,6 +14,8 @@ import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.dailab.jiacpp.util.EventHistory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 
@@ -238,6 +239,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 startedContainers.put(agentContainerId, postContainer);
                 tokens.put(agentContainerId, token);
                 String requestUsername = userDetailsService.getTokenUser(jwtUtil.getCurrentRequestUser()).getUsername();
+                container.setOwner(requestUsername);
                 userDetailsService.createUser(agentContainerId, agentContainerId,
                         userDetailsService.getUserRoles(requestUsername));
                 log.info("Container started: " + agentContainerId);
@@ -283,15 +285,21 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public boolean removeContainer(String containerId) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
-        if (container != null) {
-            runningContainers.remove(containerId);
-            startedContainers.remove(containerId);
-            userDetailsService.removeUser(containerId);
-            containerClient.stopContainer(containerId);
-            notifyConnectedPlatforms();
-            return true;
+        UserDetails details = userDetailsService.loadUserByUsername(jwtUtil.getCurrentRequestUser());
+        if (container == null || details == null) return false;
+        // If user is neither admin nor owner of container, throw new FORBIDDEN exception
+        // TODO Not sure if this is the right place to handle custom Http responses
+        // TODO Might need to implement more custom error handling
+        if (details.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN")) &&
+                !details.getUsername().equals(container.getOwner())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
-        return false;
+        runningContainers.remove(containerId);
+        startedContainers.remove(containerId);
+        userDetailsService.removeUser(containerId);
+        containerClient.stopContainer(containerId);
+        notifyConnectedPlatforms();
+        return true;
     }
 
     /*

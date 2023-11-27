@@ -241,6 +241,11 @@ public class AuthTests {
         con = requestWithToken(PLATFORM_A, "POST", "/users",
                 getUser("test", "testPwd", "ROLE_GUEST"), token_A);
         Assert.assertEquals(200, con.getResponseCode());
+
+        // SECOND CONTRIBUTOR USER FOR SPECIFIC AUTHORITY TEST
+        con = requestWithToken(PLATFORM_A, "POST", "/users",
+                getUser("contributor2", "contributor2Pwd", "ROLE_CONTRIBUTOR"), token_A);
+        Assert.assertEquals(200, con.getResponseCode());
     }
 
     @Test
@@ -386,20 +391,45 @@ public class AuthTests {
         var token_cont = getUserToken("contributor");
         Assert.assertNotNull(token_cont);
 
+        // Create a container with "CONTRIBUTOR" authority
         var image = getSampleContainerImage();
         var con = requestWithToken(PLATFORM_A, "POST", "/containers", image, token_cont);
         Assert.assertEquals(200, con.getResponseCode());
         var newContainerId = result(con);
 
         var contContainerToken = getToken(newContainerId, newContainerId);
-        Assert.assertTrue(contContainerToken != null && !contContainerToken.isEmpty());
+        Assert.assertFalse(contContainerToken.isEmpty());
 
+        // Check if container can perform actions which require "CONTRIBUTOR" role
         con = requestWithToken(PLATFORM_A, "POST", "/containers", image, contContainerToken);
         Assert.assertEquals(200, con.getResponseCode());
 
+        // Check if container can NOT perform actions which require "ADMIN" role
         con = requestWithToken(PLATFORM_A, "POST", "/users",
                 getUser("forbiddenUser", "forbidden", "ROLE_GUEST"), contContainerToken);
         Assert.assertEquals(403, con.getResponseCode());
+    }
+
+    // Specific User Authority
+
+    @Test
+    public void test11DeleteOwnContainer() throws Exception {
+        var token_cont = getUserToken("contributor");
+        Assert.assertNotNull(token_cont);
+        var token_cont2 = getUserToken("contributor2");
+        Assert.assertNotNull(token_cont);
+
+        // Create a container with "CONTRIBUTOR" authority
+        var image = getSampleContainerImage();
+        var con = requestWithToken(PLATFORM_A, "POST", "/containers", image, token_cont);
+        Assert.assertEquals(200, con.getResponseCode());
+        var newContainerId = result(con);
+
+        con = requestWithToken(PLATFORM_A, "DELETE", "/containers/" + newContainerId, image, token_cont2);
+        Assert.assertEquals(403, con.getResponseCode());
+
+        con = requestWithToken(PLATFORM_A, "DELETE", "/containers/" + newContainerId, image, token_cont);
+        Assert.assertEquals(200, con.getResponseCode());
     }
 
 
