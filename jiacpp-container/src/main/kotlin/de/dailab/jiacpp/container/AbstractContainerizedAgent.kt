@@ -1,12 +1,14 @@
 package de.dailab.jiacpp.container
 
 import com.fasterxml.jackson.databind.JsonNode
+import de.dailab.jiacpp.model.Action
 
 import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
 import de.dailab.jiacpp.util.ApiProxy
 import de.dailab.jiacpp.util.RestHelper
 import de.dailab.jiacvi.Agent
+import de.dailab.jiacvi.behaviour.act
 
 import org.springframework.http.ResponseEntity
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
@@ -29,6 +31,9 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
     private var runtimePlatformUrl: String? = null
     private var token: String? = null
     private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl, token) }
+
+    protected val actions = mutableListOf<Action>()
+    private val callbacks = mutableMapOf<String, (Map<String, JsonNode>) -> Any?>()
 
     override fun preStart() {
         super.preStart()
@@ -54,6 +59,22 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
     }
 
     abstract fun getDescription(): AgentDescription
+
+    fun addAction(action: Action, callback: (Map<String, JsonNode>) -> Any?) {
+        log.info("Added action: $action")
+        actions.add(action)
+        callbacks[action.name] = callback
+    }
+
+    override fun behaviour() = act {
+        respond<Invoke, Any?> {
+            log.info("RESPOND $it")
+            when (it.name) {
+                in callbacks -> callbacks[it.name]?.let { cb -> cb(it.parameters) }
+                else -> Unit
+            }
+        }
+    }
 
 
     /**
