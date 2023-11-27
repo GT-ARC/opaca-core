@@ -99,8 +99,9 @@ public class DockerClient implements ContainerClient {
             }
 
             // port mappings for API- and Extra-Ports
+            var newPorts = new HashSet<Integer>();
             Map<Integer, Integer> portMap = Stream.concat(Stream.of(image.getApiPort()), extraPorts.keySet().stream())
-                    .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
+                    .collect(Collectors.toMap(p -> p, p -> reserveNextFreePort(p, newPorts)));
             // translate to Docker PortBindings (incl. ExposedPort descriptions)
             List<PortBinding> portBindings = portMap.entrySet().stream()
                     .map(e -> PortBinding.parse(e.getValue() + ":" + e.getKey() + "/" + getProtocol(e.getKey(), image)))
@@ -124,6 +125,7 @@ public class DockerClient implements ContainerClient {
                     extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );
             dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), connectivity));
+            usedPorts.addAll(newPorts);
 
             return connectivity;
 
@@ -143,13 +145,10 @@ public class DockerClient implements ContainerClient {
     @Override
     public void stopContainer(String containerId) throws IOException {
         try {
-            // remove container info, stop container
             var containerInfo = dockerContainers.remove(containerId);
-            dockerClient.stopContainerCmd(containerInfo.containerId).exec();
-            // free up ports used by this container
-            // TODO do this first, or in finally?
             usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
             usedPorts.removeAll(containerInfo.connectivity.getExtraPortMappings().keySet());
+            dockerClient.stopContainerCmd(containerInfo.containerId).exec();
         } catch (NotModifiedException e) {
             var msg = "Could not stop Container " + containerId + "; already stopped?";
             log.warning(msg);
@@ -215,12 +214,12 @@ public class DockerClient implements ContainerClient {
     /**
      * Starting from the given preferred port, get and reserve the next free port.
      */
-    private int reserveNextFreePort(int port) {
-        while (usedPorts.contains(port)) {
+    private int reserveNextFreePort(int port, Set<Integer> newPorts) {
+        while (usedPorts.contains(port) || newPorts.contains(port)) {
             // TODO how to handle ports blocked by other containers or applications? just ping ports?
             port++;
         }
-        usedPorts.add(port);
+        newPorts.add(port);
         return port;
     }
 
