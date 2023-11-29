@@ -92,8 +92,7 @@ public class RestHelper {
         if (connection.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST) {
             return connection.getInputStream();
         } else {
-            throw new IOException(String.format("%s: %s",
-                    connection.getResponseCode(), readStream(connection.getErrorStream())));
+            throw new IOException(readStream(connection.getErrorStream()));
         }
     }
     

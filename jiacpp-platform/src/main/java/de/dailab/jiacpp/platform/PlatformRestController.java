@@ -52,29 +52,42 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public ResponseEntity<String> handleNotFound(NoSuchElementException e) {
 		log.warning(e.getMessage());  // probably a user error
-		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+		return ResponseEntity.status(HttpStatus.NOT_FOUND)
+				.body(makeErrorResponse(HttpStatus.NOT_FOUND, e));
 	}
 
 	@ExceptionHandler(value=JsonProcessingException.class)
 	@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
 	public ResponseEntity<String> handleJsonException(JsonProcessingException e) {
 		log.warning(e.getMessage());  // user error
-		return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getMessage());
+		return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+				.body(makeErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, e));
 	}
 
 	@ExceptionHandler(value=IOException.class)
 	@ResponseStatus(HttpStatus.BAD_GATEWAY)
 	public ResponseEntity<String> handleIoException(IOException e) {
 		log.severe(e.getMessage());  // should not happen (but can also be user error)
-		return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(e.getMessage());
+		return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+				.body(makeErrorResponse(HttpStatus.BAD_GATEWAY, e));
 	}
 
 	@ExceptionHandler(value=IllegalArgumentException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException e) {
 		log.warning(e.getMessage());  // probably user error
-		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+				.body(makeErrorResponse(HttpStatus.BAD_REQUEST, e));
 	}
+
+	private String makeErrorResponse(HttpStatus statusCode, Throwable error) {
+		try {
+			JsonNode cause = RestHelper.mapper.valueToTree(error.getCause());
+			return RestHelper.writeJson(new ErrorResponse(statusCode.value(), error.getMessage(), cause));
+		} catch (IllegalArgumentException | IOException e) {
+			return "Failed to make error response: " + e.getMessage();
+		}
+    }
 
 	/*
 	 * AUTHENTICATION

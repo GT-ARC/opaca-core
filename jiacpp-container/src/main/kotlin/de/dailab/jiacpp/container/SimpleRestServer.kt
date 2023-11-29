@@ -1,6 +1,7 @@
 package de.dailab.jiacpp.container
 
 import de.dailab.jiacpp.api.AgentContainerApi
+import de.dailab.jiacpp.model.ErrorResponse
 import de.dailab.jiacpp.model.Message
 import de.dailab.jiacpp.util.RestHelper
 import jakarta.servlet.http.HttpServlet
@@ -99,7 +100,7 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
 
         private fun handleError(response: HttpServletResponse, e: Exception) {
             val code = getErrorCode(e)
-            val err = mapOf(Pair("details", e.toString()))
+            val err = ErrorResponse(code, e.message, null)
             writeResponse(response, code, err)
         }
 
