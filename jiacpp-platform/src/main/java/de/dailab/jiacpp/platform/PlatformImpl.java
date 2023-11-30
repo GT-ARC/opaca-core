@@ -13,6 +13,7 @@ import de.dailab.jiacpp.platform.session.SessionData;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.dailab.jiacpp.util.EventHistory;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -236,7 +237,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 runningContainers.put(agentContainerId, container);
                 startedContainers.put(agentContainerId, postContainer);
                 tokens.put(agentContainerId, token);
-                userDetailsService.addUser(agentContainerId, agentContainerId);
+                userDetailsService.addUser(agentContainerId, generateRandomPwd());
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
                     log.warning("Agent Container ID does not match: Expected " +
@@ -491,6 +492,13 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw new IllegalArgumentException(String.format("Client Config %s does not match Container Environment %s",
                     request.getClientConfig().getType(), config.containerEnvironment));
         }
+    }
+
+    /**
+     * Creates a random String of length 24 containing upper and lower case characters as well as number
+     */
+    private String generateRandomPwd() {
+        return RandomStringUtils.random(24, true, true);
     }
 
 }
