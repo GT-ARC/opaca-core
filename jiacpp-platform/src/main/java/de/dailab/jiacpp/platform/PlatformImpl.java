@@ -285,15 +285,18 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public boolean removeContainer(String containerId) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
-        UserDetails details = userDetailsService.loadUserByUsername(jwtUtil.getCurrentRequestUser());
-        if (container == null || details == null) return false;
-        // If user is neither admin nor owner of container, throw new FORBIDDEN exception
-        // TODO Not sure if this is the right place to handle custom Http responses
-        // TODO Might need to implement more custom error handling
-        if (details.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN")) &&
-                !details.getUsername().equals(container.getOwner())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        if (config.enableAuth) {
+            UserDetails details = userDetailsService.loadUserByUsername(jwtUtil.getCurrentRequestUser());
+            if (details == null) return false;
+            // If user is neither admin nor owner of container, throw new FORBIDDEN exception
+            // TODO Not sure if this is the right place to handle custom Http responses
+            // TODO Might need to implement more custom error handling
+            if (details.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN")) &&
+                    !details.getUsername().equals(container.getOwner())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+            }
         }
+        if (container == null) return false;
         runningContainers.remove(containerId);
         startedContainers.remove(containerId);
         userDetailsService.removeUser(containerId);

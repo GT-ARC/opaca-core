@@ -47,7 +47,6 @@ public class AuthTests {
                 "--username_platform=testUser", "--password_platform=testPwd", "--role_platform=ADMIN");
         // this is kinda ugly, should add proper functionality to add a "real" user
         tokenUserDetailsService = platformA.getBean(TokenUserDetailsService.class);
-        // registerAllUser();
     }
 
     @AfterClass
@@ -138,6 +137,7 @@ public class AuthTests {
         var con = requestWithToken(PLATFORM_A, "POST", "/invoke/GetInfo", Map.of(), token_A);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
+        System.out.println("RESULT: " + res);
         containerToken = (String) res.get("TOKEN");
         Assert.assertTrue(containerToken != null && ! containerToken.equals(""));
 
@@ -299,6 +299,9 @@ public class AuthTests {
         con = requestWithToken(PLATFORM_A, "DELETE", "/containers/" + newContainerId, image, token_A);
         Assert.assertEquals(200, con.getResponseCode());
 
+        con = requestWithToken(PLATFORM_A, "DELETE", "/containers/" + containerId, image, token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+
         // TODO figure out connection request with security enabled
         // con = requestWithToken(PLATFORM_A, "POST", "/connections", platformBBaseUrl, token_A);
         // Assert.assertEquals(200, con.getResponseCode());
@@ -403,11 +406,18 @@ public class AuthTests {
         // Check if container can perform actions which require "CONTRIBUTOR" role
         con = requestWithToken(PLATFORM_A, "POST", "/containers", image, contContainerToken);
         Assert.assertEquals(200, con.getResponseCode());
+        var newContainerId2 = result(con);
+        con = requestWithToken(PLATFORM_A, "DELETE", "/containers/" + newContainerId2, image, contContainerToken);
+        Assert.assertEquals(200, con.getResponseCode());
 
         // Check if container can NOT perform actions which require "ADMIN" role
         con = requestWithToken(PLATFORM_A, "POST", "/users",
                 getUser("forbiddenUser", "forbidden", "ROLE_GUEST"), contContainerToken);
         Assert.assertEquals(403, con.getResponseCode());
+
+        // Container deletes itself
+        con = requestWithToken(PLATFORM_A, "DELETE", "/containers/" + newContainerId, image, token_cont);
+        Assert.assertEquals(200, con.getResponseCode());
     }
 
     // Specific User Authority
