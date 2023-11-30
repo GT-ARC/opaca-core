@@ -48,6 +48,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     /** the token for accessing the parent Runtime Platform, received on initialization */
     private val token = System.getenv(AgentContainerApi.ENV_TOKEN)
 
+    /** the owner who started the Agent Container */
+    private val owner = System.getenv(AgentContainerApi.ENV_OWNER)
+
     private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl, token) }
 
     /** other agents registered at the container agent (not all agents are exposed automatically) */
@@ -80,7 +83,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         override fun getContainerInfo(): AgentContainer {
             log.info("GET INFO")
-            return AgentContainer(containerId, image, getParameters(), agents, startedAt, null)
+            return AgentContainer(containerId, image, getParameters(), agents, owner, startedAt, null)
         }
 
         override fun getAgents(): List<AgentDescription> {

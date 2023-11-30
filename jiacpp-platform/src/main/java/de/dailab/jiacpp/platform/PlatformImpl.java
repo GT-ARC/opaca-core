@@ -222,10 +222,15 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public String addContainer(PostAgentContainer postContainer) throws IOException {
         String agentContainerId = UUID.randomUUID().toString();
-        String token = config.enableAuth ? jwtUtil.generateTokenForAgentContainer(agentContainerId) : "";
+        String token = "";
+        String owner = "";
+        if (config.enableAuth) {
+            token = jwtUtil.generateTokenForAgentContainer(agentContainerId);
+            owner = userDetailsService.getTokenUser(jwtUtil.getCurrentRequestUser()).getUsername();
+        }
 
         // start container... this may raise an Exception, or returns the connectivity info
-        var connectivity = containerClient.startContainer(agentContainerId, token, postContainer);
+        var connectivity = containerClient.startContainer(agentContainerId, token, owner, postContainer);
 
         // wait until container is up and running...
         var start = System.currentTimeMillis();
@@ -238,10 +243,9 @@ public class PlatformImpl implements RuntimePlatformApi {
                 runningContainers.put(agentContainerId, container);
                 startedContainers.put(agentContainerId, postContainer);
                 tokens.put(agentContainerId, token);
-                String requestUsername = userDetailsService.getTokenUser(jwtUtil.getCurrentRequestUser()).getUsername();
-                container.setOwner(requestUsername);
+                container.setOwner(owner);
                 userDetailsService.createUser(agentContainerId, agentContainerId,
-                        userDetailsService.getUserRoles(requestUsername));
+                        config.enableAuth ? userDetailsService.getUserRoles(owner) : new HashMap<>());
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
                     log.warning("Agent Container ID does not match: Expected " +

@@ -93,7 +93,7 @@ public class KubernetesClient implements ContainerClient {
     }
 
     @Override
-    public AgentContainer.Connectivity startContainer(String containerId, String token, PostAgentContainer container) throws IOException, NoSuchElementException {
+    public AgentContainer.Connectivity startContainer(String containerId, String token, String owner, PostAgentContainer container) throws IOException, NoSuchElementException {
         var image = container.getImage();
         var imageName = image.getImageName();
         var registry = imageName.split("/")[0];
@@ -111,7 +111,7 @@ public class KubernetesClient implements ContainerClient {
                                         .ports(List.of(
                                                 new V1ContainerPort().containerPort(image.getApiPort())
                                         ))
-                                        .env(buildEnv(containerId, token, image.getParameters(), container.getArguments()))
+                                        .env(buildEnv(containerId, token, owner, image.getParameters(), container.getArguments()))
                         ))
                         .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)))
                 ;
@@ -179,8 +179,8 @@ public class KubernetesClient implements ContainerClient {
         }
     }
 
-    private List<V1EnvVar> buildEnv(String containerId, String token, List<ImageParameter> parameters, Map<String, String> arguments) {
-        return config.buildContainerEnv(containerId, token, parameters, arguments).entrySet().stream()
+    private List<V1EnvVar> buildEnv(String containerId, String token, String owner, List<ImageParameter> parameters, Map<String, String> arguments) {
+        return config.buildContainerEnv(containerId, token, owner, parameters, arguments).entrySet().stream()
                 .map(e -> new V1EnvVar().name(e.getKey()).value(e.getValue()))
                 .collect(Collectors.toList());
     }
