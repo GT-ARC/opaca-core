@@ -5,14 +5,12 @@ import de.dailab.jiacpp.model.User;
 import de.dailab.jiacpp.platform.Application;
 import static de.dailab.jiacpp.platform.tests.TestUtils.*;
 
-import de.dailab.jiacpp.platform.user.TokenUserDetailsService;
 import org.junit.*;
 import org.junit.runners.MethodSorters;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -26,7 +24,6 @@ public class AuthTests {
     private final String PLATFORM_B = "http://localhost:" + PLATFORM_B_PORT;
     private static ConfigurableApplicationContext platformA = null;
     private static ConfigurableApplicationContext platformB = null;
-    private static TokenUserDetailsService tokenUserDetailsService = null;
     private static String token_A = null;
     private static String token_B = null;
     private static String containerId = null;
@@ -45,8 +42,6 @@ public class AuthTests {
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
                 "--username_platform=testUser", "--password_platform=testPwd", "--role_platform=ADMIN");
-        // this is kinda ugly, should add proper functionality to add a "real" user
-        tokenUserDetailsService = platformA.getBean(TokenUserDetailsService.class);
     }
 
     @AfterClass
@@ -137,9 +132,9 @@ public class AuthTests {
         var con = requestWithToken(PLATFORM_A, "POST", "/invoke/GetInfo", Map.of(), token_A);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
-        System.out.println("RESULT: " + res);
         containerToken = (String) res.get("TOKEN");
         Assert.assertTrue(containerToken != null && ! containerToken.equals(""));
+        Assert.assertEquals("testUser", res.get("OWNER"));
 
         // container token can be used to call platform routes
         con = requestWithToken(PLATFORM_A, "GET", "/info", null, containerToken);
@@ -460,8 +455,8 @@ public class AuthTests {
     private List<User.Role> getUserRole(String role) {
         User.Role newRole = new User.Role();
         newRole.setName(role);
-        newRole.setPrivileges(Arrays.asList("PLACEHOLDER_PRIVILEGE"));
-        return Arrays.asList(newRole);
+        newRole.setPrivileges(List.of("PLACEHOLDER_PRIVILEGE"));
+        return List.of(newRole);
     }
 
     private String getUserToken(String userType) throws Exception {
