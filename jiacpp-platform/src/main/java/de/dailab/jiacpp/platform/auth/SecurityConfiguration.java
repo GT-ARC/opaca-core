@@ -77,8 +77,9 @@ public class SecurityConfiguration {
                                     "/swagger-ui.html",
                                     "/webjars/**"
                             ).permitAll()
+                            .requestMatchers(HttpMethod.GET, "/users").hasRole("ADMIN")
                             .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**").hasRole("GUEST")
-                            .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**", "/users").hasRole("USER")
+                            .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**", "/users/**").hasRole("USER")
                             .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**").hasRole("USER")
                             .requestMatchers(HttpMethod.POST, "/containers/**").hasRole("CONTRIBUTOR")
                             .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole("CONTRIBUTOR")
