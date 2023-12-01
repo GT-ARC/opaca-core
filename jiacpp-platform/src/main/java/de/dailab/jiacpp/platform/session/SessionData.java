@@ -35,9 +35,6 @@ public class SessionData {
     /* KubernetesClient variables */
     public Map<String, PodInfo> pods = new HashMap<>();
 
-    /* TokensUserDetailsService variables */
-    // public Map<String, TokenUser> tokenUsers = new HashMap<>();
-
     /* TokenUser In-Memory Database Repositories */
     @Autowired
     public TokenUserRepository tokenUserRepository;
@@ -53,7 +50,6 @@ public class SessionData {
         this.connectedPlatforms.clear();
         this.dockerContainers.clear();
         this.usedPorts.clear();
-        // this.tokenUsers.clear();
         this.tokenUserRepository.deleteAll();
         this.tokenUserRepository.flush();
         this.roleRepository.deleteAll();

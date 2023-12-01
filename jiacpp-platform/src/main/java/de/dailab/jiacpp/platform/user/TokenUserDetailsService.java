@@ -57,7 +57,7 @@ public class TokenUserDetailsService implements UserDetailsService {
         privilegeRepository = sessionData.privilegeRepository;
         if (tokenUserRepository.findByUsername(config.usernamePlatform) == null) {
             Map<String, List<String>> userRoles = new HashMap<>();
-            userRoles.put("ROLE_" + config.rolePlatform, Arrays.asList("ADMIN_PRIVILEGE"));
+            userRoles.put("ROLE_" + config.rolePlatform, List.of("ADMIN_PRIVILEGE"));
             createUser(config.usernamePlatform, config.passwordPlatform, userRoles);
         }
 	}

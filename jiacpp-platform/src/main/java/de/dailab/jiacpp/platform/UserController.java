@@ -9,7 +9,6 @@ import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -64,9 +63,11 @@ public class UserController {
             @RequestHeader("Authorization") String token,
             @PathVariable String username) {
 
-        if (!isAdminOrSelf(token, username)) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-        log.info(String.format("DELETE USER: %s", username));
-        return userDetailsService.removeUser(username);
+        if (isAdminOrSelf(token, username)){
+            log.info(String.format("DELETE USER: %s", username));
+            return userDetailsService.removeUser(username);
+        }
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN);
     }
 
     /**
@@ -81,9 +82,12 @@ public class UserController {
             @RequestHeader("Authorization") String token,
             @PathVariable String username) {
 
-        if (!isAdminOrSelf(token, username)) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-        log.info(String.format("GET USER: %s", username));
-        return userDetailsService.getUser(username);
+        if (isAdminOrSelf(token, username)){
+            log.info(String.format("GET USER: %s", username));
+            return userDetailsService.getUser(username);
+        }
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+
     }
 
     /**

@@ -7,9 +7,9 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * Description for a User, later stored in the connected database.
- * The user class stores its name, its password and also
- * its assigned roles, which can include multiple privileges.
+ * Description for a User, later converted to a TokenUser.
+ * This class stores the name, password, and also the
+ * (multiple) assigned roles, which can include multiple privileges.
  */
 @Data
 @AllArgsConstructor @NoArgsConstructor
