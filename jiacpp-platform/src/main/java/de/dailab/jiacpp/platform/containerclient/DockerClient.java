@@ -120,11 +120,7 @@ public class DockerClient implements ContainerClient {
             log.info(String.format("Result: %s", res));
 
             log.info("Starting Container...");
-            try {
-                dockerClient.startContainerCmd(res.getId()).exec();
-            } catch (DockerException e) {
-                throw new IOException("Failed to start Docker container.");
-            }
+            dockerClient.startContainerCmd(res.getId()).exec();
 
             var connectivity = new AgentContainer.Connectivity(
                     getContainerBaseUrl(),
@@ -140,6 +136,8 @@ public class DockerClient implements ContainerClient {
             // might theoretically happen if image is deleted between pull and run...
             log.warning("Image not found: " + imageName);
             throw new NoSuchElementException("Image not found: " + imageName);
+        } catch (DockerException e) {
+            throw new IOException("Failed to start Docker container.", e);
         }
     }
 
@@ -222,14 +220,14 @@ public class DockerClient implements ContainerClient {
      * Starting from the given preferred port, get and reserve the next free port.
      */
     private int reserveNextFreePort(int port, Set<Integer> newPorts) {
-        while (newPorts.contains(port) || !isPortAvailable(port)) ++port;
+        while (!isPortAvailable(port, newPorts)) ++port;
         newPorts.add(port);
         return port;
     }
 
-    private boolean isPortAvailable(int port) {
-        if (usedPorts.contains(port)) return false;
-        try (var ss = new ServerSocket(port); var ds = new DatagramSocket(port)) {
+    private boolean isPortAvailable(int port, Set<Integer> newPorts) {
+        if (usedPorts.contains(port) || newPorts.contains(port)) return false;
+        try (var s1 = new ServerSocket(port); var s2 = new DatagramSocket(port)) {
             return true;
         } catch (IOException e) {
             return false;
