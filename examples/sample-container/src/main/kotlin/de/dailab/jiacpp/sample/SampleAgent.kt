@@ -18,8 +18,6 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     private var lastMessage: Any? = null
     private var lastBroadcast: Any? = null
 
-    private var extraActions = mutableListOf<Action>()
-
     override fun preStart() {
         super.preStart()
         addAction(Action("DoThis", mapOf("message" to "String", "sleep_seconds" to "Int"), "String")) {
@@ -46,16 +44,9 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         addAction(Action("Deregister", mapOf(), "void")) {
             deregister(false)
         }
-    }
 
-    override fun getDescription() = AgentDescription(
-        this.name,
-        this.javaClass.name,
-        actions,
-        listOf(
-            Stream("GetStream", Stream.Mode.GET)
-        )
-    )
+        addStream(Stream("GetStream", Stream.Mode.GET), this::actionGetStream)
+    }
 
     override fun behaviour() = super.behaviour().and(act {
 
@@ -68,16 +59,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             log.info("LISTEN $it")
             lastBroadcast = it.payload
         }
-
-        respond<StreamInvoke, Any?> {
-            when (it.name) {
-                "GetStream" -> actionGetStream()
-                else -> null
-            }
-        }
-
     })
-
 
     private fun actionGetStream(): ByteArrayInputStream {
         val data = "{\"key\":\"value\"}".toByteArray(Charset.forName("UTF-8"))
