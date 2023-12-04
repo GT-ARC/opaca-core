@@ -20,32 +20,33 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
 
     override fun preStart() {
         super.preStart()
-        addAction(Action("DoThis", mapOf("message" to "String", "sleep_seconds" to "Int"), "String")) {
+
+        addAction("DoThis", mapOf("message" to "String", "sleep_seconds" to "Int"), "String") {
             actionDoThis(it["message"]!!.asText(), it["sleep_seconds"]!!.asInt())
         }
-        addAction(Action("GetInfo", mapOf(), "Map")) {
+        addAction("GetInfo", mapOf(), "Map") {
             actionGetInfo()
         }
-        addAction(Action("GetEnv", mapOf(), "Map")) {
+        addAction("GetEnv", mapOf(), "Map") {
             actionGetEnv()
         }
-        addAction(Action("Add", mapOf("x" to "String", "y" to "Int"), "Int")) {
+        addAction("Add", mapOf("x" to "String", "y" to "Int"), "Int") {
             actionAdd(it["x"]!!.asInt(), it["y"]!!.asInt())
         }
-        addAction(Action("Fail", mapOf(), "void")) {
+        addAction("Fail", mapOf(), "void") {
             actionFail()
         }
-        addAction(Action("CreateAction", mapOf("name" to "String", "notify" to "Boolean"), "void")) {
+        addAction("CreateAction", mapOf("name" to "String", "notify" to "Boolean"), "void") {
             createAction(it["name"]!!.asText(), it["notify"]!!.asBoolean())
         }
-        addAction(Action("SpawnAgent", mapOf("name" to "String"), "void")) {
+        addAction("SpawnAgent", mapOf("name" to "String"), "void") {
             spawnAgent(it["name"]!!.asText())
         }
-        addAction(Action("Deregister", mapOf(), "void")) {
+        addAction("Deregister", mapOf(), "void") {
             deregister(false)
         }
 
-        addStream(Stream("GetStream", Stream.Mode.GET), this::actionGetStream)
+        addStream("GetStream", Stream.Mode.GET, this::actionGetStream)
     }
 
     override fun behaviour() = super.behaviour().and(act {
@@ -92,7 +93,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     private fun actionGetEnv() = System.getenv()
 
     private fun createAction(name: String, notify: Boolean) {
-        addAction(Action(name, mapOf(), "String")) {
+        addAction(name, mapOf(), "String") {
             "Called extra action $name"
         }
         register(notify)

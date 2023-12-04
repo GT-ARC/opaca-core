@@ -68,13 +68,21 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         streams
     )
 
+    fun addAction(name: String, parameters: Map<String, String>, result: String, callback: (Map<String, JsonNode>) -> Any?) {
+        addAction(Action(name, parameters, result), callback)
+    }
+
     fun addAction(action: Action, callback: (Map<String, JsonNode>) -> Any?) {
         log.info("Added action: $action")
         actions.add(action)
         actionCallbacks[action.name] = callback
     }
 
-    fun addStream(stream: Stream, callback: () -> Any?) {
+    fun addStream(name: String, mode: Stream.Mode, callback: () -> Any?) {
+        addStrean(Stream(name, mode), callback)
+    }
+
+    fun addStrean(stream: Stream, callback: () -> Any?) {
         log.info("Added stream: $stream")
         streams.add(stream)
         streamCallbacks[stream.name] = callback
