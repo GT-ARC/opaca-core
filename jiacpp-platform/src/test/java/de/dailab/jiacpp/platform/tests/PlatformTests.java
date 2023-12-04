@@ -736,6 +736,22 @@ public class PlatformTests {
     }
 
     /**
+     * deploy a container with api port 8082 on platform B, which should now work since
+     * the platform checks if a port is available before trying to start the container
+     */
+    @Test
+    public void test8DeploySameApiPort() throws IOException {
+        var image = getSampleContainerImage();
+        var con = request(PLATFORM_B, "POST", "/containers", image);
+        Assert.assertEquals(200, con.getResponseCode());
+        var containerId = result(con);
+        con = request(PLATFORM_B, "GET", "/containers/" + containerId, null);
+        var container = result(con, AgentContainer.class);
+        Assert.assertTrue(container.getConnectivity().getApiPortMapping() > image.getImage().getApiPort());
+        request(PLATFORM_B, "DELETE", "/containers/" + containerId, null);
+    }
+
+    /**
      * undeploy container, check that it's gone
      */
     @Test
