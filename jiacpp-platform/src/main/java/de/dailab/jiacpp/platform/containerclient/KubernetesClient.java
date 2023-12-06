@@ -154,7 +154,12 @@ public class KubernetesClient implements ContainerClient {
         try {
             V1Deployment createdDeployment = appsApi.createNamespacedDeployment(namespace, deployment, null, null, null);
             log.info("Deployment created: " + createdDeployment.getMetadata().getName());
-            
+
+            boolean isRunning = waitForContainerToRunOrFail(createdDeployment.getMetadata().getName(), namespace);
+
+            if (!isRunning) {
+                throw new IOException("Pod failed to start.");
+            }
             V1Service createdService = coreApi.createNamespacedService(namespace, service, null, null, null);
             log.info("Service created: " + createdService.getMetadata().getName());
             String serviceIP = createdService.getSpec().getClusterIP();
@@ -175,6 +180,30 @@ public class KubernetesClient implements ContainerClient {
             log.severe("Error creating pod: " + e.getMessage());
             throw new IOException("Failed to create Pod: " + e.getMessage());
         }
+    }
+    
+    private boolean waitForContainerToRunOrFail(String containerId, String namespace) {
+        var start = System.currentTimeMillis();
+        while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000L) {
+            try {
+                V1Pod container = coreApi.readNamespacedPod(containerId, namespace, null, null, null);
+                String phase = container.getStatus().getPhase();
+                if ("Running".equals(phase)) {
+                    return true;
+                } else if ("Failed".equals(phase) || "Unknown".equals(phase)) {
+                    return false;
+                }
+            } catch (ApiException e) {
+                log.severe("API exception while checking pod status: " + e.getMessage());
+                return false;
+            } 
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                log.severe(e.getMessage());
+            }
+        }
+        return false; // Consider it a failure if the container does not start within the timeout
     }
 
     private List<V1EnvVar> buildEnv(String containerId, String token, List<ImageParameter> parameters, Map<String, String> arguments) {
