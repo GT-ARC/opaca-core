@@ -2,6 +2,7 @@ package de.dailab.jiacpp.platform.containerclient;
 
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.PullImageResultCallback;
+import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.exception.InternalServerErrorException;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.exception.NotModifiedException;
@@ -87,7 +88,6 @@ public class DockerClient implements ContainerClient {
         this.dockerClient.listContainersCmd().exec();
     }
 
-    @Override
     public AgentContainer.Connectivity startContainer(String containerId, String token, PostAgentContainer container) throws IOException, NoSuchElementException {
         var image = container.getImage();
         var imageName = image.getImageName();
@@ -97,7 +97,6 @@ public class DockerClient implements ContainerClient {
             if (! isImagePresent(imageName)) {
                 pullDockerImage(imageName);
             }
-
             // port mappings for API- and Extra-Ports
             var newPorts = new HashSet<Integer>();
             Map<Integer, Integer> portMap = Stream.concat(Stream.of(image.getApiPort()), extraPorts.keySet().stream())
@@ -119,6 +118,12 @@ public class DockerClient implements ContainerClient {
             log.info("Starting Container...");
             dockerClient.startContainerCmd(res.getId()).exec();
 
+            boolean isRunning = waitForContainerToRunOrFail(res.getId());
+
+            if (!isRunning) {
+                throw new IOException("Container failed to start.");
+            }
+
             var connectivity = new AgentContainer.Connectivity(
                     getContainerBaseUrl(),
                     portMap.get(image.getApiPort()),
@@ -134,6 +139,26 @@ public class DockerClient implements ContainerClient {
             log.warning("Image not found: " + imageName);
             throw new NoSuchElementException("Image not found: " + imageName);
         }
+    }
+
+    private boolean waitForContainerToRunOrFail(String containerId) {
+        var start = System.currentTimeMillis();
+        while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000L) {
+            InspectContainerResponse containerResponse = dockerClient.inspectContainerCmd(containerId).exec();
+            String state = containerResponse.getState().getStatus();
+            if ("running".equals(state)) {
+                return true;
+            } else if ("exited".equals(state) || "dead".equals(state) || "paused".equals(state) || "restarting".equals(state)) {
+                return false;
+            }
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                log.severe(e.getMessage());
+            }
+ 
+        }
+        return false; // Consider it a failure if the container does not start within the max attempts
     }
 
     private String[] buildEnv(String containerId, String token, List<ImageParameter> parameters, Map<String, String> arguments) {
