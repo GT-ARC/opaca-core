@@ -1,5 +1,7 @@
 package de.dailab.jiacpp.platform.tests;
 
+import de.dailab.jiacpp.model.Login;
+import de.dailab.jiacpp.model.LoginConnection;
 import de.dailab.jiacpp.platform.Application;
 import static de.dailab.jiacpp.platform.tests.TestUtils.*;
 
@@ -52,13 +54,13 @@ public class AuthTests {
 
     @Test
     public void test1LoginA() throws Exception {
-        var auth_A = authQuery("testUser", "testPwd");
-        var con_A = request(PLATFORM_A, "POST", "/login" + auth_A, null);
+        var login_A = createLogin("testUser", "testPwd");
+        var con_A = request(PLATFORM_A, "POST", "/login", login_A);
         Assert.assertEquals(200, con_A.getResponseCode());
         token_A = result(con_A);
         Assert.assertNotNull(token_A);
-        var auth_B = authQuery("testUser", "testPwd");
-        var con_B = request(PLATFORM_B, "POST", "/login" + auth_B, null);
+        var login_B = createLogin("testUser", "testPwd");
+        var con_B = request(PLATFORM_B, "POST", "/login", login_B);
         Assert.assertEquals(200, con_B.getResponseCode());
         token_B = result(con_B);
         Assert.assertNotNull(token_B);
@@ -71,15 +73,15 @@ public class AuthTests {
 
     @Test
     public void test1LoginWrongUser() throws Exception {
-        var auth = authQuery("wrongUser", "testPwd");
-        var con = request(PLATFORM_A, "POST", "/login" + auth, null);
+        var login = createLogin("wrongUser", "testPwd");
+        var con = request(PLATFORM_A, "POST", "/login", login);
         Assert.assertEquals(403, con.getResponseCode());
     }
 
     @Test
     public void test1LoginWrongPwd() throws Exception {
-        var auth = authQuery("testUser", "wrongPwd");
-        var con = request(PLATFORM_A, "POST", "/login" + auth, null);
+        var login = createLogin("testUser", "wrongPwd");
+        var con = request(PLATFORM_A, "POST", "/login", login);
         Assert.assertEquals(403, con.getResponseCode());
     }
 
@@ -173,22 +175,22 @@ public class AuthTests {
     
     @Test
     public void test5ConnectPlatformWrongPwd() throws Exception {
-        var auth = authQuery("testUser", "wrongPwd");
-        var con = requestWithToken(PLATFORM_B, "POST", "/connections" + auth, PLATFORM_A, token_B);
+        var loginCon = createLoginCon("testUser", "wrongPwd", PLATFORM_A);
+        var con = requestWithToken(PLATFORM_B, "POST", "/connections", loginCon, token_B);
         Assert.assertEquals(502, con.getResponseCode());
     }
 
     @Test
     public void test5ConnectPlatformWrongUser() throws Exception {
-        var auth = authQuery("wrongUser", "testPwd");
-        var con = requestWithToken(PLATFORM_B, "POST", "/connections" + auth, PLATFORM_A, token_B);
+        var loginCon = createLoginCon("wrongUser", "testPwd", PLATFORM_A);
+        var con = requestWithToken(PLATFORM_B, "POST", "/connections", loginCon, token_B);
         Assert.assertEquals(502, con.getResponseCode());
     }
 
     @Test
     public void test6ConnectPlatform() throws Exception {
-        var auth = authQuery("testUser", "testPwd");
-        var con = requestWithToken(PLATFORM_B, "POST", "/connections" + auth, PLATFORM_A, token_B);
+        var loginCon = createLoginCon("testUser", "testPwd", PLATFORM_A);
+        var con = requestWithToken(PLATFORM_B, "POST", "/connections", loginCon, token_B);
         Assert.assertEquals(200, con.getResponseCode());
         Assert.assertTrue(result(con, Boolean.class));
     }
@@ -204,8 +206,12 @@ public class AuthTests {
 
     // Helper methods
 
-    private String authQuery(String username, String password) {
-        return buildQuery(Map.of("username", username, "password", password));
+    private Login createLogin(String username, String password) {
+        return new Login(username, password);
+    }
+
+    private LoginConnection createLoginCon(String username, String password, String url) {
+        return new LoginConnection(username, password, url);
     }
 
 }

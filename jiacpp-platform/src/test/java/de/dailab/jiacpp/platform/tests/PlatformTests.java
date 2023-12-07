@@ -50,6 +50,7 @@ public class PlatformTests {
     private static ConfigurableApplicationContext platformB = null;
     private static String containerId = null;
     private static String platformABaseUrl = null;
+    private static LoginConnection platformALogin = null;
 
 
     /**
@@ -105,6 +106,7 @@ public class PlatformTests {
         var info = result(con, RuntimePlatform.class);
         Assert.assertNotNull(info);
         platformABaseUrl = info.getBaseUrl();
+        platformALogin = new LoginConnection(null, null, platformABaseUrl);
     }
 
     /**
@@ -485,7 +487,7 @@ public class PlatformTests {
      */
     @Test
     public void test6Connect() throws Exception {
-        var con = request(PLATFORM_B, "POST", "/connections", platformABaseUrl);
+        var con = request(PLATFORM_B, "POST", "/connections", platformALogin);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Boolean.class);
         Assert.assertTrue(res);
@@ -843,13 +845,15 @@ public class PlatformTests {
 
     @Test
     public void testXConnectUnknown() throws Exception {
-        var con = request(PLATFORM_A, "POST", "/connections", "http://flsflsfsjfkj.com");
+        var loginCon = new LoginConnection(null, null, "http://flsflsfsjfkj.com");
+        var con = request(PLATFORM_A, "POST", "/connections", loginCon);
         Assert.assertEquals(502, con.getResponseCode());
     }
 
     @Test
     public void testXConnectInvalid() throws Exception {
-        var con = request(PLATFORM_A, "POST", "/connections", "not a valid url");
+        var loginCon = new LoginConnection(null, null, "not a valid url");
+        var con = request(PLATFORM_A, "POST", "/connections", loginCon);
         Assert.assertEquals(400, con.getResponseCode());
     }
 
