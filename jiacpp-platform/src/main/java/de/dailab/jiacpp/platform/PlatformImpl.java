@@ -125,8 +125,8 @@ public class PlatformImpl implements RuntimePlatformApi {
 
 
     @Override
-    public String login(String username, String password) {
-        return jwtUtil.generateTokenForUser(username, password);
+    public String login(Login loginParams) {
+        return jwtUtil.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
     }
     
 
@@ -297,8 +297,8 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     @Override
-    public boolean connectPlatform(String url, String username, String password) throws IOException {
-        url = normalizeString(url);
+    public boolean connectPlatform(LoginConnection loginConnection) throws IOException {
+        String url = normalizeString(loginConnection.getUrl());
         checkUrl(url);
         if (url.equals(config.getOwnBaseUrl()) || connectedPlatforms.containsKey(url)) {
             return false;
@@ -306,9 +306,9 @@ public class PlatformImpl implements RuntimePlatformApi {
             // callback from remote platform following our own request for connection
             return true;
         } else {
-            if (username != null) {
+            if (loginConnection.getUsername() != null) {
                 // with auth, unidirectional
-                var token = new ApiProxy(url).login(username, password);
+                var token = new ApiProxy(url).login(new Login(loginConnection.getUsername(), loginConnection.getPassword()));
                 var info = new ApiProxy(url, token).getPlatformInfo();
                 connectedPlatforms.put(url, info);
                 tokens.put(url, token);
@@ -318,7 +318,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                     var info = new ApiProxy(url).getPlatformInfo();
                     url = info.getBaseUrl();
                     pendingConnections.add(url);
-                    if (new ApiProxy(url).connectPlatform(config.getOwnBaseUrl(), null, null)) {
+                    if (new ApiProxy(url).connectPlatform(new LoginConnection(null, null, config.getOwnBaseUrl()))) {
                         connectedPlatforms.put(url, info);
                     }
                 } finally {

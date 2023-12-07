@@ -53,11 +53,9 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     // AUTHENTICATION
 
     @Override
-    public String login(String username, String password) throws IOException {
-        var query = buildLoginQuery(username, password);
-        var path = String.format("/login?%s", query);
+    public String login(Login loginParams) throws IOException {
         // token should be raw string
-        return client.readStream(client.request("POST", path, null));
+        return client.readStream(client.request("POST", "/login", loginParams));
     }
 
     // AGENT ROUTES
@@ -138,10 +136,8 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     // CONNECTING ROUTES
 
     @Override
-    public boolean connectPlatform(String url, String username, String password) throws IOException {
-        var query = buildLoginQuery(username, password);
-        var path = String.format("/connections?%s", query);
-        return client.post(path, url, Boolean.class);
+    public boolean connectPlatform(LoginConnection loginConnection) throws IOException {
+        return client.post("/connections", loginConnection, Boolean.class);
     }
 
     @SuppressWarnings({"unchecked"})
@@ -173,13 +169,6 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         params.put("containerId", containerId);
         params.put("forward", forward);
         params.put("timeout", timeout);
-        return buildQuery(params);
-    }
-
-    private String buildLoginQuery(String username, String password) {
-        Map<String, Object> params = new HashMap<>(); // Map.of does not work with nullable values
-        params.put("username", username);
-        params.put("password", password);
         return buildQuery(params);
     }
 

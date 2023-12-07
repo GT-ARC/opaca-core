@@ -84,10 +84,9 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Operation(summary="Login with username and password", tags={"authentication"})
 	@Override
 	public String login(
-			@RequestParam String username,
-			@RequestParam String password
+			@RequestBody Login loginParams
 	) throws IOException {
-		return implementation.login(username, password);
+		return implementation.login(loginParams);
 	}
 
 	/*
@@ -264,13 +263,11 @@ public class PlatformRestController implements RuntimePlatformApi {
 			"return false if platform already connected", tags={"connections"})
 	@Override
 	public boolean connectPlatform(
-			@RequestBody String url,
-			@RequestParam(required = false) String username,
-			@RequestParam(required = false) String password
+			@RequestBody LoginConnection loginConnection
 	) throws IOException {
 		// TODO handle IO Exception (platform not found or does not respond, could be either 404 or 502)
-		log.info(String.format("CONNECT PLATFORM: %s", url));
-		return implementation.connectPlatform(url, username, password);
+		log.info(String.format("CONNECT PLATFORM: %s", loginConnection.getUrl()));
+		return implementation.connectPlatform(loginConnection);
 	}
 
 	@RequestMapping(value="/connections", method=RequestMethod.GET)

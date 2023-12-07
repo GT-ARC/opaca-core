@@ -40,11 +40,10 @@ public interface RuntimePlatformApi extends CommonApi {
      *
      * REST: GET /login
      *
-     * @param username The name of the user
-     * @param password The password
+     * @param loginParams Bundles the username and password in the request body
      * @return JWT access token
      */
-    String login(String username, String password) throws IOException;
+    String login(Login loginParams) throws IOException;
 
     /*
      * AGENT CONTAINER ROUTES
@@ -117,10 +116,10 @@ public interface RuntimePlatformApi extends CommonApi {
      *
      * REST: POST /connections
      *
-     * @param url The base URL of that other Runtime Platform
+     * @param loginConnection Stores the username, password, and url to connect to
      * @return Connection successful?
      */
-    boolean connectPlatform(String url, String username, String password) throws IOException;
+    boolean connectPlatform(LoginConnection loginConnection) throws IOException;
 
     /**
      * Get list uf base-URLs of connected other Runtime Platforms
