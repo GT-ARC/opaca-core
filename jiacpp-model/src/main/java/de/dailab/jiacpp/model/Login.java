@@ -20,4 +20,12 @@ public class Login {
      */
     String password;
 
+    /**
+     * Edit String representation to hide password parameter in logs
+     */
+    @Override
+    public String toString() {
+        return "Login(username='" + this.username + "')";
+    }
+
 }

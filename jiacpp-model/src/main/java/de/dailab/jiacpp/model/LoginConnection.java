@@ -25,4 +25,12 @@ public class LoginConnection {
      * Url of another platform to connect to
      */
     String url;
+
+    /**
+     * Edit String representation to hide password parameter in logs
+     */
+    @Override
+    public String toString() {
+        return "LoginConnection(username='" + this.username + "', url='" + this.url + "')";
+    }
 }
