@@ -2,7 +2,10 @@ package de.dailab.jiacpp.platform;
 
 import de.dailab.jiacpp.model.User;
 import de.dailab.jiacpp.platform.auth.JwtUtil;
+import de.dailab.jiacpp.platform.user.PrivilegeRepository;
+import de.dailab.jiacpp.platform.user.RoleRepository;
 import de.dailab.jiacpp.platform.user.TokenUserDetailsService;
+import de.dailab.jiacpp.platform.user.TokenUserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.java.Log;
@@ -28,9 +31,21 @@ public class UserController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    private final TokenUserRepository tokenUserRepository;
+    private final RoleRepository roleRepository;
+    private final PrivilegeRepository privilegeRepository;
+
     /*
      * USER MANAGEMENT
      */
+
+    UserController(TokenUserRepository tokenUserRepository,
+                   RoleRepository roleRepository,
+                   PrivilegeRepository privilegeRepository){
+        this.tokenUserRepository = tokenUserRepository;
+        this.roleRepository = roleRepository;
+        this.privilegeRepository = privilegeRepository;
+    }
 
     /**
      * Creates a new user and adds it to the database.

@@ -1,21 +1,17 @@
 package de.dailab.jiacpp.platform.user;
 
-import jakarta.persistence.*;
 import lombok.Data;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Collection;
 
-@Entity
 @Data
+@Document(collection = "privilege")
 public class Privilege {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long id;
+    private @Id String name;
 
-    private String name;
-
-    @ManyToMany(mappedBy = "privileges")
     private Collection<Role> roles;
 
     public Privilege() {}
@@ -26,7 +22,7 @@ public class Privilege {
 
     @Override
     public String toString() {
-        return "Privilege{id=" + this.id + ", name='" + this.name + "'}";
+        return "Privilege{name='" + this.name + "'}";
     }
 
 }

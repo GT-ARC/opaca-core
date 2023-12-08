@@ -6,7 +6,6 @@ import java.util.stream.Collectors;
 import jakarta.annotation.PostConstruct;
 
 import de.dailab.jiacpp.platform.PlatformConfig;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -28,7 +27,6 @@ import de.dailab.jiacpp.platform.session.SessionData;
  * within them.
  */
 @Service
-@Transactional
 public class TokenUserDetailsService implements UserDetailsService {
 
     @Autowired
@@ -64,7 +62,6 @@ public class TokenUserDetailsService implements UserDetailsService {
 
     /** Returns the user as a standardized 'User' object */
     @Override
-    @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         TokenUser user = tokenUserRepository.findByUsername(username);
         if (user != null) {
@@ -83,7 +80,6 @@ public class TokenUserDetailsService implements UserDetailsService {
      * (this should be changed in the future)
      * Creates Roles/Privileges if they have never been used before
      */
-    @Transactional
     public void createUser(String username, String password, Map<String, List<String>> roles) {
         if (tokenUserRepository.findByUsername(username) != null) {
             throw new UserAlreadyExistsException(username);
@@ -105,7 +101,6 @@ public class TokenUserDetailsService implements UserDetailsService {
         return getTokenUser(username).toString();
     }
 
-    @Transactional
     public TokenUser getTokenUser(String username) {
         TokenUser user = tokenUserRepository.findByUsername(username);
         if (user == null) throw new UsernameNotFoundException(username);
@@ -115,7 +110,6 @@ public class TokenUserDetailsService implements UserDetailsService {
     /**
      * Return all users in the UserRepository
      */
-    @Transactional
     public List<String> getUsers() {
         return tokenUserRepository.findAll().stream().map(TokenUser::toString).collect(Collectors.toList());
     }
@@ -124,9 +118,8 @@ public class TokenUserDetailsService implements UserDetailsService {
      * Removes a user from the UserRepository.
      * Return true if the user was deleted, false if not.
      */
-    @Transactional
     public Boolean removeUser(String username) {
-        return tokenUserRepository.deleteByUsername(username) > 0;
+        return tokenUserRepository.deleteByUsername(username);
     }
 
     /**
@@ -134,7 +127,6 @@ public class TokenUserDetailsService implements UserDetailsService {
      * Check for each user field if it exists and if so, update it.
      * Return the updated user.
      */
-    @Transactional
     public String updateUser(String username, String newUsername, String password, Map<String, List<String>> roles) {
         TokenUser user = tokenUserRepository.findByUsername(username);
         if (user == null) throw new UsernameNotFoundException(username);
@@ -147,7 +139,6 @@ public class TokenUserDetailsService implements UserDetailsService {
         return getUser(user.getUsername());
     }
 
-    @Transactional
     public Privilege createPrivilegeIfNotFound(String name) {
         Privilege privilege = privilegeRepository.findByName(name);
         if (privilege == null) {
@@ -157,7 +148,6 @@ public class TokenUserDetailsService implements UserDetailsService {
         return privilege;
     }
 
-    @Transactional
     public Role createRoleIfNotFound(String name, Collection<Privilege> privileges) {
         Role role = roleRepository.findByName(name);
         if (role == null) {
@@ -213,7 +203,6 @@ public class TokenUserDetailsService implements UserDetailsService {
         return authorities;
     }
 
-    @Transactional
     public Map<String, List<String>> getUserRoles(String username) {
         TokenUser user = tokenUserRepository.findByUsername(username);
         if (user == null) throw new UsernameNotFoundException(username);

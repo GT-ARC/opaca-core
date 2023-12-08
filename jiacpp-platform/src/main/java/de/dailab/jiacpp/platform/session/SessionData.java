@@ -51,11 +51,8 @@ public class SessionData {
         this.dockerContainers.clear();
         this.usedPorts.clear();
         this.tokenUserRepository.deleteAll();
-        this.tokenUserRepository.flush();
         this.roleRepository.deleteAll();
-        this.roleRepository.flush();
         this.privilegeRepository.deleteAll();
-        this.privilegeRepository.flush();
         this.pods.clear();
     }
 

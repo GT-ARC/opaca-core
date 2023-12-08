@@ -1,30 +1,16 @@
 package de.dailab.jiacpp.platform.user;
 
-import jakarta.persistence.*;
 import lombok.Data;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Collection;
 
-@Entity
 @Data
+@Document(collection = "role")
 public class Role {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long id;
-
-    private String name;
-    @ManyToMany
-    private Collection<TokenUser> tokenUsers;
-
-    @ManyToMany
-    @JoinTable(
-            name = "role_privileges",
-            joinColumns = @JoinColumn(
-                    name = "role_id", referencedColumnName = "id"),
-            inverseJoinColumns = @JoinColumn(
-                    name = "privilege_id", referencedColumnName = "id")
-    )
+    private @Id String name;
     private Collection<Privilege> privileges;
 
     public Role() {}
@@ -35,7 +21,7 @@ public class Role {
 
     @Override
     public String toString() {
-        return "Role{id=" + this.id + ", name='" + this.name + "'}";
+        return "Role{name='" + this.name + "', privileges='" + this.privileges + "'}";
     }
 
 }
