@@ -1,10 +1,38 @@
-# Prototype for JIAC++ API and Reference Implementation
+# OPACA: An Open, Language- and Platform-Independent API for Containerized Agents
 
-This module provides a first prototype for the "JIAC++" API,
-as well as a reference implementation in Java and an example container.
+Copyright 2022-2023 GT-ARC & DAI-Labor, TU Berlin
 
-This is in no way meant to be final, but rather to provide a basis for further discussions
-and first tests in order to find out what of this makes sense etc.
+* Main Contributors: Tobias Küster and Benjamin Acar
+* Further contributions by: Oskar Kupke, Robert Strehlow
+
+## Prototype and Reference Implementation
+
+This module provides a first prototype for the "OPACA" API,
+as well as a reference implementation in Java and an example container. OPACA standa for "Open, Language- and Platform-Independent API for Containerized Agents".
+
+This repository includes software developed in the course of the project "Offenes Innovationslabor KI zur Förderung gemeinwohlorientierter KI-Anwendungen" (aka Go-KI, https://go-ki.org/) funded by the German Federal Ministry of Labour and Social Affairs (BMAS) under the funding reference number DKI.00.00032.21.
+
+
+## About
+
+The goal of OPACA is to combine multi-agent systems with microservices and container-technologies using a simple, universal API, build around a set of simple design principles and requirements:
+
+* Open, Standardized Interfaces
+* Being Language Agnostic
+* Modularity and Reusability
+* Self-Description
+* Dynamic Multi-Tenancy
+* Distribution
+
+This way, we make it easier to deploy and connect heterogeneous systems consisting of components implemented using different agent-frameworks and/or non-agent components in different languages.
+
+A multi-agent system in the OPACA approach consists of two types of components:
+
+* **Agent Containers** are containerized applications that implement the OPACA Agent Container API. They provide REST routes for finding out about the agents within the container, and to interact with them by of sending asynchronous messages (unicast and broadcast) and invoking synchronous actions.
+
+* **Runtime Platforms** are used to manage and one or more Agent Containers, deploying those in Docker or Kubernetes. They connect different Agent Containers while also providing basic services such as yellow pages, authentication, etc.
+
+Please refer to the [API docs](doc/api.md) page for more information about the different routes provided for the API and the respective requests and responses.
 
 
 ## Modules
@@ -21,15 +49,13 @@ and first tests in order to find out what of this makes sense etc.
 * build the sample container with `docker build -t sample-agent-container-image examples/sample-container`
 * start the platform with `java -jar jiacpp-platform/target/jiacpp-platform-0.1-SNAPSHOT.jar`
 * go to <http://localhost:8000/swagger-ui/index.html>
-* go to `POST containers`, click "try it out", and set the `imageName` to `"sample-agent-container-image"`, or replace the entire value of `image` by the content from `examples/sample-container/src/main/resources/container.json` (in this case, make sure to also provide values for the required parameters in `arguments`)
+* go to `POST containers`, click "try it out", and set the `imageName` to `"sample-agent-container-image"`, or copy the entire content from `examples/sample-container/src/main/resources/container.json` (but the other attributes don't actually matter for now)
 * in another terminal, do `docker ps` to find the started image, and then `docker logs -f <container-name>` to show (and follow) the logs
 * in the Web UI, run the `GET containers` or `GET agents` routes to see the running agents and their actions
 * use the `POST send` or `POST invoke` routes to send messages to the agent (with any payload; reply-to does not matter for now), or invoke the agent's dummy action (the action takes some time to run); check the logs of the agent container; you can also invoke the action and then immediately re-send the message to check that both work concurrently
 * shut down the platform with Ctrl+C; the agent container(s) should shut down as well
 
 See [Execution Environments](doc/environments.md) for more information on different ways to execute the platform and agent containers.
-
-Note: The Runtime Platform requires Java version 17 or higher.
 
 
 ## Environment Variables (Runtime Platform)
