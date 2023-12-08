@@ -45,7 +45,7 @@ public class AgentContainerImage {
 
     // OPTIONAL attributes for API port (if not default) and extra ports (if any)
 
-    /** the port where the container provides the JIAC++ API; by default this is 8082 but another may be used */
+    /** the port where the container provides the OPACA API; by default this is 8082 but another may be used */
     Integer apiPort = AgentContainerApi.DEFAULT_PORT;
 
     /** additional ports exposed by the container and the protocols and services those provide */
