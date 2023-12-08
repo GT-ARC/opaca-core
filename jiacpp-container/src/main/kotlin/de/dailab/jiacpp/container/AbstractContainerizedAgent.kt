@@ -1,12 +1,15 @@
 package de.dailab.jiacpp.container
 
 import com.fasterxml.jackson.databind.JsonNode
+import de.dailab.jiacpp.model.Action
 
 import de.dailab.jiacpp.model.AgentDescription
 import de.dailab.jiacpp.model.Message
+import de.dailab.jiacpp.model.Stream
 import de.dailab.jiacpp.util.ApiProxy
 import de.dailab.jiacpp.util.RestHelper
 import de.dailab.jiacvi.Agent
+import de.dailab.jiacvi.behaviour.act
 
 import org.springframework.http.ResponseEntity
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
@@ -29,6 +32,11 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
     private var runtimePlatformUrl: String? = null
     private var token: String? = null
     private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl, token) }
+
+    protected val actions = mutableListOf<Action>()
+    protected val actionCallbacks = mutableMapOf<String, (Map<String, JsonNode>) -> Any?>()
+    protected val streams = mutableListOf<Stream>()
+    protected val streamCallbacks = mutableMapOf<String, () -> Any?>()
 
     override fun preStart() {
         super.preStart()
@@ -53,8 +61,50 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         ref tell DeRegister(desc.agentId, notify)
     }
 
-    abstract fun getDescription(): AgentDescription
+    open fun getDescription() = AgentDescription(
+        this.name,
+        this.javaClass.name,
+        actions,
+        streams
+    )
 
+    fun addAction(name: String, parameters: Map<String, String>, result: String, callback: (Map<String, JsonNode>) -> Any?) {
+        addAction(Action(name, parameters, result), callback)
+    }
+
+    fun addAction(action: Action, callback: (Map<String, JsonNode>) -> Any?) {
+        log.info("Added action: $action")
+        actions.add(action)
+        actionCallbacks[action.name] = callback
+    }
+
+    fun addStream(name: String, mode: Stream.Mode, callback: () -> Any?) {
+        addStrean(Stream(name, mode), callback)
+    }
+
+    fun addStrean(stream: Stream, callback: () -> Any?) {
+        log.info("Added stream: $stream")
+        streams.add(stream)
+        streamCallbacks[stream.name] = callback
+    }
+
+    override fun behaviour() = act {
+        respond<Invoke, Any?> {
+            log.info("RESPOND $it")
+            when (it.name) {
+                in actionCallbacks -> actionCallbacks[it.name]?.let { cb -> cb(it.parameters) }
+                else -> Unit
+            }
+        }
+
+        respond<StreamInvoke, Any?> {
+            log.info("STREAM RESPOND $it")
+            when(it.name) {
+                in streamCallbacks -> streamCallbacks[it.name]?.let { it1 -> it1() }
+                else -> Unit
+            }
+        }
+    }
 
     /**
      * Send invoke to another agent via the parent RuntimePlatform. While this can also be used
