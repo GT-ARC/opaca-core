@@ -13,7 +13,7 @@ services:
       PORT:
       PUBLIC_URL:
       CONTAINER_ENVIRONMENT:
-      PLATFORM_ENVIRONMENT: DOCKER
+      PLATFORM_ENVIRONMENT: NATIVE
       SESSION_POLICY:
       CONTAINER_TIMEOUT_SEC:
       DEFAULT_IMAGE_DIRECTORY:
@@ -37,3 +37,20 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
+  # Defines a mongoDB container running alongside the platform container
+  mongodb:
+    image: mongodb/mongodb-community-server:latest
+    container_name: jiacpp-data
+    ports:
+      - "27017:27017"
+    # Use "user" and "pass" as default username:password for the created database
+    environment:
+      MONGODB_INITDB_ROOT_USERNAME: user
+      MONGODB_INITDB_ROOT_PASSWORD: pass
+    # Use a volume for persistent data storage
+    volumes:
+      - mongodb_data:/data/db
+
+# Create a volume to persistently store data
+volumes:
+  mongodb_data:
