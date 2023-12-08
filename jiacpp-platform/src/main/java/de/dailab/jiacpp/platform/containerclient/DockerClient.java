@@ -2,6 +2,7 @@ package de.dailab.jiacpp.platform.containerclient;
 
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.PullImageResultCallback;
+import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.api.exception.InternalServerErrorException;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.exception.NotModifiedException;
@@ -24,6 +25,8 @@ import lombok.extern.java.Log;
 import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
+import java.net.DatagramSocket;
+import java.net.ServerSocket;
 import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -133,6 +136,8 @@ public class DockerClient implements ContainerClient {
             // might theoretically happen if image is deleted between pull and run...
             log.warning("Image not found: " + imageName);
             throw new NoSuchElementException("Image not found: " + imageName);
+        } catch (DockerException e) {
+            throw new IOException("Failed to start Docker container.", e);
         }
     }
 
@@ -215,12 +220,18 @@ public class DockerClient implements ContainerClient {
      * Starting from the given preferred port, get and reserve the next free port.
      */
     private int reserveNextFreePort(int port, Set<Integer> newPorts) {
-        while (usedPorts.contains(port) || newPorts.contains(port)) {
-            // TODO how to handle ports blocked by other containers or applications? just ping ports?
-            port++;
-        }
+        while (!isPortAvailable(port, newPorts)) ++port;
         newPorts.add(port);
         return port;
+    }
+
+    private boolean isPortAvailable(int port, Set<Integer> newPorts) {
+        if (usedPorts.contains(port) || newPorts.contains(port)) return false;
+        try (var s1 = new ServerSocket(port); var s2 = new DatagramSocket(port)) {
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     private boolean isImagePresent(String imageName) {
