@@ -14,7 +14,7 @@ data class Registered(val parentUrl: String?, val authToken: String?)
 
 data class DeRegister(val agentId: String, val notify: Boolean)
 
-// Message for Invoking a JIAC++ action at a containerized agent, wrapping the name of the action to call
+// Message for Invoking a OPACA action at a containerized agent, wrapping the name of the action to call
 // and its parameters, to be handled by an invoke-ask "respond" handler.
 
 data class Invoke(val name: String, val parameters: Map<String, JsonNode>)

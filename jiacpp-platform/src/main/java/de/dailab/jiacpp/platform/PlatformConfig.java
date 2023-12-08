@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * Settings for the Runtime Platform. This is not a part of the JIAC++ model since
+ * Settings for the Runtime Platform. This is not a part of the OPACA model since
  * most of these settings are platform specific and might be different for different
  * implementations of the Runtime Platform, e.g. using Docker vs. Kubernetes.
  */

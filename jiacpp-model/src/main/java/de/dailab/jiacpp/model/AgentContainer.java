@@ -40,7 +40,7 @@ public class AgentContainer {
         /** this container's public URL (e.g. the URL of the Runtime Platform, Docker Host, or Kubernetes Node */
         String publicUrl;
 
-        /** where the port where the container provides the JIAC++ API is mapped to */
+        /** where the port where the container provides the OPACA API is mapped to */
         Integer apiPortMapping;
 
         /** where additional ports exposed by the container are mapped to */

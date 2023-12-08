@@ -9,6 +9,18 @@
     <version>0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <name>opaca-core</name>
+    <description>OPACA Core Components Reference Implementation</description>
+    <url>https://github.com/gt-arc/opaca-core</url>
+
+    <licenses>
+        <license>
+            <name>OPACA Non-Commercial License</name>
+            <url>https://github.com/GT-ARC/opaca-core/blob/main/LICENSE.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
     <modules>
         <module>jiacpp-model</module>
         <module>jiacpp-container</module>
