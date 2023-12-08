@@ -9,8 +9,7 @@ Note: The working title of OPACA was 'JIAC++'. Some references to the old name m
 
 ## Prototype and Reference Implementation
 
-This module provides a first prototype for the "OPACA" API,
-as well as a reference implementation in Java and an example container. OPACA stands for "Open, Language- and Platform-Independent API for Containerized Agents".
+This module provides a first prototype for the "OPACA" API, as well as a reference implementation in Java and an example container. OPACA stands for "Open, Language- and Platform-Independent API for Containerized Agents".
 
 This repository includes software developed in the course of the project "Offenes Innovationslabor KI zur Förderung gemeinwohlorientierter KI-Anwendungen" (aka Go-KI, https://go-ki.org/) funded by the German Federal Ministry of Labour and Social Affairs (BMAS) under the funding reference number DKI.00.00032.21.
 
