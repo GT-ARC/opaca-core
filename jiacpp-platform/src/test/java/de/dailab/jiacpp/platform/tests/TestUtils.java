@@ -3,6 +3,7 @@ package de.dailab.jiacpp.platform.tests;
 import de.dailab.jiacpp.model.AgentContainerImage;
 import de.dailab.jiacpp.model.AgentContainerImage.ImageParameter;
 import de.dailab.jiacpp.model.PostAgentContainer;
+import de.dailab.jiacpp.model.RuntimePlatform;
 import de.dailab.jiacpp.util.RestHelper;
 
 import java.io.IOException;
@@ -102,6 +103,11 @@ public class TestUtils {
 
     public static String error(HttpURLConnection connection) throws IOException {
         return new String(connection.getErrorStream().readAllBytes());
+    }
+
+    public static String getBaseUrl(String localUrl) throws IOException {
+        var con = request(localUrl, "GET", "/info", null);
+        return result(con, RuntimePlatform.class).getBaseUrl();
     }
 
 }
