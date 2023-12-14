@@ -1,16 +1,30 @@
 package de.dailab.jiacpp.platform.tests;
 
+import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.CreateContainerResponse;
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.HostConfig;
+import com.github.dockerjava.api.model.Ports;
+import com.github.dockerjava.api.model.Volume;
+import com.github.dockerjava.core.DefaultDockerClientConfig;
+import com.github.dockerjava.core.DockerClientConfig;
+import com.github.dockerjava.core.DockerClientImpl;
+import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
+import com.github.dockerjava.transport.DockerHttpClient;
 import de.dailab.jiacpp.model.RuntimePlatform;
 import de.dailab.jiacpp.model.User;
 import de.dailab.jiacpp.platform.Application;
 import static de.dailab.jiacpp.platform.tests.TestUtils.*;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.junit.*;
 import org.junit.runners.MethodSorters;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
+import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -33,7 +47,8 @@ public class AuthTests {
 
 
     @BeforeClass
-    public static void setupPlatform() {
+    public static void setupPlatform() throws IOException, InterruptedException {
+        startMongoDB();
         platformA = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT,
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
@@ -45,9 +60,10 @@ public class AuthTests {
     }
 
     @AfterClass
-    public static void stopPlatform() {
+    public static void stopPlatform() throws InterruptedException {
         platformA.close();
         platformB.close();
+        stopMongoDB();
     }
 
 

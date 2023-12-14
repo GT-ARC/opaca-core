@@ -57,16 +57,18 @@ public class PlatformTests {
      * on ports 8001 and 8002
      */
     @BeforeClass
-    public static void setupPlatforms() {
+    public static void setupPlatforms() throws IOException, InterruptedException {
+        startMongoDB();
         platformA = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT,
                 "--default_image_directory=./default-test-images");
         platformB = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_B_PORT);
     }
 
     @AfterClass
-    public static void stopPlatforms() {
+    public static void stopPlatforms() throws InterruptedException {
         platformA.close();
         platformB.close();
+        stopMongoDB();
     }
 
     /*

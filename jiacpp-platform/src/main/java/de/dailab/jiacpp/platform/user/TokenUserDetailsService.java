@@ -119,7 +119,7 @@ public class TokenUserDetailsService implements UserDetailsService {
      * Return true if the user was deleted, false if not.
      */
     public Boolean removeUser(String username) {
-        return tokenUserRepository.deleteByUsername(username);
+        return tokenUserRepository.deleteByUsername(username) == 0;
     }
 
     /**

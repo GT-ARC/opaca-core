@@ -6,6 +6,6 @@ public interface TokenUserRepository extends MongoRepository<TokenUser, String> 
 
     TokenUser findByUsername(String username);
 
-    Boolean deleteByUsername(String username);
+    Long deleteByUsername(String username);
 
 }

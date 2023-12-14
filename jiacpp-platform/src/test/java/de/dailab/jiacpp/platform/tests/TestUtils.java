@@ -1,15 +1,25 @@
 package de.dailab.jiacpp.platform.tests;
 
+import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.CreateContainerResponse;
+import com.github.dockerjava.api.model.*;
+import com.github.dockerjava.core.DefaultDockerClientConfig;
+import com.github.dockerjava.core.DockerClientConfig;
+import com.github.dockerjava.core.DockerClientImpl;
+import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
+import com.github.dockerjava.transport.DockerHttpClient;
 import de.dailab.jiacpp.model.AgentContainerImage;
 import de.dailab.jiacpp.model.AgentContainerImage.ImageParameter;
 import de.dailab.jiacpp.model.PostAgentContainer;
 import de.dailab.jiacpp.util.RestHelper;
+import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +37,9 @@ public class TestUtils {
      * > docker push registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:vXYZ
      */
     static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v18";
+
+    private static DockerClient dockerClient = null;
+    private static String mongoContId = null;
 
     /*
      * HELPER METHODS
@@ -102,6 +115,67 @@ public class TestUtils {
 
     public static String error(HttpURLConnection connection) throws IOException {
         return new String(connection.getErrorStream().readAllBytes());
+    }
+
+    // Starts a local mongo db on port 27017 for testing purposes
+    public static void startMongoDB() throws IOException, InterruptedException {
+        DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
+                .withDockerHost(getLocalDockerHost())
+                .build();
+
+        DockerHttpClient dockerHttpClient = new ApacheDockerHttpClient.Builder()
+                .dockerHost(dockerConfig.getDockerHost())
+                .sslConfig(dockerConfig.getSSLConfig())
+                .maxConnections(100)
+                .connectionTimeout(Duration.ofSeconds(30))
+                .responseTimeout(Duration.ofSeconds(45))
+                .build();
+
+        dockerClient = DockerClientImpl.getInstance(dockerConfig, dockerHttpClient);
+
+        // Use the default port 27017
+        ExposedPort mongoPort = ExposedPort.tcp(27017);
+        Ports portBindings = new Ports();
+        portBindings.bind(mongoPort, Ports.Binding.bindPort(27017));
+
+        // Use volumes to store the temporary data
+        Volume dataVolume = new Volume("/data/db");
+        Volume configVolume = new Volume("/data/configdb");
+
+        CreateContainerResponse res = dockerClient.createContainerCmd("mongodb/mongodb-community-server:latest")
+                .withName("jiacpp-data-test")
+                .withVolumes(dataVolume, configVolume)
+                .withHostConfig(HostConfig.newHostConfig().withPortBindings(portBindings).withBinds(
+                        new Bind("jiacpp-platform_mongodb_data_test", dataVolume),
+                        new Bind("jiacpp-platform_mongodb_config_test", configVolume)))
+                .withExposedPorts(mongoPort)
+                .withEnv("MONGODB_INITDB_ROOT_USERNAME=user", "MONGODB_INITDB_ROOT_PASSWORD=pass")
+                .exec();
+
+        mongoContId = res.getId();
+
+        dockerClient.startContainerCmd(res.getId()).exec();
+
+        // Wait 5 seconds to let container start
+        Thread.sleep(5000);
+    }
+
+    public static void stopMongoDB() throws InterruptedException {
+        dockerClient.stopContainerCmd(mongoContId).exec();
+        // Wait 5 seconds between stopping and removing the ocntainer
+        Thread.sleep(5000);
+        dockerClient.removeContainerCmd(mongoContId).exec();
+
+        // Remove the temporary data volumes
+        dockerClient.removeVolumeCmd("jiacpp-platform_mongodb_data_test").exec();
+        dockerClient.removeVolumeCmd("jiacpp-platform_mongodb_config_test").exec();
+    }
+
+
+    private static String getLocalDockerHost() {
+        return SystemUtils.IS_OS_WINDOWS
+                ? "npipe:////./pipe/docker_engine"
+                : "unix:///var/run/docker.sock";
     }
 
 }
