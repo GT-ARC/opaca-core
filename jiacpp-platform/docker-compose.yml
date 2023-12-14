@@ -22,6 +22,14 @@ services:
       SECRET:
       USERNAME_PLATFORM:
       PASSWORD_PLATFORM:
+      ROLE_PLATFORM:
+      # MongoDB
+      DB_HOST: jiacpp-data
+      DB_PORT: 27017
+      DB_AUTH: admin
+      DB_NAME: jiacpp-user-data
+      DB_USER: user
+      DB_PASS: pass
       # Image Registry Credentials
       REGISTRY_SEPARATOR:
       REGISTRY_NAMES:
@@ -50,7 +58,11 @@ services:
     # Use a volume for persistent data storage
     volumes:
       - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
 
 # Create a volume to persistently store data
 volumes:
   mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
