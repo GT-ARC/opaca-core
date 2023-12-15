@@ -21,11 +21,57 @@
         </license>
     </licenses>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>11</java.version>
+    </properties>
+
     <modules>
         <module>jiacpp-model</module>
         <module>jiacpp-container</module>
         <module>jiacpp-platform</module>
         <module>examples</module>
     </modules>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <repositories>
+        <repository>
+            <id>dai-open</id>
+            <name>DAI Open Repository</name>
+            <url>https://repositories.dai-labor.de/extern/content/repositories/dai-open-snapshot/</url>
+        </repository>
+        <!-- TODO check if we really need this -->
+        <repository>
+            <id>gradle-m2</id>
+            <name>gradle-m2</name>
+            <url>https://plugins.gradle.org/m2/</url>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+        <repository>
+            <id>kotlin-eap</id>
+            <name>kotlin-eap</name>
+            <url>https://dl.bintray.com/kotlin/kotlin-eap/</url>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+        <repository>
+            <id>kotlin-native</id>
+            <name>kotlin-native</name>
+            <url>https://dl.bintray.com/jetbrains/kotlin-native-dependencies/</url>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+    </repositories>
 
 </project>
