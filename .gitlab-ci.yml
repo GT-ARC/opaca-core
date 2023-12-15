@@ -22,7 +22,7 @@ mvn-test:
 
 mvn-deploy:
   stage: deploy
-#  only:
-#    - master
+  only:
+    - master
   script:
-    - mvn deploy
+    - mvn deploy -DskipTests
