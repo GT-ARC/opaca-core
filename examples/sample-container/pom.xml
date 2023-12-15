@@ -5,12 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>de.dailab.jiacpp</groupId>
-        <artifactId>jiacpp-examples</artifactId>
+        <groupId>de.gtarc.opaca</groupId>
+        <artifactId>opaca-examples</artifactId>
         <version>0.1-SNAPSHOT</version>
     </parent>
 
-    <groupId>de.dailab.jiacpp.examples</groupId>
     <artifactId>sample-container</artifactId>
     <version>0.1-SNAPSHOT</version>
     <packaging>jar</packaging>

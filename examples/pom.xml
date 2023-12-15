@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>de.dailab.jiacpp</groupId>
-        <artifactId>jiacpp-parent</artifactId>
+        <groupId>de.gtarc.opaca</groupId>
+        <artifactId>opaca-parent</artifactId>
         <version>0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>jiacpp-examples</artifactId>
+    <artifactId>opaca-examples</artifactId>
     <version>0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
@@ -27,8 +27,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>de.dailab.jiacpp</groupId>
-            <artifactId>jiacpp-container</artifactId>
+            <groupId>de.gtarc.opaca</groupId>
+            <artifactId>opaca-container</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
