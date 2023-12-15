@@ -110,4 +110,21 @@ public class TestUtils {
         return result(con, RuntimePlatform.class).getBaseUrl();
     }
 
+    public static String postSampleContainer(String platformUrl) throws IOException {
+        var postContainer = getSampleContainerImage();
+        var con = request(platformUrl, "POST", "/containers", postContainer);
+        if (con.getResponseCode() != 200) {
+            throw new IOException("Failed to POST sample container.");
+        }
+        return result(con);
+    }
+
+    public static void connectPlatforms(String platformUrl, String connectedUrl) throws IOException {
+        var connectedBaseUrl = getBaseUrl(connectedUrl);
+        var con = request(platformUrl, "POST", "/connections", connectedBaseUrl);
+        if (con.getResponseCode() != 200) {
+            throw new IOException("Failed to connect platforms.");
+        }
+    }
+
 }
