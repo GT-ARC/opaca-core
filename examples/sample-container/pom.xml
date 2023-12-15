@@ -4,130 +4,19 @@
 
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>de.dailab.jiacpp</groupId>
+        <artifactId>jiacpp-examples</artifactId>
+        <version>0.1-SNAPSHOT</version>
+    </parent>
+
     <groupId>de.dailab.jiacpp.examples</groupId>
     <artifactId>sample-container</artifactId>
     <version>0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>11</java.version>
-        <kotlin.version>1.3.72</kotlin.version>
-        <kotlin.compiler.incremental>false</kotlin.compiler.incremental>
+        <mainclass>de.dailab.jiacpp.sample.MainKt</mainclass>
     </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>de.dailab.jiacpp</groupId>
-            <artifactId>jiacpp-container</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-    </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.jetbrains.kotlin</groupId>
-                <artifactId>kotlin-maven-plugin</artifactId>
-                <version>${kotlin.version}</version>
-                <configuration>
-                    <jvmTarget>${java.version}</jvmTarget>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>compile</id>
-                        <goals> <goal>compile</goal> </goals>
-                        <configuration>
-                            <sourceDirs>
-                                <sourceDir>${project.basedir}/src/main/kotlin</sourceDir>
-                            </sourceDirs>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
-                <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
-                </configuration>
-                <executions>
-                    <!-- Replacing default-compile as it is treated specially by maven -->
-                    <execution>
-                        <id>default-compile</id>
-                        <phase>none</phase>
-                    </execution>
-                    <!-- Replacing default-testCompile as it is treated specially by maven -->
-                    <execution>
-                        <id>default-testCompile</id>
-                        <phase>none</phase>
-                    </execution>
-                    <execution>
-                        <id>java-compile</id>
-                        <phase>compile</phase>
-                        <goals> <goal>compile</goal> </goals>
-                    </execution>
-                    <execution>
-                        <id>java-test-compile</id>
-                        <phase>test-compile</phase>
-                        <goals> <goal>testCompile</goal> </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!-- probably not the best / most up-to-date way to make a Docker image... -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>appassembler-maven-plugin</artifactId>
-                <version>2.0.0</version>
-                <executions>
-                    <execution>
-                        <id>generate start scripts</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>assemble</goal>
-                        </goals>
-                        <configuration>
-                            <repositoryLayout>flat</repositoryLayout>
-                            <programs>
-                                <program>
-                                    <mainClass>de.dailab.jiacpp.sample.MainKt</mainClass>
-                                </program>
-                            </programs>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-        </plugins>
-    </build>
-
-    <repositories>
-		<repository>
-			<id>dai-open</id>
-			<name>DAI Open Repository</name>
-			<url>https://repositories.dai-labor.de/extern/content/repositories/dai-open-snapshot/</url>
-		</repository>
-        <repository>
-            <id>gradle-m2</id>
-            <name>gradle-m2</name>
-            <url>https://plugins.gradle.org/m2/</url>
-            <snapshots><enabled>false</enabled></snapshots>
-        </repository>
-        <repository>
-            <id>kotlin-eap</id>
-            <name>kotlin-eap</name>
-            <url>https://dl.bintray.com/kotlin/kotlin-eap/</url>
-            <snapshots><enabled>false</enabled></snapshots>
-        </repository>
-        <repository>
-            <id>kotlin-native</id>
-            <name>kotlin-native</name>
-            <url>https://dl.bintray.com/jetbrains/kotlin-native-dependencies/</url>
-            <snapshots><enabled>false</enabled></snapshots>
-        </repository>
-    </repositories>
 
 </project>
