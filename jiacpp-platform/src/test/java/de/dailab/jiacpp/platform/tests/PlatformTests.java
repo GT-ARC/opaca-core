@@ -11,6 +11,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -100,6 +101,22 @@ public class PlatformTests {
         con = request(PLATFORM_A, "GET", "/containers", null);
         var lst2 = result(con, List.class);
         Assert.assertEquals(0, lst2.size());
+    }
+
+    /**
+     * deploy a container with api port 8082 on platform B, which should now work since
+     * the platform checks if a port is available before trying to start the container
+     */
+    @Test
+    public void testPortMapping() throws IOException {
+        var image = getSampleContainerImage();
+        var con = request(PLATFORM_B, "POST", "/containers", image);
+        Assert.assertEquals(200, con.getResponseCode());
+        var containerId = result(con);
+        con = request(PLATFORM_B, "GET", "/containers/" + containerId, null);
+        var container = result(con, AgentContainer.class);
+        Assert.assertTrue(container.getConnectivity().getApiPortMapping() > image.getImage().getApiPort());
+        request(PLATFORM_B, "DELETE", "/containers/" + containerId, null);
     }
 
     /**
@@ -236,6 +253,47 @@ public class PlatformTests {
         var lst2 = result(con, List.class);
         Assert.assertEquals(1, lst2.size());
         Assert.assertEquals(platformABaseUrl, lst2.get(0));
+    }
+
+    /**
+     * TODO combine this test with testConnect
+     */
+    @Test
+    public void testDisconnect() throws Exception {
+        var platformABaseUrl = getBaseUrl(PLATFORM_A);
+        var con = request(PLATFORM_B, "DELETE", "/connections", platformABaseUrl);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Boolean.class);
+        Assert.assertTrue(res);
+
+        con = request(PLATFORM_A, "GET", "/connections", null);
+        var lst1 = result(con, List.class);
+        Assert.assertTrue(lst1.isEmpty());
+        con = request(PLATFORM_B, "GET", "/connections", null);
+        var lst2 = result(con, List.class);
+        Assert.assertTrue(lst2.isEmpty());
+    }
+
+    @Test
+    public void testConnectUnknown() throws Exception {
+        var con = request(PLATFORM_A, "POST", "/connections", "http://flsflsfsjfkj.com");
+        Assert.assertEquals(502, con.getResponseCode());
+    }
+
+    @Test
+    public void testConnectInvalid() throws Exception {
+        var con = request(PLATFORM_A, "POST", "/connections", "not a valid url");
+        Assert.assertEquals(400, con.getResponseCode());
+    }
+
+    @Test
+    public void testDisconnectUnknown() throws Exception {
+        var con = request(PLATFORM_A, "DELETE", "/connections", "http://flsflsfsjfkj.com");
+        Assert.assertEquals(200, con.getResponseCode());
+        // not really an error... afterwards, the platform _is_ disconnected, it just never was connected, thus false
+        // TODO case is different if the platform _is_ connected, but does not respond to disconnect -> 502?
+        var res = result(con, Boolean.class);
+        Assert.assertFalse(res);
     }
 
 }

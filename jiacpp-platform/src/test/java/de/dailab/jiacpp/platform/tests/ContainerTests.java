@@ -24,7 +24,7 @@ import static de.dailab.jiacpp.platform.tests.TestUtils.*;
 
 public class ContainerTests {
 
-    private static final int PORT = 8002;
+    private static final int PORT = 8003;
 
     private static final String PLATFORM_URL = "http://localhost:" + PORT;
 
@@ -70,6 +70,14 @@ public class ContainerTests {
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, AgentDescription.class);
         Assert.assertEquals("sample1", res.getAgentId());
+    }
+
+    @Test
+    public void testGetUnknownAgent() throws Exception {
+        var con = request(PLATFORM_URL, "GET", "/agents/unknown", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con);
+        Assert.assertTrue(res.isEmpty());
     }
 
     /**
@@ -138,6 +146,19 @@ public class ContainerTests {
     }
 
     /**
+     * try to invoke unknown action
+     * -> 404 (not found)
+     */
+    @Test
+    public void testUnknownAction() throws Exception {
+        var con = request(PLATFORM_URL, "POST", "/invoke/UnknownAction", Map.of());
+        Assert.assertEquals(404, con.getResponseCode());
+
+        con = request(PLATFORM_URL, "POST", "/invoke/Add/unknownagent", Map.of());
+        Assert.assertEquals(404, con.getResponseCode());
+    }
+
+    /**
      * call send, check that it arrived via another invoke
      */
     @Test
@@ -150,6 +171,17 @@ public class ContainerTests {
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
         Assert.assertEquals("testMessage", res.get("lastMessage"));
+    }
+
+    /**
+     * try to send message to unknown agent
+     * -> 404 (not found)
+     */
+    @Test
+    public void testUnknownSend() throws Exception {
+        var message = Map.of("payload", "testMessage", "replyTo", "doesnotmatter");
+        var con = request(PLATFORM_URL, "POST", "/send/unknownagent", message);
+        Assert.assertEquals(404, con.getResponseCode());
     }
 
     /**
@@ -215,6 +247,25 @@ public class ContainerTests {
     }
 
     /**
+     * TODO check somehow that notify worked
+     */
+    @Test
+    public void testContainerNotify() throws Exception {
+        var con1 = request(PLATFORM_URL, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con1.getResponseCode());
+    }
+
+    /**
+     * tries to notify about non-existing container
+     */
+    @Test
+    public void testInvalidContainerNotify() throws Exception {
+        var con1 = request(PLATFORM_URL, "POST", "/containers/notify", "container-does-not-exist");
+        Assert.assertEquals(404, con1.getResponseCode());
+
+    }
+
+    /**
      * test that connectivity info is still there after /notify
      */
     @Test
@@ -265,6 +316,84 @@ public class ContainerTests {
             con = request(PLATFORM_URL, "DELETE", "/containers/" + newContainerId, null);
             Assert.assertEquals(200, con.getResponseCode());
         }
+    }
+
+    /**
+     * TODO keep testing this? notify param in createAction might be obsolete.
+     *  we could of course still keep it specifically for the purpose of this test.
+     */
+    @Test
+    public void testAddNewActionAutoNotify() throws Exception {
+        // create new agent action
+        var con = request(PLATFORM_URL, "POST", "/invoke/CreateAction/sample1", Map.of("name", "AnotherTemporaryTestAction", "notify", "true"));
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // agent container automatically notified platform of the changes
+        con = request(PLATFORM_URL, "POST", "/invoke/AnotherTemporaryTestAction/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertTrue(result(con).contains("AnotherTemporaryTestAction"));
+    }
+
+    /**
+     * bug in sample-container caused newly spawned agents to hang on invoke. not really API,
+     * but sample-container should show "how to do it", so checking that it works now
+     */
+    @Test
+    public void testSpawnAgentThenInvoke() throws Exception {
+        // spawn new sample-agent
+        var con = request(PLATFORM_URL, "POST", "/invoke/SpawnAgent", Map.of("name", "sample3"));
+        Assert.assertEquals(200, con.getResponseCode());
+        con = request(PLATFORM_URL, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // invoke action at newly spawned agent
+        Assert.assertEquals(200, con.getResponseCode());
+        con = request(PLATFORM_URL, "POST", "/invoke/GetInfo/sample3", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+        Assert.assertEquals("sample3", res.get("name"));
+
+        // de-register to restore state before test
+        con = request(PLATFORM_URL, "POST", "/invoke/Deregister/sample3", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        con = request(PLATFORM_URL, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    /**
+     * TODO combine this test with the above one
+     */
+    @Test
+    public void testDeregisterAgent() throws Exception {
+        // deregister agent "sample2"
+        var con = request(PLATFORM_URL, "POST", "/invoke/Deregister/sample2", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        con = request(PLATFORM_URL, "GET", "/agents", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var agentsList = result(con, List.class);
+        Assert.assertEquals(2, agentsList.size());
+
+        // notify --> agent should no longer be known
+        con = request(PLATFORM_URL, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con.getResponseCode());
+        con = request(PLATFORM_URL, "GET", "/agents", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        agentsList = result(con, List.class);
+        Assert.assertEquals(1, agentsList.size());
+    }
+
+    /**
+     * use sample-agent's de-register action to kill the agent, without notifying the parent
+     * platform, then call an action that no longer exists in the container
+     */
+    @Test
+    public void testInvokeAfterKillAgent() throws Exception {
+        // invoke de-register to stop the agent (but it does not notify the parent platform)
+        var con = request(PLATFORM_URL, "POST", "/invoke/Deregister/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        // invoke again, causing container to raise 404 and platform has to handle it
+        con = request(PLATFORM_URL, "POST", "/invoke/GetInfo/sample1", Map.of());
+        Assert.assertEquals(502, con.getResponseCode());
     }
 
 }

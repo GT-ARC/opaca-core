@@ -15,8 +15,8 @@ import java.util.Map;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class AuthTests {
 
-    private static final String PLATFORM_A_PORT = "8003";
-    private static final String PLATFORM_B_PORT = "8004";
+    private static final int PLATFORM_A_PORT = 8003;
+    private static final int PLATFORM_B_PORT = 8004;
     private final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
     private final String PLATFORM_B = "http://localhost:" + PLATFORM_B_PORT;
 
