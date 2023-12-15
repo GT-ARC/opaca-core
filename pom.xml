@@ -58,4 +58,15 @@
         </repository>
     </repositories>
 
+    <distributionManagement>
+        <repository>
+            <id>dai-open</id>
+            <url>https://repositories.dai-labor.de/extern/content/repositories/dai-open/</url>
+        </repository>
+        <snapshotRepository>
+            <id>dai-open-snapshot</id>
+            <url>https://repositories.dai-labor.de/extern/content/repositories/dai-open-snapshot/</url>
+        </snapshotRepository>
+    </distributionManagement>
+
 </project>
