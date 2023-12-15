@@ -1,0 +1,270 @@
+package de.dailab.jiacpp.platform.tests;
+
+import de.dailab.jiacpp.api.AgentContainerApi;
+import de.dailab.jiacpp.model.AgentContainer;
+import de.dailab.jiacpp.model.AgentDescription;
+import de.dailab.jiacpp.platform.Application;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ConfigurableApplicationContext;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.util.List;
+import java.util.Map;
+
+import static de.dailab.jiacpp.platform.tests.TestUtils.*;
+
+public class ContainerTests {
+
+    private static final int PORT = 8002;
+
+    private static final String PLATFORM_URL = "http://localhost:" + PORT;
+
+    private static ConfigurableApplicationContext platform = null;
+
+    private static String containerId = null;
+
+    @BeforeClass
+    public static void setupPlatform() throws IOException {
+        platform = SpringApplication.run(Application.class,
+                "--server.port=" + PORT);
+        containerId = postSampleContainer(PLATFORM_URL);
+    }
+
+    @AfterClass
+    public static void stopPlatform() {
+        platform.close();
+    }
+
+
+    /**
+     * get container info
+     */
+    @Test
+    public void testGetContainerInfo() throws Exception {
+        var con = request(PLATFORM_URL, "GET", "/containers/" + containerId, null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, AgentContainer.class);
+        Assert.assertEquals(containerId, res.getContainerId());
+    }
+
+    @Test
+    public void testGetAgents() throws Exception {
+        var con = request(PLATFORM_URL, "GET", "/agents", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, List.class);
+        Assert.assertEquals(2, res.size());
+    }
+
+    @Test
+    public void testGetAgent() throws Exception {
+        var con = request(PLATFORM_URL, "GET", "/agents/sample1", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, AgentDescription.class);
+        Assert.assertEquals("sample1", res.getAgentId());
+    }
+
+    /**
+     * call invoke, check result
+     */
+    @Test
+    public void testInvokeAction() throws Exception {
+        var params = Map.of("x", 23, "y", 42);
+        var con = request(PLATFORM_URL, "POST", "/invoke/Add", params);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Integer.class);
+        Assert.assertEquals(65L, res.longValue());
+    }
+
+    @Test
+    public void testStream() throws Exception {
+        var con = request(PLATFORM_URL, "GET", "/stream/GetStream", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        var inputStream = con.getInputStream();
+        var bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+        var response = bufferedReader.readLine();
+        Assert.assertEquals("{\"key\":\"value\"}", response);
+    }
+
+    /**
+     * call invoke with agent, check result
+     */
+    @Test
+    public void testInvokeAgentAction() throws Exception {
+        for (String name : List.of("sample1", "sample2")) {
+            var con = request(PLATFORM_URL, "POST", "/invoke/GetInfo/" + name, Map.of());
+            var res = result(con, Map.class);
+            Assert.assertEquals(name, res.get("name"));
+        }
+    }
+
+    @Test
+    public void testInvokeFail() throws Exception {
+        var con = request(PLATFORM_URL, "POST", "/invoke/Fail", Map.of());
+        Assert.assertEquals(502, con.getResponseCode());
+        var msg = error(con);
+        Assert.assertTrue(msg.contains("Action Failed (as expected)"));
+    }
+
+    /**
+     * test that action invocation fails if it does not respond within
+     * the specified time
+     * TODO this is not ideal yet... the original error may contain a descriptive message that is lost
+     */
+    @Test
+    public void testInvokeTimeout() throws Exception {
+        var params = Map.of("message", "timeout-test", "sleep_seconds", 5);
+        var con = request(PLATFORM_URL, "POST", "/invoke/DoThis?timeout=2", params);
+        Assert.assertEquals(502, con.getResponseCode());
+    }
+
+    /**
+     * invoke action with mismatched/missing parameters
+     * TODO case of missing parameter could also be handled by platform, resulting in 422 error
+     */
+    @Test
+    public void testInvokeParamMismatch() throws Exception {
+        var con = request(PLATFORM_URL, "POST", "/invoke/DoThis",
+                Map.of("message", "missing 'sleep_seconds' parameter!"));
+        Assert.assertEquals(502, con.getResponseCode());
+    }
+
+    /**
+     * call send, check that it arrived via another invoke
+     */
+    @Test
+    public void testSend() throws Exception {
+        var message = Map.of("payload", "testMessage", "replyTo", "doesnotmatter");
+        var con = request(PLATFORM_URL, "POST", "/send/sample1", message);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        con = request(PLATFORM_URL, "POST", "/invoke/GetInfo/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+        Assert.assertEquals("testMessage", res.get("lastMessage"));
+    }
+
+    /**
+     * call broadcast, check that it arrived via another invoke
+     */
+    @Test
+    public void testBroadcast() throws Exception {
+        var message = Map.of("payload", "testBroadcast", "replyTo", "doesnotmatter");
+        var con = request(PLATFORM_URL, "POST", "/broadcast/topic", message);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        con = request(PLATFORM_URL, "POST", "/invoke/GetInfo/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+        Assert.assertEquals("testBroadcast", res.get("lastBroadcast"));
+    }
+
+    /**
+     * test that container's /info route can be accessed via that port
+     */
+    @Test
+    public void testApiPort() throws Exception {
+        var con = request(PLATFORM_URL, "GET", "/containers/" + containerId, null);
+        var res = result(con, AgentContainer.class).getConnectivity();
+
+        // access /info route through exposed port
+        var url = String.format("%s:%s", res.getPublicUrl(), res.getApiPortMapping());
+        System.out.println(url);
+        con = request(url, "GET", "/info", null);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    /**
+     * test exposed extra port (has to be provided in sample image)
+     */
+    @Test
+    public void testExtraPortTCP() throws Exception {
+        var con = request(PLATFORM_URL, "GET", "/containers/" + containerId, null);
+        var res = result(con, AgentContainer.class).getConnectivity();
+
+        var url = String.format("%s:%s", res.getPublicUrl(), "8888");
+        con = request(url, "GET", "/", null);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("It Works!", result(con));
+    }
+
+    @Test
+    public void testExtraPortUDP() throws Exception {
+        var addr = InetAddress.getByName("localhost");
+        DatagramSocket clientSocket = new DatagramSocket();
+        byte[] sendData = "Test".getBytes();
+        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, addr, 8889);
+        clientSocket.send(sendPacket);
+
+        byte[] receiveData = new byte[1024];
+        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        clientSocket.receive(receivePacket);
+
+        String receivedMessage = new String(receivePacket.getData(), 0, receivePacket.getLength());
+        Assert.assertEquals("TestTest", receivedMessage);
+
+        clientSocket.close();
+    }
+
+    /**
+     * test that connectivity info is still there after /notify
+     */
+    @Test
+    public void testNotifyConnectivity() throws Exception {
+        request(PLATFORM_URL, "POST", "/containers/notify", containerId);
+        var con = request(PLATFORM_URL, "GET", "/containers/" + containerId, null);
+        var res = result(con, AgentContainer.class);
+        Assert.assertNotNull(res.getConnectivity());
+    }
+
+    /**
+     * Deploy an additional sample-container on the same platform, so there are two of the same.
+     * Then /send and /broadcast messages to one particular container, then /invoke the GetInfo
+     * action of the respective containers to check that the messages were delivered correctly.
+     */
+    @Test
+    public void testSendWithContainerId() throws Exception {
+        // deploy a second sample container image on platform A
+        var image = getSampleContainerImage();
+        var con = request(PLATFORM_URL, "POST", "/containers", image);
+        var newContainerId = result(con);
+
+        try {
+            // directed /send and /broadcast to both containers
+            var msg1 = Map.of("payload", "\"Message to First Container\"", "replyTo", "");
+            var msg2 = Map.of("payload", "\"Message to Second Container\"", "replyTo", "");
+            request(PLATFORM_URL, "POST", "/broadcast/topic?containerId=" + containerId, msg1);
+            request(PLATFORM_URL, "POST", "/send/sample1?containerId=" + newContainerId, msg2);
+            Thread.sleep(500);
+
+            // directed /invoke of GetInfo to check last messages of first container
+            con = request(PLATFORM_URL, "POST", "/invoke/GetInfo/sample1?containerId=" + containerId, Map.of());
+            var res1 = result(con, Map.class);
+            System.out.println(res1);
+            Assert.assertEquals(containerId, res1.get(AgentContainerApi.ENV_CONTAINER_ID));
+            Assert.assertEquals(msg1.get("payload"), res1.get("lastBroadcast"));
+            Assert.assertNotEquals(msg2.get("payload"), res1.get("lastMessage"));
+
+            // directed /invoke of GetInfo to check last messages of second container
+            con = request(PLATFORM_URL, "POST", "/invoke/GetInfo/sample1?containerId=" + newContainerId, Map.of());
+            var res2 = result(con, Map.class);
+            System.out.println(res1);
+            Assert.assertEquals(newContainerId, res2.get(AgentContainerApi.ENV_CONTAINER_ID));
+            Assert.assertNotEquals(msg1.get("payload"), res2.get("lastBroadcast"));
+            Assert.assertEquals(msg2.get("payload"), res2.get("lastMessage"));
+        } finally {
+            // remove the additional sample container image from platform A
+            con = request(PLATFORM_URL, "DELETE", "/containers/" + newContainerId, null);
+            Assert.assertEquals(200, con.getResponseCode());
+        }
+    }
+
+}
