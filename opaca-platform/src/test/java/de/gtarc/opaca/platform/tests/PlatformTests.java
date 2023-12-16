@@ -1,14 +1,11 @@
 package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.api.AgentContainerApi;
+import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.platform.Application;
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
 import de.gtarc.opaca.platform.session.Session;
-import de.gtarc.opaca.model.AgentContainer;
-import de.gtarc.opaca.model.AgentDescription;
-import de.gtarc.opaca.model.PostAgentContainer;
-import de.gtarc.opaca.model.RuntimePlatform;
 import org.junit.*;
 import org.junit.runners.MethodSorters;
 
