@@ -4,16 +4,69 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>de.dailab.jiacpp</groupId>
-    <artifactId>jiacpp-parent</artifactId>
-    <version>0.1-SNAPSHOT</version>
+    <groupId>de.gtarc.opaca</groupId>
+    <artifactId>opaca-parent</artifactId>
+    <version>0.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <name>opaca-core</name>
+    <description>OPACA Core Components Reference Implementation</description>
+    <url>https://github.com/gt-arc/opaca-core</url>
+
+    <licenses>
+        <license>
+            <name>OPACA Non-Commercial License</name>
+            <url>https://github.com/GT-ARC/opaca-core/blob/main/LICENSE.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>11</java.version>
+    </properties>
+
     <modules>
-        <module>jiacpp-model</module>
-        <module>jiacpp-container</module>
-        <module>jiacpp-platform</module>
+        <module>opaca-model</module>
+        <module>opaca-container</module>
+        <module>opaca-platform</module>
         <module>examples</module>
     </modules>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <repositories>
+        <repository>
+            <id>dai-open</id>
+            <url>https://repositories.dai-labor.de/extern/content/repositories/dai-open/</url>
+        </repository>
+        <repository>
+            <id>dai-open-snapshot</id>
+            <url>https://repositories.dai-labor.de/extern/content/repositories/dai-open-snapshot/</url>
+        </repository>
+    </repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>dai-open</id>
+            <url>https://repositories.dai-labor.de/extern/content/repositories/dai-open/</url>
+        </repository>
+        <snapshotRepository>
+            <id>dai-open-snapshot</id>
+            <url>https://repositories.dai-labor.de/extern/content/repositories/dai-open-snapshot/</url>
+        </snapshotRepository>
+    </distributionManagement>
 
 </project>
