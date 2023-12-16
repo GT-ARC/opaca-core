@@ -3,7 +3,7 @@ version: "3.3"
 services:
 
   runtime-platform:
-    image: jiacpp-platform
+    image: opaca-platform
     build: .
     ports:
       - "8000:8000"

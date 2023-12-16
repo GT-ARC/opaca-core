@@ -7,7 +7,7 @@ import de.dailab.jiacvi.dsl.agentSystem
 
 fun main() {
     val image = ConfigLoader.loadContainerImageFromResources("/container.json")
-    agentSystem("jiacpp-sample-container") {
+    agentSystem("opaca-sample-container") {
         enable(LocalBroker)
         agents {
             add(ContainerAgent(image))

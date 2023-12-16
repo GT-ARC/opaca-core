@@ -23,10 +23,10 @@ public class TestUtils {
      *
      * > docker build -t test-image examples/sample-container/
      * (change to TEST_IMAGE="test-image" and test locally if it works)
-     * > docker tag test-image registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:vXYZ
-     * > docker push registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:vXYZ
+     * > docker tag test-image registry.gitlab.dai-labor.de/pub/unit-tests/opaca-sample-container:vXYZ
+     * > docker push registry.gitlab.dai-labor.de/pub/unit-tests/opaca-sample-container:vXYZ
      */
-    static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v17";
+    static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/opaca-sample-container:v17";
 
     /*
      * HELPER METHODS

@@ -15,7 +15,7 @@
     <packaging>jar</packaging>
 
     <properties>
-        <mainclass>de.dailab.jiacpp.pingpong.MainKt</mainclass>
+        <mainclass>de.gtarc.opaca.pingpong.MainKt</mainclass>
     </properties>
 
 </project>

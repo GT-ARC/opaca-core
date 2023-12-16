@@ -27,7 +27,7 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
  * the ContainerAgent and "make room" for some basic exception handling, translating no-such-element
  * or actual internal errors (e.g. when executing an action) to appropriate HTTP status codes.
  */
-class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String?) {
+class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?) {
 
     private val server = Server(port)
 
@@ -105,7 +105,7 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
 
         fun getErrorCode(e: Exception): Int {
             return when (e) {
-                is JiacppException -> e.statusCode
+                is OpacaException -> e.statusCode
                 else -> errorStatusCodes[e::class.java] ?: 500
             }
         }
@@ -215,6 +215,6 @@ class JiacppServer(val impl: AgentContainerApi, val port: Int, val token: String
     }
 
     class NotAuthenticatedException(message: String): RuntimeException(message)
-    class JiacppException(val statusCode: Int, message: String): Exception(message)
+    class OpacaException(val statusCode: Int, message: String): Exception(message)
 }
 
