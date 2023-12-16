@@ -48,7 +48,7 @@ Please refer to the [API docs](doc/api.md) page for more information about the d
 
 * run `mvn install` in the parent directory to build everything in order
 * build the sample container with `docker build -t sample-agent-container-image examples/sample-container`
-* start the platform with `java -jar opaca-platform/target/opaca-platform-0.1-SNAPSHOT.jar`
+* start the platform with `java -jar opaca-platform/target/jiacpp-platform-<version>-with-dependencies.jar`
 * go to <http://localhost:8000/swagger-ui/index.html>
 * go to `POST containers`, click "try it out", and set the `imageName` to `"sample-agent-container-image"`, or replace the entire value of `image` by the content from `examples/sample-container/src/main/resources/container.json` (in this case, make sure to also provide values for the required parameters in `arguments`)
 * in another terminal, do `docker ps` to find the started image, and then `docker logs -f <container-name>` to show (and follow) the logs
