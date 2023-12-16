@@ -1,9 +1,9 @@
-package de.dailab.jiacpp.util;
+package de.gtarc.opaca.util;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import de.dailab.jiacpp.model.Event;
+import de.gtarc.opaca.model.Event;
 
 // TODO
 // 1. Truncating the history after a certain time, after a certain number of entries or similar

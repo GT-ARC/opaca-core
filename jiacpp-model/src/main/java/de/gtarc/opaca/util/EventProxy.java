@@ -1,6 +1,6 @@
-package de.dailab.jiacpp.util;
+package de.gtarc.opaca.util;
 
-import de.dailab.jiacpp.model.Event;
+import de.gtarc.opaca.model.Event;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

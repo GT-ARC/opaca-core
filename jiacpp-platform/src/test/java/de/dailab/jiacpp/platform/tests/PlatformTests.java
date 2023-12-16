@@ -1,11 +1,14 @@
 package de.dailab.jiacpp.platform.tests;
 
-import de.dailab.jiacpp.api.AgentContainerApi;
-import de.dailab.jiacpp.model.*;
+import de.gtarc.opaca.api.AgentContainerApi;
 import de.dailab.jiacpp.platform.Application;
 import static de.dailab.jiacpp.platform.tests.TestUtils.*;
 
 import de.dailab.jiacpp.platform.session.Session;
+import de.gtarc.opaca.model.AgentContainer;
+import de.gtarc.opaca.model.AgentDescription;
+import de.gtarc.opaca.model.PostAgentContainer;
+import de.gtarc.opaca.model.RuntimePlatform;
 import org.junit.*;
 import org.junit.runners.MethodSorters;
 

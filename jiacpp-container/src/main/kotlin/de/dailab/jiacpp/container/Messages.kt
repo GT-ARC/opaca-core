@@ -1,7 +1,7 @@
 package de.dailab.jiacpp.container
 
 import com.fasterxml.jackson.databind.JsonNode
-import de.dailab.jiacpp.model.AgentDescription
+import de.gtarc.opaca.model.AgentDescription
 
 
 // Messages for Registering an Agent with the Container Agent (or updating an already registered agent)

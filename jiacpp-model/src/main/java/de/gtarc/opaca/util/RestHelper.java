@@ -1,4 +1,4 @@
-package de.dailab.jiacpp.util;
+package de.gtarc.opaca.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;

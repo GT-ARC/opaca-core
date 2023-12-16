@@ -1,13 +1,13 @@
 package de.dailab.jiacpp.container
 
 import com.fasterxml.jackson.databind.JsonNode
-import de.dailab.jiacpp.model.Action
+import de.gtarc.opaca.model.Action
 
-import de.dailab.jiacpp.model.AgentDescription
-import de.dailab.jiacpp.model.Message
-import de.dailab.jiacpp.model.Stream
-import de.dailab.jiacpp.util.ApiProxy
-import de.dailab.jiacpp.util.RestHelper
+import de.gtarc.opaca.model.AgentDescription
+import de.gtarc.opaca.model.Message
+import de.gtarc.opaca.model.Stream
+import de.gtarc.opaca.util.ApiProxy
+import de.gtarc.opaca.util.RestHelper
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.behaviour.act
 

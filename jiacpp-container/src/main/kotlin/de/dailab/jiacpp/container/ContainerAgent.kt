@@ -1,10 +1,10 @@
 package de.dailab.jiacpp.container
 
 import com.fasterxml.jackson.databind.JsonNode
-import de.dailab.jiacpp.api.AgentContainerApi
-import de.dailab.jiacpp.model.*
-import de.dailab.jiacpp.util.ApiProxy
-import de.dailab.jiacpp.util.RestHelper
+import de.gtarc.opaca.api.AgentContainerApi
+import de.gtarc.opaca.model.*
+import de.gtarc.opaca.util.ApiProxy
+import de.gtarc.opaca.util.RestHelper
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.BrokerAgentRef
 import de.dailab.jiacvi.behaviour.act

@@ -1,7 +1,7 @@
 package de.dailab.jiacpp.pingpong
 
 import de.dailab.jiacpp.container.ContainerAgent
-import de.dailab.jiacpp.util.ConfigLoader
+import de.gtarc.opaca.util.ConfigLoader
 import de.dailab.jiacvi.communication.LocalBroker
 import de.dailab.jiacvi.dsl.agentSystem
 import java.lang.IllegalArgumentException

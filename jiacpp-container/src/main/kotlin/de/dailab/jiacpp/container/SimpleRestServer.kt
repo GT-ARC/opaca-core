@@ -1,8 +1,8 @@
 package de.dailab.jiacpp.container
 
-import de.dailab.jiacpp.api.AgentContainerApi
-import de.dailab.jiacpp.model.Message
-import de.dailab.jiacpp.util.RestHelper
+import de.gtarc.opaca.api.AgentContainerApi
+import de.gtarc.opaca.model.Message
+import de.gtarc.opaca.util.RestHelper
 import jakarta.servlet.http.HttpServlet
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse

@@ -1,8 +1,8 @@
-package de.dailab.jiacpp.api;
+package de.gtarc.opaca.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import de.dailab.jiacpp.model.AgentDescription;
-import de.dailab.jiacpp.model.Message;
+import de.gtarc.opaca.model.AgentDescription;
+import de.gtarc.opaca.model.Message;
 
 import java.io.IOException;
 import java.util.List;

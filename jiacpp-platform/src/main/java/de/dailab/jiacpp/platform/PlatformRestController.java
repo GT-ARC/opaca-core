@@ -2,9 +2,9 @@ package de.dailab.jiacpp.platform;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import de.dailab.jiacpp.api.RuntimePlatformApi;
-import de.dailab.jiacpp.model.*;
-import de.dailab.jiacpp.util.*;
+import de.gtarc.opaca.api.RuntimePlatformApi;
+import de.gtarc.opaca.model.*;
+import de.gtarc.opaca.util.EventProxy;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.java.Log;

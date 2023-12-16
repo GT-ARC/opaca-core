@@ -2,10 +2,10 @@ package de.dailab.jiacpp.pingpong
 
 import de.dailab.jiacpp.container.AbstractContainerizedAgent
 import de.dailab.jiacpp.container.Invoke
-import de.dailab.jiacpp.model.Action
-import de.dailab.jiacpp.model.AgentDescription
-import de.dailab.jiacpp.model.Message
-import de.dailab.jiacpp.util.RestHelper
+import de.gtarc.opaca.model.Action
+import de.gtarc.opaca.model.AgentDescription
+import de.gtarc.opaca.model.Message
+import de.gtarc.opaca.util.RestHelper
 import de.dailab.jiacvi.behaviour.act
 import kotlin.random.Random
 

@@ -1,13 +1,13 @@
 package de.dailab.jiacpp.sample
 
-import de.dailab.jiacpp.api.AgentContainerApi
+import de.gtarc.opaca.api.AgentContainerApi
 import de.dailab.jiacpp.container.AbstractContainerizedAgent
 import de.dailab.jiacpp.container.Invoke
 import de.dailab.jiacpp.container.StreamInvoke
-import de.dailab.jiacpp.model.Action
-import de.dailab.jiacpp.model.Stream
-import de.dailab.jiacpp.model.AgentDescription
-import de.dailab.jiacpp.model.Message
+import de.gtarc.opaca.model.Action
+import de.gtarc.opaca.model.Stream
+import de.gtarc.opaca.model.AgentDescription
+import de.gtarc.opaca.model.Message
 import de.dailab.jiacvi.behaviour.act
 
 import java.io.ByteArrayInputStream

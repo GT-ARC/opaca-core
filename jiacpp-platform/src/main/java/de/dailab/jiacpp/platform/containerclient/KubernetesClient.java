@@ -1,10 +1,10 @@
 package de.dailab.jiacpp.platform.containerclient;
 
-import de.dailab.jiacpp.api.AgentContainerApi;
-import de.dailab.jiacpp.model.AgentContainer;
-import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.model.AgentContainerImage.ImageParameter;
-import de.dailab.jiacpp.model.PostAgentContainer;
+import de.gtarc.opaca.api.AgentContainerApi;
+import de.gtarc.opaca.model.AgentContainer;
+import de.gtarc.opaca.model.AgentContainerImage;
+import de.gtarc.opaca.model.AgentContainerImage.ImageParameter;
+import de.gtarc.opaca.model.PostAgentContainer;
 import de.dailab.jiacpp.platform.PlatformConfig;
 import de.dailab.jiacpp.platform.session.SessionData;
 import lombok.AllArgsConstructor;

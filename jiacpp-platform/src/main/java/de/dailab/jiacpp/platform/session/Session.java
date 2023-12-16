@@ -6,10 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.io.IOException;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -19,15 +16,14 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 
 import com.google.common.base.Strings;
-import de.dailab.jiacpp.model.AgentContainer;
-import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.model.PostAgentContainer;
+import de.gtarc.opaca.model.AgentContainer;
+import de.gtarc.opaca.model.PostAgentContainer;
 import de.dailab.jiacpp.platform.PlatformImpl;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import de.dailab.jiacpp.util.RestHelper;
+import de.gtarc.opaca.util.RestHelper;
 import de.dailab.jiacpp.platform.PlatformConfig;
 import de.dailab.jiacpp.platform.PlatformConfig.SessionPolicy;
 

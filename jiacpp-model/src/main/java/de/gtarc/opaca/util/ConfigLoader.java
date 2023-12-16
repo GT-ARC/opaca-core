@@ -1,6 +1,6 @@
-package de.dailab.jiacpp.util;
+package de.gtarc.opaca.util;
 
-import de.dailab.jiacpp.model.AgentContainerImage;
+import de.gtarc.opaca.model.AgentContainerImage;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -1,9 +1,9 @@
 package de.dailab.jiacpp.platform;
 
 import com.google.common.base.Strings;
-import de.dailab.jiacpp.api.AgentContainerApi;
-import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.model.PostAgentContainer;
+import de.gtarc.opaca.api.AgentContainerApi;
+import de.gtarc.opaca.model.AgentContainerImage;
+import de.gtarc.opaca.model.PostAgentContainer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.ToString;

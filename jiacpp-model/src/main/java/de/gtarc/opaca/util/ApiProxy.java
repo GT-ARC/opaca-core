@@ -1,15 +1,16 @@
-package de.dailab.jiacpp.util;
+package de.gtarc.opaca.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import de.dailab.jiacpp.api.AgentContainerApi;
-import de.dailab.jiacpp.api.RuntimePlatformApi;
-import de.dailab.jiacpp.model.*;
+import de.gtarc.opaca.api.AgentContainerApi;
+import de.gtarc.opaca.api.RuntimePlatformApi;
+import de.gtarc.opaca.model.*;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import de.gtarc.opaca.model.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 

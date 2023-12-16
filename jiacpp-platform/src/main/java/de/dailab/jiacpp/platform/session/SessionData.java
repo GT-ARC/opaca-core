@@ -5,11 +5,11 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import de.dailab.jiacpp.model.PostAgentContainer;
+import de.gtarc.opaca.model.PostAgentContainer;
 import org.springframework.stereotype.Component;
 
-import de.dailab.jiacpp.model.AgentContainer;
-import de.dailab.jiacpp.model.RuntimePlatform;
+import de.gtarc.opaca.model.AgentContainer;
+import de.gtarc.opaca.model.RuntimePlatform;
 import de.dailab.jiacpp.platform.containerclient.DockerClient.DockerContainerInfo;
 import de.dailab.jiacpp.platform.containerclient.KubernetesClient.PodInfo;
 import lombok.Data;

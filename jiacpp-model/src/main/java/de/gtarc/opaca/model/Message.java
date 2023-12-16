@@ -1,4 +1,4 @@
-package de.dailab.jiacpp.model;
+package de.gtarc.opaca.model;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;

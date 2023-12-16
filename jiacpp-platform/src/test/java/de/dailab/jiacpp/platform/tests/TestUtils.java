@@ -1,9 +1,9 @@
 package de.dailab.jiacpp.platform.tests;
 
-import de.dailab.jiacpp.model.AgentContainerImage;
-import de.dailab.jiacpp.model.AgentContainerImage.ImageParameter;
-import de.dailab.jiacpp.model.PostAgentContainer;
-import de.dailab.jiacpp.util.RestHelper;
+import de.gtarc.opaca.model.AgentContainerImage;
+import de.gtarc.opaca.model.AgentContainerImage.ImageParameter;
+import de.gtarc.opaca.model.PostAgentContainer;
+import de.gtarc.opaca.util.RestHelper;
 
 import java.io.IOException;
 import java.io.OutputStream;

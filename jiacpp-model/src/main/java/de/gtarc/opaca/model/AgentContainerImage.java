@@ -1,7 +1,7 @@
-package de.dailab.jiacpp.model;
+package de.gtarc.opaca.model;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import de.dailab.jiacpp.api.AgentContainerApi;
+import de.gtarc.opaca.api.AgentContainerApi;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
