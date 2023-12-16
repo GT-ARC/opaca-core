@@ -6,7 +6,7 @@
 
     <groupId>de.gtarc.opaca</groupId>
     <artifactId>opaca-parent</artifactId>
-    <version>0.1-SNAPSHOT</version>
+    <version>0.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>opaca-core</name>
@@ -27,9 +27,9 @@
     </properties>
 
     <modules>
-        <module>jiacpp-model</module>
-        <module>jiacpp-container</module>
-        <module>jiacpp-platform</module>
+        <module>opaca-model</module>
+        <module>opaca-container</module>
+        <module>opaca-platform</module>
         <module>examples</module>
     </modules>
 
