@@ -1,9 +1,6 @@
 package de.gtarc.opaca.api;
 
-import de.gtarc.opaca.model.AgentContainer;
-import de.gtarc.opaca.model.Event;
-import de.gtarc.opaca.model.PostAgentContainer;
-import de.gtarc.opaca.model.RuntimePlatform;
+import de.gtarc.opaca.model.*;
 
 import java.io.IOException;
 import java.util.List;
@@ -43,11 +40,10 @@ public interface RuntimePlatformApi extends CommonApi {
      *
      * REST: GET /login
      *
-     * @param username The name of the user
-     * @param password The password
+     * @param loginParams Bundles the username and password in the request body
      * @return JWT access token
      */
-    String login(String username, String password) throws IOException;
+    String login(Login loginParams) throws IOException;
 
     /*
      * AGENT CONTAINER ROUTES
@@ -120,10 +116,10 @@ public interface RuntimePlatformApi extends CommonApi {
      *
      * REST: POST /connections
      *
-     * @param url The base URL of that other Runtime Platform
+     * @param loginConnection Stores the username, password, and url to connect to
      * @return Connection successful?
      */
-    boolean connectPlatform(String url, String username, String password) throws IOException;
+    boolean connectPlatform(LoginConnection loginConnection) throws IOException;
 
     /**
      * Get list uf base-URLs of connected other Runtime Platforms
