@@ -127,6 +127,8 @@
 				</executions>
 				<configuration>
 					<mainClass>de.dailab.jiacpp.platform.Application</mainClass>
+					<classifier>with-dependencies</classifier>
+					<attach>false</attach>
 				</configuration>
 			</plugin>
 		</plugins>
