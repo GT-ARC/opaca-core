@@ -6,7 +6,7 @@
 
     <groupId>de.gtarc.opaca</groupId>
     <artifactId>opaca-parent</artifactId>
-    <version>0.1</version>
+    <version>0.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>opaca-core</name>
