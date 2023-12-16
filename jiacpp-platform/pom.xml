@@ -7,11 +7,11 @@
 	<parent>
 		<groupId>de.gtarc.opaca</groupId>
 		<artifactId>opaca-parent</artifactId>
-		<version>0.1-SNAPSHOT</version>
+		<version>0.1</version>
 	</parent>
 
 	<artifactId>opaca-platform</artifactId>
-	<version>0.1-SNAPSHOT</version>
+	<version>0.1</version>
 	<packaging>jar</packaging>
 
 	<properties>
