@@ -27,9 +27,9 @@
     </properties>
 
     <modules>
-        <module>jiacpp-model</module>
-        <module>jiacpp-container</module>
-        <module>jiacpp-platform</module>
+        <module>opaca-model</module>
+        <module>opaca-container</module>
+        <module>opaca-platform</module>
         <module>examples</module>
     </modules>
 
