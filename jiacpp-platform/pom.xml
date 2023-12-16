@@ -126,7 +126,7 @@
 					</execution>
 				</executions>
 				<configuration>
-					<mainClass>de.dailab.jiacpp.platform.Application</mainClass>
+					<mainClass>de.gtarc.opaca.platform.Application</mainClass>
 				</configuration>
 			</plugin>
 		</plugins>
