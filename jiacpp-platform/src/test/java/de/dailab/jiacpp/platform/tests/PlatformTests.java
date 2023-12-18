@@ -38,7 +38,7 @@ public class PlatformTests {
                 "--default_image_directory=./default-test-images"
         );
         platformB = SpringApplication.run(Application.class,
-                "--server.port=" + PORT_A);
+                "--server.port=" + PORT_B);
     }
 
     @AfterClass
@@ -108,15 +108,28 @@ public class PlatformTests {
      * the platform checks if a port is available before trying to start the container
      */
     @Test
-    public void testPortMapping() throws IOException {
+    public void testPortMapping() throws IOException, InterruptedException {
         var image = getSampleContainerImage();
-        var con = request(PLATFORM_B, "POST", "/containers", image);
+
+        // post container to both platforms
+        var con = request(PLATFORM_A, "POST", "/containers", image);
         Assert.assertEquals(200, con.getResponseCode());
-        var containerId = result(con);
-        con = request(PLATFORM_B, "GET", "/containers/" + containerId, null);
+        var containerAId = result(con);
+        Thread.sleep(1000);
+        con = request(PLATFORM_B, "POST", "/containers", image);
+        Assert.assertEquals(200, con.getResponseCode());
+        var containerBId = result(con);
+
+        // check if container in platform B has higher port mapping than specified by image
+        con = request(PLATFORM_B, "GET", "/containers/" + containerBId, null);
         var container = result(con, AgentContainer.class);
         Assert.assertTrue(container.getConnectivity().getApiPortMapping() > image.getImage().getApiPort());
-        request(PLATFORM_B, "DELETE", "/containers/" + containerId, null);
+
+        // undeploy both container again
+        con = request(PLATFORM_A, "DELETE", "/containers/" + containerAId, null);
+        Assert.assertEquals(200, con.getResponseCode());
+        con = request(PLATFORM_B, "DELETE", "/containers/" + containerBId, null);
+        Assert.assertEquals(200, con.getResponseCode());
     }
 
     /**
@@ -220,31 +233,42 @@ public class PlatformTests {
     @Test
     public void testFreePort() throws Exception {
         var image = getSampleContainerImage();
+
+        // post 2 container to platform (A)
         var con = request(PLATFORM_A, "POST", "/containers", image);
         Assert.assertEquals(200, con.getResponseCode());
-        var newContainerId = result(con);
+        var container1Id = result(con);
+        con = request(PLATFORM_A, "POST", "/containers", image);
+        Assert.assertEquals(200, con.getResponseCode());
+        var container2Id = result(con);
 
+        // check that the 2nd container has a higher api port than "normal", then delete containers
         try {
-            con = request(PLATFORM_A, "GET", "/containers/" + newContainerId, null);
+            con = request(PLATFORM_A, "GET", "/containers/" + container2Id, null);
             var res = result(con, AgentContainer.class);
-            Assert.assertEquals(8083, (int) res.getConnectivity().getApiPortMapping());
+            Assert.assertTrue((int) res.getConnectivity().getApiPortMapping() > image.getImage().getApiPort());
         } finally {
-            con = request(PLATFORM_A, "DELETE", "/containers/" + newContainerId, null);
+            con = request(PLATFORM_A, "DELETE", "/containers/" + container1Id, null);
+            Assert.assertEquals(200, con.getResponseCode());
+            con = request(PLATFORM_A, "DELETE", "/containers/" + container2Id, null);
             Assert.assertEquals(200, con.getResponseCode());
         }
     }
 
     /**
-     * connect to second platform, check that both are connected
+     * connect to second platform, check that both are connected, then disconnect again
      */
     @Test
-    public void testConnect() throws Exception {
+    public void testConnectDisconnect() throws Exception {
         var platformABaseUrl = getBaseUrl(PLATFORM_A);
+
+        // connect platforms
         var con = request(PLATFORM_B, "POST", "/connections", platformABaseUrl);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Boolean.class);
         Assert.assertTrue(res);
 
+        // check that both platforms have registered each other in their connections
         con = request(PLATFORM_A, "GET", "/connections", null);
         var lst1 = result(con, List.class);
         Assert.assertEquals(1, lst1.size());
@@ -253,24 +277,19 @@ public class PlatformTests {
         var lst2 = result(con, List.class);
         Assert.assertEquals(1, lst2.size());
         Assert.assertEquals(platformABaseUrl, lst2.get(0));
-    }
 
-    /**
-     * TODO combine this test with testConnect
-     */
-    @Test
-    public void testDisconnect() throws Exception {
-        var platformABaseUrl = getBaseUrl(PLATFORM_A);
-        var con = request(PLATFORM_B, "DELETE", "/connections", platformABaseUrl);
+        // disconnect platforms
+        con = request(PLATFORM_B, "DELETE", "/connections", platformABaseUrl);
         Assert.assertEquals(200, con.getResponseCode());
-        var res = result(con, Boolean.class);
+        res = result(con, Boolean.class);
         Assert.assertTrue(res);
 
+        // check that both platforms are not registered as connected with each other anymore
         con = request(PLATFORM_A, "GET", "/connections", null);
-        var lst1 = result(con, List.class);
+        lst1 = result(con, List.class);
         Assert.assertTrue(lst1.isEmpty());
         con = request(PLATFORM_B, "GET", "/connections", null);
-        var lst2 = result(con, List.class);
+        lst2 = result(con, List.class);
         Assert.assertTrue(lst2.isEmpty());
     }
 
