@@ -47,7 +47,7 @@ services:
 
   # Defines a mongoDB container running alongside the platform container
   mongodb:
-    image: mongodb/mongodb-community-server:latest
+    image: mongodb/mongodb-community-server:7.0.4-ubuntu2204
     container_name: jiacpp-data
     ports:
       - "27017:27017"

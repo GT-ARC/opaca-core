@@ -2,11 +2,9 @@ package de.dailab.jiacpp.platform;
 
 import de.dailab.jiacpp.model.User;
 import de.dailab.jiacpp.platform.auth.JwtUtil;
-import de.dailab.jiacpp.platform.user.PrivilegeRepository;
-import de.dailab.jiacpp.platform.user.RoleRepository;
 import de.dailab.jiacpp.platform.user.TokenUserDetailsService;
-import de.dailab.jiacpp.platform.user.TokenUserRepository;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,25 +24,16 @@ import java.util.Map;
 public class UserController {
 
     @Autowired
-    TokenUserDetailsService userDetailsService;
+    private TokenUserDetailsService userDetailsService;
 
     @Autowired
     private JwtUtil jwtUtil;
-
-    private final TokenUserRepository tokenUserRepository;
-    private final RoleRepository roleRepository;
-    private final PrivilegeRepository privilegeRepository;
 
     /*
      * USER MANAGEMENT
      */
 
-    UserController(TokenUserRepository tokenUserRepository,
-                   RoleRepository roleRepository,
-                   PrivilegeRepository privilegeRepository){
-        this.tokenUserRepository = tokenUserRepository;
-        this.roleRepository = roleRepository;
-        this.privilegeRepository = privilegeRepository;
+    UserController(){
     }
 
     /**
@@ -75,7 +64,7 @@ public class UserController {
     @RequestMapping(value="/users/{username}", method=RequestMethod.DELETE)
     @Operation(summary="Delete an existing user from the connected database", tags={"users"})
     public boolean deleteUser(
-            @RequestHeader("Authorization") String token,
+            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
             @PathVariable String username) {
 
         if (isAdminOrSelf(token, username)){
@@ -94,7 +83,7 @@ public class UserController {
     @RequestMapping(value="/users/{username}", method=RequestMethod.GET)
     @Operation(summary="Get an existing user from the connected database", tags={"users"})
     public String getUser(
-            @RequestHeader("Authorization") String token,
+            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
             @PathVariable String username) {
 
         if (isAdminOrSelf(token, username)){

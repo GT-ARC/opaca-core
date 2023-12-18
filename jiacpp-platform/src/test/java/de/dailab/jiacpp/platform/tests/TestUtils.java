@@ -118,7 +118,7 @@ public class TestUtils {
     }
 
     // Starts a local mongo db on port 27017 for testing purposes
-    public static void startMongoDB() throws IOException, InterruptedException {
+    public static void startMongoDB() throws InterruptedException {
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
                 .withDockerHost(getLocalDockerHost())
                 .build();
@@ -142,7 +142,7 @@ public class TestUtils {
         Volume dataVolume = new Volume("/data/db");
         Volume configVolume = new Volume("/data/configdb");
 
-        CreateContainerResponse res = dockerClient.createContainerCmd("mongodb/mongodb-community-server:latest")
+        CreateContainerResponse res = dockerClient.createContainerCmd("mongodb/mongodb-community-server:7.0.4-ubuntu2204")
                 .withName("jiacpp-data-test")
                 .withVolumes(dataVolume, configVolume)
                 .withHostConfig(HostConfig.newHostConfig().withPortBindings(portBindings).withBinds(
@@ -162,7 +162,7 @@ public class TestUtils {
 
     public static void stopMongoDB() throws InterruptedException {
         dockerClient.stopContainerCmd(mongoContId).exec();
-        // Wait 5 seconds between stopping and removing the ocntainer
+        // Wait 5 seconds between stopping and removing the container
         Thread.sleep(5000);
         dockerClient.removeContainerCmd(mongoContId).exec();
 
