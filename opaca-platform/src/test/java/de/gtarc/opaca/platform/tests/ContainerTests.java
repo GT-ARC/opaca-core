@@ -20,6 +20,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -385,7 +386,6 @@ public class ContainerTests {
      * invoke long-running action at two agents in parallel; the agents may be "busy" until the first action is through
      * (and indeed they are in the JIAC VI reference impl), but the ContainerAgent (and of course the Swagger UI) are
      * still responsive and can take on tasks for other agents.
-     * TODO handle inner asserts
      */
     @Test
     public void testInvokeNonblocking() throws Exception {
@@ -393,7 +393,6 @@ public class ContainerTests {
         List<Thread> threads = Stream.of("sample1", "sample2")
                 .map(agent -> new Thread(() -> {
                     try {
-                        Assert.fail("NON-BLOCKING FAILED!!!");
                         var con = request(PLATFORM_URL, "POST", "/invoke/DoThis/" + agent,
                                 Map.of("message", "", "sleep_seconds", 5));
                         Assert.assertEquals(200, con.getResponseCode());
@@ -401,14 +400,17 @@ public class ContainerTests {
                         Assert.fail(e.getMessage());
                     }
                 })).collect(Collectors.toList());
+        var noExceptionsDetected = new AtomicBoolean(true);
         for (Thread t : threads) t.setUncaughtExceptionHandler((thread, throwable) -> {
             if (throwable instanceof AssertionError) {
-                throw (AssertionError) throwable;
+                System.out.println("AssertionError in Thread " + thread.getName() + ": " + throwable.getMessage());
+                noExceptionsDetected.set(false);
             }
         });
         for (Thread t : threads) t.start();
         for (Thread t : threads) t.join();
         System.out.println(System.currentTimeMillis() - start);
+        Assert.assertTrue("", noExceptionsDetected.get());
         Assert.assertTrue(System.currentTimeMillis() - start < 8 * 1000);
     }
 
