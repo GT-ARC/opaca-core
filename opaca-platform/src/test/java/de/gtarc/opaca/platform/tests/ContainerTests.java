@@ -352,6 +352,7 @@ public class ContainerTests {
         Assert.assertEquals(200, con.getResponseCode());
         con = request(PLATFORM_URL, "POST", "/containers/notify", containerId);
         Assert.assertEquals(200, con.getResponseCode());
+        Thread.sleep(1000);
 
         // invoke action at newly spawned agent
         con = request(PLATFORM_URL, "POST", "/invoke/GetInfo/sample3", Map.of());
@@ -393,24 +394,28 @@ public class ContainerTests {
         List<Thread> threads = Stream.of("sample1", "sample2")
                 .map(agent -> new Thread(() -> {
                     try {
-                        var con = request(PLATFORM_URL, "POST", "/invoke/DoThis/" + agent,
+                        var con = request(PLATFORM_URL, "POST", "/invoke/DoThis/" + agent + "?timeout=10",
                                 Map.of("message", "", "sleep_seconds", 5));
                         Assert.assertEquals(200, con.getResponseCode());
                     } catch (Exception e) {
                         Assert.fail(e.getMessage());
                     }
                 })).collect(Collectors.toList());
-        var noExceptionsDetected = new AtomicBoolean(true);
+
+        // handle assertion errors in created threads
+        var noErrorsDetected = new AtomicBoolean(true);
         for (Thread t : threads) t.setUncaughtExceptionHandler((thread, throwable) -> {
             if (throwable instanceof AssertionError) {
-                System.out.println("AssertionError in Thread " + thread.getName() + ": " + throwable.getMessage());
-                noExceptionsDetected.set(false);
+                var message = String.format("AssertionError in thead %s: %s", thread.getName(), throwable.getMessage());
+                System.out.println(message);
+                noErrorsDetected.set(false);
             }
         });
+
         for (Thread t : threads) t.start();
         for (Thread t : threads) t.join();
         System.out.println(System.currentTimeMillis() - start);
-        Assert.assertTrue("", noExceptionsDetected.get());
+        Assert.assertTrue("At least 1 of the 2 requests failed.", noErrorsDetected.get());
         Assert.assertTrue(System.currentTimeMillis() - start < 8 * 1000);
     }
 
