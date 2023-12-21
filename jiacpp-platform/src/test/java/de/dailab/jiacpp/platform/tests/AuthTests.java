@@ -11,7 +11,6 @@ import org.junit.runners.MethodSorters;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -39,11 +38,13 @@ public class AuthTests {
         platformA = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT,
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
-                "--username_platform=testUser", "--password_platform=testPwd", "--role_platform=ADMIN");
+                "--username_platform=testUser", "--password_platform=testPwd", "--role_platform=ADMIN",
+                "--spring.data.mongodb.port=27018");
         platformB = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_B_PORT,
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
-                "--username_platform=testUser", "--password_platform=testPwd", "--role_platform=ADMIN");
+                "--username_platform=testUser", "--password_platform=testPwd", "--role_platform=ADMIN",
+                "--spring.data.mongodb.port=27018");
     }
 
     @AfterClass

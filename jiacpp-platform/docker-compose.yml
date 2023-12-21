@@ -47,22 +47,22 @@ services:
 
   # Defines a mongoDB container running alongside the platform container
   mongodb:
-    image: mongodb/mongodb-community-server:7.0.4-ubuntu2204
+    image: mongo:7.0.4
     container_name: jiacpp-data
     ports:
       - "27017:27017"
     # Use "user" and "pass" as default username:password for the created database
     environment:
-      MONGODB_INITDB_ROOT_USERNAME: user
-      MONGODB_INITDB_ROOT_PASSWORD: pass
+      MONGO_INITDB_ROOT_USERNAME: user
+      MONGO_INITDB_ROOT_PASSWORD: pass
     # Use a volume for persistent data storage
     volumes:
-      - mongodb_data:/data/db
-      - mongodb_config:/data/configdb
+      - data:/data/db
+      - config:/data/configdb
 
 # Create a volume to persistently store data
 volumes:
-  mongodb_data:
+  data:
     driver: local
-  mongodb_config:
+  config:
     driver: local
