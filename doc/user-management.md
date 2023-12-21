@@ -4,11 +4,21 @@ The User-Management system provides the ability to manage multiple users with di
 
 The User-Management is implemented with spring boot, spring data and uses spring security to implement a security filter chain, which checks for required permissions/authorities/roles of the requested user, based on the provided JWT (JSON Web Token). The JWT is generated after a successful login from a user or a successful container addition to the Runtime Platform.
 
-## User Database (In-Memory)
+## User Database with MongoDB
 
-Currently, the database used to store all user-related information (_Users_, _Roles_, _Privileges_) is the H2 Database, which is a Java based In-Memory database. User information is therefore only available on the current Runtime Platform (WIP).
+The User Management stores all user-related information (_Users_, _Roles_, _Privileges_) in a Mongo database, which has to be running in a separate container alongside the Runtime Platform. Upon starting the Runtime Platform via the `docker-compose` file, specific environment parameters can be set for the Runtime Platform, pertaining the spring boot configuration to interact with the MongoDB.
 
-The user-related information is stored in **JPARepositories**, which is used to create basic CRUD queries to interact with the specified H2 database in the application properties.
+The configuration for the MongoDB in the spring application is done by various environment variables, which determine the location of the running database, the name of the database as well as the authentication database and the authentication parameters. In total 6 values need to be set to establish a successful connection to the running MongoDB. These include the following values with the given prefix _spring.data.mongodb_:
+- _host_: Host address of MongoDB, when application is running in container -> use mongoDB container name, default `localhost`
+- _port_: Port of running MongoDB service, default `27017`
+- _authentication-database_: default `admin`
+- _database_: Name of the database to use, default `jiacpp-user-data`
+- _username_: Authentication username, default `user`
+- _password_: Authentication password, default `pass`
+
+The user-related information is stored in **MongoRepositories**, which is used to create basic CRUD queries to interact with the connected MongoDB. When interacting with the connected MongoDB, the `username` or `name` of the respective models will act as a unique _String_ identifier in the database.
+
+The connected MongoDB is started with two persistent data volumes attached to it. The first volume is called _jiacpp-platform_data_ and stores all user-related information like `TokenUser`, `Role` or `Privilege`. The seconds volume is called _jiacpp-platform_config_ and stores metadata for a sharded cluster. The latter one is currently not actively used, but is defined to prevent randomly generated name associations. These volumes persist, even after the deletion of the respected MongoDB container.
 
 ## User-Management Models
 
@@ -75,8 +85,8 @@ Add a new user into the database. This should only be used by the user-managemen
 
 ### `PUT /users/{username}`
 
-Edit user information for a specific user. Since this includes roles/privileges that grant users different authority levels, this is only available for the **ADMIN** role for now.
+Edit user information for a specific user. Since this includes roles/privileges that grant users different authority levels, this is only available for the **ADMIN** role for now. (In the future, this should also be available for the **USER** for changing the username or the password)
 
 ### `DELETE /users/{username}`
 
-Delete a specific user by the username from the database. Currently, this is only allowed by **ADMIN** but should also be available to every user when the deletion is about their own user data.
+Delete a specific user by the username from the database. This is only allowed by **ADMIN** and the **USER** belonging to the username.

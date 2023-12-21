@@ -19,13 +19,16 @@ and first tests in order to find out what of this makes sense etc.
 
 * run `mvn install` in the parent directory to build everything in order
 * build the sample container with `docker build -t sample-agent-container-image examples/sample-container`
-* start the platform with `java -jar jiacpp-platform/target/jiacpp-platform-0.1-SNAPSHOT.jar`
+* switch to the jiacpp-platform directory with `cd jiacpp-platform`
+* pull the mongodb service with `docker-compose pull mongodb`
+* start the mongodb service with `docker-compose up -d mongodb`
+* start the platform with `java -jar target/jiacpp-platform-0.1-SNAPSHOT.jar`
 * go to <http://localhost:8000/swagger-ui/index.html>
 * go to `POST containers`, click "try it out", and set the `imageName` to `"sample-agent-container-image"`, or replace the entire value of `image` by the content from `examples/sample-container/src/main/resources/container.json` (in this case, make sure to also provide values for the required parameters in `arguments`)
-* in another terminal, do `docker ps` to find the started image, and then `docker logs -f <container-name>` to show (and follow) the logs
+* in the terminal, do `docker ps` to find the started image, and then `docker logs -f <container-name>` to show (and follow) the logs
 * in the Web UI, run the `GET containers` or `GET agents` routes to see the running agents and their actions
 * use the `POST send` or `POST invoke` routes to send messages to the agent (with any payload; reply-to does not matter for now), or invoke the agent's dummy action (the action takes some time to run); check the logs of the agent container; you can also invoke the action and then immediately re-send the message to check that both work concurrently
-* shut down the platform with Ctrl+C; the agent container(s) should shut down as well
+* shut down the platform with Ctrl+C and after that the mongodb service with `docker-compose stop`; the agent container(s) should shut down as well
 
 See [Execution Environments](doc/environments.md) for more information on different ways to execute the platform and agent containers.
 
@@ -64,6 +67,15 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 * `SECRET` (default: empty) The secret used to encrypt and decrypt the JWT tokens used for authentication.
 * `USERNAME_PLATFORM` (default: null) Name of a single authorized user (temporary)
 * `USERNAME_PLATFORM` (default: null) Password of a single authorized user (temporary)
+* `ROLE_PLATFORM` (default: null) Role of a single authorized user (temporary)
+
+### MongoDB
+* `DB_HOST` (default: localhost) Url of the running MongoDB container. If the application is running in a container itself, use the name of the container running the Mongo service (e.g. jiacpp-data)
+* `DB_PORT` (default: 27017) Exposed port of the running MongoDB container, which binds to the internal port 27017
+* `DB_AUTH` (default: admin) Name of the authorization database
+* `DB_NAME` (default: jiacpp-user-data) Name of the database which will store user-related information
+* `DB_USER` (default: user) Name of the root user for the database (Should match _MONGO_INITDB_ROOT_USERNAME_)
+* `DB_PASS` (default: pass) Password of the root user for the database (Should match _MONGO_INITDB_ROOT_PASSWORD_)
 
 You can set those properties in the run config in your IDE, via an `.env` file, using `export` on the shell or in a `docker-compose.yml` file. Note that if you have one of those properties in e.g. your `.env` file, and it does not have a value, that may still overwrite the default and set the value to `null` or the empty string.
 
