@@ -48,7 +48,7 @@ public class AuthTests {
     }
 
     @AfterClass
-    public static void stopPlatform() throws InterruptedException {
+    public static void stopPlatform() {
         platformA.close();
         platformB.close();
         stopMongoDB();
@@ -219,32 +219,32 @@ public class AuthTests {
         // GUEST USER
         var con = requestWithToken(PLATFORM_A, "POST", "/users",
                 getUser("guest", "guestPwd", "ROLE_GUEST"), token_A);
-        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals(201, con.getResponseCode());
 
         // (NORMAL) USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
                 getUser("user", "userPwd", "ROLE_USER"), token_A);
-        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals(201, con.getResponseCode());
 
         // CONTRIBUTOR USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
                 getUser("contributor", "contributorPwd", "ROLE_CONTRIBUTOR"), token_A);
-        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals(201, con.getResponseCode());
 
         // ADMIN USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
                 getUser("admin", "adminPwd", "ROLE_ADMIN"), token_A);
-        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals(201, con.getResponseCode());
 
         // TEST USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
                 getUser("test", "testPwd", "ROLE_GUEST"), token_A);
-        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals(201, con.getResponseCode());
 
         // SECOND CONTRIBUTOR USER FOR SPECIFIC AUTHORITY TEST
         con = requestWithToken(PLATFORM_A, "POST", "/users",
                 getUser("contributor2", "contributor2Pwd", "ROLE_CONTRIBUTOR"), token_A);
-        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals(201, con.getResponseCode());
     }
 
     @Test
@@ -261,6 +261,13 @@ public class AuthTests {
     }
 
     @Test
+    public void test08GetUserNotFound() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "GET", "/users/InvalidUsername", null, token_A);
+        Assert.assertEquals(400, con.getResponseCode());
+
+    }
+
+    @Test
     public void test08EditUser() throws Exception {
         var con = requestWithToken(PLATFORM_A, "PUT", "/users/test",
                 getUser(null, null, "ROLE_IRRELEVANT"), token_A);
@@ -268,9 +275,22 @@ public class AuthTests {
     }
 
     @Test
+    public void test08EditUserNotFound() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "PUT", "/users/InvalidUsername",
+                getUser(null, null, "ROLE_IRRELEVANT"), token_A);
+        Assert.assertEquals(400, con.getResponseCode());
+    }
+
+    @Test
     public void test08RemoveUser() throws Exception {
         var con = requestWithToken(PLATFORM_A, "DELETE", "/users/test", null, token_A);
         Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    @Test
+    public void test08RemoveUserTwice() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "DELETE", "/users/test", null, token_A);
+        Assert.assertEquals(400, con.getResponseCode());
     }
 
     // Role Authorization
