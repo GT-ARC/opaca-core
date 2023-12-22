@@ -62,13 +62,13 @@ public class TokenUserDetailsService implements UserDetailsService {
 
     /** Returns the user as a standardized 'User' object */
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String username) throws UserNotFoundException {
         TokenUser user = tokenUserRepository.findByUsername(username);
         if (user != null) {
             return new User(username, user.getPassword(),
                     getAuthorities(user.getRoles()));
         } else {
-            throw new UsernameNotFoundException("User not found: " + username);
+            throw new UserNotFoundException(username);
         }
     }
 
@@ -101,9 +101,9 @@ public class TokenUserDetailsService implements UserDetailsService {
         return getTokenUser(username).toString();
     }
 
-    public TokenUser getTokenUser(String username) {
+    public TokenUser getTokenUser(String username) throws UserNotFoundException {
         TokenUser user = tokenUserRepository.findByUsername(username);
-        if (user == null) throw new UsernameNotFoundException(username);
+        if (user == null) throw new UserNotFoundException(username);
         return user;
     }
 
@@ -118,8 +118,11 @@ public class TokenUserDetailsService implements UserDetailsService {
      * Removes a user from the UserRepository.
      * Return true if the user was deleted, false if not.
      */
-    public Boolean removeUser(String username) {
-        return tokenUserRepository.deleteByUsername(username) == 0;
+    public Boolean removeUser(String username) throws UserNotFoundException {
+        if (tokenUserRepository.findByUsername(username) == null){
+            throw new UserNotFoundException(username);
+        }
+        return tokenUserRepository.deleteByUsername(username) != 0;
     }
 
     /**
@@ -127,11 +130,12 @@ public class TokenUserDetailsService implements UserDetailsService {
      * Check for each user field if it exists and if so, update it.
      * Return the updated user.
      */
-    public String updateUser(String username, String newUsername, String password, Map<String, List<String>> roles) {
+    public String updateUser(String username, String newUsername, String password, Map<String, List<String>> roles)
+        throws UserNotFoundException {
         TokenUser user = tokenUserRepository.findByUsername(username);
-        if (user == null) throw new UsernameNotFoundException(username);
+        if (user == null) throw new UserNotFoundException(username);
         if (tokenUserRepository.findByUsername(newUsername) != null &&
-                !Objects.equals(username, newUsername)) throw new UserAlreadyExistsException(newUsername);
+                !username.equals(newUsername)) throw new UserAlreadyExistsException(newUsername);
         if (password != null) user.setPassword(passwordEncoder.encode(password));
         if (roles != null) user.setRoles(createRolesIfNotFound(roles));
         if (newUsername != null) user.setUsername(newUsername);
@@ -203,9 +207,9 @@ public class TokenUserDetailsService implements UserDetailsService {
         return authorities;
     }
 
-    public Map<String, List<String>> getUserRoles(String username) {
+    public Map<String, List<String>> getUserRoles(String username) throws UserNotFoundException {
         TokenUser user = tokenUserRepository.findByUsername(username);
-        if (user == null) throw new UsernameNotFoundException(username);
+        if (user == null) throw new UserNotFoundException(username);
         Map<String, List<String>> userRoles = new HashMap<>();
         for (Role role : user.getRoles()) {
             List<String> privileges = new ArrayList<>();
@@ -220,9 +224,15 @@ public class TokenUserDetailsService implements UserDetailsService {
     /**
      * Exceptions thrown during user creation if a given user already exists
      */
-    static class UserAlreadyExistsException extends RuntimeException {
+    public static class UserAlreadyExistsException extends RuntimeException {
         public UserAlreadyExistsException(String username) {
             super("User with username '" + username + "' already exists!");
+        }
+    }
+
+    public static class UserNotFoundException extends UsernameNotFoundException {
+        public UserNotFoundException(String username) {
+            super("User with username '" + username + "' was not found!");
         }
     }
 }
