@@ -6,15 +6,19 @@ The User-Management is implemented with spring boot, spring data and uses spring
 
 ## User Database with MongoDB
 
-The User Management stores all user-related information (_Users_, _Roles_, _Privileges_) in a Mongo database, which has to be running in a separate container alongside the Runtime Platform. Upon starting the Runtime Platform via the `docker-compose` file, specific environment parameters can be set for the Runtime Platform, pertaining the spring boot configuration to interact with the MongoDB.
+The User Management stores all user-related information (_Users_, _Roles_, _Privileges_) in a Mongo database, which has to be running in a separate container alongside the Runtime Platform. Upon starting the Runtime Platform via the `docker-compose` file, specific environment parameters can be set for the Runtime Platform, pertaining the spring boot configuration to interact with the MongoDB. 
 
-The configuration for the MongoDB in the spring application is done by various environment variables, which determine the location of the running database, the name of the database as well as the authentication database and the authentication parameters. In total 6 values need to be set to establish a successful connection to the running MongoDB. These include the following values with the given prefix _spring.data.mongodb_:
-- _host_: Host address of MongoDB, when application is running in container -> use mongoDB container name, default `localhost`
-- _port_: Port of running MongoDB service, default `27017`
-- _authentication-database_: default `admin`
-- _database_: Name of the database to use, default `jiacpp-user-data`
-- _username_: Authentication username, default `user`
-- _password_: Authentication password, default `pass`
+The configuration for the MongoDB in the spring application is done by two environment variables. The first sets the connection URI and includes the _host_address_, _port_, _authentication_database_, and root _username_ & _password_. The second environment variable sets the name for the user _database_. The following values are the defaults set to each environment variable concerning the connection with the mongo database:
+
+- _uri_: default `mongodb://user:pass@localhost:27017/admin`
+- _database_: default `jiacpp-user-data`
+
+#### Uri Composition
+
+`mongodb://[username]:[password]@[host]:[port]/[authentication_database]`
+
+**NOTE:** \
+When starting the Runtime Platform and the MongoDB together, either through the docker-compose file or a modified launch configuration, the application might throw a _MongoSocketReadException_ due to the MongoDB container still starting up. This is a normal behavior and when configured correctly, the application should connect to the database shortly after. If the problem persist, check the connection URI and make sure
 
 The user-related information is stored in **MongoRepositories**, which is used to create basic CRUD queries to interact with the connected MongoDB. When interacting with the connected MongoDB, the `username` or `name` of the respective models will act as a unique _String_ identifier in the database.
 

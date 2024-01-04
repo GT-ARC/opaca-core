@@ -24,12 +24,8 @@ services:
       PASSWORD_PLATFORM:
       ROLE_PLATFORM:
       # MongoDB
-      DB_HOST: jiacpp-data
-      DB_PORT: 27017
-      DB_AUTH: admin
+      DB_URI: mongodb://user:pass@jiacpp-data:27017/admin
       DB_NAME: jiacpp-user-data
-      DB_USER: user
-      DB_PASS: pass
       # Image Registry Credentials
       REGISTRY_SEPARATOR:
       REGISTRY_NAMES:
