@@ -55,7 +55,7 @@ public class UserController {
             log.info(String.format("ADD USER: %s with roles: %s", user.getUsername(), user.getRoles()));
             return new ResponseEntity<>(userDetailsService.getUser(user.getUsername()), HttpStatus.CREATED);
         }
-        catch (UserAlreadyExistsException e) {
+        catch (UserAlreadyExistsException | IllegalArgumentException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
@@ -144,7 +144,7 @@ public class UserController {
             return new ResponseEntity<>(userDetailsService.updateUser(username, user.getUsername(), user.getPassword(),
                     convertRoles(user.getRoles())), HttpStatus.OK);
         }
-        catch(UserAlreadyExistsException | UserNotFoundException e) {
+        catch(UserAlreadyExistsException | UserNotFoundException | IllegalArgumentException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }

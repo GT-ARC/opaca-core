@@ -39,12 +39,12 @@ public class AuthTests {
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
                 "--username_platform=testUser", "--password_platform=testPwd", "--role_platform=ADMIN",
-                "--spring.data.mongodb.port=27018");
+                "--spring.data.mongodb.uri=mongodb://user:pass@localhost:27018/admin");
         platformB = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_B_PORT,
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
                 "--username_platform=testUser", "--password_platform=testPwd", "--role_platform=ADMIN",
-                "--spring.data.mongodb.port=27018");
+                "--spring.data.mongodb.uri=mongodb://user:pass@localhost:27018/admin");
     }
 
     @AfterClass
@@ -248,6 +248,20 @@ public class AuthTests {
     }
 
     @Test
+    public void test08InvalidUserAdd() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "POST", "/users",
+                getUser("invalidUser@", "password", "ROLE_CONTRIBUTOR"), token_A);
+        Assert.assertEquals(400, con.getResponseCode());
+    }
+
+    @Test
+    public void test08InvalidPasswordAdd() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "POST", "/users",
+                getUser("invalidUser", "pas\\sword", "ROLE_CONTRIBUTOR"), token_A);
+        Assert.assertEquals(400, con.getResponseCode());
+    }
+
+    @Test
     public void test08GetUsers() throws Exception {
         var con = requestWithToken(PLATFORM_A, "GET", "/users", null, token_A);
         Assert.assertEquals(200, con.getResponseCode());
@@ -278,6 +292,20 @@ public class AuthTests {
     public void test08EditUserNotFound() throws Exception {
         var con = requestWithToken(PLATFORM_A, "PUT", "/users/InvalidUsername",
                 getUser(null, null, "ROLE_IRRELEVANT"), token_A);
+        Assert.assertEquals(400, con.getResponseCode());
+    }
+
+    @Test
+    public void test08EditUserInvalidName() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "PUT", "/users/test",
+                getUser("test@newName", null, null), token_A);
+        Assert.assertEquals(400, con.getResponseCode());
+    }
+
+    @Test
+    public void test08EditUserInvalidPassword() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "PUT", "/users/test",
+                getUser(null, "newAwesomePassword\\", "ROLE_IRRELEVANT"), token_A);
         Assert.assertEquals(400, con.getResponseCode());
     }
 

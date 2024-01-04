@@ -1,6 +1,7 @@
 package de.dailab.jiacpp.platform.user;
 
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import jakarta.annotation.PostConstruct;
@@ -16,8 +17,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import de.dailab.jiacpp.platform.session.SessionData;
-
 
 /**
  * The purpose of the TokenUserDetailsService class is to provide user details 
@@ -28,9 +27,6 @@ import de.dailab.jiacpp.platform.session.SessionData;
  */
 @Service
 public class TokenUserDetailsService implements UserDetailsService {
-
-    @Autowired
-    private SessionData sessionData;
 
     @Autowired
     private PlatformConfig config;
@@ -50,9 +46,6 @@ public class TokenUserDetailsService implements UserDetailsService {
 
     @PostConstruct
 	public void postConstruct() {
-		tokenUserRepository = sessionData.tokenUserRepository;
-        roleRepository = sessionData.roleRepository;
-        privilegeRepository = sessionData.privilegeRepository;
         if (tokenUserRepository.findByUsername(config.usernamePlatform) == null) {
             Map<String, List<String>> userRoles = new HashMap<>();
             userRoles.put("ROLE_" + config.rolePlatform, List.of("ADMIN_PRIVILEGE"));
@@ -85,6 +78,8 @@ public class TokenUserDetailsService implements UserDetailsService {
             throw new UserAlreadyExistsException(username);
         }
         else {
+            validateString(username);
+            validateString(password);
             Collection<Role> userRoles = createRolesIfNotFound(roles);
             // TODO make a password a requirement
             String pwd = config.enableAuth ? password : "defaultPwd";
@@ -132,11 +127,23 @@ public class TokenUserDetailsService implements UserDetailsService {
      */
     public String updateUser(String username, String newUsername, String password, Map<String, List<String>> roles)
         throws UserNotFoundException {
+
+        // Check if there is an existing user
         TokenUser user = tokenUserRepository.findByUsername(username);
         if (user == null) throw new UserNotFoundException(username);
-        if (tokenUserRepository.findByUsername(newUsername) != null &&
-                !username.equals(newUsername)) throw new UserAlreadyExistsException(newUsername);
-        if (password != null) user.setPassword(passwordEncoder.encode(password));
+
+        // Check if username not taken and does not include invalid characters
+        if (newUsername != null) {
+            if (tokenUserRepository.findByUsername(newUsername) != null &&
+                    !username.equals(newUsername)) throw new UserAlreadyExistsException(newUsername);
+            validateString(newUsername);
+        }
+
+        // Validate and set password
+        if (password != null){
+            validateString(password);
+            user.setPassword(passwordEncoder.encode(password));
+        }
         if (roles != null) user.setRoles(createRolesIfNotFound(roles));
         if (newUsername != null) user.setUsername(newUsername);
         tokenUserRepository.save(user);
@@ -219,6 +226,12 @@ public class TokenUserDetailsService implements UserDetailsService {
             userRoles.put(role.getName(), privileges);
         }
         return userRoles;
+    }
+
+    private void validateString(String password) {
+        String valid = "^[a-zA-Z0-9$&+,:;=?#|'<>.^*()%!/-]+$";
+        if (!Pattern.compile(valid).matcher(password).matches())
+            throw new IllegalArgumentException("Invalid Character provided.");
     }
 
     /**
