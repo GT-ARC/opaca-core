@@ -2,7 +2,9 @@ package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.model.AgentContainerImage;
 import de.gtarc.opaca.model.AgentContainerImage.ImageParameter;
+import de.gtarc.opaca.model.LoginConnection;
 import de.gtarc.opaca.model.PostAgentContainer;
+import de.gtarc.opaca.model.RuntimePlatform;
 import de.gtarc.opaca.util.RestHelper;
 
 import java.io.IOException;
@@ -10,9 +12,13 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Class providing util methods and constants used by the other Test classes.
+ */
 public class TestUtils {
 
     /**
@@ -102,6 +108,31 @@ public class TestUtils {
 
     public static String error(HttpURLConnection connection) throws IOException {
         return new String(connection.getErrorStream().readAllBytes());
+    }
+
+    public static String getBaseUrl(String localUrl) throws IOException {
+        var con = request(localUrl, "GET", "/info", null);
+        return result(con, RuntimePlatform.class).getBaseUrl();
+    }
+
+    public static String postSampleContainer(String platformUrl) throws IOException {
+        var postContainer = getSampleContainerImage();
+        var con = request(platformUrl, "POST", "/containers", postContainer);
+        if (con.getResponseCode() != 200) {
+            var message = new String(con.getErrorStream().readAllBytes());
+            throw new IOException("Failed to POST sample container: " + message);
+        }
+        return result(con);
+    }
+
+    public static void connectPlatforms(String platformUrl, String connectedUrl) throws IOException {
+        var connectedBaseUrl = getBaseUrl(connectedUrl);
+        var loginCon = new LoginConnection(null, null, connectedBaseUrl);
+        var con = request(platformUrl, "POST", "/connections", loginCon);
+        if (con.getResponseCode() != 200) {
+            var message = new String(con.getErrorStream().readAllBytes());
+            throw new IOException("Failed to connect platforms: " + message);
+        }
     }
 
 }
