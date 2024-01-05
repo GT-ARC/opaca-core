@@ -1,0 +1,39 @@
+version: "3.3"
+
+services:
+
+  runtime-platform:
+    image: opaca-platform
+    build: .
+    ports:
+      - "8000:8000"
+    # Environment variables with no value after ":" are taken from .env file
+    environment:
+      # General Settings
+      PORT:
+      PUBLIC_URL:
+      CONTAINER_ENVIRONMENT:
+      PLATFORM_ENVIRONMENT: DOCKER
+      SESSION_POLICY:
+      CONTAINER_TIMEOUT_SEC:
+      DEFAULT_IMAGE_DIRECTORY:
+      # Security & Authentication
+      ENABLE_AUTH:
+      SECRET:
+      USERNAME_PLATFORM:
+      PASSWORD_PLATFORM:
+      # Image Registry Credentials
+      REGISTRY_SEPARATOR:
+      REGISTRY_NAMES:
+      REGISTRY_LOGINS:
+      REGISTRY_PASSWORDS:
+      # Docker (only for CONTAINER_ENVIRONMENT: DOCKER)
+      REMOTE_DOCKER_HOST:
+      REMOTE_DOCKER_PORT:
+      # Kubernetes (only for PLATFORM_ENVIRONMENT: KUBERNETES)
+      KUBERNETES_NAMESPACE:
+      KUBERNETES_CONFIG:
+    # for running containers on the same Docker as the platform itself
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
