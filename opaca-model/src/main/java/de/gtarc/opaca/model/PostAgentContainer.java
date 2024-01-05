@@ -23,6 +23,7 @@ public class PostAgentContainer {
     }
 
     /** the Image this container will be started from */
+    @NonNull
     AgentContainerImage image;
 
     /** Map of Arguments given to the AgentContainer for the Parameters of the Image */

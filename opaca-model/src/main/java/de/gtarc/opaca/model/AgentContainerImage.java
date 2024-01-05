@@ -22,6 +22,7 @@ public class AgentContainerImage {
     // REQUIRED attributes for starting a container
 
     /** full path of the (Docker) Container, including repository and version */
+    @NonNull
     String imageName;
 
     /** list of required features, e.g. available agents, actions, or platform features */
