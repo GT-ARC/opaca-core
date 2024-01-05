@@ -13,6 +13,7 @@ import de.dailab.jiacpp.platform.session.SessionData;
 import de.dailab.jiacpp.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.dailab.jiacpp.util.EventHistory;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -71,10 +72,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         this.connectedPlatforms = sessionData.connectedPlatforms;
 
         // initialize container client based on environment
-        if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.DOCKER) {
+        if (config.containerEnvironment == PostAgentContainer.ContainerEnvironment.DOCKER) {
             log.info("Using Docker on host " + config.remoteDockerHost);
             this.containerClient = new DockerClient();
-        } else if (config.containerEnvironment == PlatformConfig.ContainerEnvironment.KUBERNETES) {
+        } else if (config.containerEnvironment == PostAgentContainer.ContainerEnvironment.KUBERNETES) {
             log.info("Using Kubernetes with namespace " + config.kubernetesNamespace);
             this.containerClient = new KubernetesClient();
         } else {
@@ -218,6 +219,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public String addContainer(PostAgentContainer postContainer) throws IOException {
+        checkConfig(postContainer);
         String agentContainerId = UUID.randomUUID().toString();
         String token = config.enableAuth ? jwtUtil.generateTokenForAgentContainer(agentContainerId) : "";
 
@@ -235,7 +237,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 runningContainers.put(agentContainerId, container);
                 startedContainers.put(agentContainerId, postContainer);
                 tokens.put(agentContainerId, token);
-                userDetailsService.addUser(agentContainerId, agentContainerId);
+                userDetailsService.addUser(agentContainerId, generateRandomPwd());
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
                     log.warning("Agent Container ID does not match: Expected " +
@@ -483,6 +485,20 @@ public class PlatformImpl implements RuntimePlatformApi {
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid URL: " + e.getMessage());
         }
+    }
+
+    private void checkConfig(PostAgentContainer request) {
+        if (request.getClientConfig() != null && request.getClientConfig().getType() != config.containerEnvironment) {
+            throw new IllegalArgumentException(String.format("Client Config %s does not match Container Environment %s",
+                    request.getClientConfig().getType(), config.containerEnvironment));
+        }
+    }
+
+    /**
+     * Creates a random String of length 24 containing upper and lower case characters as well as number
+     */
+    private String generateRandomPwd() {
+        return RandomStringUtils.random(24, true, true);
     }
 
 }

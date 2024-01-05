@@ -18,28 +18,38 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     private var lastMessage: Any? = null
     private var lastBroadcast: Any? = null
 
-    private var extraActions = mutableListOf<Action>()
+    override fun preStart() {
+        super.preStart()
 
-    override fun getDescription() = AgentDescription(
-        this.name,
-        this.javaClass.name,
-        listOf(
-            Action("DoThis", mapOf(Pair("message", "String"), Pair("sleep_seconds", "Int")), "String"),
-            Action("GetInfo", mapOf(), "Map"),
-            Action("GetEnv", mapOf(), "Map"),
-            Action("Add", mapOf(Pair("x", "String"), Pair("y", "Int")), "Int"),
-            Action("Fail", mapOf(), "void"),
-            // actions for testing modifying agents and actions at runtime
-            Action("CreateAction", mapOf(Pair("name", "String"), Pair("notify", "Boolean")), "void"),
-            Action("SpawnAgent", mapOf(Pair("name", "String")), "void"),
-            Action("Deregister", mapOf(), "void")
-        ).plus(extraActions),
-        listOf(
-            Stream("GetStream", Stream.Mode.GET)
-        )
-    )
+        addAction("DoThis", mapOf("message" to "String", "sleep_seconds" to "Int"), "String") {
+            actionDoThis(it["message"]!!.asText(), it["sleep_seconds"]!!.asInt())
+        }
+        addAction("GetInfo", mapOf(), "Map") {
+            actionGetInfo()
+        }
+        addAction("GetEnv", mapOf(), "Map") {
+            actionGetEnv()
+        }
+        addAction("Add", mapOf("x" to "String", "y" to "Int"), "Int") {
+            actionAdd(it["x"]!!.asInt(), it["y"]!!.asInt())
+        }
+        addAction("Fail", mapOf(), "void") {
+            actionFail()
+        }
+        addAction("CreateAction", mapOf("name" to "String", "notify" to "Boolean"), "void") {
+            createAction(it["name"]!!.asText(), it["notify"]!!.asBoolean())
+        }
+        addAction("SpawnAgent", mapOf("name" to "String"), "void") {
+            spawnAgent(it["name"]!!.asText())
+        }
+        addAction("Deregister", mapOf(), "void") {
+            deregister(false)
+        }
 
-    override fun behaviour() = act {
+        addStream("GetStream", Stream.Mode.GET, this::actionGetStream)
+    }
+
+    override fun behaviour() = super.behaviour().and(act {
 
         on<Message> {
             log.info("ON $it")
@@ -50,31 +60,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             log.info("LISTEN $it")
             lastBroadcast = it.payload
         }
-
-        respond<Invoke, Any?> {
-            log.info("RESPOND $it")
-            when (it.name) {
-                "DoThis" -> actionDoThis(it.parameters["message"]!!.asText(), it.parameters["sleep_seconds"]!!.asInt())
-                "Add" -> actionAdd(it.parameters["x"]!!.asInt(), it.parameters["y"]!!.asInt())
-                "GetInfo" -> actionGetInfo()
-                "GetEnv" -> actionGetEnv()
-                "Fail" -> actionFail()
-                "CreateAction" -> createAction(it.parameters["name"]!!.asText(), it.parameters["notify"]!!.asBoolean())
-                "SpawnAgent" -> spawnAgent(it.parameters["name"]!!.asText())
-                "Deregister" -> deregister(false)
-                in extraActions.map { a -> a.name } -> "Called extra action ${it.name}"
-                else -> Unit
-            }
-        }
-
-        respond<StreamInvoke, Any?> {
-            when (it.name) {
-                "GetStream" -> actionGetStream()
-                else -> null
-            }
-        }
-    }
-
+    })
 
     private fun actionGetStream(): ByteArrayInputStream {
         val data = "{\"key\":\"value\"}".toByteArray(Charset.forName("UTF-8"))
@@ -107,7 +93,9 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     private fun actionGetEnv() = System.getenv()
 
     private fun createAction(name: String, notify: Boolean) {
-        extraActions.add(Action(name, mapOf(), "String"))
+        addAction(name, mapOf(), "String") {
+            "Called extra action $name"
+        }
         register(notify)
     }
 

@@ -3,6 +3,7 @@ package de.dailab.jiacpp.platform;
 import com.google.common.base.Strings;
 import de.dailab.jiacpp.api.AgentContainerApi;
 import de.dailab.jiacpp.model.AgentContainerImage;
+import de.dailab.jiacpp.model.PostAgentContainer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.ToString;
@@ -20,7 +21,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * Settings for the Runtime Platform. This is not a part of the JIAC++ model since
+ * Settings for the Runtime Platform. This is not a part of the OPACA model since
  * most of these settings are platform specific and might be different for different
  * implementations of the Runtime Platform, e.g. using Docker vs. Kubernetes.
  */
@@ -38,7 +39,7 @@ public class PlatformConfig {
     public String publicUrl;
 
     @Value("${container_environment}")
-    public ContainerEnvironment containerEnvironment;
+    public PostAgentContainer.ContainerEnvironment containerEnvironment;
 
     @Value("${platform_environment}")
     public PlatformEnvironment platformEnvironment;
@@ -96,6 +97,9 @@ public class PlatformConfig {
     @Value("${kubernetes_config}")
     public String kubernetesConfig;
 
+    // cached value; either publicUrl, if set, or derived from runtime environment and port
+    private String ownBaseUrl = null;
+
     @PostConstruct
     private void initialize() {
         log.info("Started with Config: " + this);
@@ -109,10 +113,6 @@ public class PlatformConfig {
         SHUTDOWN, RESTART, RECONNECT
     }
 
-    public enum ContainerEnvironment {
-        DOCKER, KUBERNETES
-    }
-
 
     /**
      * Get Host IP address. Should return preferred outbound address.
@@ -122,7 +122,9 @@ public class PlatformConfig {
         if (publicUrl != null) {
             return publicUrl;
         }
-
+        if (ownBaseUrl != null) {
+            return ownBaseUrl;
+        }
         String host;
         if (platformEnvironment == PlatformEnvironment.NATIVE) {
             try (DatagramSocket socket = new DatagramSocket()) {
@@ -139,7 +141,8 @@ public class PlatformConfig {
         } else {
             throw new RuntimeException("Error determining base URL: Unsupported environment");
         }
-        return "http://" + host + ":" + serverPort;
+        ownBaseUrl = "http://" + host + ":" + serverPort;
+        return ownBaseUrl;
     }
 
     /**

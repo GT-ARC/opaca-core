@@ -47,7 +47,7 @@ public class AgentContainer {
         @NonNull
         String publicUrl;
 
-        /** where the port where the container provides the JIAC++ API is mapped to */
+        /** where the port where the container provides the OPACA API is mapped to */
         int apiPortMapping;
 
         /** where additional ports exposed by the container are mapped to */
