@@ -5,6 +5,7 @@ import de.gtarc.opaca.api.AgentContainerApi;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 
 import java.util.List;
 import java.util.Map;
@@ -21,12 +22,15 @@ public class AgentContainerImage {
     // REQUIRED attributes for starting a container
 
     /** full path of the (Docker) Container, including repository and version */
+    @NonNull
     String imageName;
 
     /** list of required features, e.g. available agents, actions, or platform features */
+    @NonNull
     List<String> requires = List.of();
 
     /** special features provided by this container */
+    @NonNull
     List<String> provides = List.of();
 
     // OPTIONAL attributes for description of the container (e.g. in a repository, or of the container itself)
@@ -46,12 +50,14 @@ public class AgentContainerImage {
     // OPTIONAL attributes for API port (if not default) and extra ports (if any)
 
     /** the port where the container provides the OPACA API; by default this is 8082 but another may be used */
-    Integer apiPort = AgentContainerApi.DEFAULT_PORT;
+    int apiPort = AgentContainerApi.DEFAULT_PORT;
 
     /** additional ports exposed by the container and the protocols and services those provide */
+    @NonNull
     Map<Integer, PortDescription> extraPorts = Map.of();
 
     /** additional parameters that get handed down to the container as environment variables */
+    @NonNull
     List<ImageParameter> parameters = List.of();
 
     @Data @AllArgsConstructor @NoArgsConstructor
@@ -72,9 +78,9 @@ public class AgentContainerImage {
 
         String type;
 
-        Boolean required = false;
+        boolean required = false;
 
-        Boolean confidential = false;
+        boolean confidential = false;
 
         String defaultValue = null;
 

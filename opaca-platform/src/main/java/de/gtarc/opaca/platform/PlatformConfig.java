@@ -182,7 +182,7 @@ public class PlatformConfig {
         for (AgentContainerImage.ImageParameter param : parameters) {
             if (arguments.containsKey(param.getName())) {
                 env.put(param.getName(), arguments.get(param.getName()));
-            } else if (! param.getRequired()) {
+            } else if (! param.isRequired()) {
                 env.put(param.getName(), param.getDefaultValue());
             } else {
                 throw new IllegalArgumentException("Missing required parameter: " + param.getName());

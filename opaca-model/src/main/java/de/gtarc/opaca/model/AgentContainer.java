@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -16,18 +17,23 @@ import java.util.Map;
 public class AgentContainer {
 
     /** ID of the container; does not necessarily have to be the Docker Container ID */
+    @NonNull
     String containerId;
 
     /** the Image this container was started from */
+    @NonNull
     AgentContainerImage image;
 
     /** Map of Arguments given to the AgentContainer for the Parameters of the Image */
+    @NonNull
     Map<String, String> arguments = Map.of();
 
     /** list of agents running on this container; this might change during its life-time */
-    List<AgentDescription> agents;
+    @NonNull
+    List<AgentDescription> agents = List.of();
 
     /** when the container was started */
+    @NonNull
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "Z")
     ZonedDateTime runningSince;
 
@@ -38,13 +44,15 @@ public class AgentContainer {
     public static class Connectivity {
 
         /** this container's public URL (e.g. the URL of the Runtime Platform, Docker Host, or Kubernetes Node */
+        @NonNull
         String publicUrl;
 
         /** where the port where the container provides the OPACA API is mapped to */
-        Integer apiPortMapping;
+        int apiPortMapping;
 
         /** where additional ports exposed by the container are mapped to */
-        Map<Integer, AgentContainerImage.PortDescription> extraPortMappings;
+        @NonNull
+        Map<Integer, AgentContainerImage.PortDescription> extraPortMappings = Map.of();
 
     }
 
