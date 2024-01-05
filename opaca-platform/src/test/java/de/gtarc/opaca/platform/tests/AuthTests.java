@@ -14,6 +14,16 @@ import org.springframework.context.ConfigurableApplicationContext;
 import java.util.Map;
 
 
+/**
+ * Testing different aspects of authentication, e.g. logging in with correct, incorrect or missing credentials.
+ * There are some dependencies between the tests in this module, indicated by the numbers in the tests' names:
+ * 1. testing login with correct or incorrect credentials
+ * 2. calling another route with correct or incorrect token
+ * 3. deploy a container
+ * 4. invoke routes of that container with/without proper auth
+ * 5. connect platform, ...
+ * 6. etc.
+ */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class AuthTests {
 
@@ -29,8 +39,6 @@ public class AuthTests {
     private static String containerId = null;
     private static String containerIP = null;
     private static String containerToken = null;
-
-
 
     
     @BeforeClass
@@ -66,6 +74,7 @@ public class AuthTests {
         Assert.assertNotNull(token_B);
     }
     
+    @Test
     public void test1LoginMissingAuth() throws Exception {
         var con = request(PLATFORM_A, "POST", "/login", null);
         Assert.assertEquals(400, con.getResponseCode());
@@ -95,7 +104,6 @@ public class AuthTests {
         var con_B = requestWithToken(PLATFORM_B, "GET", "/info", null, token_B);
         Assert.assertEquals(200, con_B.getResponseCode());
     }
-
     
     @Test
     public void test2WithWrongToken() throws Exception {
@@ -130,7 +138,7 @@ public class AuthTests {
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
         containerToken = (String) res.get("TOKEN");
-        Assert.assertTrue(containerToken != null && ! containerToken.equals(""));
+        Assert.assertTrue(containerToken != null && ! containerToken.isEmpty());
 
         // container token can be used to call platform routes
         con = requestWithToken(PLATFORM_A, "GET", "/info", null, containerToken);
@@ -201,7 +209,7 @@ public class AuthTests {
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
         containerToken = (String) res.get("TOKEN");
-        Assert.assertTrue(containerToken != null && ! containerToken.equals(""));
+        Assert.assertTrue(containerToken != null && ! containerToken.isEmpty());
     }
 
     // Helper methods

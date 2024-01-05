@@ -16,6 +16,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Class providing util methods and constants used by the other Test classes.
+ */
 public class TestUtils {
 
     /**
