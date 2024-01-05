@@ -3,6 +3,7 @@ package de.gtarc.opaca.model;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 
 import java.util.Map;
 
@@ -13,12 +14,15 @@ import java.util.Map;
 public class Action {
 
     /** name of the action */
+    @NonNull
     String name;
 
     /** parameter names and types */
-    Map<String, String> parameters;
+    @NonNull
+    Map<String, String> parameters = Map.of();
 
     /** type of result */
+    @NonNull
     String result;
 
 }

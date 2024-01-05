@@ -16,7 +16,8 @@ public class LoginConnection {
     /** Password used to authenticate the user */
     String password;
 
-    /** Url of another platform to connect to */
+    /** URL of another platform to connect to */
+    @NonNull
     String url;
 
 }

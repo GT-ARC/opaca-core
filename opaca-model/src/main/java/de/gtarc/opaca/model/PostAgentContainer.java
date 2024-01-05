@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 
 import java.util.Map;
 
@@ -22,9 +23,11 @@ public class PostAgentContainer {
     }
 
     /** the Image this container will be started from */
+    @NonNull
     AgentContainerImage image;
 
     /** Map of Arguments given to the AgentContainer for the Parameters of the Image */
+    @NonNull
     Map<String, String> arguments = Map.of();
 
     /** optional configuration for container client */
