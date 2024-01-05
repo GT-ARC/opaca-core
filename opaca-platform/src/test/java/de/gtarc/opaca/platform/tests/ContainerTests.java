@@ -28,9 +28,9 @@ import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
 public class ContainerTests {
 
-    private static final int PORT = 8003;
+    private static final int PLATFORM_PORT = 8003;
 
-    private static final String PLATFORM_URL = "http://localhost:" + PORT;
+    private static final String PLATFORM_URL = "http://localhost:" + PLATFORM_PORT;
 
     private static ConfigurableApplicationContext platform = null;
 
@@ -39,7 +39,7 @@ public class ContainerTests {
     @BeforeClass
     public static void setupPlatform() throws IOException {
         platform = SpringApplication.run(Application.class,
-                "--server.port=" + PORT);
+                "--server.port=" + PLATFORM_PORT);
         containerId = postSampleContainer(PLATFORM_URL);
     }
 

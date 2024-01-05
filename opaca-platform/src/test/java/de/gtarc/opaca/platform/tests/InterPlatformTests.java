@@ -19,8 +19,8 @@ public class InterPlatformTests {
     private static final int PLATFORM_A_PORT = 8004;
     private static final int PLATFORM_B_PORT = 8005;
 
-    private static final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
-    private static final String PLATFORM_B = "http://localhost:" + PLATFORM_B_PORT;
+    private static final String PLATFORM_A_URL = "http://localhost:" + PLATFORM_A_PORT;
+    private static final String PLATFORM_B_URL = "http://localhost:" + PLATFORM_B_PORT;
 
     private static ConfigurableApplicationContext platformA = null;
     private static ConfigurableApplicationContext platformB = null;
@@ -33,8 +33,8 @@ public class InterPlatformTests {
                 "--server.port=" + PLATFORM_A_PORT);
         platformB = SpringApplication.run(Application.class,
                 "--server.port=" + PLATFORM_B_PORT);
-        containerId = postSampleContainer(PLATFORM_A);
-        connectPlatforms(PLATFORM_B, PLATFORM_A);
+        containerId = postSampleContainer(PLATFORM_A_URL);
+        connectPlatforms(PLATFORM_B_URL, PLATFORM_A_URL);
     }
 
     @AfterClass
@@ -50,7 +50,7 @@ public class InterPlatformTests {
     @Test
     public void testForwardInvokeAction() throws Exception {
         var params = Map.of("x", 23, "y", 42);
-        var con = request(PLATFORM_B, "POST", "/invoke/Add", params);
+        var con = request(PLATFORM_B_URL, "POST", "/invoke/Add", params);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Integer.class);
         Assert.assertEquals(65L, res.longValue());
@@ -63,7 +63,7 @@ public class InterPlatformTests {
     @Test
     public void testForwardInvokeAgentAction() throws Exception {
         for (String name : List.of("sample1", "sample2")) {
-            var con = request(PLATFORM_B, "POST", "/invoke/GetInfo/" + name, Map.of());
+            var con = request(PLATFORM_B_URL, "POST", "/invoke/GetInfo/" + name, Map.of());
             var res = result(con, Map.class);
             Assert.assertEquals(name, res.get("name"));
         }
@@ -76,10 +76,10 @@ public class InterPlatformTests {
     @Test
     public void testForwardSend() throws Exception {
         var message = Map.of("payload", "testMessage", "replyTo", "doesnotmatter");
-        var con = request(PLATFORM_B, "POST", "/send/sample1", message);
+        var con = request(PLATFORM_B_URL, "POST", "/send/sample1", message);
         Assert.assertEquals(200, con.getResponseCode());
 
-        con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample1", Map.of());
+        con = request(PLATFORM_A_URL, "POST", "/invoke/GetInfo/sample1", Map.of());
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
         Assert.assertEquals("testMessage", res.get("lastMessage"));
@@ -92,11 +92,11 @@ public class InterPlatformTests {
     @Test
     public void testForwardBroadcast() throws Exception {
         var message = Map.of("payload", "testBroadcastForward", "replyTo", "doesnotmatter");
-        var con = request(PLATFORM_B, "POST", "/broadcast/topic", message);
+        var con = request(PLATFORM_B_URL, "POST", "/broadcast/topic", message);
         Assert.assertEquals(200, con.getResponseCode());
         Thread.sleep(500);
 
-        con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample1", Map.of());
+        con = request(PLATFORM_A_URL, "POST", "/invoke/GetInfo/sample1", Map.of());
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
         Assert.assertEquals("testBroadcastForward", res.get("lastBroadcast"));
@@ -108,7 +108,7 @@ public class InterPlatformTests {
     @Test
     public void testNoForwardInvoke() throws Exception {
         var params = Map.of("x", 23, "y", 42);
-        var con = request(PLATFORM_B, "POST", "/invoke/Add?forward=false", params);
+        var con = request(PLATFORM_B_URL, "POST", "/invoke/Add?forward=false", params);
         Assert.assertEquals(404, con.getResponseCode());
     }
 
@@ -118,7 +118,7 @@ public class InterPlatformTests {
     @Test
     public void testNoForwardSend() throws Exception {
         var message = Map.of("payload", "testMessage", "replyTo", "doesnotmatter");
-        var con = request(PLATFORM_B, "POST", "/send/sample1?forward=false", message);
+        var con = request(PLATFORM_B_URL, "POST", "/send/sample1?forward=false", message);
         Assert.assertEquals(404, con.getResponseCode());
     }
 
@@ -128,10 +128,10 @@ public class InterPlatformTests {
     @Test
     public void testNoForwardBroadcast() throws Exception {
         var message = Map.of("payload", "testBroadcastNoForward", "replyTo", "doesnotmatter");
-        var con = request(PLATFORM_B, "POST", "/broadcast/topic?forward=false", message);
+        var con = request(PLATFORM_B_URL, "POST", "/broadcast/topic?forward=false", message);
         Assert.assertEquals(200, con.getResponseCode());
         // no error, but message was not forwarded
-        con = request(PLATFORM_A, "POST", "/invoke/GetInfo/sample1", Map.of());
+        con = request(PLATFORM_A_URL, "POST", "/invoke/GetInfo/sample1", Map.of());
         var res = result(con, Map.class);
         Assert.assertNotEquals("testBroadcastNoForward", res.get("lastBroadcast"));
     }
@@ -141,19 +141,19 @@ public class InterPlatformTests {
      */
     @Test
     public void testPlatformNotify() throws Exception {
-        var platformABaseUrl = getBaseUrl(PLATFORM_A);
-        var con2 = request(PLATFORM_B, "POST", "/connections/notify", platformABaseUrl);
+        var platformABaseUrl = getBaseUrl(PLATFORM_A_URL);
+        var con2 = request(PLATFORM_B_URL, "POST", "/connections/notify", platformABaseUrl);
         Assert.assertEquals(200, con2.getResponseCode());
     }
 
     @Test
     public void testInvalidPlatformNotify() throws Exception {
         // unknown platform
-        var con2 = request(PLATFORM_A, "POST", "/connections/notify", "http://platform-does-not-exist.com");
+        var con2 = request(PLATFORM_A_URL, "POST", "/connections/notify", "http://platform-does-not-exist.com");
         Assert.assertEquals(404, con2.getResponseCode());
 
         // invalid platform
-        var con3 = request(PLATFORM_A, "POST", "/connections/notify", "invalid-url");
+        var con3 = request(PLATFORM_A_URL, "POST", "/connections/notify", "invalid-url");
         Assert.assertEquals(400, con3.getResponseCode());
     }
 
@@ -164,23 +164,23 @@ public class InterPlatformTests {
     @Test
     public void testAddNewActionManualNotify() throws Exception {
         // create new agent action
-        var con = request(PLATFORM_A, "POST", "/invoke/CreateAction/sample1", Map.of("name", "TemporaryTestAction", "notify", "false"));
+        var con = request(PLATFORM_A_URL, "POST", "/invoke/CreateAction/sample1", Map.of("name", "TemporaryTestAction", "notify", "false"));
         Assert.assertEquals(200, con.getResponseCode());
 
         // new action has been created, but platform has not yet been notified --> action is unknown
-        con = request(PLATFORM_A, "POST", "/invoke/TemporaryTestAction/sample1", Map.of());
+        con = request(PLATFORM_A_URL, "POST", "/invoke/TemporaryTestAction/sample1", Map.of());
         Assert.assertEquals(404, con.getResponseCode());
 
         // notify platform about updates in container, after which the new action is known
-        con = request(PLATFORM_A, "POST", "/containers/notify", containerId);
+        con = request(PLATFORM_A_URL, "POST", "/containers/notify", containerId);
         Assert.assertEquals(200, con.getResponseCode());
 
         // try to invoke the new action, which should now succeed
-        con = request(PLATFORM_A, "POST", "/invoke/TemporaryTestAction/sample1", Map.of());
+        con = request(PLATFORM_A_URL, "POST", "/invoke/TemporaryTestAction/sample1", Map.of());
         Assert.assertEquals(200, con.getResponseCode());
 
         // platform A has also already notified platform B about its changes
-        con = request(PLATFORM_B, "POST", "/invoke/TemporaryTestAction", Map.of());
+        con = request(PLATFORM_B_URL, "POST", "/invoke/TemporaryTestAction", Map.of());
         Assert.assertEquals(200, con.getResponseCode());
     }
 
