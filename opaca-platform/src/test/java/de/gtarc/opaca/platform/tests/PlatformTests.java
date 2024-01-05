@@ -15,8 +15,13 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import static de.gtarc.opaca.platform.tests.TestUtils.*;
-
+/**
+ * Different tests testing especially stuff related to the Runtime Platform, such as deploying and removing
+ * containers, connecting platforms, etc. The tests in this module should all be independent and able to
+ * run individually or in any order.
+ * At the start of this module, two Runtime Platforms are started, but not connected, without any containers.
+ * The same state should also be maintained after each test.
+ */
 public class PlatformTests {
 
     private static final int PLATFORM_A_PORT = 8001;
@@ -42,6 +47,18 @@ public class PlatformTests {
     public static void stopPlatform() {
         platformA.close();
         platformB.close();
+    }
+
+    @After
+    public void checkInvariant() throws Exception {
+        var con1 = request(PLATFORM_A_URL, "GET", "/info", null);
+        var res1 = result(con1, RuntimePlatform.class);
+        Assert.assertTrue(res1.getConnections().isEmpty());
+        Assert.assertTrue(res1.getConnections().isEmpty());
+        var con2 = request(PLATFORM_B_URL, "GET", "/info", null);
+        var res2 = result(con2, RuntimePlatform.class);
+        Assert.assertTrue(res2.getContainers().isEmpty());
+        Assert.assertTrue(res2.getConnections().isEmpty());
     }
 
     /**
@@ -315,9 +332,6 @@ public class PlatformTests {
         Assert.assertFalse(res);
     }
 
-    /**
-     * TODO does this fit here? or rather into ContainerTests?
-     */
     @Test
     public void testImageParams() throws Exception {
         var image = getSampleContainerImage();

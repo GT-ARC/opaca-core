@@ -3,12 +3,11 @@ package de.gtarc.opaca.platform.tests;
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.AgentDescription;
+import de.gtarc.opaca.model.RuntimePlatform;
 import de.gtarc.opaca.platform.Application;
 
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import de.gtarc.opaca.util.RestHelper;
+import org.junit.*;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -26,6 +25,13 @@ import java.util.stream.Stream;
 
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
+/**
+ * This module is for tests that require the sample agent container to be deployed for e.g. testing invoking actions.
+ * The tests should not deploy other container, or if so, those should be removed after the test. In general, all the
+ * tests should be (and remain) independent of each other, able to run individually or in any order.
+ * At the start, a single runtime platform is started and a sample-agent-container is deployed. That state should be
+ * maintained after each test.
+ */
 public class ContainerTests {
 
     private static final int PLATFORM_PORT = 8003;
@@ -48,6 +54,14 @@ public class ContainerTests {
         platform.close();
     }
 
+    @After
+    public void checkInvariant() throws Exception {
+        var con1 = request(PLATFORM_URL, "GET", "/info", null);
+        var res1 = result(con1, RuntimePlatform.class);
+        Assert.assertEquals(1, res1.getContainers().size());
+        var agents = res1.getContainers().get(0).getAgents();
+        Assert.assertEquals(2, agents.size());
+    }
 
     /**
      * get container info
@@ -266,7 +280,6 @@ public class ContainerTests {
     public void testInvalidContainerNotify() throws Exception {
         var con1 = request(PLATFORM_URL, "POST", "/containers/notify", "container-does-not-exist");
         Assert.assertEquals(404, con1.getResponseCode());
-
     }
 
     /**

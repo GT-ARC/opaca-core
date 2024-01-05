@@ -1,10 +1,8 @@
 package de.gtarc.opaca.platform.tests;
 
+import de.gtarc.opaca.model.RuntimePlatform;
 import de.gtarc.opaca.platform.Application;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -14,6 +12,12 @@ import java.util.Map;
 
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
+/**
+ * The tests in this module test the communication between platform. During setup, two runtime platforms are started,
+ * the platforms are connected, and a sample-agent-container is deployed on the first platform. This setup should not
+ * be changed by tests (or if changed, than those changes should be reverted in the test itself) so tests can all
+ * run independently or in any order.
+ */
 public class InterPlatformTests {
 
     private static final int PLATFORM_A_PORT = 8004;
@@ -41,6 +45,20 @@ public class InterPlatformTests {
     public static void stopPlatforms() {
         platformA.close();
         platformB.close();
+    }
+
+    @After
+    public void checkInvariant() throws Exception {
+        var con1 = request(PLATFORM_A_URL, "GET", "/info", null);
+        var res1 = result(con1, RuntimePlatform.class);
+        Assert.assertEquals(1, res1.getConnections().size());
+        Assert.assertEquals(1, res1.getConnections().size());
+        var agents = res1.getContainers().get(0).getAgents();
+        Assert.assertEquals(2, agents.size());
+        var con2 = request(PLATFORM_B_URL, "GET", "/info", null);
+        var res2 = result(con2, RuntimePlatform.class);
+        Assert.assertTrue(res2.getContainers().isEmpty());
+        Assert.assertEquals(1, res2.getConnections().size());
     }
 
     /**
