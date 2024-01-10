@@ -141,8 +141,7 @@ public class ContainerTests {
     }
 
     /**
-     * test that action invocation fails if it does not respond within
-     * the specified time
+     * test that action invocation fails if it does not respond within the specified time
      * TODO this is not ideal yet... the original error may contain a descriptive message that is lost
      */
     @Test
@@ -430,6 +429,17 @@ public class ContainerTests {
         System.out.println(System.currentTimeMillis() - start);
         Assert.assertTrue("At least 1 of the 2 requests failed.", noErrorsDetected.get());
         Assert.assertTrue(System.currentTimeMillis() - start < 8 * 1000);
+    }
+
+    /**
+     * if auth is disabled, no token should be passed to container
+     */
+    @Test
+    public void testAuthNoToken() throws Exception {
+        var con = request(PLATFORM_URL, "POST", "/invoke/GetInfo", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+        Assert.assertEquals("", res.get(AgentContainerApi.ENV_TOKEN));
     }
 
 }
