@@ -248,6 +248,13 @@ public class AuthTests {
     }
 
     @Test
+    public void test08AddMissingParams() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "POST", "/users",
+                getUser("Invalid", null, "ROLE_IRRELEVEANT"), token_A);
+        Assert.assertEquals(400, con.getResponseCode());
+    }
+
+    @Test
     public void test08InvalidUserAdd() throws Exception {
         var con = requestWithToken(PLATFORM_A, "POST", "/users",
                 getUser("invalidUser@", "password", "ROLE_CONTRIBUTOR"), token_A);
@@ -307,6 +314,16 @@ public class AuthTests {
         var con = requestWithToken(PLATFORM_A, "PUT", "/users/test",
                 getUser(null, "newAwesomePassword\\", "ROLE_IRRELEVANT"), token_A);
         Assert.assertEquals(400, con.getResponseCode());
+    }
+
+    @Test
+    public void test08EditUserAndLogin() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "PUT", "/users/test",
+                getUser("test", "newPwd", null), token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+        con = request(PLATFORM_A, "POST", "/login" +
+                authQuery("test", "newPwd"), null);
+        Assert.assertEquals(200, con.getResponseCode());
     }
 
     @Test

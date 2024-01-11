@@ -30,15 +30,27 @@ public class UserController {
     private final JwtUtil jwtUtil;
     private final PlatformConfig config;
 
-    /*
-     * USER MANAGEMENT
-     */
-
     UserController(TokenUserDetailsService userDetailsService, JwtUtil jwtUtil, PlatformConfig config){
         this.userDetailsService = userDetailsService;
         this.jwtUtil = jwtUtil;
         this.config = config;
     }
+
+    /*
+     * EXCEPTION HANDLERS
+     */
+
+    @ExceptionHandler({IllegalArgumentException.class, UserAlreadyExistsException.class, UserNotFoundException.class,
+        UsernameNotFoundException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<String> handleBadRequestException(Exception e) {
+        log.warning(e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
+    /*
+     * USER MANAGEMENT
+     */
 
     /**
      * Creates a new user and adds it to the database.
@@ -50,14 +62,13 @@ public class UserController {
     public ResponseEntity<?> addUser(
             @RequestBody User user) {
 
-        try {
-            userDetailsService.createUser(user.getUsername(), user.getPassword(), convertRoles(user.getRoles()));
-            log.info(String.format("ADD USER: %s with roles: %s", user.getUsername(), user.getRoles()));
-            return new ResponseEntity<>(userDetailsService.getUser(user.getUsername()), HttpStatus.CREATED);
+        // Throw error if a value is null
+        if (user.getUsername() == null || user.getPassword() == null || user.getRoles() == null) {
+            throw new IllegalArgumentException("Missing Parameter");
         }
-        catch (UserAlreadyExistsException | IllegalArgumentException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
+        userDetailsService.createUser(user.getUsername(), user.getPassword(), convertRoles(user.getRoles()));
+        log.info(String.format("ADD USER: %s with roles: %s", user.getUsername(), user.getRoles()));
+        return new ResponseEntity<>(userDetailsService.getUser(user.getUsername()), HttpStatus.CREATED);
     }
 
     /**
@@ -75,12 +86,7 @@ public class UserController {
 
         if (!config.enableAuth || isAdminOrSelf(token, username)){
             log.info(String.format("DELETE USER: %s", username));
-            try {
-                return new ResponseEntity<>(userDetailsService.removeUser(username), HttpStatus.OK);
-            }
-            catch (UsernameNotFoundException e) {
-                return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-            }
+            return new ResponseEntity<>(userDetailsService.removeUser(username), HttpStatus.OK);
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN);
     }
@@ -100,12 +106,7 @@ public class UserController {
 
         if (!config.enableAuth || isAdminOrSelf(token, username)){
             log.info(String.format("GET USER: %s", username));
-            try {
-                return new ResponseEntity<>(userDetailsService.getUser(username), HttpStatus.OK);
-            }
-            catch (UsernameNotFoundException e) {
-                return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-            }
+            return new ResponseEntity<>(userDetailsService.getUser(username), HttpStatus.OK);
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 
@@ -140,15 +141,15 @@ public class UserController {
         if (user.getPassword() != null) logOut += "NEW PASSWORD ";
         if (user.getRoles() != null && !user.getRoles().isEmpty()) logOut += String.format("NEW ROLES: %s", user.getRoles());
         log.info(logOut + ")");
-        try {
-            return new ResponseEntity<>(userDetailsService.updateUser(username, user.getUsername(), user.getPassword(),
-                    convertRoles(user.getRoles())), HttpStatus.OK);
-        }
-        catch(UserAlreadyExistsException | UserNotFoundException | IllegalArgumentException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
+        return new ResponseEntity<>(userDetailsService.updateUser(username, user.getUsername(), user.getPassword(),
+                convertRoles(user.getRoles())), HttpStatus.OK);
     }
 
+    // Helper methods
+
+    /**
+     * Convert roles from User.Role to String representations
+     */
     private Map<String, List<String>> convertRoles(List<User.Role> roles) {
 
         if (roles == null) return null;
@@ -158,8 +159,6 @@ public class UserController {
         }
         return userRoles;
     }
-
-    // Helper methods
 
     /**
      * Checks if the current request user is either an admin (has full control over user management)
