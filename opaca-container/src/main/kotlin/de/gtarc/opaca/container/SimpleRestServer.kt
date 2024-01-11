@@ -49,7 +49,7 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
         override fun doGet(request: HttpServletRequest, response: HttpServletResponse) {
             try {
                 checkToken(request)
-                val path = request.pathInfo
+                val path = request.requestURI
                 val res = handleGet(path)
                 writeResponse(response, HttpServletResponse.SC_OK, res)
             } catch (e: Exception) {
@@ -60,7 +60,7 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
         override fun doPost(request: HttpServletRequest, response: HttpServletResponse) {
             try {
                 checkToken(request)
-                val path = request.pathInfo  // NOTE: queryParams (?...) go to request.queryString
+                val path = request.requestURI  // NOTE: queryParams (?...) go to request.queryString
                 val query = request.queryString
                 val body: String = request.reader.lines().collect(Collectors.joining())
                 val res = handlePost(path, query, body)
