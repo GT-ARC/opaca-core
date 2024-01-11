@@ -12,8 +12,8 @@ fun main(args: Array<String>) {
         throw IllegalArgumentException("Please provide 'ping' or 'pong' as command line parameter!")
 
     val imageConfig = when (args[0]) {
-        "ping" -> "/ping-container.json"
-        "pong" -> "/pong-container.json"
+        "ping" -> "/ping-image.json"
+        "pong" -> "/pong-image.json"
         else -> throw IllegalArgumentException("Argument must be 'ping' or 'pong'!")
     }
 

@@ -50,7 +50,7 @@ Please refer to the [API docs](doc/api.md) page for more information about the d
 * build the sample container with `docker build -t sample-agent-container-image examples/sample-container`
 * start the platform with `java -jar opaca-platform/target/jiacpp-platform-<version>-with-dependencies.jar`
 * go to <http://localhost:8000/swagger-ui/index.html>
-* go to `POST containers`, click "try it out", and set the `imageName` to `"sample-agent-container-image"`, or replace the entire value of `image` by the content from `examples/sample-container/src/main/resources/container.json` (in this case, make sure to also provide values for the required parameters in `arguments`)
+* go to `POST containers`, click "try it out", and set the `imageName` to `"sample-agent-container-image"`, or replace the entire value of `image` by the content from `examples/sample-container/src/main/resources/sample-image.json` (in this case, make sure to also provide values for the required parameters in `arguments`)
 * in another terminal, do `docker ps` to find the started image, and then `docker logs -f <container-name>` to show (and follow) the logs
 * in the Web UI, run the `GET containers` or `GET agents` routes to see the running agents and their actions
 * use the `POST send` or `POST invoke` routes to send messages to the agent (with any payload; reply-to does not matter for now), or invoke the agent's dummy action (the action takes some time to run); check the logs of the agent container; you can also invoke the action and then immediately re-send the message to check that both work concurrently
