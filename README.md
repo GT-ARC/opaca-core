@@ -5,6 +5,8 @@ Copyright 2022-2023 GT-ARC & DAI-Labor, TU Berlin
 * Main Contributors: Tobias Küster and Benjamin Acar
 * Further contributions by: Oskar Kupke, Robert Strehlow
 
+This is the public repository of the OPACA project. Feel free to create issues if you have any suggestions, or improve things yourself with a fork and pull request. The main development work still happens in the internal/private repository at https://gitlab.dai-labor.de/jiacpp/prototype/, including most (internal) tickets, development branches, merge requests, build pipelines, etc.
+
 Note: The working title of OPACA was 'JIAC++'. Some references to the old name may still be found in the code and documentation.
 
 ## Prototype and Reference Implementation
