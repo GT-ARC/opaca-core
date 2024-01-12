@@ -2,11 +2,7 @@ package de.gtarc.opaca.sample
 
 import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.container.AbstractContainerizedAgent
-import de.gtarc.opaca.container.Invoke
-import de.gtarc.opaca.container.StreamInvoke
-import de.gtarc.opaca.model.Action
 import de.gtarc.opaca.model.Stream
-import de.gtarc.opaca.model.AgentDescription
 import de.gtarc.opaca.model.Message
 import de.dailab.jiacvi.behaviour.act
 
