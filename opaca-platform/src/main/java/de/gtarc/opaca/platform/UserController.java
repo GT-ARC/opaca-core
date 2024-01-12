@@ -40,8 +40,8 @@ public class UserController {
     @RequestMapping(value="/users", method=RequestMethod.POST)
     @Operation(summary="Add a new user to the connected database", tags={"users"})
     public String addUser(
-            @RequestBody User user) {
-
+            @RequestBody User user
+    ) {
         try {
             userDetailsService.createUser(user.getUsername(), user.getPassword(), convertRoles(user.getRoles()));
             log.info(String.format("ADD USER: %s with roles: %s", user.getUsername(), user.getRoles()));
@@ -61,8 +61,8 @@ public class UserController {
     @Operation(summary="Delete an existing user from the connected database", tags={"users"})
     public boolean deleteUser(
             @RequestHeader("Authorization") String token,
-            @PathVariable String username) {
-
+            @PathVariable String username
+    ) {
         if (isAdminOrSelf(token, username)){
             log.info(String.format("DELETE USER: %s", username));
             return userDetailsService.removeUser(username);
@@ -80,8 +80,8 @@ public class UserController {
     @Operation(summary="Get an existing user from the connected database", tags={"users"})
     public String getUser(
             @RequestHeader("Authorization") String token,
-            @PathVariable String username) {
-
+            @PathVariable String username
+    ) {
         if (isAdminOrSelf(token, username)){
             log.info(String.format("GET USER: %s", username));
             return userDetailsService.getUser(username);
@@ -97,7 +97,6 @@ public class UserController {
     @RequestMapping(value="/users", method=RequestMethod.GET)
     @Operation(summary="Get all users from the connected database", tags={"users"})
     public List<String> getUsers() {
-
         log.info("GET USERS");
         return List.copyOf(userDetailsService.getUsers());
     }
@@ -112,8 +111,8 @@ public class UserController {
     @Operation(summary="Update the information of an existing user in the connected database", tags={"users"})
     public String updateUser(
             @PathVariable String username,
-            @RequestBody User user) {
-
+            @RequestBody User user
+    ) {
         String logOut = String.format("UPDATE USER: %s (", username);
         if (user.getUsername() != null) logOut += String.format("NEW USERNAME: %s ", user.getUsername());
         if (user.getPassword() != null) logOut += "NEW PASSWORD ";
@@ -124,7 +123,6 @@ public class UserController {
     }
 
     private Map<String, List<String>> convertRoles(List<User.Role> roles) {
-
         Map<String, List<String>> userRoles = new HashMap<>();
         for (User.Role role : roles) {
             userRoles.put(role.getName(), role.getPrivileges());

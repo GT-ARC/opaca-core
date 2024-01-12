@@ -175,10 +175,9 @@ public class TokenUserDetailsService implements UserDetailsService {
     public Collection<Role> createRolesIfNotFound(Map<String, List<String>> roles) {
         List<Role> userRoles = new ArrayList<>();
         for (String role : roles.keySet()) {
-            List<Privilege> privileges = new ArrayList<>();
-            for (String privilege : roles.get(role)) {
-                privileges.add(createPrivilegeIfNotFound(privilege));
-            }
+            List<Privilege> privileges = roles.get(role).stream()
+                    .map(this::createPrivilegeIfNotFound)
+                    .collect(Collectors.toList());
             userRoles.add(createRoleIfNotFound(role, privileges));
         }
         return userRoles;
@@ -194,23 +193,19 @@ public class TokenUserDetailsService implements UserDetailsService {
 
     private List<String> getPrivileges(Collection<Role> roles) {
         List<String> privileges = new ArrayList<>();
-        List<Privilege> collection = new ArrayList<>();
         for (Role role : roles) {
             privileges.add(role.getName());
-            collection.addAll(role.getPrivileges());
-        }
-        for (Privilege item : collection) {
-            privileges.add(item.getName());
+            for (Privilege item : role.getPrivileges()) {
+                privileges.add(item.getName());
+            }
         }
         return privileges;
     }
 
     private List<GrantedAuthority> getGrantedAuthorities(List<String> privileges) {
-        List<GrantedAuthority> authorities = new ArrayList<>();
-        for (String privilege : privileges) {
-            authorities.add(new SimpleGrantedAuthority(privilege));
-        }
-        return authorities;
+        return privileges.stream()
+                .map(SimpleGrantedAuthority::new)
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -219,10 +214,9 @@ public class TokenUserDetailsService implements UserDetailsService {
         if (user == null) throw new UsernameNotFoundException(username);
         Map<String, List<String>> userRoles = new HashMap<>();
         for (Role role : user.getRoles()) {
-            List<String> privileges = new ArrayList<>();
-            for (Privilege privilege : role.getPrivileges()) {
-                privileges.add(privilege.getName());
-            }
+            List<String> privileges = role.getPrivileges().stream()
+                    .map(Privilege::getName)
+                    .collect(Collectors.toList());
             userRoles.put(role.getName(), privileges);
         }
         return userRoles;
