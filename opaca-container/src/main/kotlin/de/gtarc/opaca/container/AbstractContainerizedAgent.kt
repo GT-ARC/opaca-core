@@ -9,6 +9,7 @@ import de.gtarc.opaca.model.Stream
 import de.gtarc.opaca.util.ApiProxy
 import de.gtarc.opaca.util.RestHelper
 import de.dailab.jiacvi.Agent
+import de.dailab.jiacvi.LocalAgentRef
 import de.dailab.jiacvi.behaviour.act
 
 import org.springframework.http.ResponseEntity
@@ -59,6 +60,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         val desc = getDescription()
         val ref = system.resolve(CONTAINER_AGENT)
         ref tell DeRegister(desc.agentId, notify)
+        stop()
     }
 
     open fun getDescription() = AgentDescription(
@@ -149,4 +151,10 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         parentProxy.send(agentId, Message(payload, name), null, true)
     }
 
+    /**
+     * Stop this agent.
+     */
+    fun stop() {
+        LocalAgentRef<AbstractContainerizedAgent>(self.path, this, system.dispatcher).stop()
+    }
 }
