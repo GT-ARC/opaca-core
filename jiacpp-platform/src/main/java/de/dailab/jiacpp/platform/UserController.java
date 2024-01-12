@@ -139,9 +139,8 @@ public class UserController {
      * or the request user is performing request on its own data
      * @param token: The token belonging to a user in the database for whom to check their authorities
      * @param username: Name of user which will get affected by request (NOT THE CURRENT REQUEST USER)
-     * */
+     */
     private boolean isAdminOrSelf(String token, String username) {
-
         final String userToken = token.substring(7);
         UserDetails details = userDetailsService.loadUserByUsername(jwtUtil.getUsernameFromToken(userToken));
         if (details == null) return false;

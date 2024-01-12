@@ -2,17 +2,17 @@
 
 The User-Management system provides the ability to manage multiple users with different authority levels on the same or connected Runtime Platforms. A "User" can either be a real person interacting with the Runtime Platform or a connected Container.
 
-The User-Management is implemented with spring boot, spring data and uses spring security to implement a security filter chain, which checks for required permissions/authorities/roles of the requested user, based on the provided JWT (JSON Web Token). The JWT is generated after a successful login from a user or a successful container addition to the Runtime Platform.
+The User-Management is implemented with Spring Boot, Spring Data and uses Spring Security to implement a security filter chain, which checks for required permissions/authorities/roles of the requested user, based on the provided JWT (JSON Web Token). The JWT is generated after a successful login from a user or a successful container addition to the Runtime Platform.
 
 ## User Database (In-Memory)
 
-Currently, the database used to store all user-related information (_Users_, _Roles_, _Privileges_) is the H2 Database, which is a Java based In-Memory database. User information is therefore only available on the current Runtime Platform (WIP).
+Currently, the database used to store all user-related information (_Users_, _Roles_, _Privileges_) is the H2 Database, which is a Java based In-Memory database. User information is therefore only available on the current Runtime Platform.
 
 The user-related information is stored in **JPARepositories**, which is used to create basic CRUD queries to interact with the specified H2 database in the application properties.
 
 ## User-Management Models
 
-A `TokenUser` consist of [`username`, `password`, `roles`], where the username and password are given by strings, and the roles are a collection, consisting of multiple roles, if necessary. Each single role consists of a unique name and can include multiple privileges, which are made up by only their unique privilege name. The password will get encoded before storing it as a string into the database.
+A `TokenUser` has a `username`, `password`, and `roles`, where the username and password are given by strings, and the roles are a collection, consisting of multiple roles, if necessary. Each single role consists of a unique name and can include multiple privileges, which are made up by only their unique privilege name. The password will get encoded before storing it as a string into the database.
 
 ### TokenUser
 ```

@@ -77,3 +77,4 @@ See the [API docs](doc/api.md) for Environment Variables passed from the Runtime
 * [Execution Environments](doc/environments.md)
 * [Session Handling](doc/session.md)
 * [Authentication](doc/auth.md)
+* [User Management](doc/user-management.md)
