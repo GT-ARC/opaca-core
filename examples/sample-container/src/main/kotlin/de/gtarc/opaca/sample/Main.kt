@@ -6,7 +6,7 @@ import de.dailab.jiacvi.communication.LocalBroker
 import de.dailab.jiacvi.dsl.agentSystem
 
 fun main() {
-    val image = ConfigLoader.loadContainerImageFromResources("/container.json")
+    val image = ConfigLoader.loadContainerImageFromResources("/sample-image.json")
     agentSystem("opaca-sample-container") {
         enable(LocalBroker)
         agents {
