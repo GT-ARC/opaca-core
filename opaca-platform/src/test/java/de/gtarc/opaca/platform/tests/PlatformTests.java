@@ -1,5 +1,6 @@
 package de.gtarc.opaca.platform.tests;
 
+import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.platform.Application;
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
@@ -322,12 +323,15 @@ public class PlatformTests {
         Assert.assertEquals(400, con.getResponseCode());
     }
 
+    /**
+     * TODO case is different if the platform _is_ connected, but does not respond to disconnect -> 502?
+     */
     @Test
     public void testDisconnectUnknown() throws Exception {
         var con = request(PLATFORM_A_URL, "DELETE", "/connections", "http://flsflsfsjfkj.com");
         Assert.assertEquals(200, con.getResponseCode());
+
         // not really an error... afterwards, the platform _is_ disconnected, it just never was connected, thus false
-        // TODO case is different if the platform _is_ connected, but does not respond to disconnect -> 502?
         var res = result(con, Boolean.class);
         Assert.assertFalse(res);
     }

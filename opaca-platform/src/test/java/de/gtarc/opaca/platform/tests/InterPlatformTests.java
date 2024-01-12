@@ -156,12 +156,27 @@ public class InterPlatformTests {
 
     /**
      * TODO check somehow that notify worked
+     *  but how? adding/removing a new container automatically notifies connected platforms
+     *  adding a new action would also not work since first, the platform hosting the container
+     *  would have to be notified, which also automatically notifies connected platforms
+     *
      */
     @Test
     public void testPlatformNotify() throws Exception {
-        var platformABaseUrl = getBaseUrl(PLATFORM_A_URL);
-        var con2 = request(PLATFORM_B_URL, "POST", "/connections/notify", platformABaseUrl);
-        Assert.assertEquals(200, con2.getResponseCode());
+
+        // add temp container to platform B, then create new action in that container
+        var newContainerId = postSampleContainer(PLATFORM_B_URL);
+        var con = request(PLATFORM_B_URL, "POST", "/invoke/CreateAction?containerId=" + newContainerId,
+                Map.of("name", "TemporaryTestAction", "notify", true));
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // try to call the new temporary test action on platform A, which should have been notified automatically at this point
+        con = request(PLATFORM_A_URL, "POST", "/invoke/TemporaryTestAction", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // undeploy temp container
+        con = request(PLATFORM_B_URL, "DELETE", "/containers/" + newContainerId, null);
+        Assert.assertEquals(200, con.getResponseCode());
     }
 
     @Test
