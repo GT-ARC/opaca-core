@@ -2,6 +2,8 @@ package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.model.Login;
 import de.gtarc.opaca.model.LoginConnection;
+import de.gtarc.opaca.model.RuntimePlatform;
+import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.Application;
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
@@ -90,7 +92,7 @@ public class AuthTests {
 
     @Test
     public void test01LoginWrongPwd() throws Exception {
-        var login = createLogin("testUser", "testPwd");
+        var login = createLogin("testUser", "wrongPwd");
         var con = request(PLATFORM_A, "POST", "/login", login);
         Assert.assertEquals(403, con.getResponseCode());
     }
@@ -478,8 +480,8 @@ public class AuthTests {
     }
 
     private String getToken(String user, String password) throws Exception {
-        var auth = authQuery(user, password);
-        var con = request(PLATFORM_A, "POST", "/login" + auth, null);
+        var login = createLogin(user, password);
+        var con = request(PLATFORM_A, "POST", "/login", login);
         return result(con);
     }
 
