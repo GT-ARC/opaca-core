@@ -2,6 +2,7 @@ package de.dailab.jiacpp.platform.containerclient;
 
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.PullImageResultCallback;
+import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.api.exception.InternalServerErrorException;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.exception.NotModifiedException;
@@ -24,6 +25,8 @@ import lombok.extern.java.Log;
 import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
+import java.net.DatagramSocket;
+import java.net.ServerSocket;
 import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -99,8 +102,9 @@ public class DockerClient implements ContainerClient {
             }
 
             // port mappings for API- and Extra-Ports
+            var newPorts = new HashSet<Integer>();
             Map<Integer, Integer> portMap = Stream.concat(Stream.of(image.getApiPort()), extraPorts.keySet().stream())
-                    .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
+                    .collect(Collectors.toMap(p -> p, p -> reserveNextFreePort(p, newPorts)));
             // translate to Docker PortBindings (incl. ExposedPort descriptions)
             List<PortBinding> portBindings = portMap.entrySet().stream()
                     .map(e -> PortBinding.parse(e.getValue() + ":" + e.getKey() + "/" + getProtocol(e.getKey(), image)))
@@ -124,6 +128,7 @@ public class DockerClient implements ContainerClient {
                     extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );
             dockerContainers.put(containerId, new DockerContainerInfo(res.getId(), connectivity));
+            usedPorts.addAll(newPorts);
 
             return connectivity;
 
@@ -131,6 +136,8 @@ public class DockerClient implements ContainerClient {
             // might theoretically happen if image is deleted between pull and run...
             log.warning("Image not found: " + imageName);
             throw new NoSuchElementException("Image not found: " + imageName);
+        } catch (DockerException e) {
+            throw new IOException("Failed to start Docker container.", e);
         }
     }
 
@@ -143,13 +150,10 @@ public class DockerClient implements ContainerClient {
     @Override
     public void stopContainer(String containerId) throws IOException {
         try {
-            // remove container info, stop container
             var containerInfo = dockerContainers.remove(containerId);
-            dockerClient.stopContainerCmd(containerInfo.containerId).exec();
-            // free up ports used by this container
-            // TODO do this first, or in finally?
             usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
             usedPorts.removeAll(containerInfo.connectivity.getExtraPortMappings().keySet());
+            dockerClient.stopContainerCmd(containerInfo.containerId).exec();
         } catch (NotModifiedException e) {
             var msg = "Could not stop Container " + containerId + "; already stopped?";
             log.warning(msg);
@@ -215,13 +219,19 @@ public class DockerClient implements ContainerClient {
     /**
      * Starting from the given preferred port, get and reserve the next free port.
      */
-    private int reserveNextFreePort(int port) {
-        while (usedPorts.contains(port)) {
-            // TODO how to handle ports blocked by other containers or applications? just ping ports?
-            port++;
-        }
-        usedPorts.add(port);
+    private int reserveNextFreePort(int port, Set<Integer> newPorts) {
+        while (!isPortAvailable(port, newPorts)) ++port;
+        newPorts.add(port);
         return port;
+    }
+
+    private boolean isPortAvailable(int port, Set<Integer> newPorts) {
+        if (usedPorts.contains(port) || newPorts.contains(port)) return false;
+        try (var s1 = new ServerSocket(port); var s2 = new DatagramSocket(port)) {
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     private boolean isImagePresent(String imageName) {

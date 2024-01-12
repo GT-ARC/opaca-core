@@ -123,6 +123,18 @@ public class PlatformTests {
     }
 
     /**
+     * deploy sample container, but with mismatched client config
+     */
+    @Test
+    public void test2DeployMismatchedConfig() throws Exception {
+        var image = getSampleContainerImage();
+        image.setClientConfig(new PostAgentContainer.KubernetesConfig());
+        var con = request(PLATFORM_A, "POST", "/containers", image);
+        Assert.assertEquals(400, con.getResponseCode());
+        Assert.assertTrue(error(con).contains("does not match"));
+    }
+
+    /**
      * get container info
      */
     @Test
@@ -721,6 +733,22 @@ public class PlatformTests {
         con = request(PLATFORM_B, "GET", "/connections", null);
         var lst2 = result(con, List.class);
         Assert.assertTrue(lst2.isEmpty());
+    }
+
+    /**
+     * deploy a container with api port 8082 on platform B, which should now work since
+     * the platform checks if a port is available before trying to start the container
+     */
+    @Test
+    public void test8DeploySameApiPort() throws IOException {
+        var image = getSampleContainerImage();
+        var con = request(PLATFORM_B, "POST", "/containers", image);
+        Assert.assertEquals(200, con.getResponseCode());
+        var containerId = result(con);
+        con = request(PLATFORM_B, "GET", "/containers/" + containerId, null);
+        var container = result(con, AgentContainer.class);
+        Assert.assertTrue(container.getConnectivity().getApiPortMapping() > image.getImage().getApiPort());
+        request(PLATFORM_B, "DELETE", "/containers/" + containerId, null);
     }
 
     /**

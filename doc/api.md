@@ -1,6 +1,6 @@
 # API Routes and Models
 
-This document shows a high-level, easy-to-read, language-agnostic overview of the JIAC++ API, the different routes, etc. It _should_ be kept up to date, but might not always _be_ up to date. When in doubt, please consult the Interfaces and Model classes in the `jiacpp-model` module, or just start a Runtime Platform and check the documentation in the Swagger Web UI.
+This document shows a high-level, easy-to-read, language-agnostic overview of the OPACA API, the different routes, etc. It _should_ be kept up to date, but might not always _be_ up to date. When in doubt, please consult the Interfaces and Model classes in the `jiacpp-model` module, or just start a Runtime Platform and check the documentation in the Swagger Web UI.
 
 
 ## Environment Variables (Agent Container)
@@ -132,7 +132,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 ### `POST /containers`
 
-* deploy new Agent Container onto this platform; the body specifies the image to be deployed (not all fields have to be present, e.g. no "description", but image-name, ports, and parameters, if any) and any arguments (i.e. values for the parameters, passed as environment variables)
+* deploy new Agent Container onto this platform; the body specifies the image to be deployed (not all fields have to be present, e.g. no "description", but image-name, ports, and parameters, if any) and any arguments (i.e. values for the parameters), passed as environment variables and optional a configuration for the container environment in use (e.g. which Kubernetes node to use).
 * body: `PostAgentContainer`
 * output: ID of the created AgentContainer (string)
 * errors: 404 if image not found, 502 (bad gateway) if container did not start properly

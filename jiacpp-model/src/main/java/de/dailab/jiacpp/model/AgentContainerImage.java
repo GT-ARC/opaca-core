@@ -40,16 +40,12 @@ public class AgentContainerImage {
     /** Optional longer description of what the container does */
     String description;
 
-    /** Optional config for the container */
-    // TODO this does not really belong into this merge request
-    JsonNode config;
-
     /** provider of the container, e.g. institute or researcher */
     String provider;
 
     // OPTIONAL attributes for API port (if not default) and extra ports (if any)
 
-    /** the port where the container provides the JIAC++ API; by default this is 8082 but another may be used */
+    /** the port where the container provides the OPACA API; by default this is 8082 but another may be used */
     Integer apiPort = AgentContainerApi.DEFAULT_PORT;
 
     /** additional ports exposed by the container and the protocols and services those provide */

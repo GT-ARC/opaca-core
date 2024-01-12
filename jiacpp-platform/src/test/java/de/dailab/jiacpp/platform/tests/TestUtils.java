@@ -39,7 +39,7 @@ public class TestUtils {
                 8888, new AgentContainerImage.PortDescription("TCP", "TCP Test Port"),
                 8889, new AgentContainerImage.PortDescription("UDP", "UDP Test Port")
         ));
-        return new PostAgentContainer(image, Map.of());
+        return new PostAgentContainer(image, Map.of(), null);
     }
 
     public static void addImageParameters(PostAgentContainer sampleRequest) {

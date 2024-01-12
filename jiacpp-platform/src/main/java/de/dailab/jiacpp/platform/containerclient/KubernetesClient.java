@@ -21,6 +21,8 @@ import io.kubernetes.client.custom.IntOrString;
 import io.kubernetes.client.util.Config;
 
 import java.io.IOException;
+import java.net.DatagramSocket;
+import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -100,8 +102,9 @@ public class KubernetesClient implements ContainerClient {
         String registrySecret = this.auth.get(registry);
         var extraPorts = image.getExtraPorts();
 
+        var newPorts = new HashSet<Integer>();
         Map<Integer, Integer> portMap = extraPorts.keySet().stream()
-                .collect(Collectors.toMap(p -> p, this::reserveNextFreePort));
+                .collect(Collectors.toMap(p -> p, p -> reserveNextFreePort(p, newPorts)));
 
         V1PodSpec podSpec = new V1PodSpec()
                         .containers(List.of(
@@ -116,13 +119,11 @@ public class KubernetesClient implements ContainerClient {
                         .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)))
                 ;
 
-        if (image.getConfig() != null) {
-            if (image.getConfig().has("hostNetwork")) {
-                podSpec.hostNetwork(image.getConfig().get("hostNetwork").asBoolean());
-            }
-            if (image.getConfig().has("nodeName")) {
-                podSpec.nodeName(image.getConfig().get("nodeName").asText());
-            }
+        if (container.getClientConfig() instanceof PostAgentContainer.KubernetesConfig) {
+            var k8sConf = (PostAgentContainer.KubernetesConfig) container.getClientConfig();
+            // the default seems to be null anyway, so no null-check needed?
+            podSpec.hostNetwork(k8sConf.getHostNetwork());
+            podSpec.nodeName(k8sConf.getNodeName());
         }
         
         V1PodTemplateSpec podTemplateSpec = new V1PodTemplateSpec()
@@ -171,6 +172,7 @@ public class KubernetesClient implements ContainerClient {
             );
 
             pods.put(containerId, new PodInfo(createdDeployment.getMetadata().getName(), serviceIP, connectivity));
+            usedPorts.addAll(newPorts);
 
             return connectivity;
         } catch (ApiException e) {
@@ -246,13 +248,19 @@ public class KubernetesClient implements ContainerClient {
     /**
      * Starting from the given preferred port, get and reserve the next free port.
      */
-    private int reserveNextFreePort(int port) {
-        while (usedPorts.contains(port)) {
-            // TODO how to handle ports blocked by other containers or applications? just ping ports?
-            port++;
-        }
-        usedPorts.add(port);
+    private int reserveNextFreePort(int port, Set<Integer> newPorts) {
+        while (!isPortAvailable(port, newPorts)) ++port;
+        newPorts.add(port);
         return port;
+    }
+
+    private boolean isPortAvailable(int port, Set<Integer> newPorts) {
+        if (usedPorts.contains(port) || newPorts.contains(port)) return false;
+        try (var s1 = new ServerSocket(port); var s2 = new DatagramSocket(port)) {
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     private Map<String, String> loadKubernetesSecrets() {

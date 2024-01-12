@@ -20,10 +20,9 @@ mvn-test:
   script:
     - mvn test
 
-# deployment is skipped for now
-.mvn-deploy:
+mvn-deploy:
   stage: deploy
   only:
-    - master
+    - main
   script:
-    - mvn deploy
+    - mvn deploy -DskipTests

@@ -1,10 +1,39 @@
-# Prototype for JIAC++ API and Reference Implementation
+# OPACA: An Open, Language- and Platform-Independent API for Containerized Agents
 
-This module provides a first prototype for the "JIAC++" API,
-as well as a reference implementation in Java and an example container.
+Copyright 2022-2023 GT-ARC & DAI-Labor, TU Berlin
 
-This is in no way meant to be final, but rather to provide a basis for further discussions
-and first tests in order to find out what of this makes sense etc.
+* Main Contributors: Tobias Küster and Benjamin Acar
+* Further contributions by: Oskar Kupke, Robert Strehlow
+
+Note: The working title of OPACA was 'JIAC++'. Some references to the old name may still be found in the code and documentation.
+
+## Prototype and Reference Implementation
+
+This module provides a first prototype for the "OPACA" API, as well as a reference implementation in Java and an example container. OPACA stands for "Open, Language- and Platform-Independent API for Containerized Agents".
+
+This repository includes software developed in the course of the project "Offenes Innovationslabor KI zur Förderung gemeinwohlorientierter KI-Anwendungen" (aka Go-KI, https://go-ki.org/) funded by the German Federal Ministry of Labour and Social Affairs (BMAS) under the funding reference number DKI.00.00032.21.
+
+
+## About
+
+The goal of OPACA is to combine multi-agent systems with microservices and container-technologies using a simple, universal API, build around a set of simple design principles and requirements:
+
+* Open, Standardized Interfaces
+* Being Language Agnostic
+* Modularity and Reusability
+* Self-Description
+* Dynamic Multi-Tenancy
+* Distribution
+
+This way, we make it easier to deploy and connect heterogeneous systems consisting of components implemented using different agent-frameworks and/or non-agent components in different languages.
+
+A multi-agent system in the OPACA approach consists of two types of components:
+
+* **Agent Containers** are containerized applications that implement the OPACA Agent Container API. They provide REST routes for finding out about the agents within the container, and to interact with them by of sending asynchronous messages (unicast and broadcast) and invoking synchronous actions.
+
+* **Runtime Platforms** are used to manage and one or more Agent Containers, deploying those in Docker or Kubernetes. They connect different Agent Containers while also providing basic services such as yellow pages, authentication, etc.
+
+Please refer to the [API docs](doc/api.md) page for more information about the different routes provided for the API and the respective requests and responses.
 
 
 ## Modules
