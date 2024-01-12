@@ -78,8 +78,7 @@ public class TokenUserDetailsService implements UserDetailsService {
             throw new UserAlreadyExistsException(username);
         }
         else {
-            validateString(username);
-            validateString(password);
+            validateString(username, password);
             Collection<Role> userRoles = createRolesIfNotFound(roles);
             // TODO make a password a requirement
             String pwd = config.enableAuth ? password : "defaultPwd";
@@ -132,11 +131,12 @@ public class TokenUserDetailsService implements UserDetailsService {
         TokenUser user = tokenUserRepository.findByUsername(username);
         if (user == null) throw new UserNotFoundException(username);
 
-        // Check if username not taken and does not include invalid characters
+        // Check if new username not taken and does not include invalid characters
         if (newUsername != null) {
             if (tokenUserRepository.findByUsername(newUsername) != null &&
                     !username.equals(newUsername)) throw new UserAlreadyExistsException(newUsername);
             validateString(newUsername);
+            user.setUsername(newUsername);
         }
 
         // Validate and set password
@@ -144,8 +144,11 @@ public class TokenUserDetailsService implements UserDetailsService {
             validateString(password);
             user.setPassword(passwordEncoder.encode(password));
         }
-        if (roles != null) user.setRoles(createRolesIfNotFound(roles));
-        if (newUsername != null) user.setUsername(newUsername);
+
+        if (roles != null) {
+            user.setRoles(createRolesIfNotFound(roles));
+        }
+
         tokenUserRepository.save(user);
         return getUser(user.getUsername());
     }
@@ -172,8 +175,11 @@ public class TokenUserDetailsService implements UserDetailsService {
     /**
      * Create new Roles/Privileges based on a map containing their
      * info as strings {RoleName: [PrivilegeName, ...], ...}
+     * If the map contains a null key or null value, throw an exception
      */
     public Collection<Role> createRolesIfNotFound(Map<String, List<String>> roles) {
+        if (roles.containsKey(null) || roles.containsValue(null))
+            throw new IllegalArgumentException("Invalid value provided in field 'roles'");
         List<Role> userRoles = new ArrayList<>();
         for (String role : roles.keySet()) {
             List<Privilege> privileges = new ArrayList<>();
@@ -228,15 +234,22 @@ public class TokenUserDetailsService implements UserDetailsService {
         return userRoles;
     }
 
-    private void validateString(String password) {
+    /**
+     * Checks if the given strings consists of the following symbols
+     * If not, throw an Exception
+     */
+    private void validateString(String... items) {
         String valid = "^[a-zA-Z0-9$&+,:;=?#|'<>.^*()%!/-]+$";
-        if (!Pattern.compile(valid).matcher(password).matches())
-            throw new IllegalArgumentException("Invalid Character provided.");
+        for (String s : items) {
+            if (!Pattern.compile(valid).matcher(s).matches())
+                throw new IllegalArgumentException("Invalid Character provided.");
+        }
     }
 
-    /**
-     * Exceptions thrown during user creation if a given user already exists
+    /*
+     * EXCEPTIONS
      */
+
     public static class UserAlreadyExistsException extends RuntimeException {
         public UserAlreadyExistsException(String username) {
             super("User with username '" + username + "' already exists!");

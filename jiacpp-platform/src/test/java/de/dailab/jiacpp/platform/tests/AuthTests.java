@@ -255,6 +255,13 @@ public class AuthTests {
     }
 
     @Test
+    public void test08AddMissingRole() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "POST", "/users",
+                getUser("Invalid", "invalidPwd", null), token_A);
+        Assert.assertEquals(400, con.getResponseCode());
+    }
+
+    @Test
     public void test08InvalidUserAdd() throws Exception {
         var con = requestWithToken(PLATFORM_A, "POST", "/users",
                 getUser("invalidUser@", "password", "ROLE_CONTRIBUTOR"), token_A);
@@ -517,7 +524,7 @@ public class AuthTests {
         User user = new User();
         user.setUsername(username);
         user.setPassword(password);
-        user.setRoles(getUserRole(role));
+        user.setRoles(role != null ? getUserRole(role) : null);
         return user;
     }
 
