@@ -40,6 +40,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         }
         addAction("Deregister", mapOf(), "void") {
             deregister(false)
+            stop()
         }
 
         addStream("GetStream", Stream.Mode.GET, this::actionGetStream)

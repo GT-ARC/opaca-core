@@ -60,7 +60,6 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         val desc = getDescription()
         val ref = system.resolve(CONTAINER_AGENT)
         ref tell DeRegister(desc.agentId, notify)
-        stop()
     }
 
     open fun getDescription() = AgentDescription(
