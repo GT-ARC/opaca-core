@@ -7,15 +7,15 @@
     <parent>
         <groupId>de.gtarc.opaca</groupId>
         <artifactId>opaca-examples</artifactId>
-        <version>0.1-SNAPSHOT</version>
+        <version>0.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>ping-pong</artifactId>
-    <version>0.1-SNAPSHOT</version>
+    <version>0.2-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
-        <mainclass>de.dailab.jiacpp.pingpong.MainKt</mainclass>
+        <mainclass>de.gtarc.opaca.pingpong.MainKt</mainclass>
     </properties>
 
 </project>

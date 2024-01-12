@@ -5,6 +5,8 @@ Copyright 2022-2023 GT-ARC & DAI-Labor, TU Berlin
 * Main Contributors: Tobias Küster and Benjamin Acar
 * Further contributions by: Oskar Kupke, Robert Strehlow
 
+This is the public repository of the OPACA project. Feel free to create issues if you have any suggestions, or improve things yourself with a fork and pull request. The main development work still happens in the internal/private repository at https://gitlab.dai-labor.de/jiacpp/prototype/, including most (internal) tickets, development branches, merge requests, build pipelines, etc.
+
 Note: The working title of OPACA was 'JIAC++'. Some references to the old name may still be found in the code and documentation.
 
 ## Prototype and Reference Implementation
@@ -38,9 +40,9 @@ Please refer to the [API docs](doc/api.md) page for more information about the d
 
 ## Modules
 
-* `jiacpp-platform`: reference implementation of Runtime Platform, done in Java + Spring Boot
-* `jiacpp-container`: reference implementation of Agent Container, done in JIAC VI (Java, Kotlin)
-* `jiacpp-model` interface descriptions and model classes for the API (Java)
+* `opaca-platform`: reference implementation of Runtime Platform, done in Java + Spring Boot
+* `opaca-container`: reference implementation of Agent Container, done in JIAC VI (Java, Kotlin)
+* `opaca-model` interface descriptions and model classes for the API (Java)
 * `examples`: sample agent container(s) to be executed on the platform; sample-container is an example that can be used to quickly test platform setup and manually test actions, ping-pong is an example that can be used to test communication between two containers
 
 
@@ -48,9 +50,9 @@ Please refer to the [API docs](doc/api.md) page for more information about the d
 
 * run `mvn install` in the parent directory to build everything in order
 * build the sample container with `docker build -t sample-agent-container-image examples/sample-container`
-* start the platform with `java -jar jiacpp-platform/target/jiacpp-platform-0.1-SNAPSHOT.jar`
+* start the platform with `java -jar opaca-platform/target/jiacpp-platform-<version>-with-dependencies.jar`
 * go to <http://localhost:8000/swagger-ui/index.html>
-* go to `POST containers`, click "try it out", and set the `imageName` to `"sample-agent-container-image"`, or replace the entire value of `image` by the content from `examples/sample-container/src/main/resources/container.json` (in this case, make sure to also provide values for the required parameters in `arguments`)
+* go to `POST containers`, click "try it out", and set the `imageName` to `"sample-agent-container-image"`, or replace the entire value of `image` by the content from `examples/sample-container/src/main/resources/sample-image.json` (in this case, make sure to also provide values for the required parameters in `arguments`)
 * in another terminal, do `docker ps` to find the started image, and then `docker logs -f <container-name>` to show (and follow) the logs
 * in the Web UI, run the `GET containers` or `GET agents` routes to see the running agents and their actions
 * use the `POST send` or `POST invoke` routes to send messages to the agent (with any payload; reply-to does not matter for now), or invoke the agent's dummy action (the action takes some time to run); check the logs of the agent container; you can also invoke the action and then immediately re-send the message to check that both work concurrently
