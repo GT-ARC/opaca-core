@@ -81,10 +81,10 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
     }
 
     fun addStream(name: String, mode: Stream.Mode, callback: () -> Any?) {
-        addStrean(Stream(name, mode), callback)
+        addStream(Stream(name, mode), callback)
     }
 
-    fun addStrean(stream: Stream, callback: () -> Any?) {
+    fun addStream(stream: Stream, callback: () -> Any?) {
         log.info("Added stream: $stream")
         streams.add(stream)
         streamCallbacks[stream.name] = callback
