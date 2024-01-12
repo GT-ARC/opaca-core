@@ -102,7 +102,7 @@
                             <repositoryLayout>flat</repositoryLayout>
                             <programs>
                                 <program>
-                                    <mainClass>${mainclass}}</mainClass>
+                                    <mainClass>${mainclass}</mainClass>
                                 </program>
                             </programs>
                         </configuration>
