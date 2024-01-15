@@ -1,0 +1,44 @@
+{
+  "imageName": "sample-agent-container-image",
+
+  "requires": ["sample-requirement"],
+  "provides": ["sample-provision"],
+
+  "name": "Sample OPACA Agent Container",
+  "version": "0.1.9",
+  "description": "Just a sample container doing nothing but receiving and reacting to API calls",
+  "provider": "DAI-Lab",
+
+  "apiPort": 8082,
+  "extraPorts": {
+    "8888": {
+      "protocol": "TCP",
+      "description": "Simple Web Server for testing TCP port"
+    },
+    "8889": {
+      "protocol": "UDP",
+      "description": "Simple Web Server for testing UDP port"
+    }
+  },
+
+  "parameters": [
+    {
+      "name": "database",
+      "type": "string",
+      "required": false,
+      "confidential": false,
+      "defaultValue": "mongodb"
+    },{
+      "name": "username",
+      "type": "string",
+      "required": true,
+      "confidential": false
+    },{
+      "name": "password",
+      "type": "string",
+      "required": true,
+      "confidential": true
+    }
+  ]
+
+}

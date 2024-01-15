@@ -1,6 +1,6 @@
-# JIAC++ Examples
+# OPACA Examples
 
-This module contains some examples for testing the JIAC++ reference implementation. The examples don't do anything
+This module contains some examples for testing the OPACA reference implementation. The examples don't do anything
 meaningful, but they showcase different features of the API, the Runtime Platform and the Agent Container, and they
 can also serve as a blueprint for creating actual agent containers.
 

@@ -2,6 +2,8 @@
 
 Both the Runtime Platform and the Agent Containers can be executed in different environments. Which environment should be used is controlled using the `PLATFORM_ENVIRONMENT` and `CONTAINER_ENVIRONMENT` environment variables. Where the Platform and Containers are running should in general have no effect on their behavior, and execution environments for Runtime Platform and Agent Containers can be combined freely.
 
+When starting an AgentContainer, a `clientConfig` can be povided, determining certain parameters of the Container Environment. This config is optional, but if it is provided, it has to match the Container Environment in use.
+
 
 ## Platform Environments
 
@@ -13,7 +15,7 @@ Native execution has been tested to work on Windows, Mac and Linux. If it does n
 
 ### Docker
 
-Use this to execute the Runtime Platform in Docker-Compose; see `docker-compose.yml` in the `jiacpp-platform` directory. Note that at the moment it is not possible to resolve the host's IP address, needed for the communication between Runtime Platform and Agent Containers, from within the Docker container. To work around this problem, use the `PUBLIC_URL` environment variable to set the proper (internal) IP or actual public URL of the Runtime Platform's host system.
+Use this to execute the Runtime Platform in Docker-Compose; see `docker-compose.yml` in the `opaca-platform` directory. Note that at the moment it is not possible to resolve the host's IP address, needed for the communication between Runtime Platform and Agent Containers, from within the Docker container. To work around this problem, use the `PUBLIC_URL` environment variable to set the proper (internal) IP or actual public URL of the Runtime Platform's host system.
 
 For testing purposes, you can get the correct IP address from `ifconfig` (on Linux and Mac) before starting the platform, using a shell-script like the following, where `$INTERFACE` is the name of the network interface to use. Note that the output of `ifconfig` can be platform dependant and the script may need to be adapted accordingly.
 
@@ -30,7 +32,7 @@ For productive use, the Runtime Platform itself can be executed in Kubernetes al
 * Log in to your Kubernetes (K8s) cluster.
 * Apply the document "doc/config/permission.yaml" to your cluster with `kubectl apply -f doc/config/permission.yaml`. This will create a namespace called "agents", a ServiceAccount, and the Roles associated with this ServiceAccount.
 * Set the environment variables in the "application.properties" file to "kubernetes" and run `mvn install` in the parent folder to create the JAR file for the platform.
-* Build the image for the platform by running the command `docker build -t agents-platform jiacpp-platform/.`
+* Build the image for the platform by running the command `docker build -t agents-platform opaca-platform/.`
 * Log in to your Docker registry and push the platform image to it.
 * Also build the sample-agent-container-image with `docker build -t sample-agent-container-image examples/sample-container` and push it to your Docker registry.
 * Prepare your document "doc/config/platform-deploy.yaml." Replace the registry for the platform image with your own registry address. Also, replace the registry configurations used by the platform to deploy new agents.
