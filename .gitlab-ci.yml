@@ -14,6 +14,7 @@ mvn-build:
   stage: build
   script:
     - mvn compile
+    - docker build -t sample-agent-container-image examples/sample-container/
 
 mvn-test:
   stage: test
@@ -26,4 +27,3 @@ mvn-deploy:
     - main
   script:
     - mvn deploy -DskipTests
-    - docker build -t sample-agent-container-image examples/sample-container/
