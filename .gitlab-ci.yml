@@ -26,3 +26,4 @@ mvn-deploy:
     - main
   script:
     - mvn deploy -DskipTests
+    - docker build -t sample-agent-container-image examples/sample-container/
