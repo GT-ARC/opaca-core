@@ -66,47 +66,6 @@ public class RestHelper {
                 .body(responseBody);
     }
 
-
-    public ResponseEntity<Void> postStream(String path, InputStream inputStream) {
-        try {
-            streamRequest("POST", path, inputStream);
-            return ResponseEntity.ok().build();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-
-    public void streamRequest(String method, String path, InputStream payload) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
-        connection.setRequestMethod(method);
-        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-
-        if (token != null && !token.isEmpty()) {
-            connection.setRequestProperty("Authorization", "Bearer " + token);
-        }
-
-        connection.setDoOutput(true);
-        connection.connect();
-
-        try (OutputStream os = connection.getOutputStream();
-            BufferedInputStream bis = new BufferedInputStream(payload)) {
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-            while ((bytesRead = bis.read(buffer)) != -1) {
-                os.write(buffer, 0, bytesRead);
-            }
-        } finally {
-            connection.disconnect();
-        }
-
-        int responseCode = connection.getResponseCode();
-        if (responseCode >= HttpURLConnection.HTTP_BAD_REQUEST) {
-            throw new IOException(String.format("%s: %s", responseCode, readStream(connection.getErrorStream())));
-        }
-    }
-
-
     public InputStream request(String method, String path, Object payload) throws IOException {
         log.info(String.format("%s %s%s (%s)", method, baseUrl, path, payload));
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
