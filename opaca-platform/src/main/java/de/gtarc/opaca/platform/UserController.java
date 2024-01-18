@@ -12,9 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Log
 @RestController
@@ -43,8 +41,9 @@ public class UserController {
             @RequestBody User user
     ) {
         try {
-            userDetailsService.createUser(user.getUsername(), user.getPassword(), convertRoles(user.getRoles()));
-            log.info(String.format("ADD USER: %s with roles: %s", user.getUsername(), user.getRoles()));
+            userDetailsService.createUser(user.getUsername(), user.getPassword(), user.getRole(), user.getPrivileges());
+            log.info(String.format("ADD USER: [username='%s', role='%s', privileges=%s]",
+                    user.getUsername(), user.getRole(), user.getPrivileges()));
             return userDetailsService.getUser(user.getUsername());
         } catch (Exception e) {
             return e.getMessage();
@@ -116,18 +115,11 @@ public class UserController {
         String logOut = String.format("UPDATE USER: %s (", username);
         if (user.getUsername() != null) logOut += String.format("NEW USERNAME: %s ", user.getUsername());
         if (user.getPassword() != null) logOut += "NEW PASSWORD ";
-        if (!user.getRoles().isEmpty()) logOut += String.format("NEW ROLES: %s", user.getRoles());
+        if (user.getRole() != null) logOut += String.format("NEW ROLE: %s ", user.getRole());
+        if (user.getPrivileges() != null && !user.getPrivileges().isEmpty()) logOut += String.format("NEW PRIVILEGES: %s ", user.getPrivileges());
         log.info(logOut + ")");
         return userDetailsService.updateUser(username, user.getUsername(), user.getPassword(),
-                convertRoles(user.getRoles()));
-    }
-
-    private Map<String, List<String>> convertRoles(List<User.Role> roles) {
-        Map<String, List<String>> userRoles = new HashMap<>();
-        for (User.Role role : roles) {
-            userRoles.put(role.getName(), role.getPrivileges());
-        }
-        return userRoles;
+                user.getRole(), user.getPrivileges());
     }
 
     // Helper methods

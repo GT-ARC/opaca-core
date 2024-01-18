@@ -3,8 +3,15 @@ package de.gtarc.opaca.platform.user;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.util.Collection;
+import java.util.ArrayList;
+import java.util.List;
 
+/**
+ * The TokenUser stores user related information in a data bank.
+ * Should include all fields from Model.User. A user can only
+ * have one unique role, but may be assigned multiple privileges.
+ * An ID is used to store the data in the data bank.
+ */
 @Entity
 @Data
 public class TokenUser {
@@ -15,28 +22,23 @@ public class TokenUser {
 
     private String username;
     private String password;
-
-    @ManyToMany
-    @JoinTable(
-            name = "user_roles",
-            joinColumns = @JoinColumn(
-                    name = "user_id", referencedColumnName = "id"),
-            inverseJoinColumns = @JoinColumn(
-                    name = "role_id", referencedColumnName = "id")
-    )
-    private Collection<Role> roles;
+    private String role;
+    @ElementCollection(targetClass = String.class, fetch = FetchType.EAGER)
+    private List<String> privileges = new ArrayList<>();
 
     public TokenUser() {}
 
-    TokenUser(String userName, String password, Collection<Role> roles) {
+    TokenUser(String userName, String password, String role, List<String> privileges) {
         this.username = userName;
         this.password = password;
-        this.roles = roles;
+        this.role = role;
+        if(privileges != null) this.privileges.addAll(privileges);
     }
 
     @Override
     public String toString() {
-        return "User{" + "id=" + this.id + ", username='" + this.username + "', roles=" + this.roles.toString() + "}";
+        return "User{" + "id=" + this.id + ", username='" + this.username + "', role='" + this.role +
+               "', privileges=" + this.privileges.toString() + "}";
     }
 
 }
