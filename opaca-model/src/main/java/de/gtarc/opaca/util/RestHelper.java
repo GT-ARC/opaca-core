@@ -67,7 +67,7 @@ public class RestHelper {
     }
 
 
-    public ResponseEntity<Void> postStream(String path, InputStream inputStream) {
+    public ResponseEntity<Void> postStream(String path, byte[] inputStream) {
         try {
             streamRequest("POST", path, inputStream);
             return ResponseEntity.ok().build();
@@ -77,7 +77,7 @@ public class RestHelper {
     }
 
 
-    public void streamRequest(String method, String path, InputStream payload) throws IOException {
+    public void streamRequest(String method, String path, byte[] payload) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
         connection.setRequestMethod(method);
         connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
@@ -90,7 +90,8 @@ public class RestHelper {
         connection.connect();
 
         try (OutputStream os = connection.getOutputStream();
-            BufferedInputStream bis = new BufferedInputStream(payload)) {
+            InputStream inputStream = new ByteArrayInputStream(payload);
+            BufferedInputStream bis = new BufferedInputStream(inputStream)) {
             byte[] buffer = new byte[1024];
             int bytesRead;
             while ((bytesRead = bis.read(buffer)) != -1) {

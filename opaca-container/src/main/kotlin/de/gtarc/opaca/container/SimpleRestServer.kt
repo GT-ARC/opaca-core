@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
-
+import java.io.ByteArrayOutputStream
 
 /**
  * Minimal Jetty server for providing the REST interface. There's probably a better way to do this.
@@ -147,7 +147,7 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
             throw NoSuchElementException("Unknown path: $path")
         }
 
- private fun handlePost(path: String, query: String?, request: HttpServletRequest): Any? {
+        private fun handlePost(path: String, query: String?, request: HttpServletRequest): Any? {
             val queryParams = parseQueryString(query)
             val timeout = queryParams.getOrDefault("timeout", "-1").toInt()
 
@@ -188,15 +188,42 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
             if (postStream != null) {
                 val stream = postStream.groupValues[1]
                 val body = request.inputStream
-                return impl.postStream(stream, body, "", false)
+
+                val byteArrayOutputStream = ByteArrayOutputStream()
+                request.inputStream.use { input ->
+                    byteArrayOutputStream.use { output ->
+                        input.copyTo(output)
+                    }
+                }
+
+                // Convert ByteArrayOutputStream to ByteArray
+                val byteArray = byteArrayOutputStream.toByteArray()
+
+                // Pass the ByteArray directly to impl.postStream
+                return impl.postStream(stream, byteArray, "", false)
+    
             }
 
             val postStreamTo = Regex("^/stream/([^/]+)/([^/]+)$").find(path)
             if (postStreamTo != null) {
                 val stream = postStreamTo.groupValues[1]
                 val agentId = postStreamTo.groupValues[2]
+
                 val body = request.inputStream
-                return impl.postStream(stream, body, agentId, "", false)
+
+                val byteArrayOutputStream = ByteArrayOutputStream()
+                request.inputStream.use { input ->
+                    byteArrayOutputStream.use { output ->
+                        input.copyTo(output)
+                    }
+                }
+
+                // Convert ByteArrayOutputStream to ByteArray
+                val byteArray = byteArrayOutputStream.toByteArray()
+
+                // Pass the ByteArray directly to impl.postStream
+                return impl.postStream(stream, byteArray, agentId, "", false)
+    
             }
 
             throw NoSuchElementException("Unknown path: $path")

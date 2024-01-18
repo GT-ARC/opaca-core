@@ -39,7 +39,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
     protected val actionCallbacks = mutableMapOf<String, (Map<String, JsonNode>) -> Any?>()
     protected val streams = mutableListOf<Stream>()
     protected val streamCallbacks = mutableMapOf<String, () -> Any?>()
-    protected val streamCallbacksWithInputStream = mutableMapOf<String, (InputStream) -> Any?>()
+    protected val streamCallbacksWithInputStream = mutableMapOf<String, (ByteArray) -> Any?>()
     override fun preStart() {
         super.preStart()
         register(false)
@@ -79,7 +79,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         actions.add(action)
         actionCallbacks[action.name] = callback
     }
-    fun addStreamWithInputStream(name: String, mode: Stream.Mode, callback: (InputStream) -> Any?) {
+    fun addStreamWithInputStream(name: String, mode: Stream.Mode, callback: (ByteArray) -> Any?) {
         val stream = Stream(name, mode)
         addStreamWithInputStream(stream, callback)
     }
@@ -89,7 +89,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         addStream(stream, callback)
     }
 
-    fun addStreamWithInputStream(stream: Stream, callback: (InputStream) -> Any?) {
+    fun addStreamWithInputStream(stream: Stream, callback: (ByteArray) -> Any?) {
         streams.add(stream)
         streamCallbacksWithInputStream[stream.name] = callback
     }
@@ -148,7 +148,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         }
     }
 
-    fun sendOutboundStreamPostRequest(stream: String, inputStream: InputStream, agentId: String?, containerId: String, forward: Boolean = true): ResponseEntity<Void> {
+    fun sendOutboundStreamPostRequest(stream: String, inputStream: ByteArray, agentId: String?, containerId: String, forward: Boolean = true): ResponseEntity<Void> {
         log.info("Outbound Stream: $stream @ $containerId")
         return when (agentId) {
             null -> parentProxy.postStream(stream, inputStream, containerId, forward)

@@ -218,7 +218,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
     public ResponseEntity<Void> postStream(
             @PathVariable String stream,
-            @RequestBody(required = false) InputStream inputStream,
+            @RequestBody(required = false) byte[] inputStream,
             @RequestParam(required = false) String containerId,
             @RequestParam(required = false, defaultValue = "true") boolean forward
     ) throws IOException {
@@ -231,7 +231,7 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@Override
     public ResponseEntity<Void> postStream(
             @PathVariable String stream,
-			@RequestBody(required = false) InputStream inputStream,
+			@RequestBody(required = false) byte[] inputStream,
             @PathVariable String agentId,
             @RequestParam(required = false) String containerId,
             @RequestParam(required = false, defaultValue = "true") boolean forward

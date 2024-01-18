@@ -78,15 +78,13 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     }
 
 
-    private fun actionPostStream(inputStream: InputStream): Boolean {
+    private fun actionPostStream(inputStream: ByteArray): Boolean {
         val data = "{\"key\":\"value\"}".toByteArray(Charset.forName("UTF-8"))
-        val outputStream = ByteArrayOutputStream()
 
-        inputStream.copyTo(outputStream)
-
-        // Compare the content of outputStream with the data
-        return outputStream.toByteArray().contentEquals(data)
+        // Compare the content of inputStream with the data
+        return inputStream.contentEquals(data)
     }
+
 
 
     private fun actionAdd(x: Int, y: Int) = x + y

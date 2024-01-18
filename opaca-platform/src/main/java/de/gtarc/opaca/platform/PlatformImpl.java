@@ -219,12 +219,12 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
  @Override
-    public ResponseEntity<Void> postStream(String stream, InputStream inputStream, String containerId, boolean forward) throws IOException {
+    public ResponseEntity<Void> postStream(String stream, byte[] inputStream, String containerId, boolean forward) throws IOException {
         return postStream(stream, inputStream, null, containerId, forward);
     }
 
     @Override
-    public ResponseEntity<Void> postStream(String stream, InputStream inputStream, String agentId, String containerId, boolean forward) throws IOException {
+    public ResponseEntity<Void> postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException {
         var clients = getClients(containerId, agentId, null, stream, forward);
         
         IOException lastException = null;

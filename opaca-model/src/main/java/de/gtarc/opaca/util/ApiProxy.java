@@ -111,13 +111,13 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
-    public ResponseEntity<Void> postStream(String stream, InputStream inputStream, String containerId, boolean forward) throws IOException {
+    public ResponseEntity<Void> postStream(String stream, byte[] inputStream, String containerId, boolean forward) throws IOException {
         var path = String.format("/stream/%s?%s", stream, buildQuery(containerId, forward, null));
         return client.postStream(path, inputStream);
     }
 
     @Override
-    public ResponseEntity<Void> postStream(String stream, InputStream inputStream, String agentId, String containerId, boolean forward) throws IOException {
+    public ResponseEntity<Void> postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException {
         var path = String.format("/stream/%s/%s?%s", stream, agentId, buildQuery(containerId, forward, null));
         return client.postStream(path, inputStream);
     }
