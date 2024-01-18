@@ -32,7 +32,7 @@ public class TestUtils {
      * > docker tag test-image registry.gitlab.dai-labor.de/pub/unit-tests/opaca-sample-container:vXYZ
      * > docker push registry.gitlab.dai-labor.de/pub/unit-tests/opaca-sample-container:vXYZ
      */
-    static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/jiacpp-sample-container:v18";
+    static final String TEST_IMAGE = "registry.gitlab.dai-labor.de/pub/unit-tests/opaca-sample-container:v18";
 
     /*
      * HELPER METHODS
