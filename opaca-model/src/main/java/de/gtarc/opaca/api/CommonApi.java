@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.model.AgentDescription;
 import de.gtarc.opaca.model.Message;
 
+import java.io.InputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -114,5 +115,8 @@ public interface CommonApi {
      * @return Action result
      */
     ResponseEntity<StreamingResponseBody> getStream(String stream, String agentId, String containerId, boolean forward) throws IOException;
+
+    ResponseEntity<Void> postStream(String stream, InputStream inputStream, String containerId, boolean forward) throws IOException;
+    ResponseEntity<Void> postStream(String stream, InputStream inputStream, String agentId, String containerId, boolean forward) throws IOException;
 
 }

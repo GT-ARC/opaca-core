@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -216,6 +217,31 @@ public class PlatformImpl implements RuntimePlatformApi {
     /*
      * CONTAINERS ROUTES
      */
+
+ @Override
+    public ResponseEntity<Void> postStream(String stream, InputStream inputStream, String containerId, boolean forward) throws IOException {
+        return postStream(stream, inputStream, null, containerId, forward);
+    }
+
+    @Override
+    public ResponseEntity<Void> postStream(String stream, InputStream inputStream, String agentId, String containerId, boolean forward) throws IOException {
+        var clients = getClients(containerId, agentId, null, stream, forward);
+        
+        IOException lastException = null;
+        for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
+            try {
+                return agentId == null
+                        ? client.postStream(stream, inputStream, containerId, false)
+                        : client.postStream(stream, inputStream, agentId, containerId, false);
+            } catch (IOException e) {
+                log.warning(String.format("Failed to post stream '%s' @ agent '%s' and client '%s': %s",
+                        stream, agentId, client.baseUrl, e));
+                lastException = e;
+            }
+        }
+        if (lastException != null) throw lastException;
+        throw new NoSuchElementException(String.format("Not found: stream '%s' @ agent '%s'", stream, agentId));
+    }
 
     @Override
     public String addContainer(PostAgentContainer postContainer) throws IOException {
