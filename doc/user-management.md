@@ -57,6 +57,36 @@ The roles are part of a role hierarchy, granting the higher role all permissions
 ADMIN > CONTRIBUTOR > USER > GUEST
 ```
 
+## Authority Overview
+
+In the following table, all implemented routes along with the necessary authority levels are listed. Actions marked with an **X** are executable with the listed authority level in the same column. Specific combinations will include further clarification, when additional authorization is needed inside a single authorization level.
+
+In addition to the following routes, the routes `/login`, `/error`, as well as specific _swagger.io_ paths are permitted to all (non-logged in) users.
+
+A route ending with /** includes every possible path suffix. If no REST methods (GET, DELETE, PUT, POST) are stated, all methods are included. Otherwise, only the given methods are concerned.
+
+|                             | ADMIN | CONTRIBUTOR | USER | GUEST |
+|:----------------------------|:-----:|:-----------:|:----:|:-----:|
+| /agents/**                  |   X   |      X      |  X   |   X   |
+| /broadcast/**               |   X   |      X      |  X   |       |
+| /containers/** GET          |   X   |      X      |  X   |   X   |
+| /containers/** DELETE/POST  |   X   |     X*      |      |       |
+| /connections GET            |   X   |      X      |  X   |       |
+| /connections/** DELETE/POST |   X   |             |      |       |
+| /history GET                |   X   |      X      |  X   |       |
+| /info GET                   |   X   |      X      |  X   |   X   |
+| /invoke/**                  |   X   |      X      |  X   |       |
+| /send/**                    |   X   |      X      |  X   |       |
+| /stream/**                  |   X   |      X      |  X   |       |
+| /users GET                  |   X   |             |      |       |
+| /users/{username} GET       |   X   |     X**     | X**  |       |
+| /users POST                 |   X   |             |      |       |
+| /users DELETE               |   X   |             |      |       |
+| /users PUT                  |   X   |             |      |       |
+
+*: A contributor can only delete containers which were started by it. \
+**: A non-admin can only retrieve user information about itself.
+
 ## User Controller
 
 The User Controller provides REST routes to interact with the user management. Currently, the following REST routes have been implemented:
