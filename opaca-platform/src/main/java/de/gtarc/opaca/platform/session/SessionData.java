@@ -2,8 +2,6 @@ package de.gtarc.opaca.platform.session;
 
 import java.util.*;
 
-import de.gtarc.opaca.platform.user.PrivilegeRepository;
-import de.gtarc.opaca.platform.user.RoleRepository;
 import de.gtarc.opaca.platform.user.TokenUserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import de.gtarc.opaca.model.PostAgentContainer;
@@ -35,14 +33,6 @@ public class SessionData {
     /* KubernetesClient variables */
     public Map<String, KubernetesClient.PodInfo> pods = new HashMap<>();
 
-    /* TokenUser In-Memory Database Repositories */
-    @Autowired
-    public TokenUserRepository tokenUserRepository;
-    @Autowired
-    public RoleRepository roleRepository;
-    @Autowired
-    public PrivilegeRepository privilegeRepository;
-
     public void reset() {
         this.tokens.clear();
         this.runningContainers.clear();
@@ -50,13 +40,8 @@ public class SessionData {
         this.connectedPlatforms.clear();
         this.dockerContainers.clear();
         this.usedPorts.clear();
-        this.tokenUserRepository.deleteAll();
-        this.tokenUserRepository.flush();
-        this.roleRepository.deleteAll();
-        this.roleRepository.flush();
-        this.privilegeRepository.deleteAll();
-        this.privilegeRepository.flush();
         this.pods.clear();
+        // TODO reset user data
     }
 
 }
