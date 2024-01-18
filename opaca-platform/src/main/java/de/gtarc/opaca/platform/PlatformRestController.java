@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.InputStream;
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.List;
@@ -211,6 +212,33 @@ public class PlatformRestController implements RuntimePlatformApi {
 		return implementation.getStream(stream, agentId, containerId, forward);
 	}
 
+
+	@RequestMapping(value="/stream/{stream}", method=RequestMethod.POST)
+	@Operation(summary="stream data POST", tags={"agents"})
+	@Override
+    public ResponseEntity<Void> postStream(
+            @PathVariable String stream,
+            @RequestBody(required = false) InputStream inputStream,
+            @RequestParam(required = false) String containerId,
+            @RequestParam(required = false, defaultValue = "true") boolean forward
+    ) throws IOException {
+        log.info(String.format("POST STREAM: %s ", stream));
+        return implementation.postStream(stream, inputStream, containerId, forward);
+    }
+
+	@RequestMapping(value="/stream/{stream}/{agentId}", method=RequestMethod.POST)
+	@Operation(summary="stream data POST", tags={"agents"})
+	@Override
+    public ResponseEntity<Void> postStream(
+            @PathVariable String stream,
+			@RequestBody(required = false) InputStream inputStream,
+            @PathVariable String agentId,
+            @RequestParam(required = false) String containerId,
+            @RequestParam(required = false, defaultValue = "true") boolean forward
+    ) throws IOException {
+        log.info(String.format("POST STREAM: %s, %s", stream, agentId));
+        return implementation.postStream(stream, inputStream, agentId, containerId, forward);
+    }
 	/*
 	 * CONTAINERS ROUTES
 	 */

@@ -15,6 +15,7 @@ import java.time.ZonedDateTime
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicReference
 import java.io.InputStream
+import java.io.OutputStream
 import org.springframework.http.ResponseEntity
 import org.springframework.http.MediaType
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
@@ -125,6 +126,37 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 throw NoSuchElementException("Action $action of Agent $agentId not found")
             }
         }
+
+        override fun postStream(stream: String, inputStream: InputStream, containerId: String, forward: Boolean): ResponseEntity<Void> {
+            log.info("POST STREAM: $stream")
+            return postStream(stream, inputStream, null, containerId, forward)
+        }
+
+        override fun postStream(stream: String, inputStream: InputStream, agentId: String?, containerId: String, forward: Boolean): ResponseEntity<Void> {
+            log.info("POST STREAM TO AGENT: $agentId $stream")
+
+            val agent = findRegisteredAgent(agentId, null, stream)
+            if (agent != null) {
+                val outputStream: OutputStream = invokeAskWait(agent, PostStreamInvoke(stream, inputStream), -1)
+                
+                val buffer = ByteArray(8192)
+                var bytesRead: Int
+
+                while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                    outputStream.write(buffer, 0, bytesRead)
+                }
+
+                outputStream.flush()
+                inputStream.close()
+                outputStream.close()
+
+                return ResponseEntity.ok().build<Void>()
+
+            } else {
+                throw NoSuchElementException("Agent $agentId not found for Stream $stream")
+            }
+        }
+ 
 
         override fun getStream(streamId: String, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody>? {
             log.info("GET STREAM: $streamId")
