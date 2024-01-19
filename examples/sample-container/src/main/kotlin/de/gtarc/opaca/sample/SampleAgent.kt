@@ -47,10 +47,12 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             stop()
         }
 
-        addStreamWithInputStream("PostStream", Stream.Mode.POST) {
+        addStream("PostStream", Stream.Mode.POST, callbackWithInputStream = {
             actionPostStream(it)
-        }
-        addStream("GetStream", Stream.Mode.GET, this::actionGetStream)
+        })
+
+        addStream("GetStream", Stream.Mode.GET, callback = this::actionGetStream)
+
     }
 
     override fun behaviour() = super.behaviour().and(act {

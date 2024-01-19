@@ -79,24 +79,15 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         actions.add(action)
         actionCallbacks[action.name] = callback
     }
-    fun addStreamWithInputStream(name: String, mode: Stream.Mode, callback: (ByteArray) -> Any?) {
+    
+    fun addStream(name: String, mode: Stream.Mode, callbackWithInputStream: ((ByteArray) -> Any?)? = null, callback: (() -> Any?)? = null) {
         val stream = Stream(name, mode)
-        addStreamWithInputStream(stream, callback)
-    }
-
-    fun addStream(name: String, mode: Stream.Mode, callback: () -> Any?) {
-        val stream = Stream(name, mode)
-        addStream(stream, callback)
-    }
-
-    fun addStreamWithInputStream(stream: Stream, callback: (ByteArray) -> Any?) {
         streams.add(stream)
-        streamCallbacksWithInputStream[stream.name] = callback
-    }
-
-    fun addStream(stream: Stream, callback: () -> Any?) {
-        streams.add(stream)
-        streamCallbacks[stream.name] = callback
+        if (callbackWithInputStream != null) {
+            streamCallbacksWithInputStream[stream.name] = callbackWithInputStream
+        } else if (callback != null) {
+            streamCallbacks[stream.name] = callback
+        } 
     }
 
     override fun behaviour() = act {
