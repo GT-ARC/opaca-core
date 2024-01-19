@@ -23,7 +23,8 @@ public class TestUtils {
 
     /**
      * Agent-container image providing some nonsensical actions useful for unit testing
-     * This is the docker image of `examples/sample-container`.
+     * This is the docker image of `examples/sample-container`. The image is build automatically
+     * during CI. When running tests locally, make sure to build the image first, with this name.
      */
     static final String TEST_IMAGE = "sample-agent-container-image";
 
