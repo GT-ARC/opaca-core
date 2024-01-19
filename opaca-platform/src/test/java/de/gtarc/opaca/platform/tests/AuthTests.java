@@ -1,9 +1,6 @@
 package de.gtarc.opaca.platform.tests;
 
-import de.gtarc.opaca.model.Login;
-import de.gtarc.opaca.model.LoginConnection;
-import de.gtarc.opaca.model.RuntimePlatform;
-import de.gtarc.opaca.model.User;
+import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.platform.Application;
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
@@ -49,11 +46,11 @@ public class AuthTests {
         platformA = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT,
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
-                "--username_platform=testUser", "--password_platform=testPwd", "--role_platform=ADMIN");
+                "--username_platform=testUser", "--password_platform=testPwd");
         platformB = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_B_PORT,
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
-                "--username_platform=testUser", "--password_platform=testPwd", "--role_platform=ADMIN");
+                "--username_platform=testUser", "--password_platform=testPwd");
     }
 
     @AfterClass
@@ -226,32 +223,32 @@ public class AuthTests {
     public void test08AddUser() throws Exception {
         // GUEST USER
         var con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("guest", "guestPwd", "ROLE_GUEST", null), token_A);
+                getUser("guest", "guestPwd", Role.GUEST.name(), null), token_A);
         Assert.assertEquals(200, con.getResponseCode());
 
         // (NORMAL) USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("user", "userPwd", "ROLE_USER", null), token_A);
+                getUser("user", "userPwd", Role.USER.name(), null), token_A);
         Assert.assertEquals(200, con.getResponseCode());
 
         // CONTRIBUTOR USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("contributor", "contributorPwd", "ROLE_CONTRIBUTOR", null), token_A);
+                getUser("contributor", "contributorPwd", Role.CONTRIBUTOR.name(), null), token_A);
         Assert.assertEquals(200, con.getResponseCode());
 
         // ADMIN USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("admin", "adminPwd", "ROLE_ADMIN", null), token_A);
+                getUser("admin", "adminPwd", Role.ADMIN.name(), null), token_A);
         Assert.assertEquals(200, con.getResponseCode());
 
         // TEST USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("test", "testPwd", "ROLE_GUEST", null), token_A);
+                getUser("test", "testPwd", Role.GUEST.name(), null), token_A);
         Assert.assertEquals(200, con.getResponseCode());
 
         // SECOND CONTRIBUTOR USER FOR SPECIFIC AUTHORITY TEST
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("contributor2", "contributor2Pwd", "ROLE_CONTRIBUTOR", null), token_A);
+                getUser("contributor2", "contributor2Pwd", Role.CONTRIBUTOR.name(), null), token_A);
         Assert.assertEquals(200, con.getResponseCode());
     }
 
@@ -271,7 +268,7 @@ public class AuthTests {
     @Test
     public void test08EditUser() throws Exception {
         var con = requestWithToken(PLATFORM_A, "PUT", "/users/test",
-                getUser(null, null, "ROLE_IRRELEVANT", null), token_A);
+                getUser(null, null, "GUEST", null), token_A);
         Assert.assertEquals(200, con.getResponseCode());
     }
 
@@ -419,7 +416,7 @@ public class AuthTests {
 
         // Check if container can NOT perform actions which require "ADMIN" role
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("forbiddenUser", "forbidden", "ROLE_GUEST", null), contContainerToken);
+                getUser("forbiddenUser", "forbidden", Role.GUEST.name(), null), contContainerToken);
         Assert.assertEquals(403, con.getResponseCode());
 
         // Container deletes itself

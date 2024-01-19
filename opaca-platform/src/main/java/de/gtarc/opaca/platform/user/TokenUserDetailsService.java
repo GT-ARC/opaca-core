@@ -3,6 +3,7 @@ package de.gtarc.opaca.platform.user;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import de.gtarc.opaca.model.Role;
 import jakarta.annotation.PostConstruct;
 
 import de.gtarc.opaca.platform.PlatformConfig;
@@ -16,8 +17,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import de.gtarc.opaca.platform.session.SessionData;
 
 
 /**
@@ -46,7 +45,9 @@ public class TokenUserDetailsService implements UserDetailsService {
             // If Security is not enabled but password is null, use default password 'pass'
             // TODO Starting platform with auth enabled and no password set should log warning or even error
             String pwd = config.passwordPlatform == null && !config.enableAuth ? "pass" : config.passwordPlatform;
-            createUser(config.usernamePlatform, pwd, "ROLE_ADMIN", null);
+            // TODO No specified username defaults to 'null' leads to errors, platform username should be mandatory
+            String user = config.usernamePlatform == null ? "platformUser" : config.usernamePlatform;
+            createUser(user, pwd, Role.ADMIN, null);
         }
 	}
 
@@ -64,11 +65,11 @@ public class TokenUserDetailsService implements UserDetailsService {
 
     /**
      * Adding a new user to the UserRepository. Users can be human [username, password, roles]
-     * or containers [containerID, containerID, roles]
+     * or containers [containerID, password(random), roles]
      * If a User already exists, throw an exception
      */
     @Transactional
-    public void createUser(String username, String password, String role, List<String> privileges) {
+    public void createUser(String username, String password, Role role, List<String> privileges) {
         if (tokenUserRepository.findByUsername(username) != null) {
             throw new UserAlreadyExistsException(username);
         }
@@ -124,7 +125,7 @@ public class TokenUserDetailsService implements UserDetailsService {
         if (tokenUserRepository.findByUsername(newUsername) != null &&
                 !Objects.equals(username, newUsername)) throw new UserAlreadyExistsException(newUsername);
         if (password != null) user.setPassword(passwordEncoder.encode(password));
-        if (role != null) user.setRole(role);
+        if (role != null) user.setRole(Role.valueOf(role));
         if (privileges != null) user.setPrivileges(privileges);
         if (newUsername != null) user.setUsername(newUsername);
         tokenUserRepository.save(user);
@@ -136,7 +137,7 @@ public class TokenUserDetailsService implements UserDetailsService {
      */
     private Collection<? extends GrantedAuthority> getAuthorities(TokenUser user) {
         List<String> authorities = new ArrayList<>();
-        authorities.add(user.getRole());
+        authorities.add(user.getRole().role());
         authorities.addAll(user.getPrivileges());
 
         return authorities.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList());
@@ -146,7 +147,7 @@ public class TokenUserDetailsService implements UserDetailsService {
      * Return the role associated to the username
      */
     @Transactional
-    public String getUserRole(String username) {
+    public Role getUserRole(String username) {
         TokenUser user = tokenUserRepository.findByUsername(username);
         if (user == null) throw new UsernameNotFoundException(username);
         return user.getRole();

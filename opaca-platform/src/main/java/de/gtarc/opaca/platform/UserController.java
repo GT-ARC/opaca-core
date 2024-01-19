@@ -1,9 +1,11 @@
 package de.gtarc.opaca.platform;
 
+import de.gtarc.opaca.model.Role;
 import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.auth.JwtUtil;
 import de.gtarc.opaca.platform.user.TokenUserDetailsService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +28,9 @@ public class UserController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private PlatformConfig config;
+
     /*
      * USER MANAGEMENT
      */
@@ -41,7 +46,7 @@ public class UserController {
             @RequestBody User user
     ) {
         try {
-            userDetailsService.createUser(user.getUsername(), user.getPassword(), user.getRole(), user.getPrivileges());
+            userDetailsService.createUser(user.getUsername(), user.getPassword(), Role.valueOf(user.getRole()), user.getPrivileges());
             log.info(String.format("ADD USER: [username='%s', role='%s', privileges=%s]",
                     user.getUsername(), user.getRole(), user.getPrivileges()));
             return userDetailsService.getUser(user.getUsername());
@@ -59,10 +64,10 @@ public class UserController {
     @RequestMapping(value="/users/{username}", method=RequestMethod.DELETE)
     @Operation(summary="Delete an existing user from the connected database", tags={"users"})
     public boolean deleteUser(
-            @RequestHeader("Authorization") String token,
+            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
             @PathVariable String username
     ) {
-        if (isAdminOrSelf(token, username)){
+        if (!config.enableAuth || isAdminOrSelf(token, username)){
             log.info(String.format("DELETE USER: %s", username));
             return userDetailsService.removeUser(username);
         }
@@ -78,10 +83,10 @@ public class UserController {
     @RequestMapping(value="/users/{username}", method=RequestMethod.GET)
     @Operation(summary="Get an existing user from the connected database", tags={"users"})
     public String getUser(
-            @RequestHeader("Authorization") String token,
+            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
             @PathVariable String username
     ) {
-        if (isAdminOrSelf(token, username)){
+        if (!config.enableAuth || isAdminOrSelf(token, username)){
             log.info(String.format("GET USER: %s", username));
             return userDetailsService.getUser(username);
         }
@@ -134,7 +139,7 @@ public class UserController {
         final String userToken = token.substring(7);
         UserDetails details = userDetailsService.loadUserByUsername(jwtUtil.getUsernameFromToken(userToken));
         if (details == null) return false;
-        return details.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")) ||
+        return details.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals(Role.ADMIN.role())) ||
                 details.getUsername().equals(username);
     }
 }

@@ -247,7 +247,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 tokens.put(agentContainerId, token);
                 container.setOwner(owner);
                 userDetailsService.createUser(agentContainerId, agentContainerId,
-                        config.enableAuth ? userDetailsService.getUserRole(owner) : null,
+                        config.enableAuth ? userDetailsService.getUserRole(owner) : Role.GUEST,
                         config.enableAuth ? userDetailsService.getUserPrivileges(owner) : null);
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {

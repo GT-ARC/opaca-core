@@ -67,9 +67,6 @@ public class PlatformConfig {
     @Value("${password_platform}")
     public String passwordPlatform;
 
-    @Value("${role_platform}")
-    public String rolePlatform;
-
     // IMAGE REGISTRY CREDENTIALS
 
     @Value("${registry_separator}")

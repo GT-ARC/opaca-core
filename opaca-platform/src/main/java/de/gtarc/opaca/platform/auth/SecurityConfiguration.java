@@ -1,5 +1,6 @@
 package de.gtarc.opaca.platform.auth;
 
+import de.gtarc.opaca.model.Role;
 import de.gtarc.opaca.platform.PlatformConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -75,13 +76,13 @@ public class SecurityConfiguration {
                                     "/swagger-ui.html",
                                     "/webjars/**"
                             ).permitAll()
-                            .requestMatchers(HttpMethod.GET, "/users").hasRole("ADMIN")
-                            .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**").hasRole("GUEST")
-                            .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**", "/users/**").hasRole("USER")
-                            .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**").hasRole("USER")
-                            .requestMatchers(HttpMethod.POST, "/containers/**").hasRole("CONTRIBUTOR")
-                            .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole("CONTRIBUTOR")
-                            .requestMatchers("/connections/**", "/users/**").hasRole("ADMIN")
+                            .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
+                            .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**").hasRole(Role.GUEST.name())
+                            .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**", "/users/**").hasRole(Role.USER.name())
+                            .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**").hasRole(Role.USER.name())
+                            .requestMatchers(HttpMethod.POST, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
+                            .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
+                            .requestMatchers("/connections/**", "/users/**").hasRole(Role.ADMIN.name())
                             .anyRequest().authenticated()
                     )
                     .sessionManagement((session) -> session
@@ -108,7 +109,9 @@ public class SecurityConfiguration {
     @Bean
     public RoleHierarchy roleHierarchy() {
         RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
-        String hierarchy = "ROLE_ADMIN > ROLE_CONTRIBUTOR \n ROLE_CONTRIBUTOR > ROLE_USER \n ROLE_USER > ROLE_GUEST";
+        String hierarchy = Role.ADMIN.role() + " > " + Role.CONTRIBUTOR.role() + " \n " +
+                           Role.CONTRIBUTOR.role() + " > " + Role.USER.role() + " \n " +
+                           Role.USER.role() + " > " + Role.GUEST.role();
         roleHierarchy.setHierarchy(hierarchy);
         return roleHierarchy;
     }
