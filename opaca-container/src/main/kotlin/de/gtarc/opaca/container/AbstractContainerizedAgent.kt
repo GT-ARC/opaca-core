@@ -11,6 +11,7 @@ import de.gtarc.opaca.util.RestHelper
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.LocalAgentRef
 import de.dailab.jiacvi.behaviour.act
+import java.io.InputStream
 
 import org.springframework.http.ResponseEntity
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
@@ -38,7 +39,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
     protected val actionCallbacks = mutableMapOf<String, (Map<String, JsonNode>) -> Any?>()
     protected val streams = mutableListOf<Stream>()
     protected val streamCallbacks = mutableMapOf<String, () -> Any?>()
-
+    protected val streamCallbacksWithInputStream = mutableMapOf<String, (ByteArray) -> Any?>()
     override fun preStart() {
         super.preStart()
         register(false)
@@ -78,13 +79,22 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         actions.add(action)
         actionCallbacks[action.name] = callback
     }
+    fun addStreamWithInputStream(name: String, mode: Stream.Mode, callback: (ByteArray) -> Any?) {
+        val stream = Stream(name, mode)
+        addStreamWithInputStream(stream, callback)
+    }
 
     fun addStream(name: String, mode: Stream.Mode, callback: () -> Any?) {
-        addStream(Stream(name, mode), callback)
+        val stream = Stream(name, mode)
+        addStream(stream, callback)
+    }
+
+    fun addStreamWithInputStream(stream: Stream, callback: (ByteArray) -> Any?) {
+        streams.add(stream)
+        streamCallbacksWithInputStream[stream.name] = callback
     }
 
     fun addStream(stream: Stream, callback: () -> Any?) {
-        log.info("Added stream: $stream")
         streams.add(stream)
         streamCallbacks[stream.name] = callback
     }
@@ -105,6 +115,14 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
                 else -> Unit
             }
         }
+
+        respond<PostStreamInvoke, Any?> {
+            log.info("STREAM RESPOND $it")
+            when(it.name) {
+                in streamCallbacksWithInputStream -> streamCallbacksWithInputStream[it.name]?.let { it1 -> it1(it.body) }
+                else -> Unit
+            }
+        }
     }
 
     /**
@@ -122,11 +140,19 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         return RestHelper.mapper.treeToValue(res, type)
     }
 
-    fun sendOutboundStreamRequest(stream: String, agentId: String?, containerId: String, forward: Boolean = true): ResponseEntity<StreamingResponseBody> {
+    fun sendOutboundStreamGetRequest(stream: String, agentId: String?, containerId: String, forward: Boolean = true): ResponseEntity<StreamingResponseBody> {
         log.info("Outbound Stream: $stream @ $containerId")
         return when (agentId) {
             null -> parentProxy.getStream(stream, containerId, forward)
             else -> parentProxy.getStream(stream, agentId, containerId, forward)
+        }
+    }
+
+    fun sendOutboundStreamPostRequest(stream: String, inputStream: ByteArray, agentId: String?, containerId: String, forward: Boolean = true): ResponseEntity<Void> {
+        log.info("Outbound Stream: $stream @ $containerId")
+        return when (agentId) {
+            null -> parentProxy.postStream(stream, inputStream, containerId, forward)
+            else -> parentProxy.postStream(stream, inputStream, agentId, containerId, forward)
         }
     }
 
