@@ -23,14 +23,7 @@ public class TestUtils {
 
     /**
      * Agent-container image providing some nonsensical actions useful for unit testing
-     * This is the docker image of `examples/sample-container`. When adding a new feature to
-     * the sample-container for testing some new function of the Runtime Platform, increment
-     * the version number and push the image to the DAI Gitlab Docker Registry
-     *
-     * > docker build -t test-image examples/sample-container/
-     * (change to TEST_IMAGE="test-image" and test locally if it works)
-     * > docker tag test-image registry.gitlab.dai-labor.de/pub/unit-tests/opaca-sample-container:vXYZ
-     * > docker push registry.gitlab.dai-labor.de/pub/unit-tests/opaca-sample-container:vXYZ
+     * This is the docker image of `examples/sample-container`.
      */
     static final String TEST_IMAGE = "sample-agent-container-image";
 
