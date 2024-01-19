@@ -67,10 +67,9 @@ public class RestHelper {
     }
 
 
-    public ResponseEntity<Void> postStream(String path, byte[] inputStream) {
+    public void postStream(String path, byte[] inputStream) {
         try {
             streamRequest("POST", path, inputStream);
-            return ResponseEntity.ok().build();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

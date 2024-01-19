@@ -116,7 +116,7 @@ public interface CommonApi {
      */
     ResponseEntity<StreamingResponseBody> getStream(String stream, String agentId, String containerId, boolean forward) throws IOException;
 
-    ResponseEntity<Void> postStream(String stream, byte[] inputStream, String containerId, boolean forward) throws IOException;
-    ResponseEntity<Void> postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException;
+    void postStream(String stream, byte[] inputStream, String containerId, boolean forward) throws IOException;
+    void postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException;
 
 }

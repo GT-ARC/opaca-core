@@ -148,13 +148,20 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         }
     }
 
-    fun sendOutboundStreamPostRequest(stream: String, inputStream: ByteArray, agentId: String?, containerId: String, forward: Boolean = true): ResponseEntity<Void> {
+    fun sendOutboundStreamPostRequest(
+        stream: String,
+        inputStream: ByteArray,
+        agentId: String?,
+        containerId: String,
+        forward: Boolean = true
+    ): Unit {  // 'Unit' can be omitted as it's the default return type
         log.info("Outbound Stream: $stream @ $containerId")
-        return when (agentId) {
+        when (agentId) {
             null -> parentProxy.postStream(stream, inputStream, containerId, forward)
             else -> parentProxy.postStream(stream, inputStream, agentId, containerId, forward)
         }
     }
+
 
     /**
      * Send broadcast to other agents via the parent RuntimePlatform. While this can also be used

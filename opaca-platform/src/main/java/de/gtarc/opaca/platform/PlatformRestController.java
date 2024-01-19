@@ -216,20 +216,20 @@ public class PlatformRestController implements RuntimePlatformApi {
 	@RequestMapping(value="/stream/{stream}", method=RequestMethod.POST)
 	@Operation(summary="stream data POST", tags={"agents"})
 	@Override
-    public ResponseEntity<Void> postStream(
+    public void postStream(
             @PathVariable String stream,
             @RequestBody(required = false) byte[] inputStream,
             @RequestParam(required = false) String containerId,
             @RequestParam(required = false, defaultValue = "true") boolean forward
     ) throws IOException {
         log.info(String.format("POST STREAM: %s ", stream));
-        return implementation.postStream(stream, inputStream, containerId, forward);
+        implementation.postStream(stream, inputStream, containerId, forward);
     }
 
 	@RequestMapping(value="/stream/{stream}/{agentId}", method=RequestMethod.POST)
 	@Operation(summary="stream data POST", tags={"agents"})
 	@Override
-    public ResponseEntity<Void> postStream(
+    public void postStream(
             @PathVariable String stream,
 			@RequestBody(required = false) byte[] inputStream,
             @PathVariable String agentId,
@@ -237,7 +237,7 @@ public class PlatformRestController implements RuntimePlatformApi {
             @RequestParam(required = false, defaultValue = "true") boolean forward
     ) throws IOException {
         log.info(String.format("POST STREAM: %s, %s", stream, agentId));
-        return implementation.postStream(stream, inputStream, agentId, containerId, forward);
+        implementation.postStream(stream, inputStream, agentId, containerId, forward);
     }
 	/*
 	 * CONTAINERS ROUTES

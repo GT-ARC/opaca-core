@@ -10,6 +10,8 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.nio.charset.Charset
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
 
@@ -78,11 +80,20 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     }
 
 
-    private fun actionPostStream(inputStream: ByteArray): Boolean {
-        val data = "{\"key\":\"value\"}".toByteArray(Charset.forName("UTF-8"))
+    private fun actionPostStream(inputStream: ByteArray): String {
+        val objectMapper = ObjectMapper()
+        val inputJsonNode: JsonNode = objectMapper.readTree(inputStream)
+        val dataJsonNode: JsonNode = objectMapper.readTree("{\"key\":\"value\"}")
 
-        // Compare the content of inputStream with the data
-        return inputStream.contentEquals(data)
+        println(inputJsonNode.toString())
+        println("Input Stream is received")
+        println(dataJsonNode.toString())
+
+        return if (inputJsonNode == dataJsonNode) {
+            "Comparison successful"
+        } else {
+            "Comparison failed"
+        }
     }
 
 

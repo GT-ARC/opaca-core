@@ -196,10 +196,8 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
                     }
                 }
 
-                // Convert ByteArrayOutputStream to ByteArray
                 val byteArray = byteArrayOutputStream.toByteArray()
 
-                // Pass the ByteArray directly to impl.postStream
                 return impl.postStream(stream, byteArray, "", false)
     
             }
@@ -218,10 +216,8 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
                     }
                 }
 
-                // Convert ByteArrayOutputStream to ByteArray
                 val byteArray = byteArrayOutputStream.toByteArray()
 
-                // Pass the ByteArray directly to impl.postStream
                 return impl.postStream(stream, byteArray, agentId, "", false)
     
             }
