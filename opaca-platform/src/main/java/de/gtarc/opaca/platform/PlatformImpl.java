@@ -294,7 +294,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         AgentContainer container = runningContainers.get(containerId);
         if (config.enableAuth) {
             UserDetails details = userDetailsService.loadUserByUsername(jwtUtil.getCurrentRequestUser());
-            if (details == null) return false;
+            if (details == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
             // If user is neither admin nor owner of container, throw new FORBIDDEN exception
             // TODO Not sure if this is the right place to handle custom Http responses
             // TODO Might need to implement more custom error handling
