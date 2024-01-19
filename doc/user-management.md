@@ -12,14 +12,17 @@ The user-related information is stored in **JPARepositories**, which is used to 
 
 ## User-Management Models
 
-A `TokenUser` consists of a `username`, `password`, `role`, and `privileges`. Further it is assigned a unique ID which is used to store the Object in the In-memory database. The username, password, and role are stored as strings, and the privileges are a list of strings, since multiple privileges might be assigned to a single user. The password will get encoded before storing it as a string into the database.
+A `TokenUser` consists of a `username`, `password`, `role`, and `privileges`. Further it is assigned a unique ID which is used to store the Object in the In-memory database. This process is done automatically and cannot be modified by any user. 
+
+The username and password are stored as strings, the privileges as a list of strings, since multiple privileges might be assigned to a single user. The password will get encoded before storing it as a string into the database. The role is saved as an enum with the same name. Each user needs to be assigned exactly one role of the pre-defined roles, listed in [Authority Levels](#authority-levels).
 
 ### TokenUser
 ```
 {
+    "id": Long,
     "username": string,
     "password": string,
-    "role": string,
+    "role": Role,
     "privileges": [ string ]
 }
 ```
