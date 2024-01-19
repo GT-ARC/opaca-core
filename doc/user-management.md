@@ -6,41 +6,27 @@ The User-Management is implemented with Spring Boot, Spring Data and uses Spring
 
 ## User Database (In-Memory)
 
-Currently, the database used to store all user-related information (_Users_, _Roles_, _Privileges_) is the H2 Database, which is a Java based In-Memory database. User information is therefore only available on the current Runtime Platform.
+Currently, the database used to store all user-related information is the H2 Database, which is a Java based In-Memory database. User information is therefore only available on the current Runtime Platform. The user information consists of a unique ID, the username, a password, one of the pre-defined roles, and a list of privileges.
 
 The user-related information is stored in **JPARepositories**, which is used to create basic CRUD queries to interact with the specified H2 database in the application properties.
 
 ## User-Management Models
 
-A `TokenUser` has a `username`, `password`, and `roles`, where the username and password are given by strings, and the roles are a collection, consisting of multiple roles, if necessary. Each single role consists of a unique name and can include multiple privileges, which are made up by only their unique privilege name. The password will get encoded before storing it as a string into the database.
+A `TokenUser` consists of a `username`, `password`, `role`, and `privileges`. Further it is assigned a unique ID which is used to store the Object in the In-memory database. The username, password, and role are stored as strings, and the privileges are a list of strings, since multiple privileges might be assigned to a single user. The password will get encoded before storing it as a string into the database.
 
 ### TokenUser
 ```
 {
     "username": string,
     "password": string,
-    "roles": [ Role ]
-}
-```
-
-### Role
-```
-{
-    "name": string,
-    "privileges": [ Privilege ]
-}
-```
-
-### Privilege
-```
-{
-    "name": string,
+    "role": string,
+    "privileges": [ string ]
 }
 ```
 
 ## Authority Levels
 
-When checking a users' authority, their roles as well as their privileges are converted to so-called "Granted Authorities". This is primarily used by the Security Filter Chain, but is also checked during requests, which can be accessed by lower-level authorities, but need further checking for specific permissions (e.g. `DELETE /containers` can either be done by an admin or by the contributor who has created the container in question, but **NOT** by a contributor for a container it has not started).
+When checking a users' authority, their role as well as their privileges are converted to so-called "Granted Authorities". This is primarily used by the Security Filter Chain, but is also checked during requests, which can be accessed by lower-level authorities, but need further checking for specific permissions (e.g. `DELETE /containers` can either be done by an admin or by the contributor who has created the container in question, but **NOT** by a contributor for a container it has not started).
 
 These are the currently implemented Roles:
 
@@ -49,7 +35,7 @@ These are the currently implemented Roles:
 - **USER**: Can use the functionalities provided by the running containers on the Runtime Platform. Is also able to send/broadcast message on the platform and retrieve information about connected platforms or the history of the platform.
 - **GUEST**: Is a provisional role with the most limited access. Is only able to get information about the Runtime Platform, running containers and agents.
 
-Each of these roles can include multiple privileges, which have not been used for now.
+When a new user is created, it has to be assigned one of the stated roles. There is currently no way to include additional roles.
 
 The roles are part of a role hierarchy, granting the higher role all permissions of the lower role. This is the current role hierarchy:
 
