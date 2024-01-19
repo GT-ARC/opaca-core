@@ -13,6 +13,9 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.io.InputStreamReader;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -118,6 +121,14 @@ public class ContainerTests {
         var bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
         var response = bufferedReader.readLine();
         Assert.assertEquals("{\"key\":\"value\"}", response);
+    }
+
+    @Test
+    public void testPostStream() throws Exception {
+        String jsonInput = "{\"key\":\"value\"}";
+        byte[] jsonData = jsonInput.getBytes(StandardCharsets.UTF_8);
+        var responseCode = streamRequest(PLATFORM_URL, "POST", "/stream/PostStream", jsonData);
+        Assert.assertEquals(200, responseCode);
     }
 
     /**
