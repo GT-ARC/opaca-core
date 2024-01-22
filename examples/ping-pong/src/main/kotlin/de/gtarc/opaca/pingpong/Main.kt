@@ -1,6 +1,5 @@
 package de.gtarc.opaca.pingpong
 
-import PongAgent
 import de.gtarc.opaca.container.ContainerAgent
 import de.gtarc.opaca.util.ConfigLoader
 import de.dailab.jiacvi.communication.LocalBroker
