@@ -7,7 +7,6 @@ import lombok.NonNull;
 
 import java.util.Map;
 
-
 /**
  * Describes an action provided by one or more agents.
  */
