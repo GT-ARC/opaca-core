@@ -1,6 +1,6 @@
 # API Routes and Models
 
-This document shows a high-level, easy-to-read, language-agnostic overview of the JIAC++ API, the different routes, etc. It _should_ be kept up to date, but might not always _be_ up to date. When in doubt, please consult the Interfaces and Model classes in the `jiacpp-model` module, or just start a Runtime Platform and check the documentation in the Swagger Web UI.
+This document shows a high-level, easy-to-read, language-agnostic overview of the OPACA API, the different routes, etc. It _should_ be kept up to date, but might not always _be_ up to date. When in doubt, please consult the Interfaces and Model classes in the `opaca-model` module, or just start a Runtime Platform and check the documentation in the Swagger Web UI.
 
 
 ## Environment Variables (Agent Container)
@@ -78,6 +78,21 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 * same as `POST /invoke/{action}/{agent}`, but invoke action at _any_ agent that provides it
 
+### `GET /stream/{stream}/{agent}?containerId={containerId}&forward={true|false}`
+
+* get stream provided by the given agent
+* input:
+  * stream: name of the stream
+  * agent: ID of the agent to invoke the action on
+  * containerId: (optional) if the request should only go to one specific container
+  * forward: (optional, default `true`) `true/false`, whether the request should be forwarded to connected platforms in case the action/agent does not exist on this platform
+* output: the stream
+* errors: 404 for unknown stream or agent
+
+### `GET /stream/{stream}?containerId={containerId}&forward={true|false}`
+
+* same as `GET /stream/{stream}/{agent}`, but get stream at _any_ agent that provides it
+
 
 ## Platform API
 
@@ -90,6 +105,13 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * get information about this runtime platform
 * input: none
 * output: `RuntimePlatform`
+* errors: none
+
+### `GET /history`
+
+* get history on this Runtime Platform, i.e. what routes have been called (except simple GET requests)
+* input : none
+* output: `[ Event ]`
 * errors: none
 
 ### `GET /containers`
@@ -109,8 +131,8 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 ### `POST /containers`
 
-* deploy new Agent Container onto this platform
-* body: `AgentContainerImage`
+* deploy new Agent Container onto this platform; the body specifies the image to be deployed (not all fields have to be present, e.g. no "description", but image-name, ports, and parameters, if any) and any arguments (i.e. values for the parameters), passed as environment variables and optional a configuration for the container environment in use (e.g. which Kubernetes node to use).
+* body: `PostAgentContainer`
 * output: ID of the created AgentContainer (string)
 * errors: 404 if image not found, 502 (bad gateway) if container did not start properly
 
@@ -138,7 +160,8 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 ### `POST /connections`
 
-* connect platform to another remote Runtime Platform (both directions)
+* connect platform to another remote Runtime Platform (both directions, unless remote requires authentication, then just one direction)
+* input: username & password (optional, if remote RP requires authentication)
 * body: the base URL of that other Runtime Platform
 * output: `true/false` whether the platform was newly connected or already known
 * errors: 502 (bad gateway) if not reachable
@@ -156,6 +179,19 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * body: the base URL of the other Runtime Platform
 * output: `true/false` whether it was disconnected
 * errors: 502 if not reachable (only if it was connected before)
+
+
+## Authentication
+
+### `POST /login`
+
+* login with user credentials
+* input:
+    * username
+    * password
+* output: Token
+* errors: 403 if user is not registered
+
 
 ### Common Themes of different Routes
 
@@ -181,6 +217,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 {
     "containerId": string,
     "image": AgentContainerImage,
+    "arguments": {string: string}
     "agents": [ AgentDescription ],
     "runningSince": "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
     "connectivity": {
@@ -206,6 +243,9 @@ When an Agent Container is started by the Runtime Platform, a number of environm
     "description": string,
     "provider": string
     "apiPort": int, // default: 8082
+    "parameters": [
+        {"name": string, "type": string, "required": boolean, "confidential": boolean, "defaultValue": string}
+    ],
     "extraPorts": {
         int: {
             "protocol": string,
@@ -247,4 +287,4 @@ The relations between the model classes used in the different API routes are dep
 
 ![Model Classes](img/models.png)
 
-Note that this is not a 100% accurate reproduction of the classes in `jiacpp-model`, e.g. the `port` is actually not an attribute of the PortDescription but a key in a hash map.
+Note that this is not a 100% accurate reproduction of the classes in `opaca-model`, e.g. the `port` is actually not an attribute of the PortDescription but a key in a hash map.

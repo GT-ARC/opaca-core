@@ -6,3 +6,5 @@ default-images
 Session.json
 .vscode
 *.log
+*.log.*
+.attach_pid*
