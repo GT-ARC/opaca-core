@@ -15,7 +15,6 @@ fun main() {
             add(SampleAgent("sample2"))
             add(SimpleUIAgent())
             add(SimpleUDPAgent())
-            add(BachelorAgent("MaxMustermann"))
         }
     }.start()
 }
