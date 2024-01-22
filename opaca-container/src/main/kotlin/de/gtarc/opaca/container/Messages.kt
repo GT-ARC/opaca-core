@@ -2,7 +2,7 @@ package de.gtarc.opaca.container
 
 import com.fasterxml.jackson.databind.JsonNode
 import de.gtarc.opaca.model.AgentDescription
-
+import java.io.InputStream
 
 // Messages for Registering an Agent with the Container Agent (or updating an already registered agent)
 // and for de-registering an agent. Those just wrap one other element each, but may still be useful for
@@ -20,3 +20,4 @@ data class DeRegister(val agentId: String, val notify: Boolean)
 data class Invoke(val name: String, val parameters: Map<String, JsonNode>)
 
 data class StreamInvoke(val name: String)
+data class PostStreamInvoke(val name: String, val body: ByteArray)

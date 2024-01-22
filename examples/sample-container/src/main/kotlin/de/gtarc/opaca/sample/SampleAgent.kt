@@ -1,12 +1,11 @@
 package de.gtarc.opaca.sample
 
+import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.container.AbstractContainerizedAgent
-import de.gtarc.opaca.model.Stream
 import de.gtarc.opaca.model.Message
-import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.model.Parameter
-
+import de.gtarc.opaca.model.Stream
 import java.io.ByteArrayInputStream
 import java.nio.charset.Charset
 
@@ -55,6 +54,9 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             stop()
         }
 
+        addStreamWithInputStream("PostStream", Stream.Mode.POST) {
+            actionPostStream(it)
+        }
         addStream("GetStream", Stream.Mode.GET, this::actionGetStream)
     }
 
@@ -83,6 +85,16 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         log.info("done waiting")
         return "Action 'DoThis' of $name called with message=$message and sleep_seconds=$sleep_seconds"
     }
+
+
+    private fun actionPostStream(inputStream: ByteArray): Boolean {
+        val data = "{\"key\":\"value\"}".toByteArray(Charset.forName("UTF-8"))
+
+        // Compare the content of inputStream with the data
+        return inputStream.contentEquals(data)
+    }
+
+
 
     private fun actionAdd(x: Int, y: Int) = x + y
 
