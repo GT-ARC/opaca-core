@@ -2,12 +2,14 @@
 
 # OPACA: An Open, Language- and Platform-Independent API for Containerized Agents
 
-Copyright 2022-2023 GT-ARC & DAI-Labor, TU Berlin
+Copyright 2022-2024 GT-ARC & DAI-Labor, TU Berlin
 
 * Main Contributors: Tobias Küster and Benjamin Acar
 * Further contributions by: Oskar Kupke, Robert Strehlow
 
 This (https://github.com/gt-arc/opaca-core/) is the public repository of the OPACA project. Feel free to create issues if you have any suggestions, or improve things yourself with a fork and pull request. The main development work still happens in the internal/private repository at https://gitlab.dai-labor.de/jiacpp/prototype/, including most (internal) tickets, development branches, merge requests, build pipelines, etc.
+
+See the end of this Readme for publication about the OPACA Framework and API.
 
 Note: The working title of OPACA was 'JIAC++'. Some references to the old name may still be found in the code and documentation.
 
@@ -110,3 +112,8 @@ See the [API docs](doc/api.md) for Environment Variables passed from the Runtime
 * [Execution Environments](doc/environments.md)
 * [Session Handling](doc/session.md)
 * [Authentication](doc/auth.md)
+
+
+## Publications
+
+* B. Acar et al., "OPACA: Toward an Open, Language- and Platform-Independent API for Containerized Agents," in IEEE Access, vol. 12, pp. 10012-10022, 2024, doi: [10.1109/ACCESS.2024.3353613](https://doi.org/10.1109/ACCESS.2021.3076326).
