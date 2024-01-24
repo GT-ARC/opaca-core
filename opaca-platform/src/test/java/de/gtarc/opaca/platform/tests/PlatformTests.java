@@ -1,6 +1,5 @@
 package de.gtarc.opaca.platform.tests;
 
-import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.platform.Application;
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
@@ -54,7 +53,7 @@ public class PlatformTests {
     public void checkInvariant() throws Exception {
         var con1 = request(PLATFORM_A_URL, "GET", "/info", null);
         var res1 = result(con1, RuntimePlatform.class);
-        Assert.assertTrue(res1.getConnections().isEmpty());
+        Assert.assertTrue(res1.getContainers().isEmpty());
         Assert.assertTrue(res1.getConnections().isEmpty());
         var con2 = request(PLATFORM_B_URL, "GET", "/info", null);
         var res2 = result(con2, RuntimePlatform.class);

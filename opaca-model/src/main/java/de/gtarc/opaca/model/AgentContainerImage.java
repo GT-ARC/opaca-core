@@ -1,6 +1,5 @@
 package de.gtarc.opaca.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.AgentContainerApi;
 import lombok.AllArgsConstructor;
 import lombok.Data;

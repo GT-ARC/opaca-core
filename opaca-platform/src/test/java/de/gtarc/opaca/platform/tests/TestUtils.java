@@ -7,12 +7,10 @@ import de.gtarc.opaca.model.PostAgentContainer;
 import de.gtarc.opaca.model.RuntimePlatform;
 import de.gtarc.opaca.util.RestHelper;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -65,6 +63,31 @@ public class TestUtils {
 
     public static HttpURLConnection request(String host, String method, String path, Object payload) throws IOException {
         return requestWithToken(host, method, path, payload, null);
+    }
+
+    // this is NOT using RestHelper since we are also interested in the exact HTTP Return Code
+    public static int streamRequest(String baseUrl, String method, String path, byte[] payload) throws IOException {
+        // TODO reduce code duplication a bit?
+        HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
+        connection.setRequestMethod(method);
+        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+
+        connection.setDoOutput(true);
+        connection.connect();
+
+        try (OutputStream os = connection.getOutputStream();
+            InputStream inputStream = new ByteArrayInputStream(payload);
+            BufferedInputStream bis = new BufferedInputStream(inputStream)) {
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = bis.read(buffer)) != -1) {
+                os.write(buffer, 0, bytesRead);
+            }
+        } finally {
+            connection.disconnect();
+        }
+
+        return connection.getResponseCode();
     }
 
     // this is NOT using RestHelper since we are also interested in the exact HTTP Return Code
