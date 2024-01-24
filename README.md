@@ -37,7 +37,7 @@ A multi-agent system in the OPACA approach consists of two types of components:
 
 * **Agent Containers** are containerized applications that implement the OPACA Agent Container API. They provide REST routes for finding out about the agents within the container, and to interact with them by of sending asynchronous messages (unicast and broadcast) and invoking synchronous actions.
 
-* **Runtime Platforms** are used to manage and one or more Agent Containers, deploying those in Docker or Kubernetes. They connect different Agent Containers while also providing basic services such as yellow pages, authentication, etc.
+* **Runtime Platforms** are used to manage one or more Agent Containers, deploying those in Docker or Kubernetes. They connect different Agent Containers while also providing basic services such as yellow pages, authentication, etc.
 
 Please refer to the [API docs](doc/api.md) page for more information about the different routes provided for the API and the respective requests and responses.
 
@@ -98,7 +98,7 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 * `ENABLE_AUTH` (default: false) Whether to require token-based authentication on all routes; see [Authentication](doc/auth.md) for details.
 * `SECRET` (default: empty) The secret used to encrypt and decrypt the JWT tokens used for authentication.
 * `USERNAME_PLATFORM` (default: null) Name of a single authorized user (temporary)
-* `USERNAME_PLATFORM` (default: null) Password of a single authorized user (temporary)
+* `PASSWORD_PLATFORM` (default: null) Password of a single authorized user (temporary)
 
 You can set those properties in the run config in your IDE, via an `.env` file, using `export` on the shell or in a `docker-compose.yml` file. Note that if you have one of those properties in e.g. your `.env` file, and it does not have a value, that may still overwrite the default and set the value to `null` or the empty string.
 
@@ -116,4 +116,4 @@ See the [API docs](doc/api.md) for Environment Variables passed from the Runtime
 
 ## Publications
 
-* B. Acar et al., "OPACA: Toward an Open, Language- and Platform-Independent API for Containerized Agents," in IEEE Access, vol. 12, pp. 10012-10022, 2024, doi: [10.1109/ACCESS.2024.3353613](https://doi.org/10.1109/ACCESS.2021.3076326).
+* B. Acar et al., "OPACA: Toward an Open, Language- and Platform-Independent API for Containerized Agents," in IEEE Access, vol. 12, pp. 10012-10022, 2024, doi: [10.1109/ACCESS.2024.3353613](https://doi.org/10.1109/ACCESS.2024.3353613).
