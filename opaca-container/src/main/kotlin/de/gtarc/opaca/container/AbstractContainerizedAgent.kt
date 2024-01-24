@@ -135,6 +135,9 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         return RestHelper.mapper.treeToValue(res, type)
     }
 
+    /**
+     * Send get-stream to other agents via the parent runtimePlatform.
+     */
     fun sendOutboundStreamGetRequest(stream: String, agentId: String?, containerId: String, forward: Boolean = true): ResponseEntity<StreamingResponseBody> {
         log.info("Outbound Stream: $stream @ $containerId")
         return when (agentId) {
@@ -143,6 +146,9 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         }
     }
 
+    /**
+     * Send post-stream to other agents via the parent runtimePlatform.
+     */
     fun sendOutboundStreamPostRequest(
         stream: String,
         inputStream: ByteArray,
@@ -156,7 +162,6 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
             else -> parentProxy.postStream(stream, inputStream, agentId, containerId, forward)
         }
     }
-
 
     /**
      * Send broadcast to other agents via the parent RuntimePlatform. While this can also be used
