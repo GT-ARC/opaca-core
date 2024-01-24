@@ -212,7 +212,6 @@ public class PlatformRestController implements RuntimePlatformApi {
 		return implementation.getStream(stream, agentId, containerId, forward);
 	}
 
-
 	@RequestMapping(value="/stream/{stream}", method=RequestMethod.POST)
 	@Operation(summary="stream data POST", tags={"agents"})
 	@Override
@@ -239,6 +238,7 @@ public class PlatformRestController implements RuntimePlatformApi {
         log.info(String.format("POST STREAM: %s, %s", stream, agentId));
         implementation.postStream(stream, inputStream, agentId, containerId, forward);
     }
+
 	/*
 	 * CONTAINERS ROUTES
 	 */
@@ -316,6 +316,9 @@ public class PlatformRestController implements RuntimePlatformApi {
 		return implementation.disconnectPlatform(url);
 	}
 
+	/*
+	 * NOTIFY ROUTES
+	 */
 
 	@RequestMapping(value="/containers/notify", method=RequestMethod.POST)
 	@Operation(summary="Notify Platform about updates", tags={"containers"})

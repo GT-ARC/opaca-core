@@ -67,7 +67,9 @@ public class TestUtils {
         return requestWithToken(host, method, path, payload, null);
     }
 
+    // this is NOT using RestHelper since we are also interested in the exact HTTP Return Code
     public static int streamRequest(String baseUrl, String method, String path, byte[] payload) throws IOException {
+        // TODO reduce code duplication a bit?
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
         connection.setRequestMethod(method);
         connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
@@ -91,7 +93,7 @@ public class TestUtils {
         return responseCode;
     }
 
-
+    // this is NOT using RestHelper since we are also interested in the exact HTTP Return Code
     public static HttpURLConnection requestWithToken(String host, String method, String path, Object payload, String token) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(host + path).openConnection();
         connection.setRequestMethod(method);

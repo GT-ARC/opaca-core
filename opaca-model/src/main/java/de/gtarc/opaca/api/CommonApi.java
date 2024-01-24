@@ -92,9 +92,9 @@ public interface CommonApi {
     JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException;
 
     /**
-     * Get a stream provided by a specific agent on this container.
+     * Get a stream provided by any agent on this container.
      *
-     * REST: POST /stream/{stream}/{agent}?containerId={containerId}&forward={true|false}`
+     * REST: GET /stream/{stream}/{agent}?containerId={containerId}&forward={true|false}`
      *
      * @param stream Name of the stream
      * @param containerId ID of the Container to use (optional)
@@ -116,7 +116,29 @@ public interface CommonApi {
      */
     ResponseEntity<StreamingResponseBody> getStream(String stream, String agentId, String containerId, boolean forward) throws IOException;
 
+    /**
+     * Send a stream to any agent on this container.
+     *
+     * REST: POST /stream/{stream}/{agent}?containerId={containerId}&forward={true|false}`
+     *
+     * @param stream Name of the stream
+     * @param containerId ID of the Container to use (optional)
+     * @param forward flag whether to forward the message to connected platforms (optional)
+     * @return Action result
+     */
     void postStream(String stream, byte[] inputStream, String containerId, boolean forward) throws IOException;
+
+    /**
+     * Post a stream to a specific agent on this container.
+     *
+     * REST: POST /stream/{stream}/{agent}?containerId={containerId}&forward={true|false}`
+     *
+     * @param stream Name of the stream
+     * @param agentId Name of the agent
+     * @param containerId ID of the Container to use (optional)
+     * @param forward flag whether to forward the message to connected platforms (optional)
+     * @return Action result
+     */
     void postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException;
 
 }

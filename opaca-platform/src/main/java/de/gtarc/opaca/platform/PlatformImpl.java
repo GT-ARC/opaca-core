@@ -232,11 +232,10 @@ public class PlatformImpl implements RuntimePlatformApi {
             try {
                 if (agentId == null) {
                     client.postStream(stream, inputStream, containerId, false);
-                    return;
                 } else {
                     client.postStream(stream, inputStream, agentId, containerId, false);
-                    return;
                 }
+                return;
             } catch (IOException e) {
                 log.warning(String.format("Failed to post stream '%s' @ agent '%s' and client '%s': %s",
                         stream, agentId, client.baseUrl, e));
