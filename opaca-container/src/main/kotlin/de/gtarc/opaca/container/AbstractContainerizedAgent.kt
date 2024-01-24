@@ -37,9 +37,11 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
 
     protected val actions = mutableListOf<Action>()
     protected val actionCallbacks = mutableMapOf<String, (Map<String, JsonNode>) -> Any?>()
+
     protected val streams = mutableListOf<Stream>()
-    protected val streamCallbacks = mutableMapOf<String, () -> Any?>()
-    protected val streamCallbacksWithInputStream = mutableMapOf<String, (ByteArray) -> Any?>()
+    protected val streamGetCallbacks = mutableMapOf<String, () -> Any?>()
+    protected val streamPostCallbacks = mutableMapOf<String, (ByteArray) -> Any?>()
+
     override fun preStart() {
         super.preStart()
         register(false)
@@ -80,14 +82,16 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         actionCallbacks[action.name] = callback
     }
     
-    fun addStream(name: String, mode: Stream.Mode, callbackWithInputStream: ((ByteArray) -> Any?)? = null, callback: (() -> Any?)? = null) {
-        val stream = Stream(name, mode)
+    fun addStreamGet(name: String, callback: (() -> Any?)) {
+        val stream = Stream(name, Stream.Mode.GET)
         streams.add(stream)
-        if (callbackWithInputStream != null) {
-            streamCallbacksWithInputStream[stream.name] = callbackWithInputStream
-        } else if (callback != null) {
-            streamCallbacks[stream.name] = callback
-        } 
+        streamGetCallbacks[stream.name] = callback
+    }
+
+    fun addStreamPost(name: String, callback: ((ByteArray) -> Any?)) {
+        val stream = Stream(name, Stream.Mode.POST)
+        streams.add(stream)
+        streamPostCallbacks[stream.name] = callback
     }
 
     override fun behaviour() = act {
@@ -99,18 +103,18 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
             }
         }
 
-        respond<StreamInvoke, Any?> {
+        respond<StreamGet, Any?> {
             log.info("STREAM RESPOND $it")
             when(it.name) {
-                in streamCallbacks -> streamCallbacks[it.name]?.let { it1 -> it1() }
+                in streamGetCallbacks -> streamGetCallbacks[it.name]?.let { it1 -> it1() }
                 else -> Unit
             }
         }
 
-        respond<PostStreamInvoke, Any?> {
+        respond<StreamPost, Any?> {
             log.info("STREAM RESPOND $it")
             when(it.name) {
-                in streamCallbacksWithInputStream -> streamCallbacksWithInputStream[it.name]?.let { it1 -> it1(it.body) }
+                in streamPostCallbacks -> streamPostCallbacks[it.name]?.let { it1 -> it1(it.body) }
                 else -> Unit
             }
         }

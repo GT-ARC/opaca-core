@@ -47,12 +47,8 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             stop()
         }
 
-        addStream("PostStream", Stream.Mode.POST, callbackWithInputStream = {
-            actionPostStream(it)
-        })
-
-        addStream("GetStream", Stream.Mode.GET, callback = this::actionGetStream)
-
+        addStreamPost("PostStream", this::actionPostStream)
+        addStreamGet("GetStream", this::actionGetStream)
     }
 
     override fun behaviour() = super.behaviour().and(act {
@@ -73,15 +69,6 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         return ByteArrayInputStream(data)
     }
 
-    private fun actionDoThis(message: String, sleep_seconds: Int): String {
-        log.info("in 'DoThis' action, waiting...")
-        println(message)
-        Thread.sleep(1000 * sleep_seconds.toLong())
-        log.info("done waiting")
-        return "Action 'DoThis' of $name called with message=$message and sleep_seconds=$sleep_seconds"
-    }
-
-
     private fun actionPostStream(inputStream: ByteArray): String {
         val objectMapper = ObjectMapper()
         val inputJsonNode: JsonNode = objectMapper.readTree(inputStream)
@@ -98,7 +85,13 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         }
     }
 
-
+    private fun actionDoThis(message: String, sleep_seconds: Int): String {
+        log.info("in 'DoThis' action, waiting...")
+        println(message)
+        Thread.sleep(1000 * sleep_seconds.toLong())
+        log.info("done waiting")
+        return "Action 'DoThis' of $name called with message=$message and sleep_seconds=$sleep_seconds"
+    }
 
     private fun actionAdd(x: Int, y: Int) = x + y
 
