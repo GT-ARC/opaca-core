@@ -111,7 +111,7 @@ public class ContainerTests {
     }
 
     @Test
-    public void testStream() throws Exception {
+    public void testGetStream() throws Exception {
         var con = request(PLATFORM_URL, "GET", "/stream/GetStream", null);
         Assert.assertEquals(200, con.getResponseCode());
         var inputStream = con.getInputStream();
@@ -122,10 +122,16 @@ public class ContainerTests {
 
     @Test
     public void testPostStream() throws Exception {
-        String jsonInput = "{\"key\":\"value\"}";
+        //String jsonInput = "{\"key\":\"value\"}";
+        String jsonInput = "asldjalskdaslkdjsadlk";
         byte[] jsonData = jsonInput.getBytes(StandardCharsets.UTF_8);
-        var responseCode = streamRequest(PLATFORM_URL, "POST", "/stream/PostStream", jsonData);
+        var responseCode = streamRequest(PLATFORM_URL, "POST", "/stream/PostStream/sample1", jsonData);
         Assert.assertEquals(200, responseCode);
+
+        var con = request(PLATFORM_URL, "POST", "/invoke/GetInfo/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+        Assert.assertEquals(jsonInput, res.get("lastPostedStream"));
     }
 
     /**
