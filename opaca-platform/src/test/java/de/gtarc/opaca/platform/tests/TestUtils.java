@@ -8,11 +8,9 @@ import de.gtarc.opaca.model.RuntimePlatform;
 import de.gtarc.opaca.util.RestHelper;
 
 import java.io.*;
-import java.nio.charset.Charset;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -89,8 +87,7 @@ public class TestUtils {
             connection.disconnect();
         }
 
-        int responseCode = connection.getResponseCode();
-        return responseCode;
+        return connection.getResponseCode();
     }
 
     // this is NOT using RestHelper since we are also interested in the exact HTTP Return Code

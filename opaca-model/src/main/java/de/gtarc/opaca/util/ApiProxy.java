@@ -7,11 +7,9 @@ import de.gtarc.opaca.model.*;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
-import de.gtarc.opaca.model.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
