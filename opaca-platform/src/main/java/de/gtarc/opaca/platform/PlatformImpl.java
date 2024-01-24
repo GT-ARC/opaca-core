@@ -527,4 +527,8 @@ public class PlatformImpl implements RuntimePlatformApi {
         return RandomStringUtils.random(24, true, true);
     }
 
+    private boolean validateActionParameters(AgentContainerImage image, Map<String, JsonNode> parameters) {
+        return true;
+    }
+
 }
