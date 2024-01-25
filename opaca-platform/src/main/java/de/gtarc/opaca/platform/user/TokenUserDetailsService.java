@@ -41,13 +41,11 @@ public class TokenUserDetailsService implements UserDetailsService {
 
     @PostConstruct
 	public void postConstruct() {
-        if (tokenUserRepository.findByUsername(config.usernamePlatform) == null) {
-            // If Security is not enabled but password is null, use default password 'pass'
-            // TODO Starting platform with auth enabled and no password set should log warning or even error
-            String pwd = config.passwordPlatform == null && !config.enableAuth ? "pass" : config.passwordPlatform;
-            // TODO No specified username defaults to 'null' leads to errors, platform username should be mandatory
-            String user = config.usernamePlatform == null ? "platformUser" : config.usernamePlatform;
-            createUser(user, pwd, Role.ADMIN, null);
+        if (tokenUserRepository.findByUsername(config.platformAdminUser) == null) {
+            if (config.platformAdminPwd == null) {
+                throw new RuntimeException("Platform password cannot be null even when platform authorization is not enabled!");
+            }
+            createUser(config.platformAdminUser, config.platformAdminPwd, Role.ADMIN, null);
         }
 	}
 
@@ -118,14 +116,14 @@ public class TokenUserDetailsService implements UserDetailsService {
      * Return the updated user.
      */
     @Transactional
-    public String updateUser(String username, String newUsername, String password, String role,
+    public String updateUser(String username, String newUsername, String password, Role role,
                              List<String> privileges) {
         TokenUser user = tokenUserRepository.findByUsername(username);
         if (user == null) throw new UsernameNotFoundException(username);
         if (tokenUserRepository.findByUsername(newUsername) != null &&
                 !Objects.equals(username, newUsername)) throw new UserAlreadyExistsException(newUsername);
         if (password != null) user.setPassword(passwordEncoder.encode(password));
-        if (role != null) user.setRole(Role.valueOf(role));
+        if (role != null) user.setRole(role);
         if (privileges != null) user.setPrivileges(privileges);
         if (newUsername != null) user.setUsername(newUsername);
         tokenUserRepository.save(user);

@@ -46,11 +46,11 @@ public class AuthTests {
         platformA = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT,
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
-                "--username_platform=testUser", "--password_platform=testPwd");
+                "--platform_admin_user=testUser", "--platform_admin_pwd=testPwd");
         platformB = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_B_PORT,
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
-                "--username_platform=testUser", "--password_platform=testPwd");
+                "--platform_admin_user=testUser", "--platform_admin_pwd=testPwd");
     }
 
     @AfterClass
@@ -378,6 +378,9 @@ public class AuthTests {
         con = requestWithToken(PLATFORM_A, "GET", "/history", null, token_guest);
         Assert.assertEquals(403, con.getResponseCode());
 
+        con = requestWithToken(PLATFORM_A, "GET", "/users/guest", null, token_guest);
+        Assert.assertEquals(200, con.getResponseCode());
+
         var message = Map.of("payload", "testBroadcast", "replyTo", "doesnotmatter");
         con = requestWithToken(PLATFORM_A, "POST", "/broadcast/topic", message, token_guest);
         Assert.assertEquals(403, con.getResponseCode());
@@ -461,7 +464,7 @@ public class AuthTests {
         User user = new User();
         user.setUsername(username);
         user.setPassword(password);
-        user.setRole(role);
+        user.setRole(Role.valueOf(role));
         user.setPrivileges(privileges);
         return user;
     }

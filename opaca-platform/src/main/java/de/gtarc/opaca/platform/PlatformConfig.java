@@ -27,7 +27,7 @@ import java.util.stream.IntStream;
  */
 @Log
 @Configuration
-@ToString(exclude = {"registryPasswords", "passwordPlatform", "secret"})
+@ToString(exclude = {"registryPasswords", "platformAdminPwd", "secret"})
 public class PlatformConfig {
 
     // GENERAL SETTINGS
@@ -61,11 +61,11 @@ public class PlatformConfig {
     @Value("${security.secret}")
     public String secret;
 
-    @Value("${username_platform}")
-    public String usernamePlatform;
+    @Value("${platform_admin_user}")
+    public String platformAdminUser;
 
-    @Value("${password_platform}")
-    public String passwordPlatform;
+    @Value("${platform_admin_pwd}")
+    public String platformAdminPwd;
 
     // IMAGE REGISTRY CREDENTIALS
 

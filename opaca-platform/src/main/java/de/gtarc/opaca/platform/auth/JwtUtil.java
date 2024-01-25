@@ -42,8 +42,7 @@ public class JwtUtil {
 
     public String generateTokenForUser(String username, String password) {
         UserDetails userDetails = tokenUserDetailsService.loadUserByUsername(username);
-        String pwd = config.enableAuth ? password : "defaultPwd";
-        if (passwordEncoder.matches(pwd, userDetails.getPassword())) {
+        if (passwordEncoder.matches(password, userDetails.getPassword())) {
             return createToken(username, Duration.ofHours(1));
         } else {
             throw new BadCredentialsException("Wrong password");
