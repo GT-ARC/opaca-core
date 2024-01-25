@@ -46,7 +46,7 @@ public class UserController {
             @RequestBody User user
     ) {
         try {
-            userDetailsService.createUser(user.getUsername(), user.getPassword(), Role.valueOf(user.getRole()), user.getPrivileges());
+            userDetailsService.createUser(user.getUsername(), user.getPassword(), user.getRole(), user.getPrivileges());
             log.info(String.format("ADD USER: [username='%s', role='%s', privileges=%s]",
                     user.getUsername(), user.getRole(), user.getPrivileges()));
             return userDetailsService.getUser(user.getUsername());

@@ -3,6 +3,7 @@ package de.gtarc.opaca.platform.user;
 import de.gtarc.opaca.model.Role;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +16,7 @@ import java.util.List;
  */
 @Entity
 @Data
+@ToString(exclude = {"password"})
 public class TokenUser {
 
     @Id
@@ -35,11 +37,4 @@ public class TokenUser {
         this.role = role;
         if(privileges != null) this.privileges.addAll(privileges);
     }
-
-    @Override
-    public String toString() {
-        return "User{" + "id=" + this.id + ", username='" + this.username + "', role='" + this.role.name() +
-               "', privileges=" + this.privileges.toString() + "}";
-    }
-
 }

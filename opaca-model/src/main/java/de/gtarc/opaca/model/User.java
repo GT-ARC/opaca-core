@@ -16,6 +16,6 @@ import java.util.List;
 public class User {
     String username;
     String password;
-    String role;
+    Role role;
     List<String> privileges;
 }
