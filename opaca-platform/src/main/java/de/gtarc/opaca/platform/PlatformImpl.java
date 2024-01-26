@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.platform.auth.JwtUtil;
-import de.gtarc.opaca.platform.auth.TokenUserDetailsService;
+import de.gtarc.opaca.platform.user.TokenUserDetailsService;
 import de.gtarc.opaca.platform.containerclient.ContainerClient;
 import de.gtarc.opaca.platform.containerclient.DockerClient;
 import de.gtarc.opaca.platform.containerclient.KubernetesClient;
@@ -17,17 +17,19 @@ import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 
@@ -221,20 +223,23 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
  @Override
-    public ResponseEntity<Void> postStream(String stream, byte[] inputStream, String containerId, boolean forward) throws IOException {
-        return postStream(stream, inputStream, null, containerId, forward);
+    public void postStream(String stream, byte[] inputStream, String containerId, boolean forward) throws IOException {
+        postStream(stream, inputStream, null, containerId, forward);
     }
 
     @Override
-    public ResponseEntity<Void> postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException {
+    public void postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException {
         var clients = getClients(containerId, agentId, null, stream, forward);
         
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {
-                return agentId == null
-                        ? client.postStream(stream, inputStream, containerId, false)
-                        : client.postStream(stream, inputStream, agentId, containerId, false);
+                if (agentId == null) {
+                    client.postStream(stream, inputStream, containerId, false);
+                } else {
+                    client.postStream(stream, inputStream, agentId, containerId, false);
+                }
+                return;
             } catch (IOException e) {
                 log.warning(String.format("Failed to post stream '%s' @ agent '%s' and client '%s': %s",
                         stream, agentId, client.baseUrl, e));
@@ -249,10 +254,15 @@ public class PlatformImpl implements RuntimePlatformApi {
     public String addContainer(PostAgentContainer postContainer) throws IOException {
         checkConfig(postContainer);
         String agentContainerId = UUID.randomUUID().toString();
-        String token = config.enableAuth ? jwtUtil.generateTokenForAgentContainer(agentContainerId) : "";
+        String token = "";
+        String owner = "";
+        if (config.enableAuth) {
+            token = jwtUtil.generateTokenForAgentContainer(agentContainerId);
+            owner = userDetailsService.getTokenUser(jwtUtil.getCurrentRequestUser()).getUsername();
+        }
 
         // start container... this may raise an Exception, or returns the connectivity info
-        var connectivity = containerClient.startContainer(agentContainerId, token, postContainer);
+        var connectivity = containerClient.startContainer(agentContainerId, token, owner, postContainer);
 
         // wait until container is up and running...
         var start = System.currentTimeMillis();
@@ -265,7 +275,10 @@ public class PlatformImpl implements RuntimePlatformApi {
                 runningContainers.put(agentContainerId, container);
                 startedContainers.put(agentContainerId, postContainer);
                 tokens.put(agentContainerId, token);
-                userDetailsService.addUser(agentContainerId, generateRandomPwd());
+                container.setOwner(owner);
+                userDetailsService.createUser(agentContainerId, agentContainerId,
+                        config.enableAuth ? userDetailsService.getUserRole(owner) : Role.GUEST,
+                        config.enableAuth ? userDetailsService.getUserPrivileges(owner) : null);
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
                     log.warning("Agent Container ID does not match: Expected " +
@@ -309,15 +322,25 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public boolean removeContainer(String containerId) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
-        if (container != null) {
-            runningContainers.remove(containerId);
-            startedContainers.remove(containerId);
-            userDetailsService.removeUser(containerId);
-            containerClient.stopContainer(containerId);
-            notifyConnectedPlatforms();
-            return true;
+        if (config.enableAuth) {
+            // If request user does not have user profile, throw FORBIDDEN exception
+            UserDetails details = userDetailsService.loadUserByUsername(jwtUtil.getCurrentRequestUser());
+            if (details == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+            // TODO Not sure if this is the right place to handle custom Http responses
+            //  Might need to implement more custom error handling
+            // If user is neither admin nor owner of container, throw FORBIDDEN exception
+            if (details.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals(Role.ADMIN.role())) &&
+                    !details.getUsername().equals(container.getOwner())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+            }
         }
-        return false;
+        if (container == null) return false;
+        runningContainers.remove(containerId);
+        startedContainers.remove(containerId);
+        userDetailsService.removeUser(containerId);
+        containerClient.stopContainer(containerId);
+        notifyConnectedPlatforms();
+        return true;
     }
 
     /*

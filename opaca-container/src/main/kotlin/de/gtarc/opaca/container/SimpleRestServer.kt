@@ -154,24 +154,21 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
             val send = Regex("^/send/([^/]+)$").find(path)
             if (send != null) {
                 val id = send.groupValues[1]
-                val body: String = request.reader.lines().collect(Collectors.joining())
-                val message = RestHelper.readObject(body, Message::class.java)
+                val message = RestHelper.readObject(body(request), Message::class.java)
                 return impl.send(id, message, "", false)
             }
 
             val broadcast = Regex("^/broadcast/([^/]+)$").find(path)
             if (broadcast != null) {
                 val channel = broadcast.groupValues[1]
-                val body: String = request.reader.lines().collect(Collectors.joining())
-                val message = RestHelper.readObject(body, Message::class.java)
+                val message = RestHelper.readObject(body(request), Message::class.java)
                 return impl.broadcast(channel, message, "", false)
             }
 
             val invokeAct = Regex("^/invoke/([^/]+)$").find(path)
             if (invokeAct != null) {
                 val action = invokeAct.groupValues[1]
-                val body: String = request.reader.lines().collect(Collectors.joining())
-                val parameters = RestHelper.readMap(body)
+                val parameters = RestHelper.readMap(body(request))
                 return impl.invoke(action, parameters, timeout, "", false)
             }
 
@@ -179,15 +176,13 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
             if (invokeActOf != null) {
                 val action = invokeActOf.groupValues[1]
                 val agentId = invokeActOf.groupValues[2]
-                val body: String = request.reader.lines().collect(Collectors.joining())
-                val parameters = RestHelper.readMap(body)
+                val parameters = RestHelper.readMap(body(request))
                 return impl.invoke(action, parameters, agentId, timeout, "", false)
             }
 
             val postStream = Regex("^/stream/([^/]+)$").find(path)
             if (postStream != null) {
                 val stream = postStream.groupValues[1]
-                val body = request.inputStream
 
                 val byteArrayOutputStream = ByteArrayOutputStream()
                 request.inputStream.use { input ->
@@ -196,12 +191,8 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
                     }
                 }
 
-                // Convert ByteArrayOutputStream to ByteArray
                 val byteArray = byteArrayOutputStream.toByteArray()
-
-                // Pass the ByteArray directly to impl.postStream
                 return impl.postStream(stream, byteArray, "", false)
-    
             }
 
             val postStreamTo = Regex("^/stream/([^/]+)/([^/]+)$").find(path)
@@ -209,8 +200,6 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
                 val stream = postStreamTo.groupValues[1]
                 val agentId = postStreamTo.groupValues[2]
 
-                val body = request.inputStream
-
                 val byteArrayOutputStream = ByteArrayOutputStream()
                 request.inputStream.use { input ->
                     byteArrayOutputStream.use { output ->
@@ -218,12 +207,8 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
                     }
                 }
 
-                // Convert ByteArrayOutputStream to ByteArray
                 val byteArray = byteArrayOutputStream.toByteArray()
-
-                // Pass the ByteArray directly to impl.postStream
                 return impl.postStream(stream, byteArray, agentId, "", false)
-    
             }
 
             throw NoSuchElementException("Unknown path: $path")
@@ -234,6 +219,9 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
             .split("&")
             .map { it.split("=") }
             .associate { Pair(it[0], if (it.size > 1) it[1] else "") }
+
+
+        fun body(request: HttpServletRequest) = request.reader.lines().collect(Collectors.joining())
 
     }
 

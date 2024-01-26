@@ -66,18 +66,16 @@ public class RestHelper {
                 .body(responseBody);
     }
 
-
-    public ResponseEntity<Void> postStream(String path, byte[] inputStream) {
+    public void postStream(String path, byte[] inputStream) {
         try {
             streamRequest("POST", path, inputStream);
-            return ResponseEntity.ok().build();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-
     public void streamRequest(String method, String path, byte[] payload) throws IOException {
+        // TODO find a way to unify this with "request" below, maybe with a callback to serialize the payload?
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
         connection.setRequestMethod(method);
         connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
@@ -106,7 +104,6 @@ public class RestHelper {
             throw new IOException(String.format("%s: %s", responseCode, readStream(connection.getErrorStream())));
         }
     }
-
 
     public InputStream request(String method, String path, Object payload) throws IOException {
         log.info(String.format("%s %s%s (%s)", method, baseUrl, path, payload));

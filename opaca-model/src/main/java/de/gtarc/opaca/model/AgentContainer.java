@@ -32,6 +32,9 @@ public class AgentContainer {
     @NonNull
     List<AgentDescription> agents = List.of();
 
+    /** User who started the container; Gives this user special privileges on a container */
+    String owner;
+
     /** when the container was started */
     @NonNull
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "Z")

@@ -91,7 +91,7 @@ public class DockerClient implements ContainerClient {
     }
 
     @Override
-    public AgentContainer.Connectivity startContainer(String containerId, String token, PostAgentContainer container) throws IOException, NoSuchElementException {
+    public AgentContainer.Connectivity startContainer(String containerId, String token, String owner, PostAgentContainer container) throws IOException, NoSuchElementException {
         var image = container.getImage();
         var imageName = image.getImageName();
         var extraPorts = image.getExtraPorts();
@@ -112,7 +112,7 @@ public class DockerClient implements ContainerClient {
 
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
-                    .withEnv(buildEnv(containerId, token, image.getParameters(), container.getArguments()))
+                    .withEnv(buildEnv(containerId, token, owner, image.getParameters(), container.getArguments()))
                     .withHostConfig(HostConfig.newHostConfig().withPortBindings(portBindings))
                     .withExposedPorts(portBindings.stream().map(PortBinding::getExposedPort).collect(Collectors.toList()))
                     .exec();
@@ -141,8 +141,8 @@ public class DockerClient implements ContainerClient {
         }
     }
 
-    private String[] buildEnv(String containerId, String token, List<ImageParameter> parameters, Map<String, String> arguments) {
-        return config.buildContainerEnv(containerId, token, parameters, arguments).entrySet().stream()
+    private String[] buildEnv(String containerId, String token, String owner, List<ImageParameter> parameters, Map<String, String> arguments) {
+        return config.buildContainerEnv(containerId, token, owner, parameters, arguments).entrySet().stream()
                 .map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
                 .toArray(String[]::new);
     }

@@ -1,12 +1,16 @@
 package de.gtarc.opaca.platform.auth;
 
+import de.gtarc.opaca.platform.user.TokenUserDetailsService;
 import de.gtarc.opaca.platform.PlatformConfig;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.Jwts;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -17,6 +21,7 @@ import java.util.Date;
  * JSON Web Tokens (JWT) for authentication and authorization purposes. It provides 
  * methods for generating tokens for users and agent containers, as well as 
  * validating tokens against user details.
+ * It also stores the username from the last successful authentication attempt.
  */
 @Service
 public class JwtUtil {
@@ -27,9 +32,17 @@ public class JwtUtil {
     @Autowired
     private TokenUserDetailsService tokenUserDetailsService;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    // TODO This is a very ugly workaround to access the current user making a request
+    //  and could lead to a race condition. The user should be extracted directly in the controller
+    @Getter @Setter
+    private String currentRequestUser;
+
     public String generateTokenForUser(String username, String password) {
         UserDetails userDetails = tokenUserDetailsService.loadUserByUsername(username);
-        if (userDetails.getPassword().equals(password)) {
+        if (passwordEncoder.matches(password, userDetails.getPassword())) {
             return createToken(username, Duration.ofHours(1));
         } else {
             throw new BadCredentialsException("Wrong password");

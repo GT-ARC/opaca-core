@@ -1,17 +1,19 @@
 package de.gtarc.opaca.platform.auth;
 
+import de.gtarc.opaca.model.Role;
 import de.gtarc.opaca.platform.PlatformConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -74,6 +76,17 @@ public class SecurityConfiguration {
                                     "/swagger-ui.html",
                                     "/webjars/**"
                             ).permitAll()
+                            // The next block implements the RBAC defined in the user-management docs
+                            // A rule consists of a specific or generic (/**) route, the lowest role level
+                            // to access the route (see role hierarchy), and the optional REST method
+                            // the route is requested with (if none given, all methods are concerned)
+                            .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
+                            .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**", "/users/**").hasRole(Role.GUEST.name())
+                            .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole(Role.USER.name())
+                            .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**", "/stream/**").hasRole(Role.USER.name())
+                            .requestMatchers(HttpMethod.POST, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
+                            .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
+                            .requestMatchers("/connections/**", "/users/**").hasRole(Role.ADMIN.name())
                             .anyRequest().authenticated()
                     )
                     .sessionManagement((session) -> session
@@ -98,8 +111,13 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public RoleHierarchy roleHierarchy() {
+        RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
+        String hierarchy = Role.ADMIN.role() + " > " + Role.CONTRIBUTOR.role() + " \n " +
+                           Role.CONTRIBUTOR.role() + " > " + Role.USER.role() + " \n " +
+                           Role.USER.role() + " > " + Role.GUEST.role();
+        roleHierarchy.setHierarchy(hierarchy);
+        return roleHierarchy;
     }
 
     public class JwtRequestFilter extends OncePerRequestFilter {
@@ -141,6 +159,7 @@ public class SecurityConfiguration {
                         var authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                         SecurityContextHolder.getContext().setAuthentication(authToken);
+                        jwtUtil.setCurrentRequestUser(username);
                     } else {
                         handleException(response, HttpStatus.UNAUTHORIZED, "Invalid Token.");
                     }
