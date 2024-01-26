@@ -8,11 +8,14 @@ import de.gtarc.opaca.model.Parameter
 import de.gtarc.opaca.model.Stream
 import java.io.ByteArrayInputStream
 import java.nio.charset.Charset
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
 
     private var lastMessage: Any? = null
     private var lastBroadcast: Any? = null
+    private var lastPostedStream: Any? = null
 
     override fun preStart() {
         super.preStart()
@@ -54,10 +57,8 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             stop()
         }
 
-        addStreamWithInputStream("PostStream", Stream.Mode.POST) {
-            actionPostStream(it)
-        }
-        addStream("GetStream", Stream.Mode.GET, this::actionGetStream)
+        addStreamPost("PostStream", this::actionPostStream)
+        addStreamGet("GetStream", this::actionGetStream)
     }
 
     override fun behaviour() = super.behaviour().and(act {
@@ -78,6 +79,12 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         return ByteArrayInputStream(data)
     }
 
+    private fun actionPostStream(inputStream: ByteArray) {
+        // TODO shouldn't this get an InputStream as input, and not a ByteArray?
+        val content = ByteArrayInputStream(inputStream).reader().readLines()
+        lastPostedStream = content
+    }
+
     private fun actionDoThis(message: String, sleep_seconds: Int): String {
         log.info("in 'DoThis' action, waiting...")
         println(message)
@@ -85,16 +92,6 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         log.info("done waiting")
         return "Action 'DoThis' of $name called with message=$message and sleep_seconds=$sleep_seconds"
     }
-
-
-    private fun actionPostStream(inputStream: ByteArray): Boolean {
-        val data = "{\"key\":\"value\"}".toByteArray(Charset.forName("UTF-8"))
-
-        // Compare the content of inputStream with the data
-        return inputStream.contentEquals(data)
-    }
-
-
 
     private fun actionAdd(x: Int, y: Int) = x + y
 
@@ -106,8 +103,10 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         Pair("name", name),
         Pair("lastMessage", lastMessage),
         Pair("lastBroadcast", lastBroadcast),
+        Pair("lastPostedStream", lastPostedStream),
         Pair(AgentContainerApi.ENV_CONTAINER_ID, System.getenv(AgentContainerApi.ENV_CONTAINER_ID)),
         Pair(AgentContainerApi.ENV_PLATFORM_URL, System.getenv(AgentContainerApi.ENV_PLATFORM_URL)),
+        Pair(AgentContainerApi.ENV_OWNER, System.getenv(AgentContainerApi.ENV_OWNER)),
         Pair(AgentContainerApi.ENV_TOKEN, System.getenv(AgentContainerApi.ENV_TOKEN))
     )
 

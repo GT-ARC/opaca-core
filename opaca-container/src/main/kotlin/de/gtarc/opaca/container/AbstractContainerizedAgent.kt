@@ -37,9 +37,10 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
 
     protected val actions = mutableListOf<Action>()
     protected val actionCallbacks = mutableMapOf<String, (Map<String, JsonNode>) -> Any?>()
+
     protected val streams = mutableListOf<Stream>()
-    protected val streamCallbacks = mutableMapOf<String, () -> Any?>()
-    protected val streamCallbacksWithInputStream = mutableMapOf<String, (ByteArray) -> Any?>()
+    protected val streamGetCallbacks = mutableMapOf<String, () -> Any?>()
+    protected val streamPostCallbacks = mutableMapOf<String, (ByteArray) -> Any?>()
 
     override fun preStart() {
         super.preStart()
@@ -80,24 +81,17 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         actions.add(action)
         actionCallbacks[action.name] = callback
     }
-    fun addStreamWithInputStream(name: String, mode: Stream.Mode, callback: (ByteArray) -> Any?) {
-        val stream = Stream(name, mode)
-        addStreamWithInputStream(stream, callback)
-    }
-
-    fun addStream(name: String, mode: Stream.Mode, callback: () -> Any?) {
-        val stream = Stream(name, mode)
-        addStream(stream, callback)
-    }
-
-    fun addStreamWithInputStream(stream: Stream, callback: (ByteArray) -> Any?) {
+    
+    fun addStreamGet(name: String, callback: (() -> Any?)) {
+        val stream = Stream(name, Stream.Mode.GET)
         streams.add(stream)
-        streamCallbacksWithInputStream[stream.name] = callback
+        streamGetCallbacks[stream.name] = callback
     }
 
-    fun addStream(stream: Stream, callback: () -> Any?) {
+    fun addStreamPost(name: String, callback: ((ByteArray) -> Any?)) {
+        val stream = Stream(name, Stream.Mode.POST)
         streams.add(stream)
-        streamCallbacks[stream.name] = callback
+        streamPostCallbacks[stream.name] = callback
     }
 
     override fun behaviour() = act {
@@ -109,18 +103,18 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
             }
         }
 
-        respond<StreamInvoke, Any?> {
+        respond<StreamGet, Any?> {
             log.info("STREAM RESPOND $it")
             when(it.name) {
-                in streamCallbacks -> streamCallbacks[it.name]?.let { it1 -> it1() }
+                in streamGetCallbacks -> streamGetCallbacks[it.name]?.let { it1 -> it1() }
                 else -> Unit
             }
         }
 
-        respond<PostStreamInvoke, Any?> {
+        respond<StreamPost, Any?> {
             log.info("STREAM RESPOND $it")
             when(it.name) {
-                in streamCallbacksWithInputStream -> streamCallbacksWithInputStream[it.name]?.let { it1 -> it1(it.body) }
+                in streamPostCallbacks -> streamPostCallbacks[it.name]?.let { it1 -> it1(it.body) }
                 else -> Unit
             }
         }
@@ -141,6 +135,9 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         return RestHelper.mapper.treeToValue(res, type)
     }
 
+    /**
+     * Send get-stream to other agents via the parent runtimePlatform.
+     */
     fun sendOutboundStreamGetRequest(stream: String, agentId: String?, containerId: String, forward: Boolean = true): ResponseEntity<StreamingResponseBody> {
         log.info("Outbound Stream: $stream @ $containerId")
         return when (agentId) {
@@ -149,9 +146,18 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         }
     }
 
-    fun sendOutboundStreamPostRequest(stream: String, inputStream: ByteArray, agentId: String?, containerId: String, forward: Boolean = true): ResponseEntity<Void> {
+    /**
+     * Send post-stream to other agents via the parent runtimePlatform.
+     */
+    fun sendOutboundStreamPostRequest(
+        stream: String,
+        inputStream: ByteArray,
+        agentId: String?,
+        containerId: String,
+        forward: Boolean = true
+    ): Unit {  // 'Unit' can be omitted as it's the default return type
         log.info("Outbound Stream: $stream @ $containerId")
-        return when (agentId) {
+        when (agentId) {
             null -> parentProxy.postStream(stream, inputStream, containerId, forward)
             else -> parentProxy.postStream(stream, inputStream, agentId, containerId, forward)
         }

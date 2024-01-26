@@ -50,6 +50,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     /** the token for accessing the parent Runtime Platform, received on initialization */
     private val token = System.getenv(AgentContainerApi.ENV_TOKEN)
 
+    /** the owner who started the Agent Container */
+    private val owner = System.getenv(AgentContainerApi.ENV_OWNER)
+
     private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl, token) }
 
     /** other agents registered at the container agent (not all agents are exposed automatically) */
@@ -82,7 +85,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         override fun getContainerInfo(): AgentContainer {
             log.info("GET INFO")
-            return AgentContainer(containerId, image, getParameters(), agents, startedAt, null)
+            return AgentContainer(containerId, image, getParameters(), agents, owner, startedAt, null)
         }
 
         override fun getAgents(): List<AgentDescription> {
@@ -128,19 +131,18 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             }
         }
 
-        override fun postStream(stream: String, data: ByteArray, containerId: String, forward: Boolean): ResponseEntity<Void> {
+        override fun postStream(stream: String, data: ByteArray, containerId: String, forward: Boolean) {
             log.info("POST STREAM: $stream")
-            return postStream(stream, data, null, containerId, forward)
+            postStream(stream, data, null, containerId, forward)
         }
 
-        override fun postStream(stream: String, data: ByteArray, agentId: String?, containerId: String, forward: Boolean): ResponseEntity<Void> {
+        override fun postStream(stream: String, data: ByteArray, agentId: String?, containerId: String, forward: Boolean) {
             log.info("POST STREAM TO AGENT: $agentId $stream")
 
             val agent = findRegisteredAgent(agentId, null, stream)
             if (agent != null) {
-                val res: Any = invokeAskWait(agent, PostStreamInvoke(stream, data), -1)
-                return ResponseEntity.ok().build<Void>()
-
+                val res: Any = invokeAskWait(agent, StreamPost(stream, data), -1)
+                // TODO not really needed to wait here?! except for re-throwing an error maybe...
             } else {
                 throw NoSuchElementException("Agent $agentId not found for Stream $stream")
             }
@@ -156,7 +158,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
             val agent = findRegisteredAgent(agentId, null, streamId)
             if (agent != null) {
-                val inputStream: InputStream = invokeAskWait(agent, StreamInvoke(streamId), -1)
+                val inputStream: InputStream = invokeAskWait(agent, StreamGet(streamId), -1)
                 val body = StreamingResponseBody { outputStream ->
                     val buffer = ByteArray(8192)
                     var bytesRead: Int

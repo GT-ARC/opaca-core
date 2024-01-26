@@ -20,8 +20,8 @@ services:
       # Security & Authentication
       ENABLE_AUTH:
       SECRET:
-      USERNAME_PLATFORM:
-      PASSWORD_PLATFORM:
+      PLATFORM_ADMIN_USER:
+      PLATFORM_ADMIN_PWD:
       # Image Registry Credentials
       REGISTRY_SEPARATOR:
       REGISTRY_NAMES:

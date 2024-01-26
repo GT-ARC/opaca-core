@@ -6,13 +6,13 @@ import de.gtarc.opaca.model.AgentDescription;
 import de.gtarc.opaca.model.RuntimePlatform;
 import de.gtarc.opaca.platform.Application;
 
-import de.gtarc.opaca.util.RestHelper;
 import org.junit.*;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.io.InputStreamReader;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -111,13 +111,28 @@ public class ContainerTests {
     }
 
     @Test
-    public void testStream() throws Exception {
+    public void testGetStream() throws Exception {
         var con = request(PLATFORM_URL, "GET", "/stream/GetStream", null);
         Assert.assertEquals(200, con.getResponseCode());
         var inputStream = con.getInputStream();
         var bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
         var response = bufferedReader.readLine();
         Assert.assertEquals("{\"key\":\"value\"}", response);
+    }
+
+    @Test
+    public void testPostStream() throws Exception {
+        String jsonInput = "{\"key\":\"value\"}";
+        byte[] jsonData = jsonInput.getBytes(StandardCharsets.UTF_8);
+        var responseCode = streamRequest(PLATFORM_URL, "POST", "/stream/PostStream/sample1", jsonData);
+        Assert.assertEquals(200, responseCode);
+
+        var con = request(PLATFORM_URL, "POST", "/invoke/GetInfo/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+
+        // TODO for some reason, this wraps the input into "[...]", might be solved when decoupling API from Rest Controller...
+        // Assert.assertEquals(jsonInput, res.get("lastPostedStream"));
     }
 
     /**

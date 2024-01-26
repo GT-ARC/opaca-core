@@ -27,7 +27,7 @@ import java.util.stream.IntStream;
  */
 @Log
 @Configuration
-@ToString(exclude = {"registryPasswords", "passwordPlatform", "secret"})
+@ToString(exclude = {"registryPasswords", "platformAdminPwd", "secret"})
 public class PlatformConfig {
 
     // GENERAL SETTINGS
@@ -61,11 +61,11 @@ public class PlatformConfig {
     @Value("${security.secret}")
     public String secret;
 
-    @Value("${username_platform}")
-    public String usernamePlatform;
+    @Value("${platform_admin_user}")
+    public String platformAdminUser;
 
-    @Value("${password_platform}")
-    public String passwordPlatform;
+    @Value("${platform_admin_pwd}")
+    public String platformAdminPwd;
 
     // IMAGE REGISTRY CREDENTIALS
 
@@ -172,11 +172,12 @@ public class PlatformConfig {
      * Get Environment for AgentContainers, including both the standard parameters defined by the Runtime Platform,
      * and any user-defined image-specific parameters.
      */
-    public Map<String, String> buildContainerEnv(String containerId, String token, List<AgentContainerImage.ImageParameter> parameters, Map<String, String> arguments) {
+    public Map<String, String> buildContainerEnv(String containerId, String token, String owner, List<AgentContainerImage.ImageParameter> parameters, Map<String, String> arguments) {
         Map<String, String> env = new HashMap<>();
         // standard env vars passed from Runtime Platform to Agent Container
         env.put(AgentContainerApi.ENV_CONTAINER_ID, containerId);
         env.put(AgentContainerApi.ENV_TOKEN, token);
+        env.put(AgentContainerApi.ENV_OWNER, owner);
         env.put(AgentContainerApi.ENV_PLATFORM_URL, getOwnBaseUrl());
         // additional user-defined parameters
         for (AgentContainerImage.ImageParameter param : parameters) {
