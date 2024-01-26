@@ -68,7 +68,7 @@ A route ending with /** includes every possible path suffix. If no REST methods 
 | /send/**                    |   X   |      X      |  X   |       |
 | /stream/**                  |   X   |      X      |  X   |       |
 | /users GET                  |   X   |             |      |       |
-| /users/{username} GET       |   X   |     X**     | X**  |       |
+| /users/{username} GET       |   X   |     X**     | X**  |  X**  |
 | /users POST                 |   X   |             |      |       |
 | /users DELETE               |   X   |             |      |       |
 | /users PUT                  |   X   |             |      |       |

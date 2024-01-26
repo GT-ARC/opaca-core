@@ -76,6 +76,10 @@ public class SecurityConfiguration {
                                     "/swagger-ui.html",
                                     "/webjars/**"
                             ).permitAll()
+                            // The next block implements the RBAC defined in the user-management docs
+                            // A rule consists of a specific or generic (/**) route, the lowest role level
+                            // to access the route (see role hierarchy), and the optional REST method
+                            // the route is requested with (if none given, all methods are concerned)
                             .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
                             .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**", "/users/**").hasRole(Role.GUEST.name())
                             .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole(Role.USER.name())
