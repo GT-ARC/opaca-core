@@ -18,8 +18,8 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         super.preStart()
 
         addAction("DoThis", mapOf(
-            "message" to Parameter("message", "String", false),
-            "sleep_seconds" to Parameter("sleep_seconds", "Int", false)
+            "message" to Parameter("String", true),
+            "sleep_seconds" to Parameter("Int", true)
         ), "String") {
             actionDoThis(it["message"]!!.asText(), it["sleep_seconds"]!!.asInt())
         }
@@ -30,8 +30,8 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             actionGetEnv()
         }
         addAction("Add", mapOf(
-            "x" to Parameter("x", "String", false),
-            "y" to Parameter("y", "Int", false)
+            "x" to Parameter("String", true),
+            "y" to Parameter("Int", true)
         ), "Int") {
             actionAdd(it["x"]!!.asInt(), it["y"]!!.asInt())
         }
@@ -39,13 +39,13 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             actionFail()
         }
         addAction("CreateAction", mapOf(
-            "name" to Parameter("name", "String", false),
-            "notify" to Parameter("notify", "Boolean", true)
+            "name" to Parameter("String", true),
+            "notify" to Parameter("Boolean", false)
         ), "void") {
             createAction(it["name"]!!.asText(), it["notify"]?.asBoolean() ?: true)
         }
         addAction("SpawnAgent", mapOf(
-            "name" to Parameter("name", "String", false)
+            "name" to Parameter("String", true)
         ), "void") {
             spawnAgent(it["name"]!!.asText())
         }

@@ -12,6 +12,7 @@ import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.LocalAgentRef
 import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.model.Parameter
+import de.gtarc.opaca.util.ArgumentValidator
 
 import org.springframework.http.ResponseEntity
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody

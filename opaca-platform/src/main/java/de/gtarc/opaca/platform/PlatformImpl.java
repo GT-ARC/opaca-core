@@ -11,6 +11,8 @@ import de.gtarc.opaca.platform.containerclient.KubernetesClient;
 import de.gtarc.opaca.platform.session.SessionData;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.util.ApiProxy;
+import de.gtarc.opaca.util.ArgumentValidator;
+import com.networknt.schema.JsonSchema;
 import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -527,7 +529,15 @@ public class PlatformImpl implements RuntimePlatformApi {
         return RandomStringUtils.random(24, true, true);
     }
 
-    private boolean validateActionParameters(AgentContainerImage image, Map<String, JsonNode> parameters) {
+    private boolean validateArguments(
+            Map<String, JsonSchema> definitions,
+            Map<String, Parameter> parameters,
+            Map<String, JsonNode> arguments) {
+        var validator = new ArgumentValidator(definitions, parameters);
+
+        // test call
+        validator.isArgsValid(arguments);
+
         return true;
     }
 
