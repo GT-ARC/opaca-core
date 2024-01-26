@@ -94,6 +94,22 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 * same as `GET /stream/{stream}/{agent}`, but get stream at _any_ agent that provides it
 
+### `POST /stream/{stream}/{agent}?containerId={containerId}&forward={true|false}`
+
+* post/send stream to the given agent
+* input:
+  * stream: name of the stream
+  * agent: ID of the agent to invoke the action on
+  * containerId: (optional) if the request should only go to one specific container
+  * forward: (optional, default `true`) `true/false`, whether the request should be forwarded to connected platforms in case the action/agent does not exist on this platform
+* body: the stream
+* output: none
+* errors: 404 for unknown stream or agent
+
+### `POST /stream/{stream}?containerId={containerId}&forward={true|false}`
+
+* same as `POST /stream/{stream}/{agent}`, but get stream at _any_ agent that understands it
+
 
 ## Platform API
 

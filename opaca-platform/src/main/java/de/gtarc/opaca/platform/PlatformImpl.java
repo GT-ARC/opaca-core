@@ -21,7 +21,6 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -222,20 +221,23 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
  @Override
-    public ResponseEntity<Void> postStream(String stream, byte[] inputStream, String containerId, boolean forward) throws IOException {
-        return postStream(stream, inputStream, null, containerId, forward);
+    public void postStream(String stream, byte[] inputStream, String containerId, boolean forward) throws IOException {
+        postStream(stream, inputStream, null, containerId, forward);
     }
 
     @Override
-    public ResponseEntity<Void> postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException {
+    public void postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException {
         var clients = getClients(containerId, agentId, null, stream, forward);
         
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {
-                return agentId == null
-                        ? client.postStream(stream, inputStream, containerId, false)
-                        : client.postStream(stream, inputStream, agentId, containerId, false);
+                if (agentId == null) {
+                    client.postStream(stream, inputStream, containerId, false);
+                } else {
+                    client.postStream(stream, inputStream, agentId, containerId, false);
+                }
+                return;
             } catch (IOException e) {
                 log.warning(String.format("Failed to post stream '%s' @ agent '%s' and client '%s': %s",
                         stream, agentId, client.baseUrl, e));

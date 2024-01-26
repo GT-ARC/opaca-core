@@ -19,5 +19,5 @@ data class DeRegister(val agentId: String, val notify: Boolean)
 
 data class Invoke(val name: String, val parameters: Map<String, JsonNode>)
 
-data class StreamInvoke(val name: String)
-data class PostStreamInvoke(val name: String, val body: ByteArray)
+data class StreamGet(val name: String)
+data class StreamPost(val name: String, val body: ByteArray)
