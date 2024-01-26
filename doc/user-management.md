@@ -2,7 +2,7 @@
 
 The User-Management system provides the ability to manage multiple users with different authority levels on the same or connected Runtime Platforms. A "User" can either be a real person interacting with the Runtime Platform or a connected Container.
 
-The User-Management is implemented with spring boot, spring data and uses spring security to implement a security filter chain, which checks for required permissions/authorities/roles of the requested user, based on the provided JWT (JSON Web Token). The JWT is generated after a successful login from a user or a successful container addition to the Runtime Platform.
+The User-Management is implemented with Spring Boot, Spring Data and uses Spring Security to implement a security filter chain, which checks for required permissions/authorities/roles of the requested user, based on the provided JWT (JSON Web Token). The JWT is generated after a successful login from a user or a successful container addition to the Runtime Platform.
 
 ## User Database with MongoDB
 
@@ -26,35 +26,23 @@ The connected MongoDB is started with two persistent data volumes attached to it
 
 ## User-Management Models
 
-A `TokenUser` consist of [`username`, `password`, `roles`], where the username and password are given by strings, and the roles are a collection, consisting of multiple roles, if necessary. Each single role consists of a unique name and can include multiple privileges, which are made up by only their unique privilege name. The password will get encoded before storing it as a string into the database.
+A `TokenUser` consists of a `username`, `password`, `role`, and `privileges`. Further it is assigned a unique ID which is used to store the Object in the In-memory database. This process is done automatically and cannot be modified by any user. 
+
+The username and password are stored as strings, the privileges as a list of strings, since multiple privileges might be assigned to a single user. The password will get encoded before storing it as a string into the database. The role is saved as an enum with the same name. Each user needs to be assigned exactly one role of the pre-defined roles, listed in [Authority Levels](#authority-levels).
 
 ### TokenUser
 ```
 {
     "username": string,
     "password": string,
-    "roles": [ Role ]
-}
-```
-
-### Role
-```
-{
-    "name": string,
-    "privileges": [ Privilege ]
-}
-```
-
-### Privilege
-```
-{
-    "name": string,
+    "role": Role,
+    "privileges": [ string ]
 }
 ```
 
 ## Authority Levels
 
-When checking a users' authority, their roles as well as their privileges are converted to so-called "Granted Authorities". This is primarily used by the Security Filter Chain, but is also checked during requests, which can be accessed by lower-level authorities, but need further checking for specific permissions (e.g. `DELETE /containers` can either be done by an admin or by the contributor who has created the container in question, but **NOT** by a contributor for a container it has not started).
+When checking a users' authority, their role as well as their privileges are converted to so-called "Granted Authorities". This is primarily used by the Security Filter Chain, but is also checked during requests, which can be accessed by lower-level authorities, but need further checking for specific permissions (e.g. `DELETE /containers` can either be done by an admin or by the contributor who has created the container in question, but **NOT** by a contributor for a container it has not started).
 
 These are the currently implemented Roles:
 
@@ -63,13 +51,43 @@ These are the currently implemented Roles:
 - **USER**: Can use the functionalities provided by the running containers on the Runtime Platform. Is also able to send/broadcast message on the platform and retrieve information about connected platforms or the history of the platform.
 - **GUEST**: Is a provisional role with the most limited access. Is only able to get information about the Runtime Platform, running containers and agents.
 
-Each of these roles can include multiple privileges, which have not been used for now.
+When a new user is created, it has to be assigned one of the stated roles. There is currently no way to include additional roles.
 
 The roles are part of a role hierarchy, granting the higher role all permissions of the lower role. This is the current role hierarchy:
 
 ```
 ADMIN > CONTRIBUTOR > USER > GUEST
 ```
+
+## Authority Overview
+
+In the following table, all implemented routes along with the necessary authority levels are listed. Actions marked with an **X** are executable with the listed authority level in the same column. Specific combinations will include further clarification, when additional authorization is needed inside a single authorization level.
+
+In addition to the following routes, the routes `/login`, `/error`, as well as specific _swagger.io_ paths are permitted to all (non-logged in) users.
+
+A route ending with /** includes every possible path suffix. If no REST methods (GET, DELETE, PUT, POST) are stated, all methods are included. Otherwise, only the given methods are concerned.
+
+|                             | ADMIN | CONTRIBUTOR | USER | GUEST |
+|:----------------------------|:-----:|:-----------:|:----:|:-----:|
+| /agents/**                  |   X   |      X      |  X   |   X   |
+| /broadcast/**               |   X   |      X      |  X   |       |
+| /containers/** GET          |   X   |      X      |  X   |   X   |
+| /containers/** DELETE/POST  |   X   |     X*      |      |       |
+| /connections GET            |   X   |      X      |  X   |       |
+| /connections/** DELETE/POST |   X   |             |      |       |
+| /history GET                |   X   |      X      |  X   |       |
+| /info GET                   |   X   |      X      |  X   |   X   |
+| /invoke/**                  |   X   |      X      |  X   |       |
+| /send/**                    |   X   |      X      |  X   |       |
+| /stream/**                  |   X   |      X      |  X   |       |
+| /users GET                  |   X   |             |      |       |
+| /users/{username} GET       |   X   |     X**     | X**  |  X**  |
+| /users POST                 |   X   |             |      |       |
+| /users DELETE               |   X   |             |      |       |
+| /users PUT                  |   X   |             |      |       |
+
+*: A contributor can only delete containers which were started by it. \
+**: A non-admin can only retrieve user information about itself.
 
 ## User Controller
 
@@ -89,7 +107,7 @@ Add a new user into the database. This should only be used by the user-managemen
 
 ### `PUT /users/{username}`
 
-Edit user information for a specific user. Since this includes roles/privileges that grant users different authority levels, this is only available for the **ADMIN** role for now. (In the future, this should also be available for the **USER** for changing the username or the password)
+Edit user information for a specific user. Since this includes roles/privileges that grant users different authority levels, this is only available for the **ADMIN** role for now.
 
 ### `DELETE /users/{username}`
 

@@ -7,3 +7,6 @@ Session.json
 .vscode
 *.log
 *.log.*
+.attach_pid*
+*.ipr
+*.iws
