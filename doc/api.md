@@ -10,6 +10,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * `CONTAINER_ID` The Agent Container's own container ID used to identify the container at the Runtime Platform.
 * `PLATFORM_URL` The URL or IP address where the Agent Container can reach its parent Runtime Platform
 * `TOKEN` Bearer token assigned to the container needed to interact with the parent Runtime Platform if it is using authentication (see [Authentication](doc/auth.md) for details).
+* `OWNER` The username corresponding to the user who has started the Agent Container. The owner has special permissions to perform actions on his own containers.
 
 
 ## Agents API
@@ -235,6 +236,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
     "image": AgentContainerImage,
     "arguments": {string: string}
     "agents": [ AgentDescription ],
+    "owner": string,
     "runningSince": "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
     "connectivity": {
         "publicUrl": URL,

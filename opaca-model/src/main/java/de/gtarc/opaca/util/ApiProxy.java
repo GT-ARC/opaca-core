@@ -192,5 +192,4 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         }
         return builder.toString().replaceFirst("&", "");
     }
-
 }

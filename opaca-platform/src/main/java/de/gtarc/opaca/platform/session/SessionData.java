@@ -1,10 +1,9 @@
 package de.gtarc.opaca.platform.session;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
+import de.gtarc.opaca.platform.user.TokenUserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import de.gtarc.opaca.model.PostAgentContainer;
 import de.gtarc.opaca.platform.containerclient.DockerClient;
 import de.gtarc.opaca.platform.containerclient.KubernetesClient;
@@ -34,9 +33,6 @@ public class SessionData {
     /* KubernetesClient variables */
     public Map<String, KubernetesClient.PodInfo> pods = new HashMap<>();
 
-    /* TokensUserDetailsService variables */
-    public Map<String, String> userCredentials = new HashMap<>();
-
     public void reset() {
         this.tokens.clear();
         this.runningContainers.clear();
@@ -44,8 +40,8 @@ public class SessionData {
         this.connectedPlatforms.clear();
         this.dockerContainers.clear();
         this.usedPorts.clear();
-        this.userCredentials.clear();
         this.pods.clear();
+        // TODO reset user data
     }
 
 }
