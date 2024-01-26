@@ -143,7 +143,6 @@ public class AuthTests {
         var res = result(con, Map.class);
         containerToken = (String) res.get("TOKEN");
         Assert.assertTrue(containerToken != null && ! containerToken.isEmpty());
-        Assert.assertEquals("testUser", res.get("OWNER"));
 
         // container token can be used to call platform routes
         con = requestWithToken(PLATFORM_A, "GET", "/info", null, containerToken);
@@ -218,6 +217,15 @@ public class AuthTests {
     }
 
     // User Management
+
+    @Test
+    public void test08GetContainerOwner() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "POST", "/invoke/GetInfo", Map.of(), token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+        System.out.println(res);
+        Assert.assertEquals("testUser", res.get("OWNER"));
+    }
 
     @Test
     public void test08AddUser() throws Exception {
