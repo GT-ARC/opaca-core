@@ -16,8 +16,7 @@ import de.gtarc.opaca.model.RuntimePlatform;
 import de.gtarc.opaca.util.RestHelper;
 import org.apache.commons.lang3.SystemUtils;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -25,6 +24,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Class providing util methods and constants used by the other Test classes.
@@ -91,8 +91,8 @@ public class TestUtils {
         connection.connect();
 
         try (OutputStream os = connection.getOutputStream();
-            InputStream inputStream = new ByteArrayInputStream(payload);
-            BufferedInputStream bis = new BufferedInputStream(inputStream)) {
+             InputStream inputStream = new ByteArrayInputStream(payload);
+             BufferedInputStream bis = new BufferedInputStream(inputStream)) {
             byte[] buffer = new byte[1024];
             int bytesRead;
             while ((bytesRead = bis.read(buffer)) != -1) {
@@ -194,17 +194,17 @@ public class TestUtils {
 
         // Check if mongo:7.0.4 image is locally available, if not -> pull from remote
         List<String> repoTags = dockerClient.listImagesCmd().exec().stream()
-                .flatMap(image -> Arrays.stream(image.getRepoTags())).toList();
+                .flatMap(image -> Arrays.stream(image.getRepoTags())).collect(Collectors.toList());
         if (!repoTags.contains("mongo:7.0.4")) {
             dockerClient.pullImageCmd("mongo:7.0.4").exec(new PullImageResultCallback()).awaitCompletion();
         }
 
         CreateContainerResponse res = dockerClient.createContainerCmd("mongo:7.0.4")
-                .withName("jiacpp-data-test")
+                .withName("opaca-data-test")
                 .withVolumes(dataVolume, configVolume)
                 .withHostConfig(HostConfig.newHostConfig().withPortBindings(portBindings).withBinds(
-                        new Bind("jiacpp-platform_mongodb_data_test", dataVolume),
-                        new Bind("jiacpp-platform_mongodb_config_test", configVolume)))
+                        new Bind("opaca-platform_mongodb_data_test", dataVolume),
+                        new Bind("opaca-platform_mongodb_config_test", configVolume)))
                 .withExposedPorts(mongoPort)
                 .withEnv("MONGO_INITDB_ROOT_USERNAME=user", "MONGO_INITDB_ROOT_PASSWORD=pass")
                 .exec();
@@ -221,8 +221,8 @@ public class TestUtils {
         dockerClient.removeContainerCmd(mongoContId).exec();
 
         // Remove the temporary data volumes
-        dockerClient.removeVolumeCmd("jiacpp-platform_mongodb_data_test").exec();
-        dockerClient.removeVolumeCmd("jiacpp-platform_mongodb_config_test").exec();
+        dockerClient.removeVolumeCmd("opaca-platform_mongodb_data_test").exec();
+        dockerClient.removeVolumeCmd("opaca-platform_mongodb_config_test").exec();
     }
 
     private static boolean checkContainerRunning() {

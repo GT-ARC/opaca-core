@@ -4,6 +4,8 @@ import de.gtarc.opaca.model.Role;
 import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.auth.JwtUtil;
 import de.gtarc.opaca.platform.user.TokenUserDetailsService;
+import de.gtarc.opaca.platform.user.TokenUserDetailsService.UserAlreadyExistsException;
+import de.gtarc.opaca.platform.user.TokenUserDetailsService.UserNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -15,9 +17,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Log
 @RestController
@@ -59,16 +59,12 @@ public class UserController {
     @RequestMapping(value="/users", method=RequestMethod.POST)
     @Operation(summary="Add a new user to the connected database", tags={"users"})
     public ResponseEntity<?> addUser(
-            @RequestBody User user
-    ) {
-        try {
-            userDetailsService.createUser(user.getUsername(), user.getPassword(), user.getRole(), user.getPrivileges());
-            log.info(String.format("ADD USER: [username='%s', role='%s', privileges=%s]",
-                    user.getUsername(), user.getRole(), user.getPrivileges()));
-            return userDetailsService.getUser(user.getUsername());
-        } catch (Exception e) {
-            return e.getMessage();
-        }
+            @RequestBody User user) {
+
+        userDetailsService.createUser(user.getUsername(), user.getPassword(), user.getRole(), user.getPrivileges());
+        log.info(String.format("ADD USER: [username='%s', role='%s', privileges=%s]",
+                user.getUsername(), user.getRole(), user.getPrivileges()));
+        return new ResponseEntity<>(userDetailsService.getUser(user.getUsername()), HttpStatus.CREATED);
     }
 
     /**
@@ -143,7 +139,7 @@ public class UserController {
         if (user.getPrivileges() != null && !user.getPrivileges().isEmpty()) logOut += String.format("NEW PRIVILEGES: %s ", user.getPrivileges());
         log.info(logOut + ")");
         return new ResponseEntity<>(userDetailsService.updateUser(username, user.getUsername(), user.getPassword(),
-                convertRoles(user.getRoles())), HttpStatus.OK);
+                user.getRole(), user.getPrivileges()), HttpStatus.OK);
     }
 
     // Helper methods

@@ -7,7 +7,6 @@ import de.gtarc.opaca.model.Role;
 import jakarta.annotation.PostConstruct;
 
 import de.gtarc.opaca.platform.PlatformConfig;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -26,7 +25,6 @@ import org.springframework.stereotype.Service;
  * offers methods to add/edit/get/remove information within it.
  */
 @Service
-@Transactional
 public class TokenUserDetailsService implements UserDetailsService {
 
     @Autowired
@@ -51,7 +49,6 @@ public class TokenUserDetailsService implements UserDetailsService {
 
     /** Returns the TokenUser as a standardized 'User' object */
     @Override
-    @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         TokenUser user = tokenUserRepository.findByUsername(username);
         if (user != null) {
@@ -66,7 +63,6 @@ public class TokenUserDetailsService implements UserDetailsService {
      * or containers [containerID, password(random), roles]
      * If a User already exists, throw an exception
      */
-    @Transactional
     public void createUser(String username, String password, Role role, List<String> privileges) {
         if (tokenUserRepository.findByUsername(username) != null) {
             throw new UserAlreadyExistsException(username);
@@ -85,7 +81,6 @@ public class TokenUserDetailsService implements UserDetailsService {
         return getTokenUser(username).toString();
     }
 
-    @Transactional
     public TokenUser getTokenUser(String username) {
         TokenUser user = tokenUserRepository.findByUsername(username);
         if (user == null) throw new UsernameNotFoundException(username);
@@ -95,7 +90,6 @@ public class TokenUserDetailsService implements UserDetailsService {
     /**
      * Return all users in the UserRepository
      */
-    @Transactional
     public List<String> getUsers() {
         return tokenUserRepository.findAll().stream().map(TokenUser::toString).collect(Collectors.toList());
     }
@@ -104,7 +98,6 @@ public class TokenUserDetailsService implements UserDetailsService {
      * Removes a user from the UserRepository.
      * Return true if the user was deleted, false if not.
      */
-    @Transactional
     public Boolean removeUser(String username) {
         return tokenUserRepository.deleteByUsername(username) > 0;
     }
@@ -115,7 +108,6 @@ public class TokenUserDetailsService implements UserDetailsService {
      * If privileges are set, ALL privileges of the user will be replaced with the new list.
      * Return the updated user.
      */
-    @Transactional
     public String updateUser(String username, String newUsername, String password, Role role,
                              List<String> privileges) {
         TokenUser user = tokenUserRepository.findByUsername(username);
@@ -144,7 +136,6 @@ public class TokenUserDetailsService implements UserDetailsService {
     /**
      * Return the role associated to the username
      */
-    @Transactional
     public Role getUserRole(String username) {
         TokenUser user = tokenUserRepository.findByUsername(username);
         if (user == null) throw new UsernameNotFoundException(username);
@@ -154,7 +145,6 @@ public class TokenUserDetailsService implements UserDetailsService {
     /**
      * Return the privileges associated to the username
      */
-    @Transactional
     public List<String> getUserPrivileges(String username) {
         TokenUser user = tokenUserRepository.findByUsername(username);
         if (user == null) throw new UsernameNotFoundException(username);
@@ -164,9 +154,16 @@ public class TokenUserDetailsService implements UserDetailsService {
     /**
      * Exceptions thrown during user creation if a given user already exists
      */
-    static class UserAlreadyExistsException extends RuntimeException {
+    public static class UserAlreadyExistsException extends RuntimeException {
         public UserAlreadyExistsException(String username) {
             super("User with username '" + username + "' already exists!");
         }
     }
+
+    public static class UserNotFoundException extends UsernameNotFoundException {
+        public UserNotFoundException(String username) {
+            super("User with username '" + username + "' was not found!");
+        }
+    }
+
 }

@@ -294,31 +294,30 @@ public class AuthTests {
     @Test
     public void test08EditUserNotFound() throws Exception {
         var con = requestWithToken(PLATFORM_A, "PUT", "/users/InvalidUsername",
-                getUser(null, null, "ROLE_IRRELEVANT"), token_A);
+                getUser(null, null, "GUEST", null), token_A);
         Assert.assertEquals(400, con.getResponseCode());
     }
 
     @Test
     public void test08EditUserInvalidName() throws Exception {
         var con = requestWithToken(PLATFORM_A, "PUT", "/users/test",
-                getUser("test@newName", null, null), token_A);
+                getUser("test@newName", null, "GUEST", null), token_A);
         Assert.assertEquals(400, con.getResponseCode());
     }
 
     @Test
     public void test08EditUserInvalidPassword() throws Exception {
         var con = requestWithToken(PLATFORM_A, "PUT", "/users/test",
-                getUser(null, "newAwesomePassword\\", "ROLE_IRRELEVANT"), token_A);
+                getUser(null, "newAwesomePassword\\", "GUEST", null), token_A);
         Assert.assertEquals(400, con.getResponseCode());
     }
 
     @Test
     public void test08EditUserAndLogin() throws Exception {
         var con = requestWithToken(PLATFORM_A, "PUT", "/users/test",
-                getUser("test", "newPwd", null), token_A);
+                getUser("test", "newPwd", "GUEST", null), token_A);
         Assert.assertEquals(200, con.getResponseCode());
-        con = request(PLATFORM_A, "POST", "/login" +
-                authQuery("test", "newPwd"), null);
+        con = request(PLATFORM_A, "POST", "/login", createLogin("test", "newPwd"));
         Assert.assertEquals(200, con.getResponseCode());
     }
 
