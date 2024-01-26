@@ -84,7 +84,7 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
                 // streaming result
                 response.contentType = "application/octet-stream"
                 response.status = code
-                RestHelper.writeInputToOutputStream(result, response.outputStream)
+                result.transferTo(response.outputStream)
                 response.flushBuffer()
             }
         }
@@ -127,7 +127,7 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
             val getStream = Regex("^/stream/([^/]+)$").find(path)
             if (getStream != null) {
                 val stream = getStream.groupValues[1]
-                return impl.getStream(stream, "", false)
+                return impl.getStream(stream, null, "", false)
             }
 
             val getStreamOf = Regex("^/stream/([^/]+)/([^/]+)$").find(path)
@@ -162,9 +162,10 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
             if (invokeAct != null) {
                 val action = invokeAct.groupValues[1]
                 val parameters = RestHelper.readMap(body(request))
-                return impl.invoke(action, parameters, timeout, "", false)
+                return impl.invoke(action, parameters, null, timeout, "", false)
             }
 
+            // TODO make agent part in regex optional, then use for above variant, too; same for get-stream, post-stream
             val invokeActOf = Regex("^/invoke/([^/]+)/([^/]+)$").find(path)
             if (invokeActOf != null) {
                 val action = invokeActOf.groupValues[1]
@@ -185,7 +186,7 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
                 }
 
                 val byteArray = byteArrayOutputStream.toByteArray()
-                return impl.postStream(stream, byteArray, "", false)
+                return impl.postStream(stream, byteArray, null, "", false)
             }
 
             val postStreamTo = Regex("^/stream/([^/]+)/([^/]+)$").find(path)

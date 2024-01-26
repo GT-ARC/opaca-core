@@ -163,7 +163,7 @@ public class PlatformRestController {
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("INVOKE: %s, %s", action, parameters));
-		return implementation.invoke(action, parameters, timeout, containerId, forward);
+		return implementation.invoke(action, parameters, null, timeout, containerId, forward);
 	}
 
 	@RequestMapping(value="/invoke/{action}/{agentId}", method=RequestMethod.POST)
@@ -188,7 +188,7 @@ public class PlatformRestController {
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("STREAM: %s ", stream));
-		return wrapStream(implementation.getStream(stream, containerId, forward));
+		return wrapStream(implementation.getStream(stream, null, containerId, forward));
 	}
 
 	@RequestMapping(value="/stream/{stream}/{agentId}", method=RequestMethod.GET)
@@ -212,7 +212,7 @@ public class PlatformRestController {
             @RequestParam(required = false, defaultValue = "true") boolean forward
     ) throws IOException {
         log.info(String.format("POST STREAM: %s ", stream));
-        implementation.postStream(stream, inputStream, containerId, forward);
+        implementation.postStream(stream, inputStream, null, containerId, forward);
     }
 
 	@RequestMapping(value="/stream/{stream}/{agentId}", method=RequestMethod.POST)
@@ -321,9 +321,7 @@ public class PlatformRestController {
 	 */
 
 	private ResponseEntity<StreamingResponseBody> wrapStream(InputStream stream) {
-		StreamingResponseBody responseBody = (OutputStream response) -> {
-			RestHelper.writeInputToOutputStream(stream, response);
-		};
+		StreamingResponseBody responseBody = stream::transferTo;
 		return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM).body(responseBody);
 	}
 

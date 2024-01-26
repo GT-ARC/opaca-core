@@ -125,10 +125,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         log.info("Outbound Invoke: $action @ $agentId ($parameters)")
         val jsonParameters = parameters.entries
             .associate { Pair<String, JsonNode>(it.key, RestHelper.mapper.valueToTree(it.value)) }
-        val res = when (agentId) {
-            null -> parentProxy.invoke(action, jsonParameters, -1, null, true)
-            else -> parentProxy.invoke(action, jsonParameters, agentId, -1, null, true)
-        }
+        val res = parentProxy.invoke(action, jsonParameters, agentId, -1, null, true)
         return RestHelper.mapper.treeToValue(res, type)
     }
 
@@ -137,10 +134,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
      */
     fun sendOutboundStreamGetRequest(stream: String, agentId: String?, containerId: String, forward: Boolean = true): InputStream {
         log.info("Outbound Stream: $stream @ $containerId")
-        return when (agentId) {
-            null -> parentProxy.getStream(stream, containerId, forward)
-            else -> parentProxy.getStream(stream, agentId, containerId, forward)
-        }
+        return parentProxy.getStream(stream, agentId, containerId, forward)
     }
 
     /**
@@ -154,10 +148,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         forward: Boolean = true
     ): Unit {  // 'Unit' can be omitted as it's the default return type
         log.info("Outbound Stream: $stream @ $containerId")
-        when (agentId) {
-            null -> parentProxy.postStream(stream, inputStream, containerId, forward)
-            else -> parentProxy.postStream(stream, inputStream, agentId, containerId, forward)
-        }
+        parentProxy.postStream(stream, inputStream, agentId, containerId, forward)
     }
 
     /**

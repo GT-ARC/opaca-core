@@ -135,16 +135,4 @@ public class RestHelper {
                 .lines().collect(Collectors.joining("\n"));
     }
 
-    public static void writeInputToOutputStream(InputStream in, OutputStream out) {
-        int bytesRead;
-        byte[] buffer = new byte[1024];
-        try (BufferedInputStream bis = new BufferedInputStream(in)) {
-            while ((bytesRead = bis.read(buffer)) != -1) {
-                out.write(buffer, 0, bytesRead);
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
 }

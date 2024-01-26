@@ -109,11 +109,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             broker.publish(channel, message)
         }
 
-        override fun invoke(action: String, parameters: Map<String, JsonNode>, timeout: Int, containerId: String, forward: Boolean): JsonNode? {
-            log.info("INVOKE ACTION: $action $parameters")
-            return invoke(action, parameters, null, timeout, containerId, forward)
-        }
-
         override fun invoke(action: String, parameters: Map<String, JsonNode>, agentId: String?, timeout: Int, containerId: String, forward: Boolean): JsonNode? {
             log.info("INVOKE ACTION OF AGENT: $agentId $action $parameters")
 
@@ -124,11 +119,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             } else {
                 throw NoSuchElementException("Action $action of Agent $agentId not found")
             }
-        }
-
-        override fun postStream(stream: String, data: ByteArray, containerId: String, forward: Boolean) {
-            log.info("POST STREAM: $stream")
-            postStream(stream, data, null, containerId, forward)
         }
 
         override fun postStream(stream: String, data: ByteArray, agentId: String?, containerId: String, forward: Boolean) {
@@ -142,12 +132,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 throw NoSuchElementException("Agent $agentId not found for Stream $stream")
             }
         }
-        
-        override fun getStream(streamId: String, containerId: String, forward: Boolean): InputStream? {
-            log.info("GET STREAM: $streamId")
-            return getStream(streamId, null, containerId, forward)
-        }
-        
+
         override fun getStream(streamId: String, agentId: String?, containerId: String, forward: Boolean): InputStream? {
             log.info("GET STREAM OF AGENT: $agentId $streamId")
 
