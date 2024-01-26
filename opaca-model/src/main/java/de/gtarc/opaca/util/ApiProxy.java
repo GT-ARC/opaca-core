@@ -6,12 +6,11 @@ import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.model.*;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 /**
  * Implementation of the API forwarding to the REST services at a specific base URL.
@@ -97,15 +96,15 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
-    public ResponseEntity<StreamingResponseBody> getStream(String stream, String containerId, boolean forward) throws IOException {
+    public InputStream getStream(String stream, String containerId, boolean forward) throws IOException {
         var path = String.format("/stream/%s?%s", stream, buildQuery(containerId, forward, null));
-        return client.getStream(path);
+        return client.request("GET", path, null);
     }
 
     @Override
-    public ResponseEntity<StreamingResponseBody> getStream(String stream, String agentId, String containerId, boolean forward) throws IOException {
+    public InputStream getStream(String stream, String agentId, String containerId, boolean forward) throws IOException {
         var path = String.format("/stream/%s/%s?%s", stream, agentId, buildQuery(containerId, forward, null));
-        return client.getStream(path);
+        return client.request("GET", path, null);
     }
 
     @Override

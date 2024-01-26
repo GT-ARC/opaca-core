@@ -14,12 +14,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicReference
-import java.io.ByteArrayInputStream
 import java.io.InputStream
-import java.io.OutputStream
-import org.springframework.http.ResponseEntity
-import org.springframework.http.MediaType
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 
 
 const val CONTAINER_AGENT = "container-agent"
@@ -148,30 +143,18 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             }
         }
         
-        override fun getStream(streamId: String, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody>? {
+        override fun getStream(streamId: String, containerId: String, forward: Boolean): InputStream? {
             log.info("GET STREAM: $streamId")
             return getStream(streamId, null, containerId, forward)
         }
         
-        override fun getStream(streamId: String, agentId: String?, containerId: String, forward: Boolean): ResponseEntity<StreamingResponseBody>? {
+        override fun getStream(streamId: String, agentId: String?, containerId: String, forward: Boolean): InputStream? {
             log.info("GET STREAM OF AGENT: $agentId $streamId")
 
             val agent = findRegisteredAgent(agentId, null, streamId)
             if (agent != null) {
                 val inputStream: InputStream = invokeAskWait(agent, StreamGet(streamId), -1)
-                val body = StreamingResponseBody { outputStream ->
-                    val buffer = ByteArray(8192)
-                    var bytesRead: Int
-                    while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                        outputStream.write(buffer, 0, bytesRead)
-                    }
-                    outputStream.flush()
-                    inputStream.close()
-                    outputStream.close()
-                }
-                return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .body(body)
+                return inputStream
 
             } else {
                 throw NoSuchElementException("Stream $streamId of Agent $agentId not found")

@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -192,12 +193,12 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public ResponseEntity<StreamingResponseBody> getStream(String stream, String containerId, boolean forward) throws IOException, NoSuchElementException {
+    public InputStream getStream(String stream, String containerId, boolean forward) throws IOException, NoSuchElementException {
         return getStream(stream, null, containerId, forward);
     }
 
     @Override
-    public ResponseEntity<StreamingResponseBody> getStream(String stream, String agentId, String containerId, boolean forward) throws IOException {
+    public InputStream getStream(String stream, String agentId, String containerId, boolean forward) throws IOException {
         var clients = getClients(containerId, agentId, null, stream, forward);
         
         IOException lastException = null;

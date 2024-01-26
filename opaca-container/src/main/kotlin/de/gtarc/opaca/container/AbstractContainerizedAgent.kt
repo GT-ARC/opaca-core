@@ -13,9 +13,6 @@ import de.dailab.jiacvi.LocalAgentRef
 import de.dailab.jiacvi.behaviour.act
 import java.io.InputStream
 
-import org.springframework.http.ResponseEntity
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
-
 /**
  * Abstract superclass for containerized agents, handling the registration with the container agent.
  * It also provides helper methods for outbound communication via the RuntimePlatform. The latter is
@@ -138,7 +135,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
     /**
      * Send get-stream to other agents via the parent runtimePlatform.
      */
-    fun sendOutboundStreamGetRequest(stream: String, agentId: String?, containerId: String, forward: Boolean = true): ResponseEntity<StreamingResponseBody> {
+    fun sendOutboundStreamGetRequest(stream: String, agentId: String?, containerId: String, forward: Boolean = true): InputStream {
         log.info("Outbound Stream: $stream @ $containerId")
         return when (agentId) {
             null -> parentProxy.getStream(stream, containerId, forward)

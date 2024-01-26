@@ -5,17 +5,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.util.EventProxy;
+import de.gtarc.opaca.util.RestHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import jakarta.annotation.PostConstruct;
-import java.io.IOException;
+
+import java.io.*;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -185,7 +188,7 @@ public class PlatformRestController {
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("STREAM: %s ", stream));
-		return implementation.getStream(stream, containerId, forward);
+		return wrapStream(implementation.getStream(stream, containerId, forward));
 	}
 
 	@RequestMapping(value="/stream/{stream}/{agentId}", method=RequestMethod.GET)
@@ -197,7 +200,7 @@ public class PlatformRestController {
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info(String.format("STREAM: %s, %s", stream, agentId));
-		return implementation.getStream(stream, agentId, containerId, forward);
+		return wrapStream(implementation.getStream(stream, agentId, containerId, forward));
 	}
 
 	@RequestMapping(value="/stream/{stream}", method=RequestMethod.POST)
@@ -311,6 +314,17 @@ public class PlatformRestController {
 	public boolean notifyUpdatePlatform(@RequestBody String platformUrl) throws IOException {
 		log.info(String.format("NOTIFY: %s", platformUrl));
 		return implementation.notifyUpdatePlatform(platformUrl);
+	}
+
+	/*
+	 * HELPER METHODS
+	 */
+
+	private ResponseEntity<StreamingResponseBody> wrapStream(InputStream stream) {
+		StreamingResponseBody responseBody = (OutputStream response) -> {
+			RestHelper.writeInputToOutputStream(stream, response);
+		};
+		return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM).body(responseBody);
 	}
 
 }

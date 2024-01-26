@@ -5,11 +5,9 @@ import de.gtarc.opaca.model.AgentDescription;
 import de.gtarc.opaca.model.Message;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 /**
  * API for both, Agent Containers and Runtime Platform. In fact, those are primarily the
@@ -100,7 +98,7 @@ public interface CommonApi {
      * @param forward flag whether to forward the message to connected platforms (optional)
      * @return Action result
      */
-    ResponseEntity<StreamingResponseBody> getStream(String stream, String containerId, boolean forward) throws IOException;
+    InputStream getStream(String stream, String containerId, boolean forward) throws IOException;
 
     /**
      * Get a stream provided by a specific agent on this container.
@@ -113,7 +111,7 @@ public interface CommonApi {
      * @param forward flag whether to forward the message to connected platforms (optional)
      * @return Action result
      */
-    ResponseEntity<StreamingResponseBody> getStream(String stream, String agentId, String containerId, boolean forward) throws IOException;
+    InputStream getStream(String stream, String agentId, String containerId, boolean forward) throws IOException;
 
     /**
      * Send a stream to any agent on this container.

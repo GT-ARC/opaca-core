@@ -12,10 +12,8 @@ import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
 import java.util.stream.Collectors
 import java.util.concurrent.TimeUnit
-import org.springframework.http.MediaType
-import org.springframework.http.ResponseEntity
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
 
 /**
  * Minimal Jetty server for providing the REST interface. There's probably a better way to do this.
@@ -77,21 +75,16 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
         }
 
         private fun writeResponse(response: HttpServletResponse, code: Int, result: Any?) {
-            if (result !is ResponseEntity<*>) {
+            if (result !is InputStream) {
                 // regular JSON result
-                response.contentType = MediaType.APPLICATION_JSON_VALUE;
+                response.contentType = "application/json"
                 response.status = code
                 response.writer.write(RestHelper.writeJson(result))
             } else {
                 // streaming result
-                response.contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE
-                response.status = result.statusCodeValue
-                result.headers.forEach { (key, values) ->
-                    values.forEach { response.addHeader(key, it)}
-                }
-                when (val body = result.body) {
-                    is StreamingResponseBody -> body.writeTo(response.outputStream)
-                }
+                response.contentType = "application/octet-stream"
+                response.status = code
+                RestHelper.writeInputToOutputStream(result, response.outputStream)
                 response.flushBuffer()
             }
         }
