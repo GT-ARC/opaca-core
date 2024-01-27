@@ -67,6 +67,9 @@ public class AgentContainerImage {
     @JsonDeserialize(contentUsing = JsonSchemaDeserializer.class)
     Map<String, JsonSchema> definitions = Map.of();
 
+    @NonNull
+    Map<String, String> definitionsByUrl = Map.of();
+
     @Data @AllArgsConstructor @NoArgsConstructor
     public static class PortDescription {
 

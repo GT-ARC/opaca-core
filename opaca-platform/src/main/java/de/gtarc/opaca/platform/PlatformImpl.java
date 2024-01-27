@@ -552,16 +552,4 @@ public class PlatformImpl implements RuntimePlatformApi {
         return RandomStringUtils.random(24, true, true);
     }
 
-    private boolean validateArguments(
-            Map<String, JsonSchema> definitions,
-            Map<String, Parameter> parameters,
-            Map<String, JsonNode> arguments) {
-        var validator = new ArgumentValidator(definitions, parameters);
-
-        // test call
-        validator.isArgsValid(arguments);
-
-        return true;
-    }
-
 }
