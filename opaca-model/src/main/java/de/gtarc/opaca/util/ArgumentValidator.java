@@ -20,9 +20,10 @@ public class ArgumentValidator {
         for (String name : arguments.keySet()) {
             var argument = arguments.get(name);
             var parameter = parameters.get(name);
-            System.out.printf("validating arg\"%s\": %s%n", name, argument.toPrettyString());
-            return isValidPrimitive(parameter, argument)
+            var result = isValidPrimitive(parameter, argument)
                     || isValidObject(parameter, argument);
+            System.out.printf("validating arg\"%s\": %s, %s -> %s%n", name, parameter, argument.toPrettyString(), result);
+            return result;
         }
         return true;
     }
@@ -30,14 +31,19 @@ public class ArgumentValidator {
     private boolean isAnyArgumentMissing(Map<String, Parameter> parameters, Map<String, JsonNode> arguments) {
         for (String name : parameters.keySet()) {
             var parameter = parameters.get(name);
-            if (parameter.getRequired() && arguments.get(name) == null) return false;
+            var argument = arguments.get(name);
+            System.out.printf("argument missing: %s, %s, %s%n", name, parameter, argument);
+            if (parameter.getRequired() && argument == null) return false;
         }
         return true;
     }
 
     private boolean isAnyArgumentRedundant(Map<String, Parameter> parameters, Map<String, JsonNode> arguments) {
         for (String name : arguments.keySet()) {
-            if (parameters.get(name) == null) return true;
+            var parameter = parameters.get(name);
+            var argument = arguments.get(name);
+            System.out.printf("argument redundant: %s, %s, %s%n", name, parameter, argument);
+            if (parameter == null) return true;
         }
         return false;
     }
