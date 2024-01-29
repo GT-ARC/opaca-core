@@ -67,6 +67,17 @@ public class PlatformConfig {
     @Value("${platform_admin_pwd}")
     public String platformAdminPwd;
 
+    // MONGO DB
+
+    @Value("${db_type}")
+    public String dbType;
+
+    @Value("${spring.data.mongodb.uri}")
+    public String dbURI;
+
+    @Value("${spring.data.mongodb.database}")
+    public String dbName;
+
     // IMAGE REGISTRY CREDENTIALS
 
     @Value("${registry_separator}")
