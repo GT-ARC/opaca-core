@@ -51,6 +51,7 @@
       "required": ["model", "passengers", "constructionYear"]
     }
   },
+  "definitionsByUrl": {},
   "parameters": [
     {
       "name": "database",
@@ -58,12 +59,14 @@
       "required": false,
       "confidential": false,
       "defaultValue": "mongodb"
-    },{
+    },
+    {
       "name": "username",
       "type": "string",
       "required": true,
       "confidential": false
-    },{
+    },
+    {
       "name": "password",
       "type": "string",
       "required": true,

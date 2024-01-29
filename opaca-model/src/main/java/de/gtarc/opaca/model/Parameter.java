@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 
-@Data @AllArgsConstructor
+@Data @AllArgsConstructor @NoArgsConstructor
 public class Parameter {
     
     String type;
@@ -22,7 +22,7 @@ public class Parameter {
         this.required = required;
     }
 
-    @Data @AllArgsConstructor
+    @Data @AllArgsConstructor @NoArgsConstructor
     public static class ArrayItems {
         String type;
 
