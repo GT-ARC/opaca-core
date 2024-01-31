@@ -18,19 +18,26 @@ public class ArgumentValidator {
     Map<String, JsonSchema> definitions;
 
     public boolean isArgsValid(Map<String, Parameter> parameters, Map<String, JsonNode> arguments) {
-        if (this.isAnyArgumentMissing(parameters, arguments)) return false;
-        if (this.isAnyArgumentRedundant(parameters, arguments)) return false;
+        var anyArgMissing = isAnyArgumentMissing(parameters, arguments);
+        var anyArgRedundant = isAnyArgumentRedundant(parameters, arguments);
 
+        var argsValid = true;
         for (String name : arguments.keySet()) {
             var argument = arguments.get(name);
             var parameter = parameters.get(name);
             var type = parameter.getType();
             var items = parameter.getItems();
-            var result = this.isValidArgument(type, items, argument);
-            System.out.printf("validator - validating arg \"%s\": %s, %s -> %s%n", name, parameter, argument.toPrettyString(), result);
-            return result;
+            var argValid = isValidArgument(type, items, argument);
+            System.out.printf("validator - validating arg \"%s\": %s, %s -> %s%n", name, parameter, argument.toPrettyString(), argValid);
+            if (!argValid) {
+                argsValid = false;
+                break;
+            }
         }
-        return true;
+
+        var result = !anyArgMissing && !anyArgRedundant && argsValid;
+        System.out.printf("validator - ARGS VALID? %s (%s, %s, %s)%n", result, !anyArgMissing, !anyArgRedundant, argsValid);
+        return result;
     }
 
     private boolean isAnyArgumentMissing(Map<String, Parameter> parameters, Map<String, JsonNode> arguments) {
@@ -39,10 +46,10 @@ public class ArgumentValidator {
             var argument = arguments.get(name);
             if (parameter.getRequired() && argument == null) {
                 System.out.printf("validator - argument missing: %s, %s%n", name, parameter);
-                return false;
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
     private boolean isAnyArgumentRedundant(Map<String, Parameter> parameters, Map<String, JsonNode> arguments) {
@@ -59,22 +66,29 @@ public class ArgumentValidator {
 
     private boolean isValidArgument(String type, Parameter.ArrayItems items, JsonNode argument) {
         var prim = isValidPrimitive(type, argument);
-        if (!prim) System.out.printf("validator - invalid primitive: %s, %s", type, argument);
+        if (!prim) System.out.printf("validator - invalid primitive: %s, %s%n", type, argument);
         return prim || isValidList(type, items, argument)
-                || isValidObject(type, argument) || true; // <- for prints
+                || isValidObject(type, argument); // <- for prints
     }
 
     private boolean isValidPrimitive(String type, JsonNode node) {
         switch (type) {
             case "Integer": case "Int":
-                return node.isInt();
+                System.out.println("validator - primitive type Integer");
+                return node.asInt() == Integer.parseInt(node.asText());
             case "Double": case "Float": case "Decimal":
-                return node.isFloat() || node.isDouble();
+                System.out.println("validator - primitive type Double");
+                return node.asDouble() == Double.parseDouble(node.asText());
             case "Boolean": case "Bool":
-                return node.isBoolean();
-            case "String": case "Str":
-                return node.isTextual();
-            default: return false;
+                System.out.println("validator - primitive type Boolean");
+                return node.asBoolean() == Boolean.parseBoolean(node.asText());
+            case "String": case "Str": case "Text":
+                System.out.println("validator - primitive type String");
+                System.out.printf("validator - testing primitive type string: %s, %s%n", node.isTextual(), node.asText());
+                return node.isTextual() || !node.asText().isEmpty();
+            default:
+                System.out.printf("validator - %s is not primitive%n", type);
+                return false;
         }
     }
 
@@ -86,7 +100,7 @@ public class ArgumentValidator {
             var list = mapper.readValue(node.traverse(), typeRef);
             for (JsonNode itemNode : list) {
                 if (!isValidArgument(items.getType(), items.getItems(), itemNode)) {
-                    System.out.printf("validator - invalid list: %s, %s, %s", type, items, itemNode);
+                    System.out.printf("validator - invalid list: %s, %s, %s%n", type, items, itemNode);
                     return false;
                 }
             }
@@ -99,9 +113,11 @@ public class ArgumentValidator {
 
     private boolean isValidObject(String type, JsonNode node) {
         var definition = definitions.get(type);
+        System.out.printf("validator - trying to validate if object is type %s: %s, %s%n", type, node.toPrettyString(), definition);
+        if (definition == null) return false;
         var errors = definition.validate(node);
         if (!errors.isEmpty()) {
-            System.out.printf("validator - invalid objects: %s, %s", type, node);
+            System.out.printf("validator - invalid objects: %s, %s%n", type, node);
             return false;
         }
         return true;

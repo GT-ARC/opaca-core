@@ -169,12 +169,13 @@ public class ContainerTests {
     /**
      * invoke action with mismatched/missing parameters
      * TODO case of missing parameter could also be handled by platform, resulting in 422 error
+     *  -> or 404, i.e. "platform cant find container/agent/action/params"
      */
     @Test
     public void testInvokeParamMismatch() throws Exception {
         var con = request(PLATFORM_URL, "POST", "/invoke/DoThis",
                 Map.of("message", "missing 'sleep_seconds' parameter!"));
-        Assert.assertEquals(502, con.getResponseCode());
+        Assert.assertEquals(404, con.getResponseCode());
     }
 
     /**

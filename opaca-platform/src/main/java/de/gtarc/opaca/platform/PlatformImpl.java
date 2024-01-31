@@ -508,7 +508,8 @@ public class PlatformImpl implements RuntimePlatformApi {
         return (containerId == null || container.getContainerId().equals(containerId)) &&
                 container.getAgents().stream()
                         .anyMatch(a -> (agentId == null || a.getAgentId().equals(agentId))
-                                && (action == null || a.getActions().stream().anyMatch(x -> x.getName().equals(action)))
+                                && (action == null || a.getActions().stream().anyMatch(x -> x.getName().equals(action)
+                                    && (arguments == null || validator.isArgsValid(x.getParameters(), arguments))))
                                 && (stream == null || a.getStreams().stream().anyMatch(x -> x.getName().equals(stream)))
                         );
     }
