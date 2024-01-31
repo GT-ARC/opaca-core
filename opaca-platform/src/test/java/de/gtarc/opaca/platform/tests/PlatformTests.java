@@ -5,6 +5,9 @@ import de.gtarc.opaca.platform.Application;
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
 import de.gtarc.opaca.platform.session.Session;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.junit.*;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -375,4 +378,52 @@ public class PlatformTests {
         }
     }
 
+    @Test
+    public void testValidator() throws Exception {
+        var containerId = postSampleContainer(PLATFORM_A_URL);
+
+        // missing params
+        var con = request(PLATFORM_A_URL, "POST", "/invoke/ValidatorTest", Map.of());
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // redundant params
+        con = request(PLATFORM_A_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", Map.of(),
+                "listOfLists", List.of(),
+                "redundantParam", "text"));
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // invalid object
+        con = request(PLATFORM_A_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", new PlatformTests.Car(), // missing required attributes
+                "listOfLists", List.of(List.of(1, 2), List.of(3, 4))));
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // invalid list
+        con = request(PLATFORM_A_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", new PlatformTests.Car("testModel", List.of("1", "b", "test"),
+                        true, 1444),
+                "listOfLists", List.of(Map.of("test1", "test2"), 2, "")));
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // all valid
+        con = request(PLATFORM_A_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", new PlatformTests.Car("testModel", List.of("1", "b", "test"),
+                        true, 1444),
+                "listOfLists", List.of(List.of(1, 2), List.of(3, 4))));
+        // System.out.println(result(con));
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // remove temp container
+        con = request(PLATFORM_A_URL, "DELETE", "/containers/" + containerId, null);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    @Data @AllArgsConstructor @NoArgsConstructor
+    private static class Car {
+        String model;
+        List<String> passengers;
+        Boolean isFunctional;
+        Integer constructionYear;
+    }
 }

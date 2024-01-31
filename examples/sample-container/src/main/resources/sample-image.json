@@ -35,7 +35,7 @@
           "description": "The list of passengers",
           "type": "array",
           "items": {
-            "type": "String"
+            "type": "string"
           }
         },
         "isFunctional": {

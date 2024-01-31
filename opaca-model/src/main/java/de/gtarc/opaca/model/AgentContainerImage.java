@@ -1,8 +1,10 @@
 package de.gtarc.opaca.model;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import de.gtarc.opaca.api.AgentContainerApi;
-import de.gtarc.opaca.util.JsonSchemaDeserializer;
+import de.gtarc.opaca.util.validation.JsonSchemaDeserializer;
+import de.gtarc.opaca.util.validation.JsonSchemaSerializer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -65,6 +67,7 @@ public class AgentContainerImage {
     /** custom type definitions using json schema, maps schema title to schema */
     @NonNull
     @JsonDeserialize(contentUsing = JsonSchemaDeserializer.class)
+    @JsonSerialize(contentUsing = JsonSchemaSerializer.class)
     Map<String, JsonSchema> definitions = Map.of();
 
     @NonNull

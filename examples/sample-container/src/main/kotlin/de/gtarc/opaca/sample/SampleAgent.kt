@@ -5,11 +5,8 @@ import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.container.AbstractContainerizedAgent
 import de.gtarc.opaca.model.Message
 import de.gtarc.opaca.model.Parameter
-import de.gtarc.opaca.model.Stream
 import java.io.ByteArrayInputStream
 import java.nio.charset.Charset
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
 
@@ -55,6 +52,17 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         addAction("Deregister", mapOf(), "void") {
             deregister(false)
             stop()
+        }
+        addAction("ValidatorTest", mapOf(
+            "car" to Parameter("Car", true),
+            "listOfLists" to Parameter("List[List[Int]]", true,
+                Parameter.ArrayItems("List[Int]", Parameter.ArrayItems("Int", null)))
+        ), "Boolean") {
+            val carText = "Parameter \"car\": ${it["car"]!!.asText()}"
+            val listText = "Parameter \"listOfLists\"${it["listOfLists"]!!.asText()}"
+            val result = "ValidatorTest:\n$carText\n$listText"
+            print(result)
+            result
         }
 
         addStreamPost("PostStream", this::actionPostStream)
