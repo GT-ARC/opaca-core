@@ -8,11 +8,8 @@ import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
-import de.gtarc.opaca.model.AgentContainerImage;
+import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.model.AgentContainerImage.ImageParameter;
-import de.gtarc.opaca.model.LoginConnection;
-import de.gtarc.opaca.model.PostAgentContainer;
-import de.gtarc.opaca.model.RuntimePlatform;
 import de.gtarc.opaca.util.RestHelper;
 import org.apache.commons.lang3.SystemUtils;
 
@@ -165,6 +162,15 @@ public class TestUtils {
             var message = new String(con.getErrorStream().readAllBytes());
             throw new IOException("Failed to connect platforms: " + message);
         }
+    }
+
+    public static User getUser(String username, String password, Role role, List<String> privileges) {
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(password);
+        user.setRole(role);
+        user.setPrivileges(privileges);
+        return user;
     }
 
     // Starts a local mongo db on port 27017 for testing purposes
