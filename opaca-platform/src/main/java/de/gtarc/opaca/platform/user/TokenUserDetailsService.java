@@ -1,6 +1,7 @@
 package de.gtarc.opaca.platform.user;
 
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import de.gtarc.opaca.model.Role;
@@ -43,7 +44,7 @@ public class TokenUserDetailsService implements UserDetailsService {
             if (config.platformAdminPwd == null) {
                 throw new RuntimeException("Platform password cannot be null even when platform authorization is not enabled!");
             }
-            createUser(config.platformAdminUser, config.platformAdminPwd, Role.ADMIN, null);
+            createUser(validate(config.platformAdminUser), validate(config.platformAdminPwd), Role.ADMIN, null);
         }
 	}
 
@@ -68,7 +69,7 @@ public class TokenUserDetailsService implements UserDetailsService {
             throw new UserAlreadyExistsException(username);
         }
         else {
-            TokenUser user = new TokenUser(username, passwordEncoder.encode(password), role, privileges);
+            TokenUser user = new TokenUser(validate(username), passwordEncoder.encode(validate(password)), role, privileges);
             tokenUserRepository.save(user);
         }
     }
@@ -97,8 +98,12 @@ public class TokenUserDetailsService implements UserDetailsService {
     /**
      * Removes a user from the UserRepository.
      * Return true if the user was deleted, false if not.
+     * If a the user does not exist, throw exception.
      */
     public Boolean removeUser(String username) {
+        if (!tokenUserRepository.existsById(username)) {
+            throw new UsernameNotFoundException(username);
+        }
         return tokenUserRepository.deleteByUsername(username) > 0;
     }
 
@@ -114,10 +119,16 @@ public class TokenUserDetailsService implements UserDetailsService {
         if (user == null) throw new UsernameNotFoundException(username);
         if (tokenUserRepository.findByUsername(newUsername) != null &&
                 !Objects.equals(username, newUsername)) throw new UserAlreadyExistsException(newUsername);
-        if (password != null) user.setPassword(passwordEncoder.encode(password));
+        if (password != null) user.setPassword(passwordEncoder.encode(validate(password)));
         if (role != null) user.setRole(role);
         if (privileges != null) user.setPrivileges(privileges);
-        if (newUsername != null) user.setUsername(newUsername);
+        if (newUsername != null){
+            user.setUsername(validate(newUsername));
+            // If a new username (mongo ID) is given, the old entity should be deleted
+            tokenUserRepository.deleteByUsername(username);
+            // TODO what happens if the deletion or creation fails?
+            //  Updating should be atomic
+        }
         tokenUserRepository.save(user);
         return getUser(user.getUsername());
     }
@@ -152,6 +163,19 @@ public class TokenUserDetailsService implements UserDetailsService {
     }
 
     /**
+     * Checks if a string consists of only lower/upper case letters,
+     * numbers or common special characters.
+     * Should prevent the usage of
+     */
+    private String validate(String str) {
+        String valid = "^[a-zA-Z0-9$&+,:;=?#|'<>.^*()%!/-]+$";
+        if (!Pattern.compile(valid).matcher(str).matches())
+            throw new IllegalArgumentException("Invalid Character provided.");
+        return str;
+    }
+
+
+    /**
      * Exceptions thrown during user creation if a given user already exists
      */
     public static class UserAlreadyExistsException extends RuntimeException {
@@ -159,11 +183,4 @@ public class TokenUserDetailsService implements UserDetailsService {
             super("User with username '" + username + "' already exists!");
         }
     }
-
-    public static class UserNotFoundException extends UsernameNotFoundException {
-        public UserNotFoundException(String username) {
-            super("User with username '" + username + "' was not found!");
-        }
-    }
-
 }

@@ -5,7 +5,6 @@ import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.auth.JwtUtil;
 import de.gtarc.opaca.platform.user.TokenUserDetailsService;
 import de.gtarc.opaca.platform.user.TokenUserDetailsService.UserAlreadyExistsException;
-import de.gtarc.opaca.platform.user.TokenUserDetailsService.UserNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -39,12 +38,16 @@ public class UserController {
      * EXCEPTION HANDLERS
      */
 
-    @ExceptionHandler({IllegalArgumentException.class, UserAlreadyExistsException.class, UserNotFoundException.class,
-        UsernameNotFoundException.class})
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler({IllegalArgumentException.class, UserAlreadyExistsException.class})
     public ResponseEntity<String> handleBadRequestException(Exception e) {
         log.warning(e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
+    @ExceptionHandler({UsernameNotFoundException.class})
+    public ResponseEntity<String> handleResourceNotFoundException(Exception e) {
+        log.warning(e.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
     }
 
     /*
