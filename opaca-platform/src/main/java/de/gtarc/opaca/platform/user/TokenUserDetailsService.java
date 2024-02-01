@@ -44,7 +44,7 @@ public class TokenUserDetailsService implements UserDetailsService {
             if (config.platformAdminPwd == null) {
                 throw new RuntimeException("Platform password cannot be null even when platform authorization is not enabled!");
             }
-            createUser(validate(config.platformAdminUser), validate(config.platformAdminPwd), Role.ADMIN, null);
+            createUser(config.platformAdminUser, config.platformAdminPwd, Role.ADMIN, null);
         }
 	}
 
@@ -69,7 +69,7 @@ public class TokenUserDetailsService implements UserDetailsService {
             throw new UserAlreadyExistsException(username);
         }
         else {
-            TokenUser user = new TokenUser(validate(username), passwordEncoder.encode(validate(password)), role, privileges);
+            TokenUser user = new TokenUser(validate(username), passwordEncoder.encode(password), role, privileges);
             tokenUserRepository.save(user);
         }
     }
