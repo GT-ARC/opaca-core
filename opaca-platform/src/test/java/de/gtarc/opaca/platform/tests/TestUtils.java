@@ -1,27 +1,15 @@
 package de.gtarc.opaca.platform.tests;
 
-import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.command.*;
-import com.github.dockerjava.api.model.*;
-import com.github.dockerjava.core.DefaultDockerClientConfig;
-import com.github.dockerjava.core.DockerClientConfig;
-import com.github.dockerjava.core.DockerClientImpl;
-import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
-import com.github.dockerjava.transport.DockerHttpClient;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.model.AgentContainerImage.ImageParameter;
 import de.gtarc.opaca.util.RestHelper;
-import org.apache.commons.lang3.SystemUtils;
 
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Class providing util methods and constants used by the other Test classes.
@@ -34,9 +22,6 @@ public class TestUtils {
      * during CI. When running tests locally, make sure to build the image first, with this name.
      */
     static final String TEST_IMAGE = "sample-agent-container-image";
-
-    private static DockerClient dockerClient = null;
-    private static String mongoContId = null;
 
     /*
      * HELPER METHODS
@@ -172,95 +157,4 @@ public class TestUtils {
         user.setPrivileges(privileges);
         return user;
     }
-
-    // Starts a local mongo db on port 27017 for testing purposes
-    public static void startMongoDB() throws InterruptedException {
-        DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
-                .withDockerHost(getLocalDockerHost())
-                .build();
-
-        DockerHttpClient dockerHttpClient = new ApacheDockerHttpClient.Builder()
-                .dockerHost(dockerConfig.getDockerHost())
-                .sslConfig(dockerConfig.getSSLConfig())
-                .maxConnections(100)
-                .connectionTimeout(Duration.ofSeconds(30))
-                .responseTimeout(Duration.ofSeconds(45))
-                .build();
-
-        dockerClient = DockerClientImpl.getInstance(dockerConfig, dockerHttpClient);
-
-        // Use default port 27017, but external port 27018 for testing
-        ExposedPort mongoPort = ExposedPort.tcp(27017);
-        Ports portBindings = new Ports();
-        portBindings.bind(mongoPort, Ports.Binding.bindPort(27018));
-
-        // Use volumes to store the temporary data
-        Volume dataVolume = new Volume("/data/db");
-        Volume configVolume = new Volume("/data/configdb");
-
-        // Check if mongo:7.0.4 image is locally available, if not -> pull from remote
-        List<String> repoTags = dockerClient.listImagesCmd().exec().stream()
-                .flatMap(image -> Arrays.stream(image.getRepoTags())).collect(Collectors.toList());
-        if (!repoTags.contains("mongo:7.0.4")) {
-            dockerClient.pullImageCmd("mongo:7.0.4").exec(new PullImageResultCallback()).awaitCompletion();
-        }
-
-        CreateContainerResponse res = dockerClient.createContainerCmd("mongo:7.0.4")
-                .withName("opaca-data-test")
-                .withVolumes(dataVolume, configVolume)
-                .withHostConfig(HostConfig.newHostConfig().withPortBindings(portBindings).withBinds(
-                        new Bind("opaca-platform_mongodb_data_test", dataVolume),
-                        new Bind("opaca-platform_mongodb_config_test", configVolume)))
-                .withExposedPorts(mongoPort)
-                .withEnv("MONGO_INITDB_ROOT_USERNAME=user", "MONGO_INITDB_ROOT_PASSWORD=pass")
-                .exec();
-
-        mongoContId = res.getId();
-
-        dockerClient.startContainerCmd(res.getId()).exec();
-
-        if (!checkContainerRunning()) throw new RuntimeException("Failed to create MongoDB Container!");
-    }
-
-    public static void stopMongoDB() {
-        dockerClient.stopContainerCmd(mongoContId).exec();
-        dockerClient.removeContainerCmd(mongoContId).exec();
-
-        // Remove the temporary data volumes
-        dockerClient.removeVolumeCmd("opaca-platform_mongodb_data_test").exec();
-        dockerClient.removeVolumeCmd("opaca-platform_mongodb_config_test").exec();
-    }
-
-    private static boolean checkContainerRunning() {
-        if (mongoContId == null) return false;
-        var start = System.currentTimeMillis();
-
-        // Wait 5 seconds to see if container has started
-        while(System.currentTimeMillis() < start + 5000) {
-            InspectContainerResponse containerResponse = dockerClient.inspectContainerCmd(mongoContId).exec();
-            String response = containerResponse.getState().getStatus();
-            if ("running".equals(response)) {
-                return true;
-            }
-            else if ("exited".equals(response) || "dead".equals(response) ||
-                     "paused".equals(response) || "restarting".equals(response)) {
-                return false;
-            }
-            try {
-                Thread.sleep(1000);
-            }
-            catch (InterruptedException e) {
-                break;
-            }
-        }
-        return false;
-    }
-
-
-    private static String getLocalDockerHost() {
-        return SystemUtils.IS_OS_WINDOWS
-                ? "npipe:////./pipe/docker_engine"
-                : "unix:///var/run/docker.sock";
-    }
-
 }
