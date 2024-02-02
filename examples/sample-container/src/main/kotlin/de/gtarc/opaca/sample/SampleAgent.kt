@@ -56,7 +56,8 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         addAction("ValidatorTest", mapOf(
             "car" to Parameter("Car", true),
             "listOfLists" to Parameter("array", true,
-                Parameter.ArrayItems("array", Parameter.ArrayItems("integer", null)))
+                Parameter.ArrayItems("array", Parameter.ArrayItems("integer", null))),
+            "decimal" to Parameter("number", false)
         ), "string") {
             val carText = "Parameter \"car\": ${it["car"]!!.asText()}"
             val listText = "Parameter \"listOfLists\"${it["listOfLists"]!!.asText()}"

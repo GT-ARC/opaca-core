@@ -182,7 +182,7 @@ public class ContainerTests {
     }
 
     @Test
-    public void testValidator() throws Exception {
+    public void testArgumentValidation() throws Exception {
 
         // missing params
         var con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of());
@@ -201,6 +201,24 @@ public class ContainerTests {
                 "listOfLists", List.of(List.of(1, 2), List.of(3, 4))));
         Assert.assertEquals(404, con.getResponseCode());
 
+        // invalid arg for defined type (string instead of int)
+        con = request(PLATFORM_URL, "POST", "/invoke/Add", Map.of(
+                "x", "42",
+                "y", 5));
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // invalid arg for defined type (string instead of bool)
+        con = request(PLATFORM_URL, "POST", "/invoke/CreateAction", Map.of(
+                "name", "InvalidAction",
+                "notify", "true"));
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // invalid arg for defined type (number/double instead of int)
+        con = request(PLATFORM_URL, "POST", "/invoke/CreateAction", Map.of(
+                "x", 42,
+                "y", 5.5));
+        Assert.assertEquals(404, con.getResponseCode());
+
         // invalid list
         con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
                 "car", new ContainerTests.Car("testModel", List.of("1", "b", "test"),
@@ -208,7 +226,15 @@ public class ContainerTests {
                 "listOfLists", List.of(Map.of("test1", "test2"), 2, "")));
         Assert.assertEquals(404, con.getResponseCode());
 
-        // all valid
+        // passing int for for param type "number" -> valid
+        con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", new ContainerTests.Car("testModel", List.of("1", "b", "test"),
+                        true, 1444),
+                "listOfLists", List.of(List.of(1, 2), List.of(3, 4)),
+                "decimal", 42));
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // all valid, but without non-required args
         con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
                 "car", new ContainerTests.Car("testModel", List.of("1", "b", "test"),
                         true, 1444),
