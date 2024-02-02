@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.java.Log;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,15 +25,12 @@ import java.util.List;
 @CrossOrigin(origins = "*", methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE } )
 public class UserController {
 
-    private final TokenUserDetailsService userDetailsService;
-    private final JwtUtil jwtUtil;
-    private final PlatformConfig config;
-
-    UserController(TokenUserDetailsService userDetailsService, JwtUtil jwtUtil, PlatformConfig config){
-        this.userDetailsService = userDetailsService;
-        this.jwtUtil = jwtUtil;
-        this.config = config;
-    }
+    @Autowired
+    private TokenUserDetailsService userDetailsService;
+    @Autowired
+    private JwtUtil jwtUtil;
+    @Autowired
+    private PlatformConfig config;
 
     /*
      * EXCEPTION HANDLERS
