@@ -14,39 +14,34 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import de.gtarc.opaca.model.Parameter;
 import de.gtarc.opaca.util.RestHelper;
-import lombok.AllArgsConstructor;
 import com.fasterxml.jackson.core.type.TypeReference;
 
-@AllArgsConstructor
+
 public class ArgumentValidator {
+
+    private final JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
 
     /** model definitions */
     Map<String, JsonSchema> definitions;
 
     Map<String, String> definitionsByUrl;
 
-    public boolean isArgsValid(Map<String, Parameter> parameters, Map<String, JsonNode> arguments) {
-        System.out.printf("validator - validating args: %s, %s%n", parameters.toString(), arguments.toString());
+    public ArgumentValidator(Map<String, JsonSchema> definitions, Map<String, String> definitionsByUrl) {
+        this.definitions = definitions;
+        this.definitionsByUrl = definitionsByUrl;
+    }
 
-        if (isAnyArgumentMissing(parameters, arguments)) {
-            System.out.println("validator - arguments missing");
-            return false;
-        }
-        if (isAnyArgumentRedundant(parameters, arguments)) {
-            System.out.println("validator - arguments redundant");
-            return false;
-        }
+    public boolean isArgsValid(Map<String, Parameter> parameters, Map<String, JsonNode> arguments) {
+        if (isAnyArgumentMissing(parameters, arguments)) return false;
+        if (isAnyArgumentRedundant(parameters, arguments)) return false;
 
         for (String name : arguments.keySet()) {
             var argument = arguments.get(name);
             var type = parameters.get(name).getType();
             var items = parameters.get(name).getItems();
-            if (isArgumentInvalid(argument, type, items)) {
-                System.out.printf("validator - argument invalid: %s, %s, %s%n", name, type, argument);
-                return false;
-            }
+            if (isArgumentInvalid(argument, type, items)) return false;
         }
-        System.out.println("validator - arguments valid");
+
         return true;
     }
 
@@ -108,10 +103,25 @@ public class ArgumentValidator {
     }
 
     private boolean isValidObject(JsonNode node, String type) {
-        var definition = definitions.get(type);
+        var definition = getSchema(type);
         if (definition == null) return false;
         var errors = definition.validate(node);
         return errors.isEmpty();
+    }
+
+    private JsonSchema getSchema(String type) {
+        if (definitions.containsKey(type)) return definitions.get(type);
+        if (!definitionsByUrl.containsKey(type)) return null;
+        var url = definitionsByUrl.get(type);
+        try {
+            var schema = factory.getSchema(new URI(url));
+            definitions.put(type, schema);
+            return schema;
+        } catch (URISyntaxException e) {
+            System.err.println("Failed to get schema from URI: " + url);
+            System.err.println(e.getMessage());
+            return null;
+        }
     }
 
 }
