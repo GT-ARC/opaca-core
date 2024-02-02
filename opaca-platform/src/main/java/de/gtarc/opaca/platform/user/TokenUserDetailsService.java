@@ -1,7 +1,6 @@
 package de.gtarc.opaca.platform.user;
 
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import de.gtarc.opaca.model.Role;
@@ -69,7 +68,7 @@ public class TokenUserDetailsService implements UserDetailsService {
             throw new UserAlreadyExistsException(username);
         }
         else {
-            TokenUser user = new TokenUser(validate(username), passwordEncoder.encode(password), role, privileges);
+            TokenUser user = new TokenUser(username, passwordEncoder.encode(password), role, privileges);
             tokenUserRepository.save(user);
         }
     }
@@ -119,11 +118,11 @@ public class TokenUserDetailsService implements UserDetailsService {
         if (user == null) throw new UsernameNotFoundException(username);
         if (tokenUserRepository.findByUsername(newUsername) != null &&
                 !Objects.equals(username, newUsername)) throw new UserAlreadyExistsException(newUsername);
-        if (password != null) user.setPassword(passwordEncoder.encode(validate(password)));
+        if (password != null) user.setPassword(passwordEncoder.encode(password));
         if (role != null) user.setRole(role);
         if (privileges != null) user.setPrivileges(privileges);
         if (newUsername != null){
-            user.setUsername(validate(newUsername));
+            user.setUsername(newUsername);
             // If a new username (mongo ID) is given, the old entity should be deleted
             tokenUserRepository.deleteByUsername(username);
             // TODO what happens if the deletion or creation fails?
@@ -161,19 +160,6 @@ public class TokenUserDetailsService implements UserDetailsService {
         if (user == null) throw new UsernameNotFoundException(username);
         return user.getPrivileges();
     }
-
-    /**
-     * Checks if a string consists of only lower/upper case letters,
-     * numbers or common special characters.
-     * Should prevent the usage of
-     */
-    private String validate(String str) {
-        String valid = "^[a-zA-Z0-9$&+,:;=?#|'<>.^*()%!/-]+$";
-        if (!Pattern.compile(valid).matcher(str).matches())
-            throw new IllegalArgumentException("Invalid Character provided.");
-        return str;
-    }
-
 
     /**
      * Exceptions thrown during user creation if a given user already exists

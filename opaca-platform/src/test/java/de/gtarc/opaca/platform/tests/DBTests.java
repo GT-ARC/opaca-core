@@ -13,6 +13,9 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 import java.util.List;
 
+/**
+ * Tests basic DB queries to the connected DB (default: embedded)
+ */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class DBTests {
 
@@ -43,6 +46,8 @@ public class DBTests {
         Assert.assertNotNull(token);
     }
 
+    // POST /users
+
     @Test
     public void test02CreateUser() throws Exception {
         var con = requestWithToken(PLATFORM_A, "POST", "/users",
@@ -58,25 +63,13 @@ public class DBTests {
     }
 
     @Test
-    public void test02CreateUserInvalidUsername() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("InvalidNÆME", "pwd", Role.GUEST, null), token);
-        Assert.assertEquals(400, con.getResponseCode());
-    }
-
-    @Test
-    public void test02CreateUserInvalidPassword() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("username", "invalidPࣩασσω", Role.GUEST, null), token);
-        Assert.assertEquals(400, con.getResponseCode());
-    }
-
-    @Test
     public void test02CreateUserMissingRole() throws Exception {
         var con = requestWithToken(PLATFORM_A, "POST", "/users",
                 getUser("username", "pwd", null, null), token);
         Assert.assertEquals(400, con.getResponseCode());
     }
+
+    // GET /users
 
     @Test
     public void test03GetAllUsers() throws Exception {
@@ -103,11 +96,7 @@ public class DBTests {
         Assert.assertEquals(405, con.getResponseCode());
     }
 
-    @Test
-    public void test03GetInvalidCharacters() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "GET", "/users/USØRԈᴃ█", null, token);
-        Assert.assertEquals(400, con.getResponseCode());
-    }
+    // PUT /users
 
     @Test
     public void test04EditSuccess() throws Exception {
@@ -137,21 +126,13 @@ public class DBTests {
     }
 
     @Test
-    public void test04EditInvalidCharacters() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "PUT", "/users/testUser",
-                getUser("Inv@lidN↕me", null, null, null), token);
-        Assert.assertEquals(400, con.getResponseCode());
-        con = requestWithToken(PLATFORM_A, "PUT", "/users/testUser",
-                getUser(null, "Inv♠lidP▼d", null, null), token);
-        Assert.assertEquals(400, con.getResponseCode());
-    }
-
-    @Test
     public void test04EditNonExisting() throws Exception {
         var con = requestWithToken(PLATFORM_A, "PUT", "/users/missingUser",
                 getUser("newUsername", null, null, null), token);
         Assert.assertEquals(404, con.getResponseCode());
     }
+
+    // DELETE /users
 
     @Test
     public void test05DeleteUser() throws Exception {
