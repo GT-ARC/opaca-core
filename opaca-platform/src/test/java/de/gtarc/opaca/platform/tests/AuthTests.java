@@ -46,13 +46,11 @@ public class AuthTests {
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
                 "--platform_admin_user=testUser", "--platform_admin_pwd=testPwd",
-                "--spring.data.mongodb.uri=mongodb://user:pass@localhost:27018/admin",
                 "--db_type=embedded");
         platformB = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_B_PORT,
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
                 "--platform_admin_user=testUser", "--platform_admin_pwd=testPwd",
-                "--spring.data.mongodb.uri=mongodb://user:pass@localhost:27018/admin",
                 "--db_type=embedded");
     }
 

@@ -105,8 +105,9 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 * `ROLE_PLATFORM` (default: null) Role of a single authorized user (temporary)
 
 ### MongoDB
-* `DB_URI` (default: localhost) Url of the running MongoDB container. If the application is running in a container itself, use the name of the container running the Mongo service (e.g. opaca-data)
-* `DB_NAME` (default: opaca-user-data) Name of the database which will store user-related information
+* `DB_TYPE` (default: embedded) Switches between an embedded and external MongoDB; For the external DB use "mongo".
+* `DB_URI` (default: mongodb://user:pass@localhost:27017/admin) Url of the running MongoDB service. If the platform is running in a container itself, use the name of the container running the Mongo service as a host name (e.g. opaca-data). For further details, click [here](doc/user-management.md#mongodb-docker-container).
+* `DB_NAME` (default: opaca-user-data) Name of the database which will store user-related information. Only available for the external MongoDB.
 
 You can set those properties in the run config in your IDE, via an `.env` file, using `export` on the shell or in a `docker-compose.yml` file. Note that if you have one of those properties in e.g. your `.env` file, and it does not have a value, that may still overwrite the default and set the value to `null` or the empty string.
 

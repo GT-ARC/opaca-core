@@ -73,8 +73,8 @@ public class TestUtils {
         connection.connect();
 
         try (OutputStream os = connection.getOutputStream();
-             InputStream inputStream = new ByteArrayInputStream(payload);
-             BufferedInputStream bis = new BufferedInputStream(inputStream)) {
+            InputStream inputStream = new ByteArrayInputStream(payload);
+            BufferedInputStream bis = new BufferedInputStream(inputStream)) {
             byte[] buffer = new byte[1024];
             int bytesRead;
             while ((bytesRead = bis.read(buffer)) != -1) {
