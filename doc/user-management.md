@@ -4,25 +4,37 @@ The User-Management system provides the ability to manage multiple users with di
 
 The User-Management is implemented with Spring Boot, Spring Data and uses Spring Security to implement a security filter chain, which checks for required permissions/authorities/roles of the requested user, based on the provided JWT (JSON Web Token). The JWT is generated after a successful login from a user or a successful container addition to the Runtime Platform.
 
-## User Database with MongoDB
+## User Database with MongoDB/Embedded Mongo
 
-The User Management stores all user-related information (_Users_, _Roles_, _Privileges_) in a Mongo database, which has to be running in a separate container alongside the Runtime Platform. Upon starting the Runtime Platform via the `docker-compose` file, specific environment parameters can be set for the Runtime Platform, pertaining the spring boot configuration to interact with the MongoDB. 
+The User Management stores all user-related information, including roles and privileges, in a Mongo database. Upon starting the Runtime Platform via the `docker-compose` file, specific environment parameters can be set for the Runtime Platform, pertaining the spring boot configuration to interact with the MongoDB.
+
+There are currently two available options to save user-related information in a MongoDB: An external docker container and an embedded MongoDB. These options can be selected by setting the environment variable `DB_TYPE`. 
+
+### MongoDB Docker Container
+
+Set `DB_TYPE: mongo` to connect to a running MongoDB service. Recommended for production usage.
 
 The configuration for the MongoDB in the spring application is done by two environment variables. The first sets the connection URI and includes the _host_address_, _port_, _authentication_database_, and root _username_ & _password_. The second environment variable sets the name for the user _database_. The following values are the defaults set to each environment variable concerning the connection with the mongo database:
 
 - _uri_: default `mongodb://user:pass@localhost:27017/admin`
-- _database_: default `jiacpp-user-data`
+- _database_: default `opaca-user-data`
 
 #### Uri Composition
 
 `mongodb://[username]:[password]@[host]:[port]/[authentication_database]`
 
 **NOTE:** \
-When starting the Runtime Platform and the MongoDB together, either through the docker-compose file or a modified launch configuration, the application might throw a _MongoSocketReadException_ due to the MongoDB container still starting up. This is a normal behavior and when configured correctly, the application should connect to the database shortly after. If the problem persist, check the connection URI and make sure
+When starting the Runtime Platform and the MongoDB together, either through the docker-compose file or a modified launch configuration, the application might throw a _MongoSocketReadException_ due to the MongoDB container still starting up. This is a normal behavior and when configured correctly, the application should connect to the database shortly after. If the problem persist, check the connection URI and make sure the MongoDB instance was initialized with the correct root user credentials.
 
-The user-related information is stored in **MongoRepositories**, which is used to create basic CRUD queries to interact with the connected MongoDB. When interacting with the connected MongoDB, the `username` or `name` of the respective models will act as a unique _String_ identifier in the database.
+The user-related information is stored in **MongoRepositories**, which is used to create basic CRUD queries to interact with the connected MongoDB. When interacting with the connected MongoDB, the `username` or `name` of the respective entities (user/container) will act as a unique _String_ identifier in the database.
 
-The connected MongoDB is started with two persistent data volumes attached to it. The first volume is called _jiacpp-platform_data_ and stores all user-related information like `TokenUser`, `Role` or `Privilege`. The seconds volume is called _jiacpp-platform_config_ and stores metadata for a sharded cluster. The latter one is currently not actively used, but is defined to prevent randomly generated name associations. These volumes persist, even after the deletion of the respected MongoDB container.
+The connected MongoDB is started with two persistent data volumes attached to it. The first volume is called _opaca-platform_data_ and stores all user-related information stored in the `TokenUser` class. The seconds volume is called _opaca-platform_config_ and stores metadata for a sharded cluster. The latter one is currently not actively used, but is defined to prevent randomly generated name associations. These volumes persist, even after the deletion of the respected MongoDB container.
+
+### Embedded MongoDB
+
+Set `DB_TYPE: embedded` to use this saving method. Recommended for quick-starts, development and testing.
+
+The embedded MongoDB is provided by a [third-party dependency](https://github.com/flapdoodle-oss/de.flapdoodle.embed.mongo.spring). This option uses the same data structure as the external MongoDB container. The currently used MongoDB version is _7.0.4_. Before the first usage, the MongoDB version is downloaded from the official Mongo repository and stored locally.
 
 ## User-Management Models
 
@@ -48,7 +60,7 @@ These are the currently implemented Roles:
 
 - **ADMIN**: Has the highest authority and full control over a Runtime Platform. For now, it is also the admin for the user-management system with full access to the user-related routes. There should only be one admin per Runtime Platform/User Database.
 - **CONTRIBUTOR**: Is actively contributing to the Runtime Platform by providing and deploying containers. Is able to delete only its own deployed containers. Is not allowed to connect with other Runtime platforms.
-- **USER**: Can use the functionalities provided by the running containers on the Runtime Platform. Is also able to send/broadcast message on the platform and retrieve information about connected platforms or the history of the platform.
+- **USER**: Can use the functionalities provided by the running containers on the Runtime Platform. Is also able to send/broadcast messages on the platform and retrieve information about connected platforms or the history of the platform.
 - **GUEST**: Is a provisional role with the most limited access. Is only able to get information about the Runtime Platform, running containers and agents.
 
 When a new user is created, it has to be assigned one of the stated roles. There is currently no way to include additional roles.
