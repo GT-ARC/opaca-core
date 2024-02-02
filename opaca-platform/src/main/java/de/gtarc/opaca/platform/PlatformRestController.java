@@ -181,7 +181,7 @@ public class PlatformRestController {
 	}
 
 	@RequestMapping(value="/stream/{stream}", method=RequestMethod.GET)
-	@Operation(summary="stream data", tags={"agents"})
+	@Operation(summary="Get named data stream from any agent that provides it", tags={"agents"})
 	public ResponseEntity<StreamingResponseBody> getStream(
 			@PathVariable String stream,
 			@RequestParam(required = false) String containerId,
@@ -192,7 +192,7 @@ public class PlatformRestController {
 	}
 
 	@RequestMapping(value="/stream/{stream}/{agentId}", method=RequestMethod.GET)
-	@Operation(summary="stream data", tags={"agents"})
+	@Operation(summary="Get named data stream from a specific agent", tags={"agents"})
 	public ResponseEntity<StreamingResponseBody> getStream(
 			@PathVariable String stream,
 			@PathVariable String agentId,
@@ -204,7 +204,7 @@ public class PlatformRestController {
 	}
 
 	@RequestMapping(value="/stream/{stream}", method=RequestMethod.POST)
-	@Operation(summary="stream data POST", tags={"agents"})
+	@Operation(summary="Post named data stream to any agent that accepts it", tags={"agents"})
     public void postStream(
             @PathVariable String stream,
             @RequestBody(required = false) byte[] inputStream,
@@ -216,7 +216,7 @@ public class PlatformRestController {
     }
 
 	@RequestMapping(value="/stream/{stream}/{agentId}", method=RequestMethod.POST)
-	@Operation(summary="stream data POST", tags={"agents"})
+	@Operation(summary="Post named data stream to a specific agent", tags={"agents"})
     public void postStream(
             @PathVariable String stream,
 			@RequestBody(required = false) byte[] inputStream,

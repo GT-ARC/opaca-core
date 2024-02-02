@@ -77,7 +77,7 @@ public interface CommonApi {
     /**
      * Get a stream provided by a specific agent on this container.
      *
-     * REST: POST /stream/{stream}[/{agentId}]?containerId={containerId}&forward={true|false}`
+     * REST: GET /stream/{stream}[/{agentId}]?containerId={containerId}&forward={true|false}`
      *
      * @param stream Name of the stream
      * @param agentId Name of the agent, or null for any agent
