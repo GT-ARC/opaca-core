@@ -52,18 +52,16 @@ Please refer to the [API docs](doc/api.md) page for more information about the d
 
 ## Getting Started / Quick Testing Guide
 
-* run `mvn install` in the parent directory to build everything in order
+* run `mvn install -DskipTests` in the parent directory to build everything in order (skipping tests is necessary in this step, as the tests would require the Docker image that is built in the next step)
 * build the sample container with `docker build -t sample-agent-container-image examples/sample-container`
-* * switch to the opaca-platform directory with `cd opaca-platform`
-* pull the mongodb service with `docker-compose pull mongodb`
-* start the mongodb service with `docker-compose up -d mongodb`
-* start the platform with `java -jar target/jiacpp-platform-<version>-with-dependencies.jar`
+* optional: run `mvn test` to check that everything is okay
+* start the platform with `java -jar opaca-platform/target/jiacpp-platform-<version>-with-dependencies.jar`
 * go to <http://localhost:8000/swagger-ui/index.html>
 * go to `POST containers`, click "try it out", and set the `imageName` to `"sample-agent-container-image"`, or replace the entire value of `image` by the content from `examples/sample-container/src/main/resources/sample-image.json` (in this case, make sure to also provide values for the required parameters in `arguments`)
 * in another terminal, do `docker ps` to find the started image, and then `docker logs -f <container-name>` to show (and follow) the logs
 * in the Web UI, run the `GET containers` or `GET agents` routes to see the running agents and their actions
 * use the `POST send` or `POST invoke` routes to send messages to the agent (with any payload; reply-to does not matter for now), or invoke the agent's dummy action (the action takes some time to run); check the logs of the agent container; you can also invoke the action and then immediately re-send the message to check that both work concurrently
-* shut down the platform with Ctrl+C and after that the mongodb service with `docker-compose stop`; the agent container(s) should shut down as well
+* shut down the platform with Ctrl+C; the agent container(s) should shut down as well
 
 See [Execution Environments](doc/environments.md) for more information on different ways to execute the platform and agent containers.
 
@@ -100,9 +98,8 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 ### Security & Authentication
 * `ENABLE_AUTH` (default: false) Whether to require token-based authentication on all routes; see [Authentication](doc/auth.md) for details.
 * `SECRET` (default: empty) The secret used to encrypt and decrypt the JWT tokens used for authentication.
-* `USERNAME_PLATFORM` (default: null) Name of a single authorized user (temporary)
-* `PASSWORD_PLATFORM` (default: null) Password of a single authorized user (temporary)
-* `ROLE_PLATFORM` (default: null) Role of a single authorized user (temporary)
+* `USERNAME_PLATFORM` (default: admin) Name of a single authorized user (temporary)
+* `PASSWORD_PLATFORM` (default: "") Password of a single authorized user (temporary)
 
 ### MongoDB
 * `DB_TYPE` (default: embedded) Switches between an embedded and external MongoDB; For the external DB use "mongo".
@@ -112,6 +109,20 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 You can set those properties in the run config in your IDE, via an `.env` file, using `export` on the shell or in a `docker-compose.yml` file. Note that if you have one of those properties in e.g. your `.env` file, and it does not have a value, that may still overwrite the default and set the value to `null` or the empty string.
 
 See the [API docs](doc/api.md) for Environment Variables passed from the Runtime Platform to the started Agent Containers.
+
+
+## Releases & Distribution
+
+This section is about distributing releases to the `dai-open` and `dai-open-snapshot` repositories (see `pom.xml` for details). This is necessary so that others can use the modules as libraries without having to check out the repository and build it locally.
+
+New SNAPSHOT releases are deployed by CI each time a new commit is pushed to the main branch (usually by a merge request). Those a deployed to the `dai-open-snapshot` repository. New non-SNAPSHOT releases are created manually and deployed to `dai-open` every time there is a significant change (preferably _before_ that change is merged) or when a larger number of smaller changes have accumulated, by the following steps:
+
+* increment the version numbers in _all_ `pom.xml` files to the next release version, e.g. change `X.Y-SNAPSHOT` to `X.Y` (both the `version` and `parent.version`, and don't forget the examples)
+* rename the current `X.Y-SNAPSHOT` sections in the changelog file to `X.Y`
+* run `mvn deploy` in the repository root (for this step, you will need the appropriate credentials in vour `~/.m2/settings.xml`)
+* make a Git commit and `git tag` it as `release-x.y`
+* increment the version numbers from `X.Y` to `X.Y+1-SNAPSHOT` (or, for very significant changes, `X+1.0-SNAPSHOT`)
+* create a new section for the new snapshot version in the changelog file
 
 
 ## Additional Information
