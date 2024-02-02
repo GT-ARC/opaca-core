@@ -1,12 +1,17 @@
 package de.gtarc.opaca.util.validation;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion;
 import de.gtarc.opaca.model.Parameter;
 import de.gtarc.opaca.util.RestHelper;
 import lombok.AllArgsConstructor;
@@ -18,16 +23,30 @@ public class ArgumentValidator {
     /** model definitions */
     Map<String, JsonSchema> definitions;
 
+    Map<String, String> definitionsByUrl;
+
     public boolean isArgsValid(Map<String, Parameter> parameters, Map<String, JsonNode> arguments) {
-        if (isAnyArgumentMissing(parameters, arguments)) return false;
-        if (isAnyArgumentRedundant(parameters, arguments)) return false;
+        System.out.printf("validator - validating args: %s, %s%n", parameters.toString(), arguments.toString());
+
+        if (isAnyArgumentMissing(parameters, arguments)) {
+            System.out.println("validator - arguments missing");
+            return false;
+        }
+        if (isAnyArgumentRedundant(parameters, arguments)) {
+            System.out.println("validator - arguments redundant");
+            return false;
+        }
 
         for (String name : arguments.keySet()) {
             var argument = arguments.get(name);
             var type = parameters.get(name).getType();
             var items = parameters.get(name).getItems();
-            if (isArgumentInvalid(argument, type, items)) return false;
+            if (isArgumentInvalid(argument, type, items)) {
+                System.out.printf("validator - argument invalid: %s, %s, %s%n", name, type, argument);
+                return false;
+            }
         }
+        System.out.println("validator - arguments valid");
         return true;
     }
 
@@ -55,20 +74,23 @@ public class ArgumentValidator {
 
     private boolean isValidPrimitive(JsonNode node, String type) {
         switch (type) {
-            case "Integer": case "Int":
-                return node.asInt() == Integer.parseInt(node.asText());
-            case "Double": case "Float": case "Decimal":
-                return node.asDouble() == Double.parseDouble(node.asText());
-            case "Boolean": case "Bool":
-                return node.asBoolean() == Boolean.parseBoolean(node.asText());
-            case "String": case "Str": case "Text":
-                return node.isTextual() || !node.asText().isEmpty();
-            default: return false;
+            case "integer":
+                return node.isInt();
+            case "number":
+                return node.isNumber();
+            case "boolean":
+                return node.isBoolean();
+            case "string":
+                return node.isTextual();
+            case "null":
+                return node.isNull();
+            default:
+                return false;
         }
     }
 
     private boolean isValidList(JsonNode node, String type, Parameter.ArrayItems items) {
-        if ((!type.startsWith("List") && !type.startsWith("Array")) || items == null)
+        if (!type.equals("array") || items == null)
             return false;
         try {
             var typeRef = new TypeReference<List<JsonNode>>(){};

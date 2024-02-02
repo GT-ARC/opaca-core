@@ -197,7 +197,7 @@ public class InterPlatformTests {
     @Test
     public void testAddNewActionManualNotify() throws Exception {
         // create new agent action
-        var con = request(PLATFORM_A_URL, "POST", "/invoke/CreateAction/sample1", Map.of("name", "TemporaryTestAction", "notify", "false"));
+        var con = request(PLATFORM_A_URL, "POST", "/invoke/CreateAction/sample1", Map.of("name", "TemporaryTestAction", "notify", false));
         Assert.assertEquals(200, con.getResponseCode());
 
         // new action has been created, but platform has not yet been notified --> action is unknown

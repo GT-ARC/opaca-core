@@ -6,6 +6,9 @@ import de.gtarc.opaca.model.AgentDescription;
 import de.gtarc.opaca.model.RuntimePlatform;
 import de.gtarc.opaca.platform.Application;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.junit.*;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -176,6 +179,43 @@ public class ContainerTests {
         var con = request(PLATFORM_URL, "POST", "/invoke/DoThis",
                 Map.of("message", "missing 'sleep_seconds' parameter!"));
         Assert.assertEquals(404, con.getResponseCode());
+    }
+
+    @Test
+    public void testValidator() throws Exception {
+
+        // missing params
+        var con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of());
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // redundant params
+        con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", Map.of(),
+                "listOfLists", List.of(),
+                "redundantParam", "text"));
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // invalid object
+        con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", new ContainerTests.Car(), // missing required attributes
+                "listOfLists", List.of(List.of(1, 2), List.of(3, 4))));
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // invalid list
+        con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", new ContainerTests.Car("testModel", List.of("1", "b", "test"),
+                        true, 1444),
+                "listOfLists", List.of(Map.of("test1", "test2"), 2, "")));
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // all valid
+        con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", new ContainerTests.Car("testModel", List.of("1", "b", "test"),
+                        true, 1444),
+                "listOfLists", List.of(List.of(1, 2), List.of(3, 4))));
+        // System.out.println(result(con));
+        Assert.assertEquals(200, con.getResponseCode());
+
     }
 
     /**
@@ -357,7 +397,7 @@ public class ContainerTests {
     @Test
     public void testAddNewActionAutoNotify() throws Exception {
         // create new agent action
-        var con = request(PLATFORM_URL, "POST", "/invoke/CreateAction/sample1", Map.of("name", "AnotherTemporaryTestAction", "notify", "true"));
+        var con = request(PLATFORM_URL, "POST", "/invoke/CreateAction/sample1", Map.of("name", "AnotherTemporaryTestAction", "notify", true));
         Assert.assertEquals(200, con.getResponseCode());
 
         // agent container automatically notified platform of the changes
@@ -458,4 +498,14 @@ public class ContainerTests {
         Assert.assertEquals("", res.get(AgentContainerApi.ENV_TOKEN));
     }
 
+    /**
+     * class for testing the argument validator
+     */
+    @Data @AllArgsConstructor @NoArgsConstructor
+    private static class Car {
+        String model;
+        List<String> passengers;
+        Boolean isFunctional;
+        Integer constructionYear;
+    }
 }

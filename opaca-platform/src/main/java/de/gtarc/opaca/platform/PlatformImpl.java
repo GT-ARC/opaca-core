@@ -189,7 +189,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             }
         }
         if (lastException != null) throw lastException;
-        throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s'", action, agentId));
+        throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s', or the given parameters are invalid.", action, agentId));
     }
 
     @Override
@@ -503,7 +503,8 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
     private boolean matches(AgentContainer container, String containerId, String agentId, String action, Map<String, JsonNode> arguments, String stream) {
         var definitions = container.getImage().getDefinitions();
-        var validator = new ArgumentValidator(definitions);
+        var definitionsByUrl = container.getImage().getDefinitionsByUrl();
+        var validator = new ArgumentValidator(definitions, definitionsByUrl);
         return (containerId == null || container.getContainerId().equals(containerId)) &&
                 container.getAgents().stream()
                         .anyMatch(a -> (agentId == null || a.getAgentId().equals(agentId))

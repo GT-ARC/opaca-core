@@ -18,46 +18,46 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         super.preStart()
 
         addAction("DoThis", mapOf(
-            "message" to Parameter("String", true),
-            "sleep_seconds" to Parameter("Int", true)
-        ), "String") {
+            "message" to Parameter("string", true),
+            "sleep_seconds" to Parameter("integer", true)
+        ), "string") {
             actionDoThis(it["message"]!!.asText(), it["sleep_seconds"]!!.asInt())
         }
-        addAction("GetInfo", mapOf(), "Map") {
+        addAction("GetInfo", mapOf(), "object") {
             actionGetInfo()
         }
-        addAction("GetEnv", mapOf(), "Map") {
+        addAction("GetEnv", mapOf(), "object") {
             actionGetEnv()
         }
         addAction("Add", mapOf(
-            "x" to Parameter("String", true),
-            "y" to Parameter("Int", true)
-        ), "Int") {
+            "x" to Parameter("integer", true),
+            "y" to Parameter("integer", true)
+        ), "integer") {
             actionAdd(it["x"]!!.asInt(), it["y"]!!.asInt())
         }
-        addAction("Fail", mapOf(), "void") {
+        addAction("Fail", mapOf(), "null") {
             actionFail()
         }
         addAction("CreateAction", mapOf(
-            "name" to Parameter("String", true),
-            "notify" to Parameter("Boolean", false)
-        ), "void") {
+            "name" to Parameter("string", true),
+            "notify" to Parameter("boolean", false)
+        ), "null") {
             createAction(it["name"]!!.asText(), it["notify"]?.asBoolean() ?: true)
         }
         addAction("SpawnAgent", mapOf(
-            "name" to Parameter("String", true)
-        ), "void") {
+            "name" to Parameter("string", true)
+        ), "null") {
             spawnAgent(it["name"]!!.asText())
         }
-        addAction("Deregister", mapOf(), "void") {
+        addAction("Deregister", mapOf(), "null") {
             deregister(false)
             stop()
         }
         addAction("ValidatorTest", mapOf(
             "car" to Parameter("Car", true),
-            "listOfLists" to Parameter("List[List[Int]]", true,
-                Parameter.ArrayItems("List[Int]", Parameter.ArrayItems("Int", null)))
-        ), "Boolean") {
+            "listOfLists" to Parameter("array", true,
+                Parameter.ArrayItems("array", Parameter.ArrayItems("integer", null)))
+        ), "string") {
             val carText = "Parameter \"car\": ${it["car"]!!.asText()}"
             val listText = "Parameter \"listOfLists\"${it["listOfLists"]!!.asText()}"
             val result = "ValidatorTest:\n$carText\n$listText"
@@ -121,7 +121,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     private fun actionGetEnv() = System.getenv()
 
     private fun createAction(name: String, notify: Boolean) {
-        addAction(name, mapOf(), "String") {
+        addAction(name, mapOf(), "string") {
             "Called extra action $name"
         }
         register(notify)
