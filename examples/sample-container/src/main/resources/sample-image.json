@@ -21,37 +21,45 @@
     }
   },
   "definitions": {
-    "Car": {
+    "Desk": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Car",
-      "description": "A car",
+      "title": "Desk",
+      "description": "A desk",
       "type": "object",
       "properties": {
-        "model": {
-          "description": "The car model",
+        "deskId": {
+          "description": "The desk's internal ID.",
+          "type": "integer"
+        },
+        "name": {
+          "description": "The desk's visible name.",
           "type": "string"
         },
-        "passengers": {
-          "description": "The list of passengers",
-          "type": "array",
-          "items": {
-            "type": "string"
+        "description": {
+          "description": "The desk's visible description.",
+          "type": "string"
+        },
+        "position": {
+          "description": "The desk's position within a local coordinate system.",
+          "type": "object",
+          "properties": {
+            "x": {
+              "description": "x position",
+              "type": "integer"
+            },
+            "y": {
+              "description": "y position",
+              "type": "integer"
+            }
           }
-        },
-        "isFunctional": {
-          "description": "Flag if the car is functional",
-          "type": "boolean",
-          "default": true
-        },
-        "constructionYear": {
-          "description": "The year the car was made",
-          "type": "integer"
         }
       },
-      "required": ["model", "passengers", "constructionYear"]
+      "required": ["deskId"]
     }
   },
-  "definitionsByUrl": {},
+  "definitionsByUrl": {
+    "Car": "https://tubcloud.tu-berlin.de/s/9z4ZcLqytePzXf3/download/Car.json"
+  },
   "parameters": [
     {
       "name": "database",

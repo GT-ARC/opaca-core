@@ -27,7 +27,7 @@ public class ArgumentValidator {
     Map<String, String> definitionsByUrl;
 
     public ArgumentValidator(Map<String, JsonSchema> definitions, Map<String, String> definitionsByUrl) {
-        this.definitions = definitions;
+        this.definitions = cloneDefinitions(definitions);
         this.definitionsByUrl = definitionsByUrl;
     }
 
@@ -114,14 +114,25 @@ public class ArgumentValidator {
         if (!definitionsByUrl.containsKey(type)) return null;
         var url = definitionsByUrl.get(type);
         try {
+            System.out.printf("Fetching schema for type \"%s\" from \"%s\" ...%n", type, url);
             var schema = factory.getSchema(new URI(url));
             definitions.put(type, schema);
             return schema;
         } catch (URISyntaxException e) {
-            System.err.println("Failed to get schema from URI: " + url);
             System.err.println(e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * creates a local shallow copy to save schemas fetched from URIs in
+     */
+    private Map<String, JsonSchema> cloneDefinitions(Map<String, JsonSchema> originalDefinitions) {
+        Map<String, JsonSchema> definitions = new java.util.HashMap<>();
+        for (var type : originalDefinitions.keySet()) {
+            definitions.put(type, originalDefinitions.get(type));
+        }
+        return definitions;
     }
 
 }

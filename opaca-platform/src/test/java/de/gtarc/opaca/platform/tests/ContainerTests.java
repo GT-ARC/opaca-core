@@ -221,12 +221,28 @@ public class ContainerTests {
 
         // invalid list
         con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
-                "car", new ContainerTests.Car("testModel", List.of("1", "b", "test"),
+                "car", new Car("testModel", List.of("1", "b", "test"),
                         true, 1444),
                 "listOfLists", List.of(Map.of("test1", "test2"), 2, "")));
         Assert.assertEquals(404, con.getResponseCode());
 
-        // passing int for for param type "number" -> valid
+        // faulty desk (param x of nested object position is string instead of int)
+        con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", new Car("testModel", List.of("1", "b", "test"),
+                        true, 1444),
+                "listOfLists", List.of(List.of(1, 2), List.of(3, 4)),
+                "desk", Map.of("deskId", 123, "position", Map.of("x", "5", "y", 3))));
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // all valid, including desk
+        con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", new Car("testModel", List.of("1", "b", "test"),
+                        true, 1444),
+                "listOfLists", List.of(List.of(1, 2), List.of(3, 4)),
+                "desk", new Desk(123, "test name", "test description", new Desk.Position(42, 5))));
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // passing int for param type "number" -> valid
         con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
                 "car", new ContainerTests.Car("testModel", List.of("1", "b", "test"),
                         true, 1444),
@@ -234,7 +250,7 @@ public class ContainerTests {
                 "decimal", 42));
         Assert.assertEquals(200, con.getResponseCode());
 
-        // all valid, but without non-required args
+        // all valid
         con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
                 "car", new ContainerTests.Car("testModel", List.of("1", "b", "test"),
                         true, 1444),
@@ -525,8 +541,9 @@ public class ContainerTests {
     }
 
     /**
-     * class for testing the argument validator
+     * classes for testing the argument validator
      */
+
     @Data @AllArgsConstructor @NoArgsConstructor
     private static class Car {
         String model;
@@ -534,4 +551,18 @@ public class ContainerTests {
         Boolean isFunctional;
         Integer constructionYear;
     }
+
+    @Data @AllArgsConstructor @NoArgsConstructor
+    private static class Desk {
+        Integer deskId;
+        String name;
+        String description;
+        Position position;
+        @Data @AllArgsConstructor @NoArgsConstructor
+        private static class Position {
+            Integer x;
+            Integer y;
+        }
+    }
+
 }
