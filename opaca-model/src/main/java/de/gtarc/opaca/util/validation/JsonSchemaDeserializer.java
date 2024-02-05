@@ -12,12 +12,10 @@ import java.net.URI;
 
 public class JsonSchemaDeserializer extends JsonDeserializer<JsonSchema> {
 
-    private final JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
-
     @Override
     public JsonSchema deserialize(JsonParser parser, DeserializationContext context) throws IOException {
         JsonNode node = parser.getCodec().readTree(parser);
-        return factory.getSchema(node);
+        return ArgumentValidator.factory.getSchema(node);
     }
 
 }

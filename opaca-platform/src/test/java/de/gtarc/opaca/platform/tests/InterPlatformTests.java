@@ -82,6 +82,7 @@ public class InterPlatformTests {
     public void testForwardInvokeAgentAction() throws Exception {
         for (String name : List.of("sample1", "sample2")) {
             var con = request(PLATFORM_B_URL, "POST", "/invoke/GetInfo/" + name, Map.of());
+            Assert.assertEquals(200, con.getResponseCode());
             var res = result(con, Map.class);
             Assert.assertEquals(name, res.get("name"));
         }

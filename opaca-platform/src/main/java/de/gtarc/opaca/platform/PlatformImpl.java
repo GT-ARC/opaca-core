@@ -67,6 +67,9 @@ public class PlatformImpl implements RuntimePlatformApi {
     /** Set of remote Runtime Platform URLs with a pending connection request */
     private final Set<String> pendingConnections = new HashSet<>();
 
+    /** Map of validators for validating action argument types for each container */
+    private final Map<String, ArgumentValidator> validators = new HashMap<>();
+
 
     @PostConstruct
     public void initialize() {
@@ -91,6 +94,11 @@ public class PlatformImpl implements RuntimePlatformApi {
         this.containerClient.initialize(config, sessionData);
         this.containerClient.testConnectivity();
         // TODO add list of known used ports to config (e.g. the port of the RP itself, or others)
+
+        for (var containerId : runningContainers.keySet()) {
+            var image = runningContainers.get(containerId).getImage();
+            validators.put(containerId, new ArgumentValidator(image));
+        }
     }
 
     @Override
@@ -274,6 +282,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 runningContainers.put(agentContainerId, container);
                 startedContainers.put(agentContainerId, postContainer);
                 tokens.put(agentContainerId, token);
+                validators.put(agentContainerId, new ArgumentValidator(container.getImage()));
                 container.setOwner(owner);
                 userDetailsService.createUser(agentContainerId, agentContainerId,
                         config.enableAuth ? userDetailsService.getUserRole(owner) : Role.GUEST,
@@ -336,6 +345,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (container == null) return false;
         runningContainers.remove(containerId);
         startedContainers.remove(containerId);
+        validators.remove(containerId);
         userDetailsService.removeUser(containerId);
         containerClient.stopContainer(containerId);
         notifyConnectedPlatforms();
@@ -416,6 +426,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             var containerInfo = client.getContainerInfo();
             containerInfo.setConnectivity(runningContainers.get(containerId).getConnectivity());
             runningContainers.put(containerId, containerInfo);
+            validators.put(containerId, new ArgumentValidator(containerInfo.getImage()));
             notifyConnectedPlatforms();
             return true;
         } catch (IOException e) {
@@ -502,14 +513,14 @@ public class PlatformImpl implements RuntimePlatformApi {
      * Check if Container ID matches and has matching agent and/or action.
      */
     private boolean matches(AgentContainer container, String containerId, String agentId, String action, Map<String, JsonNode> arguments, String stream) {
-        var definitions = container.getImage().getDefinitions();
-        var definitionsByUrl = container.getImage().getDefinitionsByUrl();
-        var validator = new ArgumentValidator(definitions, definitionsByUrl);
+        var validator = validators.containsKey(containerId)
+                ? validators.get(container.getContainerId()) // own container
+                : new ArgumentValidator(container.getImage()); // connected rp container
         return (containerId == null || container.getContainerId().equals(containerId)) &&
                 container.getAgents().stream()
                         .anyMatch(a -> (agentId == null || a.getAgentId().equals(agentId))
                                 && (action == null || a.getActions().stream().anyMatch(x -> x.getName().equals(action)
-                                    && (arguments == null || validator.isArgsValid(x.getParameters(), arguments))))
+                                    && (arguments == null || (validator != null && validator.isArgsValid(x.getParameters(), arguments)))))
                                 && (stream == null || a.getStreams().stream().anyMatch(x -> x.getName().equals(stream)))
                         );
     }

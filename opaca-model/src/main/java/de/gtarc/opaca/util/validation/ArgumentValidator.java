@@ -1,7 +1,6 @@
 package de.gtarc.opaca.util.validation;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
@@ -12,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
+import de.gtarc.opaca.model.AgentContainerImage;
 import de.gtarc.opaca.model.Parameter;
 import de.gtarc.opaca.util.RestHelper;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -19,16 +19,16 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 public class ArgumentValidator {
 
-    private final JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
+    protected static final JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
 
     /** model definitions */
     Map<String, JsonSchema> definitions;
 
     Map<String, String> definitionsByUrl;
 
-    public ArgumentValidator(Map<String, JsonSchema> definitions, Map<String, String> definitionsByUrl) {
-        this.definitions = cloneDefinitions(definitions);
-        this.definitionsByUrl = definitionsByUrl;
+    public ArgumentValidator(AgentContainerImage image) {
+        this.definitions = cloneDefinitions(image.getDefinitions());
+        this.definitionsByUrl = image.getDefinitionsByUrl();
     }
 
     public boolean isArgsValid(Map<String, Parameter> parameters, Map<String, JsonNode> arguments) {
