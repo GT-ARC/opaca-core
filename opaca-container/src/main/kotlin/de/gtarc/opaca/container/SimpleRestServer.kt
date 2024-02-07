@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
-
+import java.io.ByteArrayOutputStream
 
 /**
  * Minimal Jetty server for providing the REST interface. There's probably a better way to do this.
@@ -63,8 +63,7 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
                 checkToken(request)
                 val path = request.requestURI  // NOTE: queryParams (?...) go to request.queryString
                 val query = request.queryString
-                val body: String = request.reader.lines().collect(Collectors.joining())
-                val res = handlePost(path, query, body)
+                val res = handlePost(path, query, request)
                 writeResponse(response, 200, res)
             } catch (e: Exception) {
                 handleError(response, e)
@@ -149,28 +148,28 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
             throw NoSuchElementException("Unknown path: $path")
         }
 
-        private fun handlePost(path: String, query: String?, body: String): Any? {
+        private fun handlePost(path: String, query: String?, request: HttpServletRequest): Any? {
             val queryParams = parseQueryString(query)
             val timeout = queryParams.getOrDefault("timeout", "-1").toInt()
 
             val send = Regex("^/send/([^/]+)$").find(path)
             if (send != null) {
                 val id = send.groupValues[1]
-                val message = RestHelper.readObject(body, Message::class.java)
+                val message = RestHelper.readObject(body(request), Message::class.java)
                 return impl.send(id, message, "", false)
             }
 
             val broadcast = Regex("^/broadcast/([^/]+)$").find(path)
             if (broadcast != null) {
                 val channel = broadcast.groupValues[1]
-                val message = RestHelper.readObject(body, Message::class.java)
+                val message = RestHelper.readObject(body(request), Message::class.java)
                 return impl.broadcast(channel, message, "", false)
             }
 
             val invokeAct = Regex("^/invoke/([^/]+)$").find(path)
             if (invokeAct != null) {
                 val action = invokeAct.groupValues[1]
-                val parameters = RestHelper.readMap(body)
+                val parameters = RestHelper.readMap(body(request))
                 return impl.invoke(action, parameters, timeout, "", false)
             }
 
@@ -178,8 +177,39 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
             if (invokeActOf != null) {
                 val action = invokeActOf.groupValues[1]
                 val agentId = invokeActOf.groupValues[2]
-                val parameters = RestHelper.readMap(body)
+                val parameters = RestHelper.readMap(body(request))
                 return impl.invoke(action, parameters, agentId, timeout, "", false)
+            }
+
+            val postStream = Regex("^/stream/([^/]+)$").find(path)
+            if (postStream != null) {
+                val stream = postStream.groupValues[1]
+
+                val byteArrayOutputStream = ByteArrayOutputStream()
+                request.inputStream.use { input ->
+                    byteArrayOutputStream.use { output ->
+                        input.copyTo(output)
+                    }
+                }
+
+                val byteArray = byteArrayOutputStream.toByteArray()
+                return impl.postStream(stream, byteArray, "", false)
+            }
+
+            val postStreamTo = Regex("^/stream/([^/]+)/([^/]+)$").find(path)
+            if (postStreamTo != null) {
+                val stream = postStreamTo.groupValues[1]
+                val agentId = postStreamTo.groupValues[2]
+
+                val byteArrayOutputStream = ByteArrayOutputStream()
+                request.inputStream.use { input ->
+                    byteArrayOutputStream.use { output ->
+                        input.copyTo(output)
+                    }
+                }
+
+                val byteArray = byteArrayOutputStream.toByteArray()
+                return impl.postStream(stream, byteArray, agentId, "", false)
             }
 
             throw NoSuchElementException("Unknown path: $path")
@@ -190,6 +220,9 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
             .split("&")
             .map { it.split("=") }
             .associate { Pair(it[0], if (it.size > 1) it[1] else "") }
+
+
+        fun body(request: HttpServletRequest) = request.reader.lines().collect(Collectors.joining())
 
     }
 

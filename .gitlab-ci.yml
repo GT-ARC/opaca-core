@@ -13,7 +13,8 @@ stages:
 mvn-build:
   stage: build
   script:
-    - mvn compile
+    - mvn package -DskipTests
+    - docker build -t sample-agent-container-image examples/sample-container/
 
 mvn-test:
   stage: test

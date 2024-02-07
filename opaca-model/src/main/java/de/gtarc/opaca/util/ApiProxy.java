@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import de.gtarc.opaca.model.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
@@ -109,6 +108,17 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         return client.getStream(path);
     }
 
+    @Override
+    public void postStream(String stream, byte[] inputStream, String containerId, boolean forward) throws IOException {
+        var path = String.format("/stream/%s?%s", stream, buildQuery(containerId, forward, null));
+        client.postStream(path, inputStream);
+    }
+
+    @Override
+    public void postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException {
+        var path = String.format("/stream/%s/%s?%s", stream, agentId, buildQuery(containerId, forward, null));
+        client.postStream(path, inputStream);
+    }
     // CONTAINER ROUTES
 
     @Override
@@ -182,5 +192,4 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         }
         return builder.toString().replaceFirst("&", "");
     }
-
 }
