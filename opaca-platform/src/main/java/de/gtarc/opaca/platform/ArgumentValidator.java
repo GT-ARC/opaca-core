@@ -131,9 +131,7 @@ public class ArgumentValidator {
         Map<String, JsonSchema> definitions = new java.util.HashMap<>();
         for (var type : originalDefinitions.keySet()) {
             var definition = factory.getSchema(originalDefinitions.get(type));
-            if (definition != null && definition.getSchemaNode() != null) {
-                definitions.put(type, definition);
-            }
+            definitions.put(type, definition);
         }
         return definitions;
     }
