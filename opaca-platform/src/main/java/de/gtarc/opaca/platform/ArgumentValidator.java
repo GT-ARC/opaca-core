@@ -1,4 +1,4 @@
-package de.gtarc.opaca.util.validation;
+package de.gtarc.opaca.platform;
 
 import java.io.IOException;
 import java.net.URI;
@@ -27,7 +27,7 @@ public class ArgumentValidator {
     Map<String, String> definitionsByUrl;
 
     public ArgumentValidator(AgentContainerImage image) {
-        this.definitions = cloneDefinitions(image.getDefinitions());
+        this.definitions = makeSchemas(image.getDefinitions());
         this.definitionsByUrl = image.getDefinitionsByUrl();
     }
 
@@ -127,10 +127,13 @@ public class ArgumentValidator {
     /**
      * creates a local shallow copy to save schemas fetched from URIs in
      */
-    private Map<String, JsonSchema> cloneDefinitions(Map<String, JsonSchema> originalDefinitions) {
+    private Map<String, JsonSchema> makeSchemas(Map<String, JsonNode> originalDefinitions) {
         Map<String, JsonSchema> definitions = new java.util.HashMap<>();
         for (var type : originalDefinitions.keySet()) {
-            definitions.put(type, originalDefinitions.get(type));
+            var definition = factory.getSchema(originalDefinitions.get(type));
+            if (definition != null && definition.getSchemaNode() != null) {
+                definitions.put(type, definition);
+            }
         }
         return definitions;
     }

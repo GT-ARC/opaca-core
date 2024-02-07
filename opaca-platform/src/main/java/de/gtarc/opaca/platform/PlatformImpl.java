@@ -11,7 +11,6 @@ import de.gtarc.opaca.platform.containerclient.KubernetesClient;
 import de.gtarc.opaca.platform.session.SessionData;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.util.ApiProxy;
-import de.gtarc.opaca.util.validation.ArgumentValidator;
 import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
 import org.apache.commons.lang3.RandomStringUtils;
