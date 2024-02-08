@@ -25,7 +25,7 @@ services:
       # MongoDB
       DB_URI: mongodb://user:pass@opaca-data:27017/admin
       DB_NAME: opaca-user-data
-      DB_TYPE: mongo
+      DB_TYPE: external
       # Image Registry Credentials
       REGISTRY_SEPARATOR:
       REGISTRY_NAMES:
