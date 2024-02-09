@@ -14,6 +14,6 @@ public class ErrorResponse {
 
     public String message;
 
-    public JsonNode cause = null;
+    public ErrorResponse cause = null;
 
 }

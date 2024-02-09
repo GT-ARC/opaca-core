@@ -1,10 +1,14 @@
 package de.gtarc.opaca.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import de.gtarc.opaca.model.ErrorResponse;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.java.Log;
 
 import java.io.*;
@@ -131,7 +135,14 @@ public class RestHelper {
         if (connection.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST) {
             return connection.getInputStream();
         } else {
-            throw new IOException(readStream(connection.getErrorStream()));
+            var response = readStream(connection.getErrorStream());
+            try {
+                var nestedError = mapper.readValue(response, ErrorResponse.class);
+                var message = "Encountered an error when sending request to connected platform or container.";
+                throw new RequestException(message, nestedError);
+            } catch (JsonProcessingException e) {
+                throw new IOException(response, e);
+            }
         }
     }
     
@@ -156,6 +167,17 @@ public class RestHelper {
         return stream == null ? null : new BufferedReader(new InputStreamReader(stream))
                 .lines().collect(Collectors.joining("\n"));
 
+    }
+
+    @Getter @Setter
+    public static class RequestException extends IOException {
+
+        ErrorResponse nestedError;
+
+        public RequestException(String message, ErrorResponse nestedError) {
+            super(message);
+            this.nestedError = nestedError;
+        }
     }
 
 }
