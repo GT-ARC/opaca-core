@@ -7,8 +7,6 @@ import lombok.NonNull;
 
 import java.util.List;
 
-
-
 /**
  * Description of a single running agents, including its capabilities.
  */
