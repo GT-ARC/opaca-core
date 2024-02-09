@@ -1,12 +1,10 @@
 package de.gtarc.opaca.pingpong
 
-import de.gtarc.opaca.container.AbstractContainerizedAgent
-import de.gtarc.opaca.container.Invoke
-import de.gtarc.opaca.model.AgentDescription
-import de.gtarc.opaca.model.Message
-import de.gtarc.opaca.util.RestHelper
 import de.dailab.jiacvi.behaviour.act
+import de.gtarc.opaca.container.AbstractContainerizedAgent
+import de.gtarc.opaca.model.Message
 import de.gtarc.opaca.model.Parameter
+import de.gtarc.opaca.util.RestHelper
 import kotlin.random.Random
 
 
@@ -14,9 +12,9 @@ class PongAgent: AbstractContainerizedAgent(name="pong-agent-${Random.nextInt()}
 
     override fun preStart() {
         addAction("PongAction", mapOf(
-            "request" to Parameter("request", "Int", false),
-            "offer" to Parameter("offer", "Int", false)
-        ), "String") {
+            "request" to Parameter("integer", true),
+            "offer" to Parameter("integer", true)
+        ), "string") {
             pongAction(it["request"]!!.asInt(), it["offer"]!!.asInt())
         }
 

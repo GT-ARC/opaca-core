@@ -82,6 +82,7 @@ public class InterPlatformTests {
     public void testForwardInvokeAgentAction() throws Exception {
         for (String name : List.of("sample1", "sample2")) {
             var con = request(PLATFORM_B_URL, "POST", "/invoke/GetInfo/" + name, Map.of());
+            Assert.assertEquals(200, con.getResponseCode());
             var res = result(con, Map.class);
             Assert.assertEquals(name, res.get("name"));
         }
@@ -197,7 +198,7 @@ public class InterPlatformTests {
     @Test
     public void testAddNewActionManualNotify() throws Exception {
         // create new agent action
-        var con = request(PLATFORM_A_URL, "POST", "/invoke/CreateAction/sample1", Map.of("name", "TemporaryTestAction", "notify", "false"));
+        var con = request(PLATFORM_A_URL, "POST", "/invoke/CreateAction/sample1", Map.of("name", "TemporaryTestAction", "notify", false));
         Assert.assertEquals(200, con.getResponseCode());
 
         // new action has been created, but platform has not yet been notified --> action is unknown

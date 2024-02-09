@@ -21,47 +21,44 @@
     }
   },
   "definitions": {
-    "car": {
-      "inherits": "vehicle",
-      "type": "car",
-      "parameters": {
-        "model": {
-          "name": "model",
-          "type": "String",
-          "optional": "false"
+    "Desk": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Desk",
+      "description": "A desk",
+      "type": "object",
+      "properties": {
+        "deskId": {
+          "description": "The desk's internal ID.",
+          "type": "integer"
         },
-        "pessengers": {
-          "name": "pessengers",
-          "type": "Array",
-          "optional": "false",
-          "items": {
-            "type": "String"
+        "name": {
+          "description": "The desk's visible name.",
+          "type": "string"
+        },
+        "description": {
+          "description": "The desk's visible description.",
+          "type": "string"
+        },
+        "position": {
+          "description": "The desk's position within a local coordinate system.",
+          "type": "object",
+          "properties": {
+            "x": {
+              "description": "x position",
+              "type": "integer"
+            },
+            "y": {
+              "description": "y position",
+              "type": "integer"
+            }
           }
-        },
-        "isFunctional": {
-          "name": "isFunctional",
-          "type": "Boolean",
-          "optional": "false"
-        },
-        "construction year": {
-          "name": "construction year",
-          "type": "Int",
-          "optional": "false"
         }
-      }
-    },
-    "vehicle": {
-      "type":"vehicle",
-      "inherits": null,
-      "parameters": {
-
-        "num of wheels": {
-          "name": "num of wheels",
-          "type": "Number",
-          "optional": "false"
-        }
-      }
+      },
+      "required": ["deskId"]
     }
+  },
+  "definitionsByUrl": {
+    "Car": "https://tubcloud.tu-berlin.de/s/9z4ZcLqytePzXf3/download/Car.json"
   },
   "parameters": [
     {
@@ -70,12 +67,14 @@
       "required": false,
       "confidential": false,
       "defaultValue": "mongodb"
-    },{
+    },
+    {
       "name": "username",
       "type": "string",
       "required": true,
       "confidential": false
-    },{
+    },
+    {
       "name": "password",
       "type": "string",
       "required": true,

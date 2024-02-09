@@ -59,6 +59,11 @@
 			<artifactId>httpclient5</artifactId>
 			<version>5.2.1</version>
 		</dependency>
+		<dependency>
+			<groupId>com.networknt</groupId>
+			<artifactId>json-schema-validator</artifactId>
+			<version>1.0.82</version>
+		</dependency>
 
 		<!-- User Management -->
 		<dependency>

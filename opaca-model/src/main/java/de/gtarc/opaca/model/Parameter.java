@@ -10,32 +10,24 @@ import lombok.NoArgsConstructor;
 @Data @AllArgsConstructor @NoArgsConstructor
 public class Parameter {
     
-    String name;
-    
     String type;
 
-    Boolean optional;
+    Boolean required = true;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    Arrayitems items;
+    ArrayItems items = null;
 
-    // Arrayitems evtl zu type oder itemType 
-    public Parameter(String name, String type, Boolean optional) {
-        this.name = name;
+    public Parameter(String type, Boolean required) {
         this.type = type;
-        this.optional = optional;
-    }
-
-    public Parameter(String name, String type, Boolean optional, String items) {
-        this.name = name;
-        this.type = type;
-        this.optional = optional;
-        this.items = new Arrayitems(items);
+        this.required = required;
     }
 
     @Data @AllArgsConstructor @NoArgsConstructor
-    public class Arrayitems {
+    public static class ArrayItems {
         String type;
+
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        ArrayItems items;
     }
 
 }

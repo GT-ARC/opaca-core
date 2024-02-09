@@ -1,18 +1,12 @@
 package de.gtarc.opaca.container
 
 import com.fasterxml.jackson.databind.JsonNode
-import de.gtarc.opaca.model.Action
-
-import de.gtarc.opaca.model.AgentDescription
-import de.gtarc.opaca.model.Message
-import de.gtarc.opaca.model.Stream
-import de.gtarc.opaca.util.ApiProxy
-import de.gtarc.opaca.util.RestHelper
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.LocalAgentRef
 import de.dailab.jiacvi.behaviour.act
-import de.gtarc.opaca.model.Parameter
-
+import de.gtarc.opaca.model.*
+import de.gtarc.opaca.util.ApiProxy
+import de.gtarc.opaca.util.RestHelper
 import org.springframework.http.ResponseEntity
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 
