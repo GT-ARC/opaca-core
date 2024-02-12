@@ -445,7 +445,7 @@ public class ContainerTests {
      * (and indeed they are in the JIAC VI reference impl), but the ContainerAgent (and of course the Swagger UI) are
      * still responsive and can take on tasks for other agents.
      */
-
+    @Test
     public void testInvokeNonblocking() throws Exception {
         long start = System.currentTimeMillis();
         List<Thread> threads = Stream.of("sample1", "sample2")
@@ -463,7 +463,7 @@ public class ContainerTests {
         var noErrorsDetected = new AtomicBoolean(true);
         for (Thread t : threads) t.setUncaughtExceptionHandler((thread, throwable) -> {
             if (throwable instanceof AssertionError) {
-                var message = String.format("AssertionError in thead %s: %s", thread.getName(), throwable.getMessage());
+                var message = String.format("AssertionError in thread %s: %s", thread.getName(), throwable.getMessage());
                 System.out.println(message);
                 noErrorsDetected.set(false);
             }
