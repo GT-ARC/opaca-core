@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import de.gtarc.opaca.model.ErrorResponse;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.java.Log;
 
 import java.io.*;
@@ -169,7 +168,7 @@ public class RestHelper {
 
     }
 
-    @Getter @Setter
+    @Getter
     public static class RequestException extends IOException {
 
         ErrorResponse nestedError;
