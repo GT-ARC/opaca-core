@@ -8,11 +8,11 @@ The User-Management is implemented with Spring Boot, Spring Data and uses Spring
 
 The User Management stores all user-related information, including roles and privileges, in a Mongo database. Upon starting the Runtime Platform via the `docker-compose` file, specific environment parameters can be set for the Runtime Platform, pertaining the spring boot configuration to interact with the MongoDB.
 
-There are currently two available options to save user-related information in a MongoDB: An external MongoDB instance, for example a running docker container and an embedded MongoDB. These options can be selected by setting the environment variable `DB_TYPE` to either `embedded` or `external`. 
+There are currently two available options to save user-related information in a MongoDB: An external MongoDB instance, for example a running docker container and an embedded MongoDB. These options can be selected by setting the environment variable `DB_EMBED` to either `true` or `false`. 
 
 ### MongoDB Docker Container
 
-Set `DB_TYPE: external` to connect to a external running MongoDB service. Recommended for production usage.
+Set `DB_EMBED: false` to connect to a external running MongoDB service. Recommended for production usage.
 
 The configuration for the MongoDB consists of following two environment variables. The first sets the connection URI and includes the _host_address_, _port_, _authentication_database_, and root _username_ & _password_. The second environment variable sets the name for the user _database_, which is only relevant when accessing the MongoDB manually. The following values are the defaults set to each environment variable concerning the connection with the mongo database:
 
@@ -32,7 +32,7 @@ If the external MongoDB is started with the `docker-compose.yml`, the connected 
 
 ### Embedded MongoDB
 
-Set `DB_TYPE: embedded` to use this saving method. Recommended for quick-starts, development and testing.
+Set `DB_EMBED: true` to use this saving method. Recommended for quick-starts, development and testing.
 
 The embedded MongoDB is provided by [flapdoodle](https://github.com/flapdoodle-oss/de.flapdoodle.embed.mongo.spring), a third-party dependency. This option uses the same data structure as the external MongoDB container. The currently used MongoDB version is _7.0.4_. Before the first usage, the MongoDB version is downloaded from the official Mongo repository and stored locally. The local storage directory for Windows is `C:/users/[username]/.embedmongo/`.
 

@@ -10,10 +10,10 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * Extends the embedded Mongo autoconfiguration to specify the MongoDB version
- * Is only used when the DB_TYPE is set to 'embedded'
+ * Is only used when the DB_EMBED is set to 'True'
  */
 @Configuration
-@ConditionalOnProperty(name = "db_type", havingValue = "embedded")
+@ConditionalOnProperty(name = "db_embed", havingValue = "true")
 public class EmbeddedMongoConditional extends EmbeddedMongoAutoConfiguration {
 
     /**

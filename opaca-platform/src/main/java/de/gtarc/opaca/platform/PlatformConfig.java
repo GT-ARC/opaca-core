@@ -69,8 +69,8 @@ public class PlatformConfig {
 
     // MONGO DB
 
-    @Value("${db_type}")
-    public String dbType;
+    @Value("${db_embed}")
+    public Boolean dbEmbed;
 
     @Value("${spring.data.mongodb.uri}")
     public String dbURI;
