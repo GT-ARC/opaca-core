@@ -161,10 +161,15 @@ public class ContainerTests {
         con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "no-error"));
         Assert.assertEquals(200, con.getResponseCode());
 
-        // not found: should be 404, but due to jiac6 behaviour (see this comment:
-        // https://gitlab.dai-labor.de/jiacpp/prototype/-/merge_requests/53#note_129654)
-        // returns 500
+        // not found: should be 404, but due to jiac6 behaviour returns 500
         con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "not-found-error"));
+        Assert.assertEquals(502, con.getResponseCode());
+        response = error(con);
+        Assert.assertNotEquals(null, response.cause);
+        Assert.assertEquals(500, response.cause.statusCode);
+
+        // custom: should be 666, but same problem as above
+        con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "custom-error"));
         Assert.assertEquals(502, con.getResponseCode());
         response = error(con);
         Assert.assertNotEquals(null, response.cause);

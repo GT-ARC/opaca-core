@@ -12,6 +12,7 @@ import java.io.InputStream
 import java.nio.charset.Charset
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.gtarc.opaca.container.OpacaServer.OpacaException
 import java.io.IOException
 
 class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
@@ -125,6 +126,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             "not-found-error" -> throw NoSuchElementException("does not exist")
             "io-error" -> throw IOException("io exception")
             "runtime-error" -> throw RuntimeException("some runtime error", RuntimeException("cause"))
+            "custom-error" -> throw OpacaException(666, "custom exception")
             else -> "default"
         }
     }
