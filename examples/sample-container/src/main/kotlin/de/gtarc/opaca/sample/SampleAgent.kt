@@ -12,6 +12,7 @@ import java.io.InputStream
 import java.nio.charset.Charset
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException
 
 class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
 
@@ -46,6 +47,10 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         addAction("Deregister", mapOf(), "void") {
             deregister(false)
             stop()
+        }
+        addAction("ErrorTest", mapOf("hint" to "String"), "String") {
+            val hint = it["hint"]!!.asText()
+            actionErrorTest(hint)
         }
 
         addStreamPost("PostStream", this::actionPostStream)
@@ -112,6 +117,16 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
 
     private fun spawnAgent(name: String) {
         system.spawnAgent(SampleAgent(name))
+    }
+
+    private fun actionErrorTest(hint: String): String {
+        return when (hint) {
+            "no-error" -> "no error"
+            "not-found-error" -> throw NoSuchElementException("does not exist")
+            "io-error" -> throw IOException("io exception")
+            "runtime-error" -> throw RuntimeException("some runtime error", RuntimeException("cause"))
+            else -> "default"
+        }
     }
 
 }

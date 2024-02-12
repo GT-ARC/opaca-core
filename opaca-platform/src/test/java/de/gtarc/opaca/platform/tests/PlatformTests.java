@@ -155,7 +155,8 @@ public class PlatformTests {
         image.setClientConfig(new PostAgentContainer.KubernetesConfig());
         var con = request(PLATFORM_A_URL, "POST", "/containers", image);
         Assert.assertEquals(400, con.getResponseCode());
-        Assert.assertTrue(error(con).contains("does not match"));
+        var response = error(con);
+        Assert.assertTrue(response.message.contains("does not match"));
     }
 
     /**

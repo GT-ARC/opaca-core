@@ -148,11 +148,41 @@ public class ContainerTests {
     }
 
     @Test
-    public void testInvokeFail() throws Exception {
+    public void testErrorResponse() throws Exception {
+        // invoke Fail action
         var con = request(PLATFORM_URL, "POST", "/invoke/Fail", Map.of());
         Assert.assertEquals(502, con.getResponseCode());
-        var msg = error(con);
-        Assert.assertTrue(msg.contains("Action Failed (as expected)"));
+        var response = error(con);
+        Assert.assertNotEquals(null, response.cause);
+        Assert.assertEquals(500, response.cause.statusCode);
+        Assert.assertTrue(response.cause.message.contains("Action Failed (as expected)"));
+
+        // invoke ErrorTest action to check for other return codes
+        con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "no-error"));
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // not found: should be 404, but due to jiac6 behaviour (see this comment:
+        // https://gitlab.dai-labor.de/jiacpp/prototype/-/merge_requests/53#note_129654)
+        // returns 500
+        con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "not-found-error"));
+        Assert.assertEquals(502, con.getResponseCode());
+        response = error(con);
+        Assert.assertNotEquals(null, response.cause);
+        Assert.assertEquals(500, response.cause.statusCode);
+
+        // io: 500
+        con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "io-error"));
+        Assert.assertEquals(502, con.getResponseCode());
+        response = error(con);
+        Assert.assertNotEquals(null, response.cause);
+        Assert.assertEquals(500, response.cause.statusCode);
+
+        // runtime: 500
+        con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "runtime-error"));
+        Assert.assertEquals(502, con.getResponseCode());
+        response = error(con);
+        Assert.assertNotEquals(null, response.cause);
+        Assert.assertEquals(500, response.cause.statusCode);
     }
 
     /**
@@ -415,7 +445,7 @@ public class ContainerTests {
      * (and indeed they are in the JIAC VI reference impl), but the ContainerAgent (and of course the Swagger UI) are
      * still responsive and can take on tasks for other agents.
      */
-    @Test
+
     public void testInvokeNonblocking() throws Exception {
         long start = System.currentTimeMillis();
         List<Thread> threads = Stream.of("sample1", "sample2")

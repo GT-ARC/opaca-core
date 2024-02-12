@@ -1,10 +1,7 @@
 package de.gtarc.opaca.platform.tests;
 
-import de.gtarc.opaca.model.AgentContainerImage;
+import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.model.AgentContainerImage.ImageParameter;
-import de.gtarc.opaca.model.LoginConnection;
-import de.gtarc.opaca.model.PostAgentContainer;
-import de.gtarc.opaca.model.RuntimePlatform;
 import de.gtarc.opaca.util.RestHelper;
 
 import java.io.*;
@@ -123,8 +120,9 @@ public class TestUtils {
         return RestHelper.mapper.readValue(connection.getInputStream(), type);
     }
 
-    public static String error(HttpURLConnection connection) throws IOException {
-        return new String(connection.getErrorStream().readAllBytes());
+    public static ErrorResponse error(HttpURLConnection connection) throws IOException {
+        var content = new String(connection.getErrorStream().readAllBytes());
+        return RestHelper.readObject(content, ErrorResponse.class);
     }
 
     public static String getBaseUrl(String localUrl) throws IOException {
