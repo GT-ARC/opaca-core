@@ -1,22 +1,16 @@
 package de.gtarc.opaca.platform;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import de.gtarc.opaca.model.AgentContainerImage;
 import de.gtarc.opaca.model.Parameter;
-import de.gtarc.opaca.util.RestHelper;
-import com.fasterxml.jackson.core.type.TypeReference;
 
 
 /**
@@ -27,9 +21,9 @@ public class ArgumentValidator {
     protected static final JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
 
     /** model definitions */
-    Map<String, JsonSchema> definitions;
+    private final Map<String, JsonSchema> definitions;
 
-    Map<String, String> definitionsByUrl;
+    private final Map<String, String> definitionsByUrl;
 
     public ArgumentValidator(AgentContainerImage image) {
         this.definitions = makeSchemas(image.getDefinitions());

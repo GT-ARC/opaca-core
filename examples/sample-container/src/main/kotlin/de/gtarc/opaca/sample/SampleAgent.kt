@@ -95,12 +95,12 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         lastPostedStream = content
     }
 
-    private fun actionDoThis(message: String, sleep_seconds: Int): String {
+    private fun actionDoThis(message: String, sleepSeconds: Int): String {
         log.info("in 'DoThis' action, waiting...")
         println(message)
-        Thread.sleep(1000 * sleep_seconds.toLong())
+        Thread.sleep(1000 * sleepSeconds.toLong())
         log.info("done waiting")
-        return "Action 'DoThis' of $name called with message=$message and sleep_seconds=$sleep_seconds"
+        return "Action 'DoThis' of $name called with message=$message and sleep_seconds=$sleepSeconds"
     }
 
     private fun actionAdd(x: Int, y: Int) = x + y

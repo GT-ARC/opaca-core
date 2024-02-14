@@ -5,9 +5,6 @@ import de.gtarc.opaca.platform.Application;
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
 import de.gtarc.opaca.platform.session.Session;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.junit.*;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -263,7 +260,7 @@ public class PlatformTests {
         try {
             con = request(PLATFORM_A_URL, "GET", "/containers/" + container2Id, null);
             var res = result(con, AgentContainer.class);
-            Assert.assertTrue((int) res.getConnectivity().getApiPortMapping() > image.getImage().getApiPort());
+            Assert.assertTrue(res.getConnectivity().getApiPortMapping() > image.getImage().getApiPort());
         } finally {
             con = request(PLATFORM_A_URL, "DELETE", "/containers/" + container1Id, null);
             Assert.assertEquals(200, con.getResponseCode());
@@ -333,7 +330,7 @@ public class PlatformTests {
         var con = request(PLATFORM_A_URL, "DELETE", "/connections", "http://flsflsfsjfkj.com");
         Assert.assertEquals(200, con.getResponseCode());
 
-        // not really an error... afterwards, the platform _is_ disconnected, it just never was connected, thus false
+        // not really an error... afterward, the platform _is_ disconnected, it just never was connected, thus false
         var res = result(con, Boolean.class);
         Assert.assertFalse(res);
     }

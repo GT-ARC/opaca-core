@@ -23,7 +23,6 @@ import java.net.InetAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
@@ -510,13 +509,13 @@ public class ContainerTests {
                     } catch (Exception e) {
                         Assert.fail(e.getMessage());
                     }
-                })).collect(Collectors.toList());
+                })).toList();
 
         // handle assertion errors in created threads
         var noErrorsDetected = new AtomicBoolean(true);
         for (Thread t : threads) t.setUncaughtExceptionHandler((thread, throwable) -> {
             if (throwable instanceof AssertionError) {
-                var message = String.format("AssertionError in thead %s: %s", thread.getName(), throwable.getMessage());
+                var message = String.format("AssertionError in thread %s: %s", thread.getName(), throwable.getMessage());
                 System.out.println(message);
                 noErrorsDetected.set(false);
             }

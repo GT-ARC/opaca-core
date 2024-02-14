@@ -15,7 +15,7 @@ import static de.gtarc.opaca.platform.tests.TestUtils.*;
 /**
  * The tests in this module test the communication between platform. During setup, two runtime platforms are started,
  * the platforms are connected, and a sample-agent-container is deployed on the first platform. This setup should not
- * be changed by tests (or if changed, than those changes should be reverted in the test itself) so tests can all
+ * be changed by tests (or if changed, then those changes should be reverted in the test itself) so tests can all
  * run independently or in any order.
  */
 public class InterPlatformTests {

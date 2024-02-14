@@ -7,7 +7,7 @@ can also serve as a blueprint for creating actual agent containers.
 ## Sample-Container
 
 The Sample-Container example is used mostly for unit testing, for which it provides different (nonsensical) actions
-and also does some book-keeping on e.g. the last message that was received, so that can be tested, too.
+and also does some bookkeeping on e.g. the last message that was received, so that can be tested, too.
 
 ## Ping-Pong
 

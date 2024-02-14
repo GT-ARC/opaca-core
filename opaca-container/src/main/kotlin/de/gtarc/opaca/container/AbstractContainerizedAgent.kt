@@ -149,7 +149,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         agentId: String?,
         containerId: String,
         forward: Boolean = true
-    ): Unit {  // 'Unit' can be omitted as it's the default return type
+    ) {
         log.info("Outbound Stream: $stream @ $containerId")
         when (agentId) {
             null -> parentProxy.postStream(stream, inputStream, containerId, forward)
