@@ -86,15 +86,13 @@ public class ArgumentValidator {
     }
 
     private boolean isValidList(JsonNode node, String type, Parameter.ArrayItems items) {
-        if (!type.equals("array") || items == null)
-            return false;
+        if (!type.equals("array") || items == null) return false;
         try {
             var typeRef = new TypeReference<List<JsonNode>>(){};
-            ObjectMapper mapper = RestHelper.mapper;
+            var mapper = RestHelper.mapper;
             var list = mapper.readValue(node.traverse(), typeRef);
             for (JsonNode itemNode : list) {
-                if (isArgumentInvalid(itemNode, items.getType(), items.getItems()))
-                    return false;
+                if (isArgumentInvalid(itemNode, items.getType(), items.getItems())) return false;
             }
             return true;
         } catch (IOException e) {

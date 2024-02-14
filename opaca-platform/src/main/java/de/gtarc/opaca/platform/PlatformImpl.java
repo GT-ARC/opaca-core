@@ -512,7 +512,7 @@ public class PlatformImpl implements RuntimePlatformApi {
      * Check if Container ID matches and has matching agent and/or action.
      */
     private boolean matches(AgentContainer container, String containerId, String agentId, String action, Map<String, JsonNode> arguments, String stream) {
-        var validator = validators.containsKey(containerId)
+        var validator = validators.containsKey(container.getContainerId())
                 ? validators.get(container.getContainerId()) // own container
                 : new ArgumentValidator(container.getImage()); // connected rp container
         return (containerId == null || container.getContainerId().equals(containerId)) &&
