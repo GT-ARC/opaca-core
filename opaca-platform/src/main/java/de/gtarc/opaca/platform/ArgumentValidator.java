@@ -18,6 +18,9 @@ import de.gtarc.opaca.util.RestHelper;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 
+/**
+ * Used to validate actual action parameter values against required JSON Schema definition.
+ */
 public class ArgumentValidator {
 
     protected static final JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
@@ -108,6 +111,10 @@ public class ArgumentValidator {
         return errors.isEmpty();
     }
 
+    /**
+     * Get Schema corresponding to type. This will lazily fetch and parse definitions-by-URL
+     * and add them to the definitions map.
+     */
     private JsonSchema getSchema(String type) {
         if (definitions.containsKey(type)) return definitions.get(type);
         if (!definitionsByUrl.containsKey(type)) return null;
@@ -123,6 +130,9 @@ public class ArgumentValidator {
         }
     }
 
+    /**
+     * Convert JSON Schema in JSON format to actual JSON Schema instances.
+     */
     private Map<String, JsonSchema> makeSchemas(Map<String, JsonNode> originalDefinitions) {
         Map<String, JsonSchema> definitions = new HashMap<>();
         for (var type : originalDefinitions.keySet()) {
