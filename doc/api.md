@@ -124,6 +124,13 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * output: `RuntimePlatform`
 * errors: none
 
+### `GET /config`
+
+* get information on the configuration of this runtime platform
+* input: none
+* output: `{'key': value}`, can vary depending on implementation
+* errors: none
+
 ### `GET /history`
 
 * get history on this Runtime Platform, i.e. what routes have been called (except simple GET requests)

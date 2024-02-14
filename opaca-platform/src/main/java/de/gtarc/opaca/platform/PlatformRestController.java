@@ -102,6 +102,14 @@ public class PlatformRestController implements RuntimePlatformApi {
 		return implementation.getPlatformInfo();
 	}
 
+	@RequestMapping(value="/config", method=RequestMethod.GET)
+	@Operation(summary="Get Configuration of this Runtime Platform", tags={"info"})
+	@Override
+	public Map<String, ?> getPlatformConfig() throws IOException {
+		log.info("Get Config");
+		return implementation.getPlatformConfig();
+	}
+
 	@RequestMapping(value="/history", method=RequestMethod.GET)
 	@Operation(summary="Get history on this Runtime Platform", tags={"info"})
 	@Override
