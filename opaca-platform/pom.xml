@@ -16,6 +16,7 @@
 
 	<properties>
 		<springBoot.version>3.1.5</springBoot.version>
+		<java.version>17</java.version>
 	</properties>
 
 	<dependencies>
