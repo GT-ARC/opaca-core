@@ -197,7 +197,7 @@ public class ContainerTests {
 
         // invalid object
         con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
-                "car", new ContainerTests.Car(), // missing required attributes
+                "car", new Car(), // missing required attributes
                 "listOfLists", List.of(List.of(1, 2), List.of(3, 4))));
         Assert.assertEquals(404, con.getResponseCode());
 
@@ -214,7 +214,7 @@ public class ContainerTests {
         Assert.assertEquals(404, con.getResponseCode());
 
         // invalid arg for defined type (number/double instead of int)
-        con = request(PLATFORM_URL, "POST", "/invoke/CreateAction", Map.of(
+        con = request(PLATFORM_URL, "POST", "/invoke/Add", Map.of(
                 "x", 42,
                 "y", 5.5));
         Assert.assertEquals(404, con.getResponseCode());
