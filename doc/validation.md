@@ -34,7 +34,7 @@ be used as a type for a parameter.
 
 ## Arrays
 
-For Array, the `array` type is used. When defining an array as a parameter, 
+For Arrays, the `array` type is used. When defining an array as a parameter, 
 it is necessary to additionally define the type of the array's items using 
 the `Parameter.ArrayItems` class. The `type` can then be any primitive 
 or complex type. It can also be an array, in that case, the item type has to be 
@@ -43,5 +43,5 @@ defined again.
 ## Examples
 
 For examples, please see `examples/sample-container`. 
-* The `sample-container.json`file contains sample complex type definitions, 
+* The `sample-container.json`file contains sample complex type definitions. 
 * The `SampleAgent.kt` file contains sample action and parameter definitions.

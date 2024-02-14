@@ -5,6 +5,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -114,7 +115,7 @@ public class ArgumentValidator {
         if (!definitionsByUrl.containsKey(type)) return null;
         var url = definitionsByUrl.get(type);
         try {
-            System.out.printf("Fetching schema for type \"%s\" from \"%s\" ...%n", type, url);
+            System.out.printf("Creating schema for type \"%s\" from URL \"%s\" ...%n", type, url);
             var schema = factory.getSchema(new URI(url));
             definitions.put(type, schema);
             return schema;
@@ -124,11 +125,8 @@ public class ArgumentValidator {
         }
     }
 
-    /**
-     * creates a local shallow copy to save schemas fetched from URIs in
-     */
     private Map<String, JsonSchema> makeSchemas(Map<String, JsonNode> originalDefinitions) {
-        Map<String, JsonSchema> definitions = new java.util.HashMap<>();
+        Map<String, JsonSchema> definitions = new HashMap<>();
         for (var type : originalDefinitions.keySet()) {
             var definition = factory.getSchema(originalDefinitions.get(type));
             definitions.put(type, definition);
