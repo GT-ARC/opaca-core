@@ -3,6 +3,7 @@ package de.gtarc.opaca.platform;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -43,65 +44,41 @@ public class ArgumentValidator {
             var argument = arguments.get(name);
             var type = parameters.get(name).getType();
             var items = parameters.get(name).getItems();
-            if (isArgumentInvalid(argument, type, items)) return false;
+            if (! isArgumentValid(argument, type, items)) return false;
         }
 
         return true;
     }
 
     private boolean isAnyArgumentMissing(Map<String, Parameter> parameters, Map<String, JsonNode> arguments) {
-        for (String name : parameters.keySet()) {
-            var parameter = parameters.get(name);
-            var argument = arguments.get(name);
-            if (parameter.getRequired() && argument == null) return true;
-        }
-        return false;
+        return parameters.entrySet().stream()
+                .anyMatch(entry -> entry.getValue().getRequired() && ! arguments.containsKey(entry.getKey()));
     }
 
     private boolean isAnyArgumentRedundant(Map<String, Parameter> parameters, Map<String, JsonNode> arguments) {
-        for (String name : arguments.keySet()) {
-            var parameter = parameters.get(name);
-            if (parameter == null) return true;
-        }
-        return false;
+        return arguments.keySet().stream().anyMatch(name -> ! parameters.containsKey(name));
     }
 
-    private boolean isArgumentInvalid(JsonNode argument, String type, Parameter.ArrayItems items) {
-        return !isValidPrimitive(argument, type) && !isValidList(argument, type, items)
-                && !isValidObject(argument, type);
+    private boolean isArgumentValid(JsonNode node, String type, Parameter.ArrayItems items) {
+        return switch (type) {
+            case "integer" -> node.isInt();
+            case "number" -> node.isNumber();
+            case "boolean" -> node.isBoolean();
+            case "string" -> node.isTextual();
+            case "null" -> node.isNull();
+            case "array" -> isValidList(node, items);
+            default -> isValidObject(node, type);
+        };
     }
 
-    private boolean isValidPrimitive(JsonNode node, String type) {
-        switch (type) {
-            case "integer":
-                return node.isInt();
-            case "number":
-                return node.isNumber();
-            case "boolean":
-                return node.isBoolean();
-            case "string":
-                return node.isTextual();
-            case "null":
-                return node.isNull();
-            default:
-                return false;
-        }
-    }
-
-    private boolean isValidList(JsonNode node, String type, Parameter.ArrayItems items) {
-        if (!type.equals("array") || items == null) return false;
-        try {
-            var typeRef = new TypeReference<List<JsonNode>>(){};
-            var mapper = RestHelper.mapper;
-            var list = mapper.readValue(node.traverse(), typeRef);
-            for (JsonNode itemNode : list) {
-                if (isArgumentInvalid(itemNode, items.getType(), items.getItems())) return false;
+    private boolean isValidList(JsonNode node, Parameter.ArrayItems items) {
+        if (node.isArray() && items != null) {
+            for (JsonNode child : node) {
+                if (! isArgumentValid(child, items.getType(), items.getItems())) return false;
             }
             return true;
-        } catch (IOException e) {
-            return false;
         }
-
+        return false;
     }
 
     private boolean isValidObject(JsonNode node, String type) {
