@@ -1,17 +1,12 @@
 package de.gtarc.opaca.sample
 
+import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.container.AbstractContainerizedAgent
-import de.gtarc.opaca.model.Stream
 import de.gtarc.opaca.model.Message
-import de.dailab.jiacvi.behaviour.act
-
+import de.gtarc.opaca.model.Parameter
 import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.InputStream
 import java.nio.charset.Charset
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
 
@@ -22,30 +17,54 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     override fun preStart() {
         super.preStart()
 
-        addAction("DoThis", mapOf("message" to "String", "sleep_seconds" to "Int"), "String") {
+        addAction("DoThis", mapOf(
+            "message" to Parameter("string", true),
+            "sleep_seconds" to Parameter("integer", true)
+        ), "string") {
             actionDoThis(it["message"]!!.asText(), it["sleep_seconds"]!!.asInt())
         }
-        addAction("GetInfo", mapOf(), "Map") {
+        addAction("GetInfo", mapOf(), "object") {
             actionGetInfo()
         }
-        addAction("GetEnv", mapOf(), "Map") {
+        addAction("GetEnv", mapOf(), "object") {
             actionGetEnv()
         }
-        addAction("Add", mapOf("x" to "String", "y" to "Int"), "Int") {
+        addAction("Add", mapOf(
+            "x" to Parameter("integer", true),
+            "y" to Parameter("integer", true)
+        ), "integer") {
             actionAdd(it["x"]!!.asInt(), it["y"]!!.asInt())
         }
-        addAction("Fail", mapOf(), "void") {
+        addAction("Fail", mapOf(), "null") {
             actionFail()
         }
-        addAction("CreateAction", mapOf("name" to "String", "notify" to "Boolean"), "void") {
-            createAction(it["name"]!!.asText(), it["notify"]!!.asBoolean())
+        addAction("CreateAction", mapOf(
+            "name" to Parameter("string", true),
+            "notify" to Parameter("boolean", false)
+        ), "null") {
+            createAction(it["name"]!!.asText(), it["notify"]?.asBoolean() ?: true)
         }
-        addAction("SpawnAgent", mapOf("name" to "String"), "void") {
+        addAction("SpawnAgent", mapOf(
+            "name" to Parameter("string", true)
+        ), "null") {
             spawnAgent(it["name"]!!.asText())
         }
-        addAction("Deregister", mapOf(), "void") {
+        addAction("Deregister", mapOf(), "null") {
             deregister(false)
             stop()
+        }
+        addAction("ValidatorTest", mapOf(
+            "car" to Parameter("Car", true),
+            "listOfLists" to Parameter("array", true,
+                Parameter.ArrayItems("array", Parameter.ArrayItems("integer", null))),
+            "decimal" to Parameter("number", false),
+            "desk" to Parameter("Desk", false)
+        ), "string") {
+            val carText = "Parameter \"car\": ${it["car"]!!.asText()}"
+            val listText = "Parameter \"listOfLists\"${it["listOfLists"]!!.asText()}"
+            val result = "ValidatorTest:\n$carText\n$listText"
+            print(result)
+            result
         }
 
         addStreamPost("PostStream", this::actionPostStream)
@@ -104,7 +123,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     private fun actionGetEnv() = System.getenv()
 
     private fun createAction(name: String, notify: Boolean) {
-        addAction(name, mapOf(), "String") {
+        addAction(name, mapOf(), "string") {
             "Called extra action $name"
         }
         register(notify)

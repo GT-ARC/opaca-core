@@ -20,7 +20,46 @@
       "description": "Simple Web Server for testing UDP port"
     }
   },
-
+  "definitions": {
+    "Desk": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Desk",
+      "description": "A desk",
+      "type": "object",
+      "properties": {
+        "deskId": {
+          "description": "The desk's internal ID.",
+          "type": "integer"
+        },
+        "name": {
+          "description": "The desk's visible name.",
+          "type": "string"
+        },
+        "description": {
+          "description": "The desk's visible description.",
+          "type": "string"
+        },
+        "position": {
+          "description": "The desk's position within a local coordinate system.",
+          "type": "object",
+          "properties": {
+            "x": {
+              "description": "x position",
+              "type": "integer"
+            },
+            "y": {
+              "description": "y position",
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "required": ["deskId"]
+    }
+  },
+  "definitionsByUrl": {
+    "Car": "https://tubcloud.tu-berlin.de/s/9z4ZcLqytePzXf3/download/Car.json"
+  },
   "parameters": [
     {
       "name": "database",
@@ -28,17 +67,18 @@
       "required": false,
       "confidential": false,
       "defaultValue": "mongodb"
-    },{
+    },
+    {
       "name": "username",
       "type": "string",
       "required": true,
       "confidential": false
-    },{
+    },
+    {
       "name": "password",
       "type": "string",
       "required": true,
       "confidential": true
     }
   ]
-
 }
