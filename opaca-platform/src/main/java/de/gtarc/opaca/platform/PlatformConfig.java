@@ -15,6 +15,7 @@ import jakarta.annotation.PostConstruct;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -113,6 +114,27 @@ public class PlatformConfig {
         SHUTDOWN, RESTART, RECONNECT
     }
 
+    public Map<String, Object> toMap() {
+        Map<String, Object> res = new LinkedHashMap<>(); // keep insertion order
+        res.put("publicUrl", publicUrl);
+        res.put("serverPort", serverPort);
+        res.put("containerEnvironment", containerEnvironment);
+        res.put("platformEnvironment", platformEnvironment);
+        res.put("sessionPolicy", sessionPolicy);
+        res.put("containerTimeoutSec", containerTimeoutSec);
+        res.put("defaultImageDirectory", defaultImageDirectory);
+        res.put("enableAuth", enableAuth);
+        res.put("registryNames", registryNames);
+        if (containerEnvironment == PostAgentContainer.ContainerEnvironment.DOCKER) {
+            res.put("remoteDockerHost", remoteDockerHost);
+            res.put("remoteDockerPort", remoteDockerPort);
+        }
+        if (containerEnvironment == PostAgentContainer.ContainerEnvironment.KUBERNETES) {
+            res.put("kubernetesNamespace", kubernetesNamespace);
+            res.put("kubernetesConfig", kubernetesConfig);
+        }
+        return res;
+    }
 
     /**
      * Get Host IP address. Should return preferred outbound address.

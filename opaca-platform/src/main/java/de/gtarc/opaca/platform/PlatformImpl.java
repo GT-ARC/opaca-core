@@ -1,7 +1,9 @@
 package de.gtarc.opaca.platform;
 
+import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import com.fasterxml.jackson.databind.node.TextNode;
 import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.platform.auth.JwtUtil;
 import de.gtarc.opaca.platform.user.TokenUserDetailsService;
@@ -11,6 +13,8 @@ import de.gtarc.opaca.platform.containerclient.KubernetesClient;
 import de.gtarc.opaca.platform.session.SessionData;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.util.ApiProxy;
+import de.gtarc.opaca.util.RestHelper;
+import io.swagger.v3.core.util.Json;
 import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -108,6 +112,11 @@ public class PlatformImpl implements RuntimePlatformApi {
                 List.of(), // TODO "provides" pf platform? read from config? issue #42
                 List.copyOf(connectedPlatforms.keySet())
         );
+    }
+
+    @Override
+    public Map<String, ?> getPlatformConfig() throws IOException {
+        return config.toMap();
     }
 
     @Override
