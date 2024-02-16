@@ -5,6 +5,7 @@
 * renamed to 'OPACA' and released on GitHub
 * added routes to get and post streams
 * basic user management
+* description and validation of action parameters using JSON Schema
 * various smaller fixes
 
 

@@ -261,7 +261,7 @@ public class PlatformTests {
         try {
             con = request(PLATFORM_A_URL, "GET", "/containers/" + container2Id, null);
             var res = result(con, AgentContainer.class);
-            Assert.assertTrue((int) res.getConnectivity().getApiPortMapping() > image.getImage().getApiPort());
+            Assert.assertTrue(res.getConnectivity().getApiPortMapping() > image.getImage().getApiPort());
         } finally {
             con = request(PLATFORM_A_URL, "DELETE", "/containers/" + container1Id, null);
             Assert.assertEquals(200, con.getResponseCode());
@@ -331,7 +331,7 @@ public class PlatformTests {
         var con = request(PLATFORM_A_URL, "DELETE", "/connections", "http://flsflsfsjfkj.com");
         Assert.assertEquals(200, con.getResponseCode());
 
-        // not really an error... afterwards, the platform _is_ disconnected, it just never was connected, thus false
+        // not really an error... afterward, the platform _is_ disconnected, it just never was connected, thus false
         var res = result(con, Boolean.class);
         Assert.assertFalse(res);
     }

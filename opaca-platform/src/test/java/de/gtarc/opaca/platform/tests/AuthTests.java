@@ -152,7 +152,7 @@ public class AuthTests {
     @Test
     public void test04TriggerAutoNotify() throws Exception {
         // create new agent action
-        var con = requestWithToken(PLATFORM_A, "POST", "/invoke/CreateAction", Map.of("name", "TestAction", "notify", "true"), token_A);
+        var con = requestWithToken(PLATFORM_A, "POST", "/invoke/CreateAction", Map.of("name", "TestAction", "notify", true), token_A);
         Assert.assertEquals(200, con.getResponseCode());
 
         // agent container must be able to call parent platform route to notify platform of change

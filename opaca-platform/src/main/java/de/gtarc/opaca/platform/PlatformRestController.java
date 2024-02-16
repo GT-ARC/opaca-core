@@ -29,7 +29,8 @@ import java.util.NoSuchElementException;
 @Log
 @RestController
 @SecurityRequirement(name = "bearerAuth")
-@CrossOrigin(origins = "*", methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE } )
+@CrossOrigin(origins = "*", allowedHeaders = "*",
+		methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS } )
 public class PlatformRestController implements RuntimePlatformApi {
 
 	@Autowired

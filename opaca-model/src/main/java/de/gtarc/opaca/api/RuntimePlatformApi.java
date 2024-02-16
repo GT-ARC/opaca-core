@@ -112,7 +112,7 @@ public interface RuntimePlatformApi extends CommonApi {
 
     /**
      * Connect this platform to another platform, running on a different host.
-     * The connection will be bi-directional.
+     * The connection will be bidirectional.
      *
      * REST: POST /connections
      *

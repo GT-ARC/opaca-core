@@ -16,7 +16,7 @@ When an AgentContainer is initiated, it is assigned its own token in the `TOKEN`
 
 ## Authenticating the Runtime Platform against its Agent Containers
 
-If authentication is enabled, the RuntimePlatform sends the AgentContainer's own token with each request to the container, so it can verify that the requests actually from from the RuntimePlatform and not from some external entity, bypassing the platform.
+If authentication is enabled, the RuntimePlatform sends the AgentContainer's own token with each request to the container, so it can verify that the requests actually came from the RuntimePlatform and not from some external entity, bypassing the platform.
 
 ## Authenticating the Runtime Platform against another Runtime Platform
 
