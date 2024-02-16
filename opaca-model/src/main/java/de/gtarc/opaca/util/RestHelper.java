@@ -102,9 +102,8 @@ public class RestHelper {
             connection.disconnect();
         }
 
-        int responseCode = connection.getResponseCode();
-        if (responseCode >= HttpURLConnection.HTTP_BAD_REQUEST) {
-            throw new IOException(String.format("%s: %s", responseCode, readStream(connection.getErrorStream())));
+        if (connection.getResponseCode() >= HttpURLConnection.HTTP_BAD_REQUEST) {
+            throw makeException(connection);
         }
     }
 
@@ -134,14 +133,7 @@ public class RestHelper {
         if (connection.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST) {
             return connection.getInputStream();
         } else {
-            var response = readStream(connection.getErrorStream());
-            try {
-                var nestedError = mapper.readValue(response, ErrorResponse.class);
-                var message = "Encountered an error when sending request to connected platform or container.";
-                throw new RequestException(message, nestedError);
-            } catch (JsonProcessingException e) {
-                throw new IOException(response, e);
-            }
+            throw makeException(connection);
         }
     }
     
@@ -166,6 +158,18 @@ public class RestHelper {
         return stream == null ? null : new BufferedReader(new InputStreamReader(stream))
                 .lines().collect(Collectors.joining("\n"));
 
+    }
+
+    private IOException makeException(HttpURLConnection connection) throws IOException {
+        var message = "Encountered an error when sending request to connected platform or container.";
+        var response = readStream(connection.getErrorStream());
+        try {
+            var nestedError = mapper.readValue(response, ErrorResponse.class);
+            return new RequestException(message, nestedError);
+        } catch (JsonProcessingException e) {
+            var nestedError = new ErrorResponse(connection.getResponseCode(), response, null);
+            return new RequestException(message, nestedError);
+        }
     }
 
     @Getter
