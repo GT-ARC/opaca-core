@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.util.EventProxy;
+import de.gtarc.opaca.util.RestHelper.RequestException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.java.Log;
@@ -51,30 +52,42 @@ public class PlatformRestController implements RuntimePlatformApi {
 
 	@ExceptionHandler(value=NoSuchElementException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)
-	public ResponseEntity<String> handleNotFound(NoSuchElementException e) {
+	public ResponseEntity<ErrorResponse> handleNotFound(NoSuchElementException e) {
 		log.warning(e.getMessage());  // probably a user error
-		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+		return makeErrorResponse(HttpStatus.NOT_FOUND, e, null);
 	}
 
 	@ExceptionHandler(value=JsonProcessingException.class)
 	@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
-	public ResponseEntity<String> handleJsonException(JsonProcessingException e) {
+	public ResponseEntity<ErrorResponse> handleJsonException(JsonProcessingException e) {
 		log.warning(e.getMessage());  // user error
-		return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getMessage());
+		return makeErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, e, null);
+	}
+
+	@ExceptionHandler(value=RequestException.class)
+	@ResponseStatus(HttpStatus.BAD_GATEWAY)
+	public ResponseEntity<ErrorResponse> handleRequestException(RequestException e) {
+		log.severe(e.getMessage());
+		return makeErrorResponse(HttpStatus.BAD_GATEWAY, e, e.getNestedError());
 	}
 
 	@ExceptionHandler(value=IOException.class)
 	@ResponseStatus(HttpStatus.BAD_GATEWAY)
-	public ResponseEntity<String> handleIoException(IOException e) {
+	public ResponseEntity<ErrorResponse> handleIoException(IOException e) {
 		log.severe(e.getMessage());  // should not happen (but can also be user error)
-		return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(e.getMessage());
+		return makeErrorResponse(HttpStatus.BAD_GATEWAY, e, null);
 	}
 
 	@ExceptionHandler(value=IllegalArgumentException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
-	public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException e) {
+	public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException e) {
 		log.warning(e.getMessage());  // probably user error
-		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+		return makeErrorResponse(HttpStatus.BAD_REQUEST, e, null);
+	}
+
+	private ResponseEntity<ErrorResponse> makeErrorResponse(HttpStatus statusCode, Exception error, ErrorResponse nestedError) {
+		var content = new ErrorResponse(statusCode.value(), error.getMessage(), nestedError);
+		return ResponseEntity.status(statusCode).body(content);
 	}
 
 	/*

@@ -150,11 +150,46 @@ public class ContainerTests {
     }
 
     @Test
-    public void testInvokeFail() throws Exception {
+    public void testErrorResponse() throws Exception {
+        // invoke Fail action
         var con = request(PLATFORM_URL, "POST", "/invoke/Fail", Map.of());
         Assert.assertEquals(502, con.getResponseCode());
-        var msg = error(con);
-        Assert.assertTrue(msg.contains("Action Failed (as expected)"));
+        var response = error(con);
+        Assert.assertNotEquals(null, response.cause);
+        Assert.assertEquals(500, response.cause.statusCode);
+        Assert.assertTrue(response.cause.message.contains("Action Failed (as expected)"));
+
+        // invoke ErrorTest action to check for other return codes
+        con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "no-error"));
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // not found: should be 404, but due to jiac6 behaviour returns 500
+        con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "not-found-error"));
+        Assert.assertEquals(502, con.getResponseCode());
+        response = error(con);
+        Assert.assertNotEquals(null, response.cause);
+        Assert.assertEquals(500, response.cause.statusCode);
+
+        // custom: should be 666, but same problem as above
+        con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "custom-error"));
+        Assert.assertEquals(502, con.getResponseCode());
+        response = error(con);
+        Assert.assertNotEquals(null, response.cause);
+        Assert.assertEquals(500, response.cause.statusCode);
+
+        // io: 500
+        con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "io-error"));
+        Assert.assertEquals(502, con.getResponseCode());
+        response = error(con);
+        Assert.assertNotEquals(null, response.cause);
+        Assert.assertEquals(500, response.cause.statusCode);
+
+        // runtime: 500
+        con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "runtime-error"));
+        Assert.assertEquals(502, con.getResponseCode());
+        response = error(con);
+        Assert.assertNotEquals(null, response.cause);
+        Assert.assertEquals(500, response.cause.statusCode);
     }
 
     /**
