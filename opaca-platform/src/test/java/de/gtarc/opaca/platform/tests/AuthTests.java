@@ -46,12 +46,12 @@ public class AuthTests {
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
                 "--platform_admin_user=testUser", "--platform_admin_pwd=testPwd",
-                "--db_type=embedded");
+                "--db_embed=true");
         platformB = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_B_PORT,
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
                 "--platform_admin_user=testUser", "--platform_admin_pwd=testPwd",
-                "--db_type=embedded");
+                "--db_embed=true");
     }
 
     @AfterClass

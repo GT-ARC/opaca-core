@@ -101,8 +101,8 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 * `USERNAME_PLATFORM` (default: admin) Name of a single authorized user (temporary)
 * `PASSWORD_PLATFORM` (default: "") Password of a single authorized user (temporary)
 
-### MongoDB
-* `DB_TYPE` (default: embedded) Switches between an embedded and external MongoDB; For the external DB use "mongo".
+### User Management MongoDB
+* `DB_EMBED` (default: true) Switches between an embedded and external MongoDB.
 * `DB_URI` (default: mongodb://user:pass@localhost:27017/admin) Url of the running MongoDB service. If the platform is running in a container itself, use the name of the container running the Mongo service as a host name (e.g. opaca-data). For further details, click [here](doc/user-management.md#mongodb-docker-container).
 * `DB_NAME` (default: opaca-user-data) Name of the database which will store user-related information. Only available for the external MongoDB.
 

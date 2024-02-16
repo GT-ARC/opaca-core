@@ -67,7 +67,7 @@ public class PlatformConfig {
     @Value("${platform_admin_pwd}")
     public String platformAdminPwd;
 
-    // MONGO DB
+    // USERMANAGEMENT MONGO DB
 
     @Value("${db_embed}")
     public Boolean dbEmbed;
