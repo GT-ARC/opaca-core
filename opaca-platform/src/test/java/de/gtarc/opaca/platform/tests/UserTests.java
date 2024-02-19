@@ -17,7 +17,7 @@ import java.util.List;
  * Tests basic DB queries to the connected DB (default: embedded)
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class DBTests {
+public class UserTests {
 
     private static final int PLATFORM_A_PORT = 8006;
     private final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
