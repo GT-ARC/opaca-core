@@ -60,8 +60,8 @@ public class UserController {
     @RequestMapping(value="/users", method=RequestMethod.POST)
     @Operation(summary="Add a new user to the connected database", tags={"users"})
     public ResponseEntity<?> addUser(
-            @RequestBody User user) {
-
+            @RequestBody User user
+    ) {
         userDetailsService.createUser(user.getUsername(), user.getPassword(), user.getRole(), user.getPrivileges());
         log.info(String.format("ADD USER: [username='%s', role='%s', privileges=%s]",
                 user.getUsername(), user.getRole(), user.getPrivileges()));
@@ -79,8 +79,8 @@ public class UserController {
     @Operation(summary="Delete an existing user from the connected database", tags={"users"})
     public ResponseEntity<?> deleteUser(
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
-            @PathVariable String username) {
-
+            @PathVariable String username
+    ) {
         if (!config.enableAuth || isAdminOrSelf(token, username)){
             log.info(String.format("DELETE USER: %s", username));
             return new ResponseEntity<>(userDetailsService.removeUser(username), HttpStatus.OK);
@@ -99,14 +99,13 @@ public class UserController {
     @Operation(summary="Get an existing user from the connected database", tags={"users"})
     public ResponseEntity<String> getUser(
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
-            @PathVariable String username) {
-
+            @PathVariable String username
+    ) {
         if (!config.enableAuth || isAdminOrSelf(token, username)){
             log.info(String.format("GET USER: %s", username));
             return new ResponseEntity<>(userDetailsService.getUser(username), HttpStatus.OK);
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-
     }
 
     /**
@@ -116,7 +115,6 @@ public class UserController {
     @RequestMapping(value="/users", method=RequestMethod.GET)
     @Operation(summary="Get all users from the connected database", tags={"users"})
     public ResponseEntity<List<String>> getUsers() {
-
         log.info("GET USERS");
         return new ResponseEntity<>(List.copyOf(userDetailsService.getUsers()), HttpStatus.OK);
     }
@@ -131,8 +129,8 @@ public class UserController {
     @Operation(summary="Update the information of an existing user in the connected database", tags={"users"})
     public ResponseEntity<?> updateUser(
             @PathVariable String username,
-            @RequestBody User user) {
-
+            @RequestBody User user
+    ) {
         String logOut = String.format("UPDATE USER: %s (", username);
         if (user.getUsername() != null) logOut += String.format("NEW USERNAME: %s ", user.getUsername());
         if (user.getPassword() != null) logOut += "NEW PASSWORD ";

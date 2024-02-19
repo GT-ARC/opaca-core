@@ -100,7 +100,7 @@ public class TokenUserDetailsService implements UserDetailsService {
      * If a the user does not exist, throw exception.
      */
     public Boolean removeUser(String username) {
-        if (!tokenUserRepository.existsById(username)) {
+        if (! tokenUserRepository.existsById(username)) {
             throw new UsernameNotFoundException(username);
         }
         return tokenUserRepository.deleteByUsername(username) > 0;
@@ -121,7 +121,7 @@ public class TokenUserDetailsService implements UserDetailsService {
         if (password != null) user.setPassword(passwordEncoder.encode(password));
         if (role != null) user.setRole(role);
         if (privileges != null) user.setPrivileges(privileges);
-        if (newUsername != null){
+        if (newUsername != null) {
             user.setUsername(newUsername);
             // If a new username (mongo ID) is given, the old entity should be deleted
             tokenUserRepository.deleteByUsername(username);

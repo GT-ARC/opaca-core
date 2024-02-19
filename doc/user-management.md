@@ -6,18 +6,18 @@ The User-Management is implemented with Spring Boot, Spring Data and uses Spring
 
 ## User Database with MongoDB/Embedded Mongo
 
-The User Management stores all user-related information, including roles and privileges, in a Mongo database. Upon starting the Runtime Platform via the `docker-compose` file, specific environment parameters can be set for the Runtime Platform, pertaining the spring boot configuration to interact with the MongoDB.
+The User Management stores all user-related information, including roles and privileges, in a Mongo database. Upon starting the Runtime Platform via the `docker-compose` file, specific environment parameters can be set for the Runtime Platform, pertaining the Spring Boot configuration to interact with the MongoDB.
 
-There are currently two available options to save user-related information in a MongoDB: An external MongoDB instance, for example a running docker container and an embedded MongoDB. These options can be selected by setting the environment variable `DB_EMBED` to either `true` or `false`. 
+There are currently two available options to save user-related information in a MongoDB: An external MongoDB instance, for example a running Docker container, or an embedded MongoDB. These options can be selected by setting the environment variable `DB_EMBED` to either `true` or `false`. 
 
 ### MongoDB Docker Container
 
-Set `DB_EMBED: false` to connect to a external running MongoDB service. Recommended for production usage.
+Set `DB_EMBED: false` to connect to a externally running MongoDB service. Recommended for production usage.
 
-The configuration for the MongoDB consists of following two environment variables. The first sets the connection URI and includes the _host_address_, _port_, _authentication_database_, and root _username_ & _password_. The second environment variable sets the name for the user _database_, which is only relevant when accessing the MongoDB manually. The following values are the defaults set to each environment variable concerning the connection with the mongo database:
+The configuration for the MongoDB consists of following two environment variables:
 
-- _uri_: default `mongodb://user:pass@localhost:27017/admin`
-- _database_: default `opaca-user-data`
+- `DB_URI`: connection URI including _host_address_, _port_, _authentication_database_, and root _username_ & _password_ (default: `mongodb://user:pass@localhost:27017/admin`)
+- `DB_NAME`: name for the user _database_, only relevant when accessing the DB manually (default: `opaca-user-data`)
 
 #### Uri Composition
 
