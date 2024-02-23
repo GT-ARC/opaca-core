@@ -22,6 +22,10 @@ services:
       SECRET:
       PLATFORM_ADMIN_USER:
       PLATFORM_ADMIN_PWD:
+      # MongoDB
+      DB_URI: mongodb://user:pass@opaca-data:27017/admin
+      DB_NAME: opaca-user-data
+      DB_EMBED: false
       # Image Registry Credentials
       REGISTRY_SEPARATOR:
       REGISTRY_NAMES:
@@ -37,3 +41,24 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
+  # Defines a mongoDB container running alongside the platform container
+  mongodb:
+    image: mongo:7.0.4
+    container_name: opaca-data
+    ports:
+      - "27017:27017"
+    # Use "user" and "pass" as default username:password for the created database
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: user
+      MONGO_INITDB_ROOT_PASSWORD: pass
+    # Use a volume for persistent data storage
+    volumes:
+      - data:/data/db
+      - config:/data/configdb
+
+# Create a volume to persistently store data
+volumes:
+  data:
+    driver: local
+  config:
+    driver: local

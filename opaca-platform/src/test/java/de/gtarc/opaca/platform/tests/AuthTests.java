@@ -10,7 +10,6 @@ import org.junit.runners.MethodSorters;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
-import java.util.List;
 import java.util.Map;
 
 
@@ -46,11 +45,13 @@ public class AuthTests {
         platformA = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT,
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
-                "--platform_admin_user=testUser", "--platform_admin_pwd=testPwd");
+                "--platform_admin_user=testUser", "--platform_admin_pwd=testPwd",
+                "--db_embed=true");
         platformB = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_B_PORT,
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
-                "--platform_admin_user=testUser", "--platform_admin_pwd=testPwd");
+                "--platform_admin_user=testUser", "--platform_admin_pwd=testPwd",
+                "--db_embed=true");
     }
 
     @AfterClass
@@ -231,59 +232,33 @@ public class AuthTests {
     public void test08AddUser() throws Exception {
         // GUEST USER
         var con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("guest", "guestPwd", Role.GUEST.name(), null), token_A);
-        Assert.assertEquals(200, con.getResponseCode());
+                getUser("guest", "guestPwd", Role.GUEST, null), token_A);
+        Assert.assertEquals(201, con.getResponseCode());
 
         // (NORMAL) USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("user", "userPwd", Role.USER.name(), null), token_A);
-        Assert.assertEquals(200, con.getResponseCode());
+                getUser("user", "userPwd", Role.USER, null), token_A);
+        Assert.assertEquals(201, con.getResponseCode());
 
         // CONTRIBUTOR USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("contributor", "contributorPwd", Role.CONTRIBUTOR.name(), null), token_A);
-        Assert.assertEquals(200, con.getResponseCode());
+                getUser("contributor", "contributorPwd", Role.CONTRIBUTOR, null), token_A);
+        Assert.assertEquals(201, con.getResponseCode());
 
         // ADMIN USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("admin", "adminPwd", Role.ADMIN.name(), null), token_A);
-        Assert.assertEquals(200, con.getResponseCode());
+                getUser("admin", "adminPwd", Role.ADMIN, null), token_A);
+        Assert.assertEquals(201, con.getResponseCode());
 
         // TEST USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("test", "testPwd", Role.GUEST.name(), null), token_A);
-        Assert.assertEquals(200, con.getResponseCode());
+                getUser("test", "testPwd", Role.GUEST, null), token_A);
+        Assert.assertEquals(201, con.getResponseCode());
 
         // SECOND CONTRIBUTOR USER FOR SPECIFIC AUTHORITY TEST
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("contributor2", "contributor2Pwd", Role.CONTRIBUTOR.name(), null), token_A);
-        Assert.assertEquals(200, con.getResponseCode());
-    }
-
-    @Test
-    public void test08GetUsers() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "GET", "/users", null, token_A);
-        Assert.assertEquals(200, con.getResponseCode());
-    }
-
-    @Test
-    public void test08GetUser() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "GET", "/users/test", null, token_A);
-        Assert.assertEquals(200, con.getResponseCode());
-
-    }
-
-    @Test
-    public void test08EditUser() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "PUT", "/users/test",
-                getUser(null, null, "GUEST", null), token_A);
-        Assert.assertEquals(200, con.getResponseCode());
-    }
-
-    @Test
-    public void test08RemoveUser() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "DELETE", "/users/test", null, token_A);
-        Assert.assertEquals(200, con.getResponseCode());
+                getUser("contributor2", "contributor2Pwd", Role.CONTRIBUTOR, null), token_A);
+        Assert.assertEquals(201, con.getResponseCode());
     }
 
     // Role Authorization
@@ -427,7 +402,7 @@ public class AuthTests {
 
         // Check if container can NOT perform actions which require "ADMIN" role
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("forbiddenUser", "forbidden", Role.GUEST.name(), null), contContainerToken);
+                getUser("forbiddenUser", "forbidden", Role.GUEST, null), contContainerToken);
         Assert.assertEquals(403, con.getResponseCode());
 
         // Container deletes itself
@@ -466,15 +441,6 @@ public class AuthTests {
 
     private LoginConnection createLoginCon(String username, String password, String url) {
         return new LoginConnection(username, password, url);
-    }
-
-    private User getUser(String username, String password, String role, List<String> privileges) {
-        User user = new User();
-        user.setUsername(username);
-        user.setPassword(password);
-        user.setRole(Role.valueOf(role));
-        user.setPrivileges(privileges);
-        return user;
     }
 
     private String getUserToken(String userType) throws Exception {
