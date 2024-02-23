@@ -19,7 +19,7 @@ public class Action {
 
     /** parameter names and types */
     @NonNull
-    Map<String, String> parameters = Map.of();
+    Map<String, Parameter> parameters = Map.of();
 
     /** type of result */
     @NonNull

@@ -1,5 +1,6 @@
 package de.gtarc.opaca.container
 
+import de.gtarc.opaca.model.ErrorResponse
 import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.model.Message
 import de.gtarc.opaca.util.RestHelper
@@ -98,7 +99,7 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
 
         private fun handleError(response: HttpServletResponse, e: Exception) {
             val code = getErrorCode(e)
-            val err = mapOf(Pair("details", e.toString()))
+            val err = ErrorResponse(code, e.message, null)
             writeResponse(response, code, err)
         }
 

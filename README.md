@@ -133,6 +133,7 @@ New SNAPSHOT releases are deployed by CI each time a new commit is pushed to the
 * [Session Handling](doc/session.md)
 * [Authentication](doc/auth.md)
 * [User Management](doc/user-management.md)
+* [Parameter Validation](doc/validation.md)
 
 
 ## Publications

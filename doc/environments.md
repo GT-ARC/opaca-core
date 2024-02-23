@@ -2,7 +2,7 @@
 
 Both the Runtime Platform and the Agent Containers can be executed in different environments. Which environment should be used is controlled using the `PLATFORM_ENVIRONMENT` and `CONTAINER_ENVIRONMENT` environment variables. Where the Platform and Containers are running should in general have no effect on their behavior, and execution environments for Runtime Platform and Agent Containers can be combined freely.
 
-When starting an AgentContainer, a `clientConfig` can be povided, determining certain parameters of the Container Environment. This config is optional, but if it is provided, it has to match the Container Environment in use.
+When starting an AgentContainer, a `clientConfig` can be provided, determining certain parameters of the Container Environment. This config is optional, but if it is provided, it has to match the Container Environment in use.
 
 
 ## Platform Environments
@@ -59,7 +59,7 @@ For productive use, this is the preferred execution environment. The Runtime Pla
 ## Operating System
 
 ### Mac
-To use the API on Mac, make sure to setup your Docker properly. The following configuration is tested and works fine:
+To use the API on Mac, make sure to set up your Docker properly. The following configuration is tested and works fine:
 ```
 Client:
  Cloud integration: v1.0.35+desktop.5

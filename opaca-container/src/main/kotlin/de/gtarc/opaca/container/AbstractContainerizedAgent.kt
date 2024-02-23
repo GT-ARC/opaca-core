@@ -1,18 +1,12 @@
 package de.gtarc.opaca.container
 
 import com.fasterxml.jackson.databind.JsonNode
-import de.gtarc.opaca.model.Action
-
-import de.gtarc.opaca.model.AgentDescription
-import de.gtarc.opaca.model.Message
-import de.gtarc.opaca.model.Stream
-import de.gtarc.opaca.util.ApiProxy
-import de.gtarc.opaca.util.RestHelper
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.LocalAgentRef
 import de.dailab.jiacvi.behaviour.act
-import java.io.InputStream
-
+import de.gtarc.opaca.model.*
+import de.gtarc.opaca.util.ApiProxy
+import de.gtarc.opaca.util.RestHelper
 import org.springframework.http.ResponseEntity
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 
@@ -72,7 +66,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         streams
     )
 
-    fun addAction(name: String, parameters: Map<String, String>, result: String, callback: (Map<String, JsonNode>) -> Any?) {
+    fun addAction(name: String, parameters: Map<String, Parameter>, result: String, callback: (Map<String, JsonNode>) -> Any?) {
         addAction(Action(name, parameters, result), callback)
     }
 
@@ -155,7 +149,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         agentId: String?,
         containerId: String,
         forward: Boolean = true
-    ): Unit {  // 'Unit' can be omitted as it's the default return type
+    ) {
         log.info("Outbound Stream: $stream @ $containerId")
         when (agentId) {
             null -> parentProxy.postStream(stream, inputStream, containerId, forward)

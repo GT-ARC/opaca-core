@@ -1,10 +1,13 @@
 package de.gtarc.opaca.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import de.gtarc.opaca.model.ErrorResponse;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.extern.java.Log;
 
 import java.io.*;
@@ -99,9 +102,8 @@ public class RestHelper {
             connection.disconnect();
         }
 
-        int responseCode = connection.getResponseCode();
-        if (responseCode >= HttpURLConnection.HTTP_BAD_REQUEST) {
-            throw new IOException(String.format("%s: %s", responseCode, readStream(connection.getErrorStream())));
+        if (connection.getResponseCode() >= HttpURLConnection.HTTP_BAD_REQUEST) {
+            throw makeException(connection);
         }
     }
 
@@ -131,8 +133,7 @@ public class RestHelper {
         if (connection.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST) {
             return connection.getInputStream();
         } else {
-            throw new IOException(String.format("%s: %s",
-                    connection.getResponseCode(), readStream(connection.getErrorStream())));
+            throw makeException(connection);
         }
     }
     
@@ -157,6 +158,29 @@ public class RestHelper {
         return stream == null ? null : new BufferedReader(new InputStreamReader(stream))
                 .lines().collect(Collectors.joining("\n"));
 
+    }
+
+    private IOException makeException(HttpURLConnection connection) throws IOException {
+        var message = "Encountered an error when sending request to connected platform or container.";
+        var response = readStream(connection.getErrorStream());
+        try {
+            var nestedError = mapper.readValue(response, ErrorResponse.class);
+            return new RequestException(message, nestedError);
+        } catch (JsonProcessingException e) {
+            var nestedError = new ErrorResponse(connection.getResponseCode(), response, null);
+            return new RequestException(message, nestedError);
+        }
+    }
+
+    @Getter
+    public static class RequestException extends IOException {
+
+        ErrorResponse nestedError;
+
+        public RequestException(String message, ErrorResponse nestedError) {
+            super(message);
+            this.nestedError = nestedError;
+        }
     }
 
 }

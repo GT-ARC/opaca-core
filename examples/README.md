@@ -7,20 +7,7 @@ can also serve as a blueprint for creating actual agent containers.
 ## Sample-Container
 
 The Sample-Container example is used mostly for unit testing, for which it provides different (nonsensical) actions
-and also does some book-keeping on e.g. the last message that was received, so that can be tested, too.
-
-### Changelog
-
-The sample-container is deployed to <https://gitlab.dai-labor.de/pub/unit-tests/container_registry> in different
-versions that are used in unit-tests.
-
-* v12: action timeouts
-* v11: added port to test UDP
-* v10: check token on incoming calls
-* v9: sample action that fails, handle action failure in container agent
-* v8: container-agent auto-notifies parent platform when things change
-* v7: send token to parent platform
-* v6: add container-id to sample-agent's get-info
+and also does some bookkeeping on e.g. the last message that was received, so that can be tested, too.
 
 ## Ping-Pong
 

@@ -1,7 +1,9 @@
 package de.gtarc.opaca.platform;
 
+import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import com.fasterxml.jackson.databind.node.TextNode;
 import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.platform.auth.JwtUtil;
 import de.gtarc.opaca.platform.user.TokenUserDetailsService;
@@ -11,6 +13,8 @@ import de.gtarc.opaca.platform.containerclient.KubernetesClient;
 import de.gtarc.opaca.platform.session.SessionData;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.util.ApiProxy;
+import de.gtarc.opaca.util.RestHelper;
+import io.swagger.v3.core.util.Json;
 import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -66,6 +70,9 @@ public class PlatformImpl implements RuntimePlatformApi {
     /** Set of remote Runtime Platform URLs with a pending connection request */
     private final Set<String> pendingConnections = new HashSet<>();
 
+    /** Map of validators for validating action argument types for each container */
+    private final Map<String, ArgumentValidator> validators = new HashMap<>();
+
 
     @PostConstruct
     public void initialize() {
@@ -90,6 +97,11 @@ public class PlatformImpl implements RuntimePlatformApi {
         this.containerClient.initialize(config, sessionData);
         this.containerClient.testConnectivity();
         // TODO add list of known used ports to config (e.g. the port of the RP itself, or others)
+
+        for (var containerId : runningContainers.keySet()) {
+            var image = runningContainers.get(containerId).getImage();
+            validators.put(containerId, new ArgumentValidator(image));
+        }
     }
 
     @Override
@@ -100,6 +112,11 @@ public class PlatformImpl implements RuntimePlatformApi {
                 List.of(), // TODO "provides" pf platform? read from config? issue #42
                 List.copyOf(connectedPlatforms.keySet())
         );
+    }
+
+    @Override
+    public Map<String, ?> getPlatformConfig() throws IOException {
+        return config.toMap();
     }
 
     @Override
@@ -135,7 +152,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public void send(String agentId, Message message, String containerId, boolean forward) throws IOException, NoSuchElementException {
-        var clients = getClients(containerId, agentId, null, null, forward);
+        var clients = getClients(containerId, agentId, null, null, null, forward);
 
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
@@ -154,7 +171,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public void broadcast(String channel, Message message, String containerId, boolean forward) {
-        var clients = getClients(containerId, null, null, null, forward);
+        var clients = getClients(containerId, null, null, null, null, forward);
 
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             log.info("Forwarding /broadcast to " + client.baseUrl);
@@ -173,7 +190,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
-        var clients = getClients(containerId, agentId, action, null, forward);
+        var clients = getClients(containerId, agentId, action, parameters, null, forward);
 
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
@@ -188,7 +205,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             }
         }
         if (lastException != null) throw lastException;
-        throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s'", action, agentId));
+        throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s', or the given parameters are invalid.", action, agentId));
     }
 
     @Override
@@ -198,7 +215,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public ResponseEntity<StreamingResponseBody> getStream(String stream, String agentId, String containerId, boolean forward) throws IOException {
-        var clients = getClients(containerId, agentId, null, stream, forward);
+        var clients = getClients(containerId, agentId, null, null, stream, forward);
         
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
@@ -227,7 +244,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public void postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException {
-        var clients = getClients(containerId, agentId, null, stream, forward);
+        var clients = getClients(containerId, agentId, null, null, stream, forward);
         
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
@@ -273,6 +290,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 runningContainers.put(agentContainerId, container);
                 startedContainers.put(agentContainerId, postContainer);
                 tokens.put(agentContainerId, token);
+                validators.put(agentContainerId, new ArgumentValidator(container.getImage()));
                 container.setOwner(owner);
                 userDetailsService.createUser(agentContainerId, agentContainerId,
                         config.enableAuth ? userDetailsService.getUserRole(owner) : Role.GUEST,
@@ -335,6 +353,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (container == null) return false;
         runningContainers.remove(containerId);
         startedContainers.remove(containerId);
+        validators.remove(containerId);
         userDetailsService.removeUser(containerId);
         containerClient.stopContainer(containerId);
         notifyConnectedPlatforms();
@@ -415,6 +434,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             var containerInfo = client.getContainerInfo();
             containerInfo.setConnectivity(runningContainers.get(containerId).getConnectivity());
             runningContainers.put(containerId, containerInfo);
+            validators.put(containerId, new ArgumentValidator(containerInfo.getImage()));
             notifyConnectedPlatforms();
             return true;
         } catch (IOException e) {
@@ -482,29 +502,33 @@ public class PlatformImpl implements RuntimePlatformApi {
      * @param includeConnected Whether to also forward to connected Runtime Platforms
      * @return list of clients to send requests to these valid containers/platforms
      */
-    private Stream<ApiProxy> getClients(String containerId, String agentId, String action, String stream, boolean includeConnected) {
+    private Stream<ApiProxy> getClients(String containerId, String agentId, String action, Map<String, JsonNode> parameters, String stream, boolean includeConnected) {
         // local containers
         var containerClients = runningContainers.values().stream()
-                .filter(c -> matches(c, containerId, agentId, action, stream))
+                .filter(c -> matches(c, containerId, agentId, action, parameters, stream))
                 .map(c -> getClient(c.getContainerId(), tokens.get(c.getContainerId())));
 
         if (!includeConnected) return containerClients;
 
         // remote platforms
         var platformClients = connectedPlatforms.entrySet().stream()
-            .filter(entry -> entry.getValue().getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action, stream)))
-            .map(entry -> {return new ApiProxy(entry.getKey(), tokens.get(entry.getKey()));});
+            .filter(entry -> entry.getValue().getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action, parameters, stream)))
+            .map(entry -> new ApiProxy(entry.getKey(), tokens.get(entry.getKey())));
 
         return Stream.concat(containerClients, platformClients);
     }
     /**
      * Check if Container ID matches and has matching agent and/or action.
      */
-    private boolean matches(AgentContainer container, String containerId, String agentId, String action, String stream) {
+    private boolean matches(AgentContainer container, String containerId, String agentId, String action, Map<String, JsonNode> arguments, String stream) {
+        var validator = validators.containsKey(container.getContainerId())
+                ? validators.get(container.getContainerId()) // own container
+                : new ArgumentValidator(container.getImage()); // connected rp container
         return (containerId == null || container.getContainerId().equals(containerId)) &&
                 container.getAgents().stream()
                         .anyMatch(a -> (agentId == null || a.getAgentId().equals(agentId))
-                                && (action == null || a.getActions().stream().anyMatch(x -> x.getName().equals(action)))
+                                && (action == null || a.getActions().stream().anyMatch(x -> x.getName().equals(action)
+                                    && (arguments == null || (validator != null && validator.isArgsValid(x.getParameters(), arguments)))))
                                 && (stream == null || a.getStreams().stream().anyMatch(x -> x.getName().equals(stream)))
                         );
     }

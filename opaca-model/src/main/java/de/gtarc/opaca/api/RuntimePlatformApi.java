@@ -1,9 +1,11 @@
 package de.gtarc.opaca.api;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.model.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * API functions for the Runtime Platform. Of course, the platform should provide all those
@@ -21,6 +23,16 @@ public interface RuntimePlatformApi extends CommonApi {
      * @return Extensive information on the platform and its containers and agents.
      */
     RuntimePlatform getPlatformInfo() throws IOException;
+
+    /** Get Configuration of this Runtime Platform, e.g. what container backend is used, what container registries are
+     * available, etc. The details of this may vary depending on the implementation and used backend. Make sure not to
+     * give away any secret information like passwords!
+     *
+     * REST Route: GET /config
+     *
+     * @return Map mapping config key to value; exact keys can vary.
+     */
+    Map<String, ?> getPlatformConfig() throws IOException;
 
     /**
      * Get history of "events" that occurred in this runtime platform
@@ -112,7 +124,7 @@ public interface RuntimePlatformApi extends CommonApi {
 
     /**
      * Connect this platform to another platform, running on a different host.
-     * The connection will be bi-directional.
+     * The connection will be bidirectional.
      *
      * REST: POST /connections
      *

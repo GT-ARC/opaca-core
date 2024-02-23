@@ -14,9 +14,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicReference
-import java.io.ByteArrayInputStream
 import java.io.InputStream
-import java.io.OutputStream
 import org.springframework.http.ResponseEntity
 import org.springframework.http.MediaType
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody

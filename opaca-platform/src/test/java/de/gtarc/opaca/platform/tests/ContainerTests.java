@@ -6,6 +6,9 @@ import de.gtarc.opaca.model.AgentDescription;
 import de.gtarc.opaca.model.RuntimePlatform;
 import de.gtarc.opaca.platform.Application;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.junit.*;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -20,7 +23,6 @@ import java.net.InetAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
@@ -148,11 +150,46 @@ public class ContainerTests {
     }
 
     @Test
-    public void testInvokeFail() throws Exception {
+    public void testErrorResponse() throws Exception {
+        // invoke Fail action
         var con = request(PLATFORM_URL, "POST", "/invoke/Fail", Map.of());
         Assert.assertEquals(502, con.getResponseCode());
-        var msg = error(con);
-        Assert.assertTrue(msg.contains("Action Failed (as expected)"));
+        var response = error(con);
+        Assert.assertNotEquals(null, response.cause);
+        Assert.assertEquals(500, response.cause.statusCode);
+        Assert.assertTrue(response.cause.message.contains("Action Failed (as expected)"));
+
+        // invoke ErrorTest action to check for other return codes
+        con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "no-error"));
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // not found: should be 404, but due to jiac6 behaviour returns 500
+        con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "not-found-error"));
+        Assert.assertEquals(502, con.getResponseCode());
+        response = error(con);
+        Assert.assertNotEquals(null, response.cause);
+        Assert.assertEquals(500, response.cause.statusCode);
+
+        // custom: should be 666, but same problem as above
+        con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "custom-error"));
+        Assert.assertEquals(502, con.getResponseCode());
+        response = error(con);
+        Assert.assertNotEquals(null, response.cause);
+        Assert.assertEquals(500, response.cause.statusCode);
+
+        // io: 500
+        con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "io-error"));
+        Assert.assertEquals(502, con.getResponseCode());
+        response = error(con);
+        Assert.assertNotEquals(null, response.cause);
+        Assert.assertEquals(500, response.cause.statusCode);
+
+        // runtime: 500
+        con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "runtime-error"));
+        Assert.assertEquals(502, con.getResponseCode());
+        response = error(con);
+        Assert.assertNotEquals(null, response.cause);
+        Assert.assertEquals(500, response.cause.statusCode);
     }
 
     /**
@@ -169,12 +206,92 @@ public class ContainerTests {
     /**
      * invoke action with mismatched/missing parameters
      * TODO case of missing parameter could also be handled by platform, resulting in 422 error
+     *  -> or 404, i.e. "platform cant find container/agent/action/params"
      */
     @Test
     public void testInvokeParamMismatch() throws Exception {
         var con = request(PLATFORM_URL, "POST", "/invoke/DoThis",
                 Map.of("message", "missing 'sleep_seconds' parameter!"));
-        Assert.assertEquals(502, con.getResponseCode());
+        Assert.assertEquals(404, con.getResponseCode());
+    }
+
+    @Test
+    public void testArgumentValidation() throws Exception {
+
+        // missing params
+        var con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of());
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // redundant params
+        con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", Map.of(),
+                "listOfLists", List.of(),
+                "redundantParam", "text"));
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // invalid object
+        con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", new Car(), // missing required attributes
+                "listOfLists", List.of(List.of(1, 2), List.of(3, 4))));
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // invalid arg for defined type (string instead of int)
+        con = request(PLATFORM_URL, "POST", "/invoke/Add", Map.of(
+                "x", "42",
+                "y", 5));
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // invalid arg for defined type (string instead of bool)
+        con = request(PLATFORM_URL, "POST", "/invoke/CreateAction", Map.of(
+                "name", "InvalidAction",
+                "notify", "true"));
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // invalid arg for defined type (number/double instead of int)
+        con = request(PLATFORM_URL, "POST", "/invoke/Add", Map.of(
+                "x", 42,
+                "y", 5.5));
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // invalid list
+        con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", new Car("testModel", List.of("1", "b", "test"),
+                        true, 1444),
+                "listOfLists", List.of(Map.of("test1", "test2"), 2, "")));
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // faulty desk (param x of nested object position is string instead of int)
+        con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", new Car("testModel", List.of("1", "b", "test"),
+                        true, 1444),
+                "listOfLists", List.of(List.of(1, 2), List.of(3, 4)),
+                "desk", Map.of("deskId", 123, "position", Map.of("x", "5", "y", 3))));
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // all valid, including desk
+        con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", new Car("testModel", List.of("1", "b", "test"),
+                        true, 1444),
+                "listOfLists", List.of(List.of(1, 2), List.of(3, 4)),
+                "desk", new Desk(123, "test name", "test description", new Desk.Position(42, 5))));
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // passing int for param type "number" -> valid
+        con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", new ContainerTests.Car("testModel", List.of("1", "b", "test"),
+                        true, 1444),
+                "listOfLists", List.of(List.of(1, 2), List.of(3, 4)),
+                "decimal", 42));
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // all valid
+        con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
+                "car", new ContainerTests.Car("testModel", List.of("1", "b", "test"),
+                        true, 1444),
+                "listOfLists", List.of(List.of(1, 2), List.of(3, 4))));
+        // System.out.println(result(con));
+        Assert.assertEquals(200, con.getResponseCode());
+
     }
 
     /**
@@ -356,7 +473,7 @@ public class ContainerTests {
     @Test
     public void testAddNewActionAutoNotify() throws Exception {
         // create new agent action
-        var con = request(PLATFORM_URL, "POST", "/invoke/CreateAction/sample1", Map.of("name", "AnotherTemporaryTestAction", "notify", "true"));
+        var con = request(PLATFORM_URL, "POST", "/invoke/CreateAction/sample1", Map.of("name", "AnotherTemporaryTestAction", "notify", true));
         Assert.assertEquals(200, con.getResponseCode());
 
         // agent container automatically notified platform of the changes
@@ -427,13 +544,13 @@ public class ContainerTests {
                     } catch (Exception e) {
                         Assert.fail(e.getMessage());
                     }
-                })).collect(Collectors.toList());
+                })).toList();
 
         // handle assertion errors in created threads
         var noErrorsDetected = new AtomicBoolean(true);
         for (Thread t : threads) t.setUncaughtExceptionHandler((thread, throwable) -> {
             if (throwable instanceof AssertionError) {
-                var message = String.format("AssertionError in thead %s: %s", thread.getName(), throwable.getMessage());
+                var message = String.format("AssertionError in thread %s: %s", thread.getName(), throwable.getMessage());
                 System.out.println(message);
                 noErrorsDetected.set(false);
             }
@@ -455,6 +572,31 @@ public class ContainerTests {
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
         Assert.assertEquals("", res.get(AgentContainerApi.ENV_TOKEN));
+    }
+
+    /**
+     * classes for testing the argument validator
+     */
+
+    @Data @AllArgsConstructor @NoArgsConstructor
+    private static class Car {
+        String model;
+        List<String> passengers;
+        Boolean isFunctional;
+        Integer constructionYear;
+    }
+
+    @Data @AllArgsConstructor @NoArgsConstructor
+    private static class Desk {
+        Integer deskId;
+        String name;
+        String description;
+        Position position;
+        @Data @AllArgsConstructor @NoArgsConstructor
+        private static class Position {
+            Integer x;
+            Integer y;
+        }
     }
 
 }
