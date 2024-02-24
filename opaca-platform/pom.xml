@@ -15,7 +15,7 @@
 	<packaging>jar</packaging>
 
 	<properties>
-		<springBoot.version>3.1.5</springBoot.version>
+		<springBoot.version>3.2.3</springBoot.version>
 		<java.version>17</java.version>
 	</properties>
 
