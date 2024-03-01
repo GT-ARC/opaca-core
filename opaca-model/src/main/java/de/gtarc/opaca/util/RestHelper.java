@@ -175,7 +175,7 @@ public class RestHelper {
     @Getter
     public static class RequestException extends IOException {
 
-        ErrorResponse nestedError;
+        final ErrorResponse nestedError;
 
         public RequestException(String message, ErrorResponse nestedError) {
             super(message);

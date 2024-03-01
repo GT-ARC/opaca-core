@@ -80,7 +80,7 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
         private fun writeResponse(response: HttpServletResponse, code: Int, result: Any?) {
             if (result !is ResponseEntity<*>) {
                 // regular JSON result
-                response.contentType = MediaType.APPLICATION_JSON_VALUE;
+                response.contentType = MediaType.APPLICATION_JSON_VALUE
                 response.status = code
                 response.writer.write(RestHelper.writeJson(result))
             } else {

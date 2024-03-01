@@ -12,7 +12,7 @@ There are currently two available options to save user-related information in a 
 
 ### MongoDB Docker Container
 
-Set `DB_EMBED: false` to connect to a externally running MongoDB service. Recommended for production usage.
+Set `DB_EMBED: false` to connect to an externally running MongoDB service. Recommended for production usage.
 
 The configuration for the MongoDB consists of following two environment variables:
 

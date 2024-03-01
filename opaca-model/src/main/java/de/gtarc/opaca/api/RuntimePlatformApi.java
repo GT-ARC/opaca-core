@@ -1,6 +1,5 @@
 package de.gtarc.opaca.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.model.*;
 
 import java.io.IOException;

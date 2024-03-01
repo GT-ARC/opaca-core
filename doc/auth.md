@@ -20,4 +20,4 @@ If authentication is enabled, the RuntimePlatform sends the AgentContainer's own
 
 ## Authenticating the Runtime Platform against another Runtime Platform
 
-If authentication is enabled at a remote RuntimePlatform, the `POST /connections` route requires additional parameters `username` and `password` which are used to login at the other platform and acquire an access token. This token is then associated with the platform and used in all following requests to that platform, e.g. for invoking actions there.
+If authentication is enabled at a remote RuntimePlatform, the `POST /connections` route requires additional parameters `username` and `password` which are used to log in at the other platform and acquire an access token. This token is then associated with the platform and used in all following requests to that platform, e.g. for invoking actions there.

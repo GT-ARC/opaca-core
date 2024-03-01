@@ -119,7 +119,7 @@ New SNAPSHOT releases are deployed by CI each time a new commit is pushed to the
 
 * increment the version numbers in _all_ `pom.xml` files to the next release version, e.g. change `X.Y-SNAPSHOT` to `X.Y` (both the `version` and `parent.version`, and don't forget the examples)
 * rename the current `X.Y-SNAPSHOT` sections in the changelog file to `X.Y`
-* run `mvn deploy` in the repository root (for this step, you will need the appropriate credentials in vour `~/.m2/settings.xml`)
+* run `mvn deploy` in the repository root (for this step, you will need the appropriate credentials in your `~/.m2/settings.xml`)
 * make a Git commit and `git tag` it as `release-x.y`
 * increment the version numbers from `X.Y` to `X.Y+1-SNAPSHOT` (or, for very significant changes, `X+1.0-SNAPSHOT`)
 * create a new section for the new snapshot version in the changelog file

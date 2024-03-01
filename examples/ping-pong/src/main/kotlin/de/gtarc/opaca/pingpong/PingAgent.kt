@@ -18,7 +18,7 @@ class PingAgent: AbstractContainerizedAgent(name="ping-agent") {
         every(Duration.ofSeconds(5)) {
             // if already collected messages from last turn, invoke action at best Pong agent
             if (offers.isNotEmpty()) {
-                val best = offers.entries.maxBy { it.value }!!
+                val best = offers.entries.maxBy { it.value }
                 offers.clear()
 
                 // send invoke to container agent
