@@ -119,8 +119,7 @@ public class KubernetesClient implements ContainerClient {
                         .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)))
                 ;
 
-        if (container.getClientConfig() instanceof PostAgentContainer.KubernetesConfig) {
-            var k8sConf = (PostAgentContainer.KubernetesConfig) container.getClientConfig();
+        if (container.getClientConfig() instanceof PostAgentContainer.KubernetesConfig k8sConf) {
             // the default seems to be null anyway, so no null-check needed?
             podSpec.hostNetwork(k8sConf.getHostNetwork());
             podSpec.nodeName(k8sConf.getNodeName());

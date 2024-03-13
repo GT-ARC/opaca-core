@@ -96,7 +96,6 @@ public interface CommonApi {
      * @param agentId Name of the agent, or null for any agent
      * @param containerId ID of the Container to use (optional)
      * @param forward flag whether to forward the message to connected platforms (optional)
-     * @return Action result
      */
     void postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException;
 

@@ -1,9 +1,10 @@
 package de.gtarc.opaca.platform.user;
 
 import de.gtarc.opaca.model.Role;
-import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,19 +15,14 @@ import java.util.List;
  * have one unique role, but may be assigned multiple privileges.
  * An ID is used to store the data in the database.
  */
-@Entity
 @Data
 @ToString(exclude = {"password"})
+@Document(collection = "tokenUser")
 public class TokenUser {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long id;
-
-    private String username;
+    private @Id String username;
     private String password;
     private Role role;
-    @ElementCollection(targetClass = String.class, fetch = FetchType.EAGER)
     private List<String> privileges = new ArrayList<>();
 
     public TokenUser() {}

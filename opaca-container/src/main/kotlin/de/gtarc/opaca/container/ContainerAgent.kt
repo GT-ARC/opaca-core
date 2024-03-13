@@ -211,7 +211,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     }
 
     private fun findRegisteredAgent(agentId: String?, action: String?, stream: String?): String? {
-        return registeredAgents.values
+        return registeredAgents.values.asSequence()
             .filter { agt -> agentId == null || agt.agentId == agentId }
             .filter { agt -> action == null || agt.actions.any { act -> act.name == action } }
             .filter { agt -> stream == null || agt.streams.any { str -> str.name == stream } }

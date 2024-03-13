@@ -1,7 +1,6 @@
 package de.gtarc.opaca.pingpong
 
 import de.gtarc.opaca.container.*
-import de.gtarc.opaca.model.AgentDescription
 import de.gtarc.opaca.model.Message
 import de.gtarc.opaca.util.RestHelper
 import de.dailab.jiacvi.behaviour.act
@@ -11,22 +10,15 @@ import kotlin.random.Random
 
 class PingAgent: AbstractContainerizedAgent(name="ping-agent") {
 
-    override fun getDescription() = AgentDescription(
-        this.name,
-        this.javaClass.name,
-        listOf(),
-        listOf()
-    )
-
     private var lastRequest = -1
     private val offers = mutableMapOf<String, Int>()
 
-    override fun behaviour() = act {
+    override fun behaviour() = super.behaviour().and(act {
 
         every(Duration.ofSeconds(5)) {
             // if already collected messages from last turn, invoke action at best Pong agent
             if (offers.isNotEmpty()) {
-                val best = offers.entries.maxBy { it.value }!!
+                val best = offers.entries.maxBy { it.value }
                 offers.clear()
 
                 // send invoke to container agent
@@ -53,6 +45,6 @@ class PingAgent: AbstractContainerizedAgent(name="ping-agent") {
             }
         }
 
-    }
+    })
 
 }

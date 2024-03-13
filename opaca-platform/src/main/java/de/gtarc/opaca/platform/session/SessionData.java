@@ -2,8 +2,6 @@ package de.gtarc.opaca.platform.session;
 
 import java.util.*;
 
-import de.gtarc.opaca.platform.user.TokenUserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import de.gtarc.opaca.model.PostAgentContainer;
 import de.gtarc.opaca.platform.containerclient.DockerClient;
 import de.gtarc.opaca.platform.containerclient.KubernetesClient;

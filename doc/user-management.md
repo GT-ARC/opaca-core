@@ -4,11 +4,39 @@ The User-Management system provides the ability to manage multiple users with di
 
 The User-Management is implemented with Spring Boot, Spring Data and uses Spring Security to implement a security filter chain, which checks for required permissions/authorities/roles of the requested user, based on the provided JWT (JSON Web Token). The JWT is generated after a successful login from a user or a successful container addition to the Runtime Platform.
 
-## User Database (In-Memory)
+## User Database with MongoDB/Embedded Mongo
 
-Currently, the database used to store all user-related information is the H2 Database, which is a Java based In-Memory database. User information is therefore only available on the current Runtime Platform. The user information consists of a unique ID, the username, a password, one of the pre-defined roles, and a list of privileges.
+The User Management stores all user-related information, including roles and privileges, in a Mongo database. Upon starting the Runtime Platform via the `docker-compose` file, specific environment parameters can be set for the Runtime Platform, pertaining the Spring Boot configuration to interact with the MongoDB.
 
-The user-related information is stored in **JPARepositories**, which is used to create basic CRUD queries to interact with the specified H2 database in the application properties.
+There are currently two available options to save user-related information in a MongoDB: An external MongoDB instance, for example a running Docker container, or an embedded MongoDB. These options can be selected by setting the environment variable `DB_EMBED` to either `true` or `false`. 
+
+### MongoDB Docker Container
+
+Set `DB_EMBED: false` to connect to an externally running MongoDB service. Recommended for production usage.
+
+The configuration for the MongoDB consists of following two environment variables:
+
+- `DB_URI`: connection URI including _host_address_, _port_, _authentication_database_, and root _username_ & _password_ (default: `mongodb://user:pass@localhost:27017/admin`)
+- `DB_NAME`: name for the user _database_, only relevant when accessing the DB manually (default: `opaca-user-data`)
+
+#### Uri Composition
+
+`mongodb://[username]:[password]@[host]:[port]/[authentication_database]`
+
+**NOTE:** \
+When starting the Runtime Platform and the MongoDB together, either through the docker-compose file or a modified launch configuration, the application might throw a _MongoSocketReadException_ due to the MongoDB container still starting up. This is a normal behavior and when configured correctly, the application should connect to the database shortly after. If the problem persist, check the connection URI and make sure the MongoDB instance is running and was initialized with the correct root user credentials.
+
+The user-related information is stored in a **MongoRepository**, which is used to create basic CRUD queries to interact with the connected/embedded MongoDB. When interacting with the connected MongoDB, the `username` or `name` of the respective entities (user/container) will act as a unique _String_ identifier in the database. Duplicate names for users/containers are therefore not possible.
+
+If the external MongoDB is started with the `docker-compose.yml`, the connected MongoDB is started with two persistent data volumes attached to it. The first volume is called _opaca-platform_data_ and stores all user-related information stored in the `TokenUser` class. The seconds volume is called _opaca-platform_config_ and stores metadata for a sharded cluster. The latter volume is currently not actively used, but is defined to prevent the creation of additional volumes. These volumes persist, even after the deletion of the respected MongoDB compose stack.
+
+### Embedded MongoDB
+
+Set `DB_EMBED: true` to use this saving method. Recommended for quick-starts, development and testing.
+
+The embedded MongoDB is provided by [flapdoodle](https://github.com/flapdoodle-oss/de.flapdoodle.embed.mongo.spring), a third-party dependency. This option uses the same data structure as the external MongoDB container. The currently used MongoDB version is _7.0.4_. Before the first usage, the MongoDB version is downloaded from the official Mongo repository and stored locally. The local storage directory for Windows is `C:/users/[username]/.embedmongo/`.
+
+Since the embedded MongoDB is for quick deployment usage only, data is **NOT** persistently stored when using the embedded MongoDB. Instead, upon starting the application, a temporary directory is created, which for Windows is located at `C:/users/[username]/AppData/Local/Temp/`. After exiting the application this directory is cleared, but the directory path still persists.
 
 ## User-Management Models
 
@@ -19,7 +47,6 @@ The username and password are stored as strings, the privileges as a list of str
 ### TokenUser
 ```
 {
-    "id": Long,
     "username": string,
     "password": string,
     "role": Role,
@@ -35,7 +62,7 @@ These are the currently implemented Roles:
 
 - **ADMIN**: Has the highest authority and full control over a Runtime Platform. For now, it is also the admin for the user-management system with full access to the user-related routes. There should only be one admin per Runtime Platform/User Database.
 - **CONTRIBUTOR**: Is actively contributing to the Runtime Platform by providing and deploying containers. Is able to delete only its own deployed containers. Is not allowed to connect with other Runtime platforms.
-- **USER**: Can use the functionalities provided by the running containers on the Runtime Platform. Is also able to send/broadcast message on the platform and retrieve information about connected platforms or the history of the platform.
+- **USER**: Can use the functionalities provided by the running containers on the Runtime Platform. Is also able to send/broadcast messages on the platform and retrieve information about connected platforms or the history of the platform.
 - **GUEST**: Is a provisional role with the most limited access. Is only able to get information about the Runtime Platform, running containers and agents.
 
 When a new user is created, it has to be assigned one of the stated roles. There is currently no way to include additional roles.
@@ -98,4 +125,4 @@ Edit user information for a specific user. Since this includes roles/privileges 
 
 ### `DELETE /users/{username}`
 
-Delete a specific user by the username from the database. Currently, this is only allowed by **ADMIN** but should also be available to every user when the deletion is about their own user data.
+Delete a specific user by the username from the database. This is only allowed by **ADMIN** and the **USER** belonging to the username.

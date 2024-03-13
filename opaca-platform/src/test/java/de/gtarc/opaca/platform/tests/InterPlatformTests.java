@@ -15,7 +15,7 @@ import static de.gtarc.opaca.platform.tests.TestUtils.*;
 /**
  * The tests in this module test the communication between platform. During setup, two runtime platforms are started,
  * the platforms are connected, and a sample-agent-container is deployed on the first platform. This setup should not
- * be changed by tests (or if changed, than those changes should be reverted in the test itself) so tests can all
+ * be changed by tests (or if changed, then those changes should be reverted in the test itself) so tests can all
  * run independently or in any order.
  */
 public class InterPlatformTests {
@@ -82,6 +82,7 @@ public class InterPlatformTests {
     public void testForwardInvokeAgentAction() throws Exception {
         for (String name : List.of("sample1", "sample2")) {
             var con = request(PLATFORM_B_URL, "POST", "/invoke/GetInfo/" + name, Map.of());
+            Assert.assertEquals(200, con.getResponseCode());
             var res = result(con, Map.class);
             Assert.assertEquals(name, res.get("name"));
         }
@@ -197,7 +198,7 @@ public class InterPlatformTests {
     @Test
     public void testAddNewActionManualNotify() throws Exception {
         // create new agent action
-        var con = request(PLATFORM_A_URL, "POST", "/invoke/CreateAction/sample1", Map.of("name", "TemporaryTestAction", "notify", "false"));
+        var con = request(PLATFORM_A_URL, "POST", "/invoke/CreateAction/sample1", Map.of("name", "TemporaryTestAction", "notify", false));
         Assert.assertEquals(200, con.getResponseCode());
 
         // new action has been created, but platform has not yet been notified --> action is unknown

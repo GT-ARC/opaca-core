@@ -1,27 +1,27 @@
 package de.gtarc.opaca.pingpong
 
-import de.gtarc.opaca.container.AbstractContainerizedAgent
-import de.gtarc.opaca.container.Invoke
-import de.gtarc.opaca.model.Action
-import de.gtarc.opaca.model.AgentDescription
-import de.gtarc.opaca.model.Message
-import de.gtarc.opaca.util.RestHelper
 import de.dailab.jiacvi.behaviour.act
+import de.gtarc.opaca.container.AbstractContainerizedAgent
+import de.gtarc.opaca.model.Message
+import de.gtarc.opaca.model.Parameter
+import de.gtarc.opaca.util.RestHelper
 import kotlin.random.Random
 
 
 class PongAgent: AbstractContainerizedAgent(name="pong-agent-${Random.nextInt()}") {
 
-    override fun getDescription() = AgentDescription(
-        this.name,
-        this.javaClass.name,
-        listOf(
-            Action("PongAction", mapOf(Pair("request", "Int"), Pair("offer", "Int")), "String")
-        ),
-        listOf()
-    )
+    override fun preStart() {
+        addAction("PongAction", mapOf(
+            "request" to Parameter("integer", true),
+            "offer" to Parameter("integer", true)
+        ), "string") {
+            pongAction(it["request"]!!.asInt(), it["offer"]!!.asInt())
+        }
 
-    override fun behaviour() = act {
+        super.preStart()
+    }
+
+    override fun behaviour() = super.behaviour().and(act {
 
         listen<Message>("pong-channel") {
             // listen to ping message, send offer to ping agent
@@ -34,15 +34,7 @@ class PongAgent: AbstractContainerizedAgent(name="pong-agent-${Random.nextInt()}
             sendOutboundMessage(it.replyTo, pong)
         }
 
-        respond<Invoke, Any?> {
-            log.info("Received Invoke $it")
-            when (it.name) {
-                "PongAction" -> pongAction(it.parameters["request"]!!.asInt(), it.parameters["offer"]!!.asInt())
-                else -> null
-            }
-        }
-
-    }
+    })
 
     private fun pongAction(request: Int, offer: Int): String {
         log.info("Invoked my action for request: $request, offer: $offer")
