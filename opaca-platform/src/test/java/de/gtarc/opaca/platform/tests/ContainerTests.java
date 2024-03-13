@@ -122,7 +122,7 @@ public class ContainerTests {
 
     @Test
     public void testPostStream() throws Exception {
-        String jsonInput = "{\"key\":\"value\"}";
+        String jsonInput = "{\n  \"key\": \"value\"\n}";
         byte[] jsonData = jsonInput.getBytes(StandardCharsets.UTF_8);
         var responseCode = streamRequest(PLATFORM_URL, "POST", "/stream/PostStream/sample1", jsonData);
         Assert.assertEquals(200, responseCode);
@@ -130,9 +130,7 @@ public class ContainerTests {
         var con = request(PLATFORM_URL, "POST", "/invoke/GetInfo/sample1", Map.of());
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
-
-        // TODO for some reason, this wraps the input into "[...]", might be solved when decoupling API from Rest Controller...
-        // Assert.assertEquals(jsonInput, res.get("lastPostedStream"));
+        Assert.assertEquals(jsonInput, res.get("lastPostedStream"));
     }
 
     /**

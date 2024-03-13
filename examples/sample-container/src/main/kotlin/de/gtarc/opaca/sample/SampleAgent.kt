@@ -72,7 +72,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
 
     private fun actionPostStream(inputStream: ByteArray) {
         // TODO shouldn't this get an InputStream as input, and not a ByteArray?
-        val content = ByteArrayInputStream(inputStream).reader().readLines()
+        val content = ByteArrayInputStream(inputStream).reader().readText()
         lastPostedStream = content
     }
 
