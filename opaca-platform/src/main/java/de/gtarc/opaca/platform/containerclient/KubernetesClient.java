@@ -26,6 +26,7 @@ import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Container Client for running Agent Containers in Kubernetes.
@@ -103,7 +104,7 @@ public class KubernetesClient implements ContainerClient {
         var extraPorts = image.getExtraPorts();
 
         var newPorts = new HashSet<Integer>();
-        Map<Integer, Integer> portMap = extraPorts.keySet().stream()
+        Map<Integer, Integer> portMap = Stream.concat(Stream.of(image.getApiPort()), extraPorts.keySet().stream())
                 .collect(Collectors.toMap(p -> p, p -> reserveNextFreePort(p, newPorts)));
 
         V1PodSpec podSpec = new V1PodSpec()
@@ -213,6 +214,7 @@ public class KubernetesClient implements ContainerClient {
 
     private void createServicesForPorts(String containerId, AgentContainerImage image, Map<Integer, Integer> portMap) throws ApiException {
         for (Map.Entry<Integer, Integer> entry : portMap.entrySet()) {
+            if (entry.getKey().equals(image.getApiPort())) continue; // Skip api port
             int containerPort = entry.getKey();
             int hostPort = entry.getValue();
             String protocol = image.getExtraPorts().get(containerPort).getProtocol();
