@@ -35,6 +35,14 @@ import org.springframework.context.annotation.Configuration;
 public class SwaggerConfig {
 
     @Bean
+    public GroupedOpenApi allApi() {
+        return GroupedOpenApi.builder()
+                .group(" All")  // intentional space so this sorts before "Agents"
+                .pathsToMatch("/**")
+                .build();
+    }
+
+    @Bean
     public GroupedOpenApi platformApi() {
         return GroupedOpenApi.builder()
                 .group("Runtime Platform")
@@ -55,15 +63,6 @@ public class SwaggerConfig {
         return GroupedOpenApi.builder()
                 .group("Other")
                 .pathsToMatch("/users/**", "/authentication/**", "/info", "/history", "/config")
-                .build();
-    }
-
-    // last one here is shown when loading the page
-    @Bean
-    public GroupedOpenApi allApi() {
-        return GroupedOpenApi.builder()
-                .group("All")
-                .pathsToMatch("/**")
                 .build();
     }
             
