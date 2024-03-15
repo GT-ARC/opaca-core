@@ -310,6 +310,10 @@ public class PlatformImpl implements RuntimePlatformApi {
             } catch (InterruptedException e) {
                 log.severe(e.getMessage());
             }
+            if (! containerClient.isContainerAlive(agentContainerId)) {
+                errorMessage = "Container failed to start.";
+                break;
+            }
         }
 
         // if we reach this point, container did not start in time or does not provide /info route

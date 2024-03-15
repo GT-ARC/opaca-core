@@ -43,6 +43,11 @@ public interface ContainerClient {
     void stopContainer(String containerId) throws IOException;
 
     /**
+     * Check if the container is still alive.
+     */
+    boolean isContainerAlive(String containerId) throws IOException;
+
+    /**
      * Get the URL where the container can be reached for forwarding requests.
      */
     String getUrl(String containerId);
