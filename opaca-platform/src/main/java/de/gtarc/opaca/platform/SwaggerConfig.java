@@ -1,6 +1,8 @@
 package de.gtarc.opaca.platform;
 
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.security.SecuritySchemes;
 import org.springdoc.core.models.GroupedOpenApi;
@@ -8,6 +10,20 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@OpenAPIDefinition(info=@Info(
+        title = "OPACA Runtime Platform",
+        version = "0.2",
+        description = """
+                Use this Web API to interact with the OPACA Runtime Platform and its Agent Containers. Here's a short
+                description of the different groups of API routes:
+                * **users**: view, add or delete user accounts for this platform
+                * **agents**: interact with agents inside the containers, e.g. by sending them messages, invoking actions
+                * **authentication**: login to request an access token
+                * **containers**: view, deploy or remove Agent Containers running on this platform
+                * **connections**: view, add or remove other Runtime Platforms connected to this platform
+                * **info**: get basic information on this Runtime Platform and its properties
+                """
+))
 @SecuritySchemes({
         @SecurityScheme(
                 name = "bearerAuth",
@@ -18,12 +34,12 @@ import org.springframework.context.annotation.Configuration;
 })
 public class SwaggerConfig {
 
-        @Bean
-        public GroupedOpenApi allApi() {
-            return GroupedOpenApi.builder()
-                    .group("All")
-                    .pathsToMatch("/**")
-                    .build();
-        }
+    @Bean
+    public GroupedOpenApi allApi() {
+        return GroupedOpenApi.builder()
+                .group("All")
+                .pathsToMatch("/**")
+                .build();
+    }
             
 }
