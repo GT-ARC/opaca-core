@@ -24,6 +24,10 @@ public class Parameter {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     ArrayItems items = null;
 
+    public Parameter(String type) {
+        this.type = type;
+    }
+
     public Parameter(String type, Boolean required) {
         this.type = type;
         this.required = required;
