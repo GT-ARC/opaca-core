@@ -11,11 +11,13 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import de.gtarc.opaca.model.AgentContainerImage;
 import de.gtarc.opaca.model.Parameter;
+import lombok.extern.java.Log;
 
 
 /**
  * Used to validate actual action parameter values against required JSON Schema definition.
  */
+@Log
 public class ArgumentValidator {
 
     protected static final JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
@@ -78,6 +80,7 @@ public class ArgumentValidator {
     private boolean isValidObject(JsonNode node, String type) {
         var definition = getSchema(type);
         if (definition == null) {
+            log.warning("No definition found for type " + type + ", skipping type-checking.");
             return true;
         }
         var errors = definition.validate(node);
@@ -93,12 +96,12 @@ public class ArgumentValidator {
         if (!definitionsByUrl.containsKey(type)) return null;
         var url = definitionsByUrl.get(type);
         try {
-            System.out.printf("Creating schema for type \"%s\" from URL \"%s\" ...%n", type, url);
             var schema = factory.getSchema(new URI(url));
+            log.info("Created schema for " + type + " from " + url);
             definitions.put(type, schema);
             return schema;
         } catch (URISyntaxException e) {
-            System.err.println(e.getMessage());
+            log.severe("Could not load schema for " + type + " from " + url + ": " + e.getMessage());
             return null;
         }
     }
