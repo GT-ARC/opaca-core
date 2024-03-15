@@ -77,7 +77,9 @@ public class ArgumentValidator {
 
     private boolean isValidObject(JsonNode node, String type) {
         var definition = getSchema(type);
-        if (definition == null) return false;
+        if (definition == null) {
+            return true;
+        }
         var errors = definition.validate(node);
         return errors.isEmpty();
     }
