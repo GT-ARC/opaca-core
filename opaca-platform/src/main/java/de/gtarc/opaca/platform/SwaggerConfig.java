@@ -35,6 +35,31 @@ import org.springframework.context.annotation.Configuration;
 public class SwaggerConfig {
 
     @Bean
+    public GroupedOpenApi platformApi() {
+        return GroupedOpenApi.builder()
+                .group("Runtime Platform")
+                .pathsToMatch("/containers/**", "/connections/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi agentsApi() {
+        return GroupedOpenApi.builder()
+                .group("Agents")
+                .pathsToMatch("/send/**", "/invoke/**", "/broadcast/**", "/stream/**", "/agents/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi otherApi() {
+        return GroupedOpenApi.builder()
+                .group("Other")
+                .pathsToMatch("/users/**", "/authentication/**", "/info", "/history", "/config")
+                .build();
+    }
+
+    // last one here is shown when loading the page
+    @Bean
     public GroupedOpenApi allApi() {
         return GroupedOpenApi.builder()
                 .group("All")
