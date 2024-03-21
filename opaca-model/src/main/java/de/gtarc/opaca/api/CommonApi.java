@@ -5,11 +5,9 @@ import de.gtarc.opaca.model.AgentDescription;
 import de.gtarc.opaca.model.Message;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 /**
  * API for both, Agent Containers and Runtime Platform. In fact, those are primarily the
@@ -62,27 +60,13 @@ public interface CommonApi {
     void broadcast(String channel, Message message, String containerId, boolean forward) throws IOException;
 
     /**
-     * Invoke an action provided by any agent on this container.
-     *
-     * REST: POST /invoke/{action}?containerId={containerId}&forward={true|false}`
-     *
-     * @param action Name of the action
-     * @param parameters Map of Parameters
-     * @param timeout timeout for this action, or -1 for no (or default) timeout
-     * @param containerId ID of the Container to use (optional)
-     * @param forward flag whether to forward the message to connected platforms (optional)
-     * @return Action result
-     */
-    JsonNode invoke(String action, Map<String, JsonNode> parameters, int timeout, String containerId, boolean forward) throws IOException;
-
-    /**
      * Invoke an action provided by a specific agent on this container.
      *
-     * REST: POST /invoke/{action}/{agent}?containerId={containerId}&forward={true|false}`
+     * REST: POST /invoke/{action}[/{agentId}]?containerId={containerId}&forward={true|false}`
      *
      * @param action Name of the action
      * @param parameters Map of Parameters
-     * @param agentId Name of the agent
+     * @param agentId Name of the agent, or null for any agent
      * @param timeout timeout for this action, or -1 for no (or default) timeout
      * @param containerId ID of the Container to use (optional)
      * @param forward flag whether to forward the message to connected platforms (optional)
@@ -91,48 +75,25 @@ public interface CommonApi {
     JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException;
 
     /**
-     * Get a stream provided by any agent on this container.
-     *
-     * REST: GET /stream/{stream}/{agent}?containerId={containerId}&forward={true|false}`
-     *
-     * @param stream Name of the stream
-     * @param containerId ID of the Container to use (optional)
-     * @param forward flag whether to forward the message to connected platforms (optional)
-     * @return Action result
-     */
-    ResponseEntity<StreamingResponseBody> getStream(String stream, String containerId, boolean forward) throws IOException;
-
-    /**
      * Get a stream provided by a specific agent on this container.
      *
-     * REST: POST /stream/{stream}/{agent}?containerId={containerId}&forward={true|false}`
+     * REST: GET /stream/{stream}[/{agentId}]?containerId={containerId}&forward={true|false}`
      *
      * @param stream Name of the stream
-     * @param agentId Name of the agent
+     * @param agentId Name of the agent, or null for any agent
      * @param containerId ID of the Container to use (optional)
      * @param forward flag whether to forward the message to connected platforms (optional)
      * @return Action result
      */
-    ResponseEntity<StreamingResponseBody> getStream(String stream, String agentId, String containerId, boolean forward) throws IOException;
-
-    /**
-     * Send a stream to any agent on this container.
-     *
-     * REST: POST /stream/{stream}/{agent}?containerId={containerId}&forward={true|false}`
-     *
-     * @param stream Name of the stream
-     * @param containerId ID of the Container to use (optional)
-     * @param forward flag whether to forward the message to connected platforms (optional)
-     */
-    void postStream(String stream, byte[] inputStream, String containerId, boolean forward) throws IOException;
+    InputStream getStream(String stream, String agentId, String containerId, boolean forward) throws IOException;
 
     /**
      * Post a stream to a specific agent on this container.
      *
-     * REST: POST /stream/{stream}/{agent}?containerId={containerId}&forward={true|false}`
+     * REST: POST /stream/{stream}[/{agentId}]?containerId={containerId}&forward={true|false}`
      *
      * @param stream Name of the stream
-     * @param agentId Name of the agent
+     * @param agentId Name of the agent, or null for any agent
      * @param containerId ID of the Container to use (optional)
      * @param forward flag whether to forward the message to connected platforms (optional)
      */

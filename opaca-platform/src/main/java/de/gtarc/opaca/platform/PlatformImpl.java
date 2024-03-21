@@ -22,14 +22,13 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 
 /**
@@ -181,20 +180,13 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
-        return invoke(action, parameters, null, timeout, containerId, forward);
-    }
-
-    @Override
     public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
         var clients = getClients(containerId, agentId, action, parameters, null, forward);
 
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {
-                return agentId == null
-                        ? client.invoke(action, parameters, timeout, containerId, false)
-                        : client.invoke(action, parameters, agentId, timeout, containerId, false);
+                return client.invoke(action, parameters, agentId, timeout, containerId, false);
             } catch (IOException e) {
                 log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s': %s",
                         action, agentId, client.baseUrl, e));
@@ -206,20 +198,13 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public ResponseEntity<StreamingResponseBody> getStream(String stream, String containerId, boolean forward) throws IOException, NoSuchElementException {
-        return getStream(stream, null, containerId, forward);
-    }
-
-    @Override
-    public ResponseEntity<StreamingResponseBody> getStream(String stream, String agentId, String containerId, boolean forward) throws IOException {
+    public InputStream getStream(String stream, String agentId, String containerId, boolean forward) throws IOException {
         var clients = getClients(containerId, agentId, null, null, stream, forward);
-        
+
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {
-                return agentId == null
-                        ? client.getStream(stream, containerId, false)
-                        : client.getStream(stream, agentId, containerId, false);
+                return client.getStream(stream, agentId, containerId, false);
             } catch (IOException e) {
                 log.warning(String.format("Failed to get stream '%s' @ agent '%s' and client '%s': %s",
                         stream, agentId, client.baseUrl, e));
@@ -234,11 +219,6 @@ public class PlatformImpl implements RuntimePlatformApi {
      * CONTAINERS ROUTES
      */
 
- @Override
-    public void postStream(String stream, byte[] inputStream, String containerId, boolean forward) throws IOException {
-        postStream(stream, inputStream, null, containerId, forward);
-    }
-
     @Override
     public void postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException {
         var clients = getClients(containerId, agentId, null, null, stream, forward);
@@ -246,11 +226,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         IOException lastException = null;
         for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
             try {
-                if (agentId == null) {
-                    client.postStream(stream, inputStream, containerId, false);
-                } else {
-                    client.postStream(stream, inputStream, agentId, containerId, false);
-                }
+                client.postStream(stream, inputStream, agentId, containerId, false);
                 return;
             } catch (IOException e) {
                 log.warning(String.format("Failed to post stream '%s' @ agent '%s' and client '%s': %s",

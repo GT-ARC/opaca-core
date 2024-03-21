@@ -5,10 +5,8 @@ import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.LocalAgentRef
 import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.model.*
-import de.gtarc.opaca.util.ApiProxy
-import de.gtarc.opaca.util.RestHelper
-import org.springframework.http.ResponseEntity
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
+import de.gtarc.opaca.util.*
+import java.io.InputStream
 
 /**
  * Abstract superclass for containerized agents, handling the registration with the container agent.
@@ -122,22 +120,16 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         log.info("Outbound Invoke: $action @ $agentId ($parameters)")
         val jsonParameters = parameters.entries
             .associate { Pair<String, JsonNode>(it.key, RestHelper.mapper.valueToTree(it.value)) }
-        val res = when (agentId) {
-            null -> parentProxy.invoke(action, jsonParameters, -1, null, true)
-            else -> parentProxy.invoke(action, jsonParameters, agentId, -1, null, true)
-        }
+        val res = parentProxy.invoke(action, jsonParameters, agentId, -1, null, true)
         return RestHelper.mapper.treeToValue(res, type)
     }
 
     /**
      * Send get-stream to other agents via the parent runtimePlatform.
      */
-    fun sendOutboundStreamGetRequest(stream: String, agentId: String?, containerId: String, forward: Boolean = true): ResponseEntity<StreamingResponseBody> {
+    fun sendOutboundStreamGetRequest(stream: String, agentId: String?, containerId: String, forward: Boolean = true): InputStream {
         log.info("Outbound Stream: $stream @ $containerId")
-        return when (agentId) {
-            null -> parentProxy.getStream(stream, containerId, forward)
-            else -> parentProxy.getStream(stream, agentId, containerId, forward)
-        }
+        return parentProxy.getStream(stream, agentId, containerId, forward)
     }
 
     /**
@@ -151,10 +143,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         forward: Boolean = true
     ) {
         log.info("Outbound Stream: $stream @ $containerId")
-        when (agentId) {
-            null -> parentProxy.postStream(stream, inputStream, containerId, forward)
-            else -> parentProxy.postStream(stream, inputStream, agentId, containerId, forward)
-        }
+        parentProxy.postStream(stream, inputStream, agentId, containerId, forward)
     }
 
     /**

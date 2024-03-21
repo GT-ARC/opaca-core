@@ -17,10 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
-
 /**
  * Helper class for issuing different REST calls in Java.
  */
@@ -48,25 +44,6 @@ public class RestHelper {
     public <T> T delete(String path, Object payload, Class<T> type) throws IOException {
         var stream = request("DELETE", path, payload);
         return type == null ? null : mapper.readValue(stream, type);
-    }
-
-    public ResponseEntity<StreamingResponseBody> getStream(String path) {
-        StreamingResponseBody responseBody = response -> {
-            InputStream stream = request("GET", path, null);
-            int bytesRead;
-            byte[] buffer = new byte[1024];
-            try (BufferedInputStream bis = new BufferedInputStream(stream)) {
-                while ((bytesRead = bis.read(buffer)) != -1) {
-                    response.write(buffer, 0, bytesRead);
-                }
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        };
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(responseBody);
     }
 
     public void postStream(String path, byte[] inputStream) {
@@ -157,7 +134,6 @@ public class RestHelper {
     public String readStream(InputStream stream) {
         return stream == null ? null : new BufferedReader(new InputStreamReader(stream))
                 .lines().collect(Collectors.joining("\n"));
-
     }
 
     private IOException makeException(HttpURLConnection connection) throws IOException {

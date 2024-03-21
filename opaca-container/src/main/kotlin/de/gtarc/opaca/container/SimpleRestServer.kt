@@ -13,10 +13,8 @@ import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
 import java.util.stream.Collectors
 import java.util.concurrent.TimeUnit
-import org.springframework.http.MediaType
-import org.springframework.http.ResponseEntity
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
 
 /**
  * Minimal Jetty server for providing the REST interface. There's probably a better way to do this.
@@ -78,21 +76,16 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
         }
 
         private fun writeResponse(response: HttpServletResponse, code: Int, result: Any?) {
-            if (result !is ResponseEntity<*>) {
+            if (result !is InputStream) {
                 // regular JSON result
-                response.contentType = MediaType.APPLICATION_JSON_VALUE
+                response.contentType = "application/json"
                 response.status = code
                 response.writer.write(RestHelper.writeJson(result))
             } else {
                 // streaming result
-                response.contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE
-                response.status = result.statusCodeValue
-                result.headers.forEach { (key, values) ->
-                    values.forEach { response.addHeader(key, it)}
-                }
-                when (val body = result.body) {
-                    is StreamingResponseBody -> body.writeTo(response.outputStream)
-                }
+                response.contentType = "application/octet-stream"
+                response.status = code
+                result.transferTo(response.outputStream)
                 response.flushBuffer()
             }
         }
@@ -132,16 +125,10 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
                 return impl.getAgent(id)
             }
 
-            val getStream = Regex("^/stream/([^/]+)$").find(path)
-            if (getStream != null) {
-                val stream = getStream.groupValues[1]
-                return impl.getStream(stream, "", false)
-            }
-
-            val getStreamOf = Regex("^/stream/([^/]+)/([^/]+)$").find(path)
+            val getStreamOf = Regex("^/stream/([^/]+)(?:/([^/]+))?$").find(path)
             if (getStreamOf != null) {
                 val stream = getStreamOf.groupValues[1]
-                val agentId = getStreamOf.groupValues[2]
+                val agentId = getStreamOf.groupValues[2].ifEmpty { null }
                 return impl.getStream(stream, agentId, "", false)
             }
 
@@ -166,40 +153,18 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
                 return impl.broadcast(channel, message, "", false)
             }
 
-            val invokeAct = Regex("^/invoke/([^/]+)$").find(path)
-            if (invokeAct != null) {
-                val action = invokeAct.groupValues[1]
-                val parameters = RestHelper.readMap(body(request))
-                return impl.invoke(action, parameters, timeout, "", false)
-            }
-
-            val invokeActOf = Regex("^/invoke/([^/]+)/([^/]+)$").find(path)
+            val invokeActOf = Regex("^/invoke/([^/]+)(?:/([^/]+))?$").find(path)
             if (invokeActOf != null) {
                 val action = invokeActOf.groupValues[1]
-                val agentId = invokeActOf.groupValues[2]
+                val agentId = invokeActOf.groupValues[2].ifEmpty { null }
                 val parameters = RestHelper.readMap(body(request))
                 return impl.invoke(action, parameters, agentId, timeout, "", false)
             }
 
-            val postStream = Regex("^/stream/([^/]+)$").find(path)
-            if (postStream != null) {
-                val stream = postStream.groupValues[1]
-
-                val byteArrayOutputStream = ByteArrayOutputStream()
-                request.inputStream.use { input ->
-                    byteArrayOutputStream.use { output ->
-                        input.copyTo(output)
-                    }
-                }
-
-                val byteArray = byteArrayOutputStream.toByteArray()
-                return impl.postStream(stream, byteArray, "", false)
-            }
-
-            val postStreamTo = Regex("^/stream/([^/]+)/([^/]+)$").find(path)
+            val postStreamTo = Regex("^/stream/([^/]+)(?:/([^/]+))?$").find(path)
             if (postStreamTo != null) {
                 val stream = postStreamTo.groupValues[1]
-                val agentId = postStreamTo.groupValues[2]
+                val agentId = postStreamTo.groupValues[2].ifEmpty { null }
 
                 val byteArrayOutputStream = ByteArrayOutputStream()
                 request.inputStream.use { input ->
