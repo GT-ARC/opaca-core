@@ -207,6 +207,12 @@ public class KubernetesClient implements ContainerClient {
     }
 
     @Override
+    public boolean isContainerAlive(String containerId) throws IOException {
+        // TODO implement this method for Kubernetes!
+        return true;
+    }
+
+    @Override
     public String getUrl(String podId) {
         var ip = pods.get(podId).getInternalIp();
         return String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT);

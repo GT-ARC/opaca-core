@@ -163,6 +163,17 @@ public class DockerClient implements ContainerClient {
     }
 
     @Override
+    public boolean isContainerAlive(String containerId) throws IOException {
+        try {
+            var containerInfo = dockerContainers.get(containerId);
+            var res = dockerClient.inspectContainerCmd(containerInfo.containerId).exec();
+            return res.getState().getRunning();
+        } catch (NotFoundException e) {
+            return false;
+        }
+    }
+
+    @Override
     public String getUrl(String containerId) {
         var conn = dockerContainers.get(containerId).connectivity;
         return conn.getPublicUrl() + ":" + conn.getApiPortMapping();
