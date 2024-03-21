@@ -26,6 +26,7 @@ import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Container Client for running Agent Containers in Kubernetes.
@@ -88,7 +89,7 @@ public class KubernetesClient implements ContainerClient {
     @Override
     public void testConnectivity() {
         try {
-            this.coreApi.listNamespacedPod(this.namespace, null, null, null, null, null, null, null, null, null, null);
+            this.coreApi.listNamespacedPod(this.namespace).execute();
         } catch (ApiException e) {
             throw new RuntimeException("Could not initialize Kubernetes Client", e);
         }
@@ -103,7 +104,7 @@ public class KubernetesClient implements ContainerClient {
         var extraPorts = image.getExtraPorts();
 
         var newPorts = new HashSet<Integer>();
-        Map<Integer, Integer> portMap = extraPorts.keySet().stream()
+        Map<Integer, Integer> portMap = Stream.concat(Stream.of(image.getApiPort()), extraPorts.keySet().stream())
                 .collect(Collectors.toMap(p -> p, p -> reserveNextFreePort(p, newPorts)));
 
         V1PodSpec podSpec = new V1PodSpec()
@@ -154,10 +155,10 @@ public class KubernetesClient implements ContainerClient {
                         .type("ClusterIP"));
 
         try {
-            V1Deployment createdDeployment = appsApi.createNamespacedDeployment(namespace, deployment, null, null, null);
+            V1Deployment createdDeployment = appsApi.createNamespacedDeployment(namespace, deployment).execute();
             log.info("Deployment created: " + createdDeployment.getMetadata().getName());
             
-            V1Service createdService = coreApi.createNamespacedService(namespace, service, null, null, null);
+            V1Service createdService = coreApi.createNamespacedService(namespace, service).execute();
             log.info("Service created: " + createdService.getMetadata().getName());
             String serviceIP = createdService.getSpec().getClusterIP();
             log.info("Deployment IP: " + serviceIP);
@@ -191,8 +192,8 @@ public class KubernetesClient implements ContainerClient {
         try {
             // remove container info, stop container
             var containerInfo = pods.remove(containerId);
-            appsApi.deleteNamespacedDeployment(containerId, namespace, null, null, null, null, null, null);
-            coreApi.deleteNamespacedService(serviceId(containerId), namespace, null, null, null, null, null, null);
+            appsApi.deleteNamespacedDeployment(containerId, namespace).execute();
+            coreApi.deleteNamespacedService(serviceId(containerId), namespace).execute();
             
             // free up ports used by this container
             // TODO do this first, or in finally?
@@ -213,13 +214,14 @@ public class KubernetesClient implements ContainerClient {
 
     private void createServicesForPorts(String containerId, AgentContainerImage image, Map<Integer, Integer> portMap) throws ApiException {
         for (Map.Entry<Integer, Integer> entry : portMap.entrySet()) {
+            if (entry.getKey().equals(image.getApiPort())) continue; // Skip api port
             int containerPort = entry.getKey();
             int hostPort = entry.getValue();
             String protocol = image.getExtraPorts().get(containerPort).getProtocol();
             V1Service service = createNodePortService(containerId, hostPort, containerPort, protocol);
 
             // could not expose port as service -> could not create pod
-            coreApi.createNamespacedService(namespace, service, null, null, null);
+            coreApi.createNamespacedService(namespace, service).execute();
         }
     }
 
@@ -280,7 +282,7 @@ public class KubernetesClient implements ContainerClient {
                 .data(Map.of(".dockerconfigjson", authJson.getBytes(StandardCharsets.UTF_8)));
 
         try {
-            this.coreApi.createNamespacedSecret(namespace, secret, null, null, null);
+            this.coreApi.createNamespacedSecret(namespace, secret).execute();
         } catch (ApiException e) {
             log.severe("Exception when creating secret: " + e.getResponseBody());
         }
