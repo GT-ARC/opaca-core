@@ -5,11 +5,14 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.result.DeleteResult;
+import de.flapdoodle.embed.mongo.commands.ServerAddress;
+import de.flapdoodle.embed.mongo.distribution.Version;
+import de.flapdoodle.embed.mongo.transitions.Mongod;
+import de.flapdoodle.embed.mongo.transitions.RunningMongodProcess;
+import de.flapdoodle.reverse.TransitionWalker;
 import de.gtarc.opaca.model.Role;
 import de.gtarc.opaca.platform.PlatformConfig;
 import org.bson.Document;
-import org.bson.types.ObjectId;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
@@ -20,15 +23,26 @@ public class UserRepository {
 
     private final MongoClient mongoClient;
     private final MongoCollection<Document> collection;
+    private TransitionWalker.ReachedState<RunningMongodProcess> running;
 
     public UserRepository(PlatformConfig config) {
-        mongoClient = MongoClients.create(config.dbURI);
-        MongoDatabase database = mongoClient.getDatabase(config.dbName);
-        collection = database.getCollection("tokenUser");
+        if(config.dbEmbed) {
+            running = Mongod.instance().start(Version.V7_0_4);
+            ServerAddress serverAddress = running.current().getServerAddress();
+            mongoClient = MongoClients.create("mongodb://" + serverAddress);
+            MongoDatabase db = mongoClient.getDatabase(config.dbName);
+            collection = db.getCollection("tokenUser");
+        }
+        else {
+            mongoClient = MongoClients.create(config.dbURI);
+            MongoDatabase database = mongoClient.getDatabase(config.dbName);
+            collection = database.getCollection("tokenUser");
+        }
     }
 
     public void closeConnection() {
         mongoClient.close();
+        running.close();
     }
 
     public void save (TokenUser user) {
