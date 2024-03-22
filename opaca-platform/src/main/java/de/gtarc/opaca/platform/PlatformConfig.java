@@ -73,10 +73,10 @@ public class PlatformConfig {
     @Value("${db_embed}")
     public Boolean dbEmbed;
 
-    @Value("${spring.data.mongodb.uri}")
+    @Value("${db_uri}")
     public String dbURI;
 
-    @Value("${spring.data.mongodb.database}")
+    @Value("${db_name}")
     public String dbName;
 
     // IMAGE REGISTRY CREDENTIALS

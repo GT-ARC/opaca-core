@@ -31,7 +31,7 @@ public class TokenUserDetailsService implements UserDetailsService {
     private PlatformConfig config;
 
     @Autowired
-    private TokenUserRepository tokenUserRepository;
+    private UserRepository tokenUserRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -100,10 +100,10 @@ public class TokenUserDetailsService implements UserDetailsService {
      * If the user does not exist, throw exception.
      */
     public Boolean removeUser(String username) {
-        if (! tokenUserRepository.existsById(username)) {
+        if (! tokenUserRepository.existsByName(username)) {
             throw new UsernameNotFoundException(username);
         }
-        return tokenUserRepository.deleteByUsername(username) > 0;
+        return tokenUserRepository.deleteByUsername(username);
     }
 
     /**
