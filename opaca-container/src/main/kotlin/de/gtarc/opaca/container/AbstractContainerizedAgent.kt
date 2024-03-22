@@ -64,7 +64,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         streams
     )
 
-    fun addAction(name: String, parameters: Map<String, Parameter>, result: String, callback: (Map<String, JsonNode>) -> Any?) {
+    fun addAction(name: String, parameters: Map<String, Parameter>, result: Parameter?, callback: (Map<String, JsonNode>) -> Any?) {
         addAction(Action(name, parameters, result), callback)
     }
 

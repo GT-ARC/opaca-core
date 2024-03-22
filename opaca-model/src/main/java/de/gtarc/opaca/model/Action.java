@@ -22,7 +22,6 @@ public class Action {
     Map<String, Parameter> parameters = Map.of();
 
     /** type of result */
-    @NonNull
-    String result;
+    Parameter result;
 
 }
