@@ -39,7 +39,6 @@ public class PlatformRestController {
 	@Autowired
 	private RuntimePlatformApi implementation;
 
-
 	/*
 	 * LIFECYCLE
 	 */
@@ -103,6 +102,13 @@ public class PlatformRestController {
 			@RequestBody Login loginParams
 	) throws IOException {
 		return implementation.login(loginParams);
+	}
+
+	@RequestMapping(value="/token", method=RequestMethod.GET)
+	@Operation(summary="Renew token with current token.", tags={"authentication"})
+	public String token(
+	) throws IOException {
+		return implementation.token();
 	}
 
 	/*

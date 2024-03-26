@@ -63,6 +63,11 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         return client.readStream(client.request("POST", "/login", loginParams));
     }
 
+    @Override
+    public String token() throws IOException {
+        return client.readStream(client.request("GET", "/token", null));
+    }
+
     // AGENT ROUTES
 
     @SuppressWarnings({"unchecked"})

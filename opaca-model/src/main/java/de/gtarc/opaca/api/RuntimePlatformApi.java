@@ -56,6 +56,15 @@ public interface RuntimePlatformApi extends CommonApi {
      */
     String login(Login loginParams) throws IOException;
 
+    /**
+     * Retrieve Access Token for given user to be passed as header for secured routes.
+     *
+     * REST: GET /token
+     *
+     * @return JWT access token
+     */
+    String token() throws IOException;
+
     /*
      * AGENT CONTAINER ROUTES
      */

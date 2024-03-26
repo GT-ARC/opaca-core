@@ -144,6 +144,18 @@ public class PlatformImpl implements RuntimePlatformApi {
     public String login(Login loginParams) {
         return jwtUtil.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
     }
+
+    @Override
+    public String token() {
+        String owner = userDetailsService.getTokenUser(jwtUtil.getCurrentRequestUser()).getUsername();
+        System.out.println("TOKEN REWNEW");
+        System.out.println(owner);
+        return jwtUtil.generateTokenForAgentContainer(owner);
+    }
+
+
+    
+
     
 
     @Override
@@ -245,7 +257,9 @@ public class PlatformImpl implements RuntimePlatformApi {
         String token = "";
         String owner = "";
         if (config.enableAuth) {
+            System.out.println("TOKEN INITAL");
             token = jwtUtil.generateTokenForAgentContainer(agentContainerId);
+            System.out.println(token);
             owner = userDetailsService.getTokenUser(jwtUtil.getCurrentRequestUser()).getUsername();
         }
 
