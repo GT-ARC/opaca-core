@@ -3,6 +3,7 @@ package de.gtarc.opaca.model;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.util.List;
 
@@ -13,6 +14,7 @@ import java.util.List;
  */
 @Data
 @AllArgsConstructor @NoArgsConstructor
+@ToString(exclude = {"password"})
 public class User {
     String username;
     String password;

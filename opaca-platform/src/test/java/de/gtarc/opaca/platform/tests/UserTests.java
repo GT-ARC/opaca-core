@@ -30,7 +30,7 @@ public class UserTests {
                 "--default_image_directory=./default-test-images", "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
                 "--platform_admin_user=testUser", "--platform_admin_pwd=testPwd",
-                "--db_embed=false");
+                "--db_embed=true");
     }
 
     @AfterClass

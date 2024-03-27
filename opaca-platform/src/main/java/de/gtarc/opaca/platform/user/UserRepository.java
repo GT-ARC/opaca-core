@@ -11,6 +11,7 @@ import de.flapdoodle.embed.mongo.transitions.Mongod;
 import de.flapdoodle.embed.mongo.transitions.RunningMongodProcess;
 import de.flapdoodle.reverse.TransitionWalker;
 import de.gtarc.opaca.model.Role;
+import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.PlatformConfig;
 import org.bson.Document;
 import org.springframework.stereotype.Repository;
@@ -45,8 +46,9 @@ public class UserRepository {
         running.close();
     }
 
-    public void save (TokenUser user) {
+    public void save (User user) {
         Document document = new Document();
+        // document.put("user", user);
         document.put("username", user.getUsername());
         document.put("password", user.getPassword());
         document.put("role", user.getRole());
@@ -54,19 +56,19 @@ public class UserRepository {
         collection.insertOne(document);
     }
 
-    public TokenUser findByUsername(String username) {
+    public User findByUsername(String username) {
         Document query = new Document("username", username);
         Document result = collection.find(query).first();
         if (result != null) {
-            return mapToTokenUser(result);
+            return mapToUser(result);
         }
         return null;
     }
 
-    public List<TokenUser> findAll() {
-        List<TokenUser> users = new ArrayList<>();
+    public List<User> findAll() {
+        List<User> users = new ArrayList<>();
         for (Document document : collection.find()) {
-            users.add(mapToTokenUser(document));
+            users.add(mapToUser(document));
         }
         return users;
     }
@@ -83,8 +85,8 @@ public class UserRepository {
 
     // Helper functions
 
-    private TokenUser mapToTokenUser(Document document) {
-        TokenUser user = new TokenUser();
+    private User mapToUser(Document document) {
+        User user = new User();
         user.setUsername(document.getString("username"));
         user.setPassword(document.getString("password"));
         user.setPrivileges(document.getList("privileges", String.class));

@@ -249,7 +249,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         String owner = "";
         if (config.enableAuth) {
             token = jwtUtil.generateTokenForAgentContainer(agentContainerId);
-            owner = userDetailsService.getTokenUser(jwtUtil.getCurrentRequestUser()).getUsername();
+            owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
         }
 
         // start container... this may raise an Exception, or returns the connectivity info
@@ -336,7 +336,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         validators.remove(containerId);
         userDetailsService.removeUser(containerId);
         containerClient.stopContainer(containerId);
-        userRepository.closeConnection();
+        // userRepository.closeConnection();
         notifyConnectedPlatforms();
         return true;
     }
