@@ -22,14 +22,19 @@ import org.springframework.stereotype.Repository;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Provides basic CRUD functions to interact with a connected DB
+ */
 @Repository
 public class UserRepository {
 
-    private final MongoClient mongoClient;
     private final MongoCollection<Document> collection;
-    private TransitionWalker.ReachedState<RunningMongodProcess> running;
 
+    /**
+     * Establishes a connection with either the embedded or external DB
+     */
     public UserRepository(PlatformConfig config) {
+        MongoClient mongoClient;
         if(config.dbEmbed) {
             Mongod mongod = new Mongod() {
                 // Turn off logging for embedded mongodb
@@ -39,7 +44,7 @@ public class UserRepository {
                             .withTransitionLabel("no output");
                 }
             };
-            running = mongod.start(Version.V7_0_4);
+            TransitionWalker.ReachedState<RunningMongodProcess> running = mongod.start(Version.V7_0_4);
             ServerAddress serverAddress = running.current().getServerAddress();
             mongoClient = MongoClients.create("mongodb://" + serverAddress);
             MongoDatabase db = mongoClient.getDatabase(config.dbName);
@@ -52,14 +57,8 @@ public class UserRepository {
         }
     }
 
-    public void closeConnection() {
-        mongoClient.close();
-        running.close();
-    }
-
     public void save (User user) {
         Document document = new Document();
-        // document.put("user", user);
         document.put("username", user.getUsername());
         document.put("password", user.getPassword());
         document.put("role", user.getRole());
@@ -100,8 +99,8 @@ public class UserRepository {
         User user = new User();
         user.setUsername(document.getString("username"));
         user.setPassword(document.getString("password"));
-        user.setPrivileges(document.getList("privileges", String.class));
         user.setRole(Role.valueOf(document.getString("role")));
+        user.setPrivileges(document.getList("privileges", String.class));
         return user;
     }
 }

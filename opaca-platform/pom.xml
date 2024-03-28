@@ -68,9 +68,9 @@
 
 		<!-- User Management -->
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-mongodb</artifactId>
-			<version>${springBoot.version}</version>
+			<groupId>org.mongodb</groupId>
+			<artifactId>mongodb-driver-sync</artifactId>
+			<version>4.11.1</version>
 		</dependency>
 		<dependency>
 			<groupId>de.flapdoodle.embed</groupId>
