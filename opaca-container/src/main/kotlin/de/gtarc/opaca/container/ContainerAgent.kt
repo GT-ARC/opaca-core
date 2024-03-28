@@ -46,23 +46,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     /** the token for accessing the parent Runtime Platform, received on initialization */
     private var token: String? = System.getenv(AgentContainerApi.ENV_TOKEN)
-        set(value) {
-            if (field != value) {
-                field = value
-                // Token has changed, so reinitialize the parentProxy
-                _parentProxy = null
-            }
-        }
 
-    private var _parentProxy: ApiProxy? = null
-        get() {
-            if (field == null) {
-                field = ApiProxy(runtimePlatformUrl, token)
-            }
-            return field
-        }
-    val parentProxy: ApiProxy
-        get() = _parentProxy!!
+    private var parentProxy: ApiProxy = ApiProxy(runtimePlatformUrl, token)
 
     private val executorService = Executors.newSingleThreadScheduledExecutor()
 
@@ -93,7 +78,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     }
 
     private fun scheduleTokenRenewal() {
-        val initialDelay = 0L // Delay before the first execution (0 if you want to start immediately)
+        val initialDelay = 1L // Delay before the first execution (0 if you want to start immediately)
         val period = 1L // The period between successive executions
 
         executorService.scheduleAtFixedRate({
@@ -246,17 +231,17 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     private fun renewToken() {
         val currentToken = parentProxy.token()
-        token = currentToken 
+        token = currentToken
+        println("NEW TOKEN RECEIVEIED")
+        println(token)
+        parentProxy = ApiProxy(runtimePlatformUrl, currentToken) 
         if (currentToken != null) {
-            val agents = registeredAgents.values.toList()
+            val agents = registeredAgents.keys.toList()
             for (agent in agents) {
-                val agentId = agent.agentId
-                val action = "renewToken"
-                val agent = findRegisteredAgent(agentId, action, null)
                 if (agent != null) {
                     invokeAskWait(agent, RenewToken(currentToken), -1)
                 } else {
-                    throw NoSuchElementException("Action $action of Agent $agentId not found")
+                    throw NoSuchElementException("No agent found")
                 }
             }
         } else {
