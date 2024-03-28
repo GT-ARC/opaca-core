@@ -101,9 +101,10 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
 
         respond<RenewToken, Any?> {
             log.info("RESPOND $it")
-            println("New Token received")
             token = it.value
             parentProxy =  ApiProxy(runtimePlatformUrl, token) 
+            println("New Token received")
+            "Token Renewal succesful"
         }
 
         respond<StreamGet, Any?> {

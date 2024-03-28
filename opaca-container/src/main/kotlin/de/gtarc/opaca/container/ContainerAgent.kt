@@ -239,9 +239,10 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             val agents = registeredAgents.keys.toList()
             for (agent in agents) {
                 if (agent != null) {
-                    invokeAskWait(agent, RenewToken(currentToken), -1)
+                    val res: String = invokeAskWait(agent, RenewToken(currentToken), -1)
+                    println("Response from agent: $res")
                 } else {
-                    throw NoSuchElementException("No agent found")
+                    throw NoSuchElementException("Agent is null")
                 }
             }
         } else {
