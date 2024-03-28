@@ -9,7 +9,10 @@ import de.flapdoodle.embed.mongo.commands.ServerAddress;
 import de.flapdoodle.embed.mongo.distribution.Version;
 import de.flapdoodle.embed.mongo.transitions.Mongod;
 import de.flapdoodle.embed.mongo.transitions.RunningMongodProcess;
+import de.flapdoodle.embed.process.io.ProcessOutput;
+import de.flapdoodle.reverse.Transition;
 import de.flapdoodle.reverse.TransitionWalker;
+import de.flapdoodle.reverse.transitions.Start;
 import de.gtarc.opaca.model.Role;
 import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.PlatformConfig;
@@ -28,7 +31,15 @@ public class UserRepository {
 
     public UserRepository(PlatformConfig config) {
         if(config.dbEmbed) {
-            running = Mongod.instance().start(Version.V7_0_4);
+            Mongod mongod = new Mongod() {
+                // Turn off logging for embedded mongodb
+                @Override public Transition<ProcessOutput> processOutput() {
+                    return Start.to(ProcessOutput.class)
+                            .initializedWith(ProcessOutput.silent())
+                            .withTransitionLabel("no output");
+                }
+            };
+            running = mongod.start(Version.V7_0_4);
             ServerAddress serverAddress = running.current().getServerAddress();
             mongoClient = MongoClients.create("mongodb://" + serverAddress);
             MongoDatabase db = mongoClient.getDatabase(config.dbName);
