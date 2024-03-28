@@ -14,6 +14,8 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.io.InputStream
 
 
@@ -43,12 +45,29 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     private val runtimePlatformUrl = System.getenv(AgentContainerApi.ENV_PLATFORM_URL)
 
     /** the token for accessing the parent Runtime Platform, received on initialization */
-    private val token = System.getenv(AgentContainerApi.ENV_TOKEN)
+    private var token: String? = System.getenv(AgentContainerApi.ENV_TOKEN)
+        set(value) {
+            if (field != value) {
+                field = value
+                // Token has changed, so reinitialize the parentProxy
+                _parentProxy = null
+            }
+        }
+
+    private var _parentProxy: ApiProxy? = null
+        get() {
+            if (field == null) {
+                field = ApiProxy(runtimePlatformUrl, token)
+            }
+            return field
+        }
+    val parentProxy: ApiProxy
+        get() = _parentProxy!!
+
+    private val executorService = Executors.newSingleThreadScheduledExecutor()
 
     /** the owner who started the Agent Container */
     private val owner = System.getenv(AgentContainerApi.ENV_OWNER)
-
-    private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl, token) }
 
     /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
@@ -60,6 +79,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     override fun preStart() {
         log.info("Starting Container Agent...")
         super.preStart()
+        scheduleTokenRenewal()
         server.start()
     }
 
@@ -70,6 +90,20 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         log.info("Stopping Container Agent...")
         server.stop()
         super.postStop()
+    }
+
+    private fun scheduleTokenRenewal() {
+        val initialDelay = 0L // Delay before the first execution (0 if you want to start immediately)
+        val period = 1L // The period between successive executions
+
+        executorService.scheduleAtFixedRate({
+            try {
+                renewToken()
+            } catch (e: Exception) {
+                // Handle any exceptions here, possibly logging them
+                println("Error during token renewal: ${e.message}")
+            }
+        }, initialDelay, period, TimeUnit.MINUTES)
     }
 
 
@@ -208,6 +242,26 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     private fun notifyPlatform() {
         parentProxy.notifyUpdateContainer(containerId)
+    }
+
+    private fun renewToken() {
+        val currentToken = parentProxy.token()
+        token = currentToken 
+        if (currentToken != null) {
+            val agents = registeredAgents.values.toList()
+            for (agent in agents) {
+                val agentId = agent.agentId
+                val action = "renewToken"
+                val agent = findRegisteredAgent(agentId, action, null)
+                if (agent != null) {
+                    invokeAskWait(agent, RenewToken(currentToken), -1)
+                } else {
+                    throw NoSuchElementException("Action $action of Agent $agentId not found")
+                }
+            }
+        } else {
+            throw IllegalStateException("Token cannot be null")
+        }
     }
 
     private fun findRegisteredAgent(agentId: String?, action: String?, stream: String?): String? {

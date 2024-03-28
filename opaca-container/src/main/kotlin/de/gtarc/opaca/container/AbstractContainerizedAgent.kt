@@ -24,8 +24,25 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
 
     /** proxy to parent Runtime Platform for forwarding outgoing calls */
     private var runtimePlatformUrl: String? = null
+
     private var token: String? = null
-    private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl, token) }
+        set(value) {
+            if (field != value) {
+                field = value
+                // Token has changed, so reinitialize the parentProxy
+                _parentProxy = null
+            }
+        }
+
+    private var _parentProxy: ApiProxy? = null
+        get() {
+            if (field == null) {
+                field = ApiProxy(runtimePlatformUrl, token)
+            }
+            return field
+        }
+    val parentProxy: ApiProxy
+        get() = _parentProxy!!
 
     protected val actions = mutableListOf<Action>()
     protected val actionCallbacks = mutableMapOf<String, (Map<String, JsonNode>) -> Any?>()
@@ -93,6 +110,12 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
                 in actionCallbacks -> actionCallbacks[it.name]?.let { cb -> cb(it.parameters) }
                 else -> Unit
             }
+        }
+
+        respond<RenewToken, Any?> {
+            log.info("RESPOND $it")
+            println("New Token received")
+            token = it.value
         }
 
         respond<StreamGet, Any?> {
