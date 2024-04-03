@@ -34,8 +34,7 @@ public class UserRepository {
      * Establishes a connection with either the embedded or external DB
      */
     public UserRepository(PlatformConfig config) {
-        MongoClient mongoClient;
-        if(config.dbEmbed) {
+        if (config.dbEmbed) {
             Mongod mongod = new Mongod() {
                 // Turn off logging for embedded mongodb
                 @Override public Transition<ProcessOutput> processOutput() {
@@ -46,18 +45,18 @@ public class UserRepository {
             };
             TransitionWalker.ReachedState<RunningMongodProcess> running = mongod.start(Version.V7_0_4);
             ServerAddress serverAddress = running.current().getServerAddress();
-            mongoClient = MongoClients.create("mongodb://" + serverAddress);
+
+            MongoClient mongoClient = MongoClients.create("mongodb://" + serverAddress);
             MongoDatabase db = mongoClient.getDatabase(config.dbName);
             collection = db.getCollection("tokenUser");
-        }
-        else {
-            mongoClient = MongoClients.create(config.dbURI);
+        } else {
+            MongoClient mongoClient = MongoClients.create(config.dbURI);
             MongoDatabase database = mongoClient.getDatabase(config.dbName);
             collection = database.getCollection("tokenUser");
         }
     }
 
-    public void save (User user) {
+    public void save(User user) {
         Document document = new Document();
         document.put("username", user.getUsername());
         document.put("password", user.getPassword());
@@ -83,7 +82,7 @@ public class UserRepository {
         return users;
     }
 
-    public boolean existsByName(String username) {
+    public boolean existsByUsername(String username) {
         return findByUsername(username) != null;
     }
 

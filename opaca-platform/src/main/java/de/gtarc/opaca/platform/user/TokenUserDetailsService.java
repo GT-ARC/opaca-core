@@ -96,7 +96,7 @@ public class TokenUserDetailsService implements UserDetailsService {
      * If the user does not exist, throw exception.
      */
     public Boolean removeUser(String username) {
-        if (! userRepository.existsByName(username)) {
+        if (! userRepository.existsByUsername(username)) {
             throw new UsernameNotFoundException(username);
         }
         return userRepository.deleteByUsername(username);
