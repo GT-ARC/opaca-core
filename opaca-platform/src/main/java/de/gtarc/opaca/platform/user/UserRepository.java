@@ -33,9 +33,8 @@ public class UserRepository {
      */
     public UserRepository(PlatformConfig config, SessionData sessionData) {
         this.config = config;
-        this.users = sessionData.getUsers();
         if (config.dbEmbed) {
-            users = new HashMap<>();
+            this.users = sessionData.getUsers();
         }
         else {
             MongoClient mongoClient = MongoClients.create(config.dbURI);
