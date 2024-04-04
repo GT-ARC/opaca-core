@@ -8,6 +8,7 @@ import com.mongodb.client.result.DeleteResult;
 import de.gtarc.opaca.model.Role;
 import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.PlatformConfig;
+import de.gtarc.opaca.platform.session.SessionData;
 import org.bson.Document;
 import org.springframework.stereotype.Repository;
 
@@ -30,8 +31,9 @@ public class UserRepository {
     /**
      * Establishes a connection with either the embedded or external DB
      */
-    public UserRepository(PlatformConfig config) {
+    public UserRepository(PlatformConfig config, SessionData sessionData) {
         this.config = config;
+        this.users = sessionData.getUsers();
         if (config.dbEmbed) {
             users = new HashMap<>();
         }
