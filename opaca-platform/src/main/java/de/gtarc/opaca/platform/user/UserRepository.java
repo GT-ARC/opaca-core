@@ -18,7 +18,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Provides basic CRUD functions to interact with a connected DB
+ * Provides basic CRUD functions to interact with a connected Mongo DB.
+ * Alternatively can also use a simple in-memory hash-map if no database is available.
  */
 @Repository
 public class UserRepository {

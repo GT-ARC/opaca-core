@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -116,8 +117,8 @@ public class Session {
 
     public List<File> readDefaultImages() {
         if (Strings.isNullOrEmpty(config.defaultImageDirectory)) return List.of();
-        try {
-            return Files.list(Path.of(config.defaultImageDirectory))
+        try (Stream<Path> paths = Files.list(Path.of(config.defaultImageDirectory))) {
+            return paths
                     .map(Path::toFile)
                     .filter(f -> f.isFile() && f.getName().toLowerCase().endsWith(".json"))
                     .collect(Collectors.toList());
@@ -152,7 +153,7 @@ public class Session {
             try {
                 implementation.addContainer(postContainer);
             } catch (IOException e) {
-                e.printStackTrace();
+                log.warning("Exception restarting container: " + e.getMessage());
             }
         }
     }
