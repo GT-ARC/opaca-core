@@ -10,7 +10,6 @@ import de.gtarc.opaca.platform.containerclient.DockerClient;
 import de.gtarc.opaca.platform.containerclient.KubernetesClient;
 import de.gtarc.opaca.platform.session.SessionData;
 import de.gtarc.opaca.model.*;
-import de.gtarc.opaca.platform.user.UserRepository;
 import de.gtarc.opaca.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
@@ -50,10 +49,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Autowired
     private TokenUserDetailsService userDetailsService;
-
-    @Autowired
-    private UserRepository userRepository;
-
 
     private ContainerClient containerClient;
 
@@ -336,7 +331,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         validators.remove(containerId);
         userDetailsService.removeUser(containerId);
         containerClient.stopContainer(containerId);
-        // userRepository.closeConnection();
         notifyConnectedPlatforms();
         return true;
     }

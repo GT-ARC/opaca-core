@@ -5,14 +5,6 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.result.DeleteResult;
-import de.flapdoodle.embed.mongo.commands.ServerAddress;
-import de.flapdoodle.embed.mongo.distribution.Version;
-import de.flapdoodle.embed.mongo.transitions.Mongod;
-import de.flapdoodle.embed.mongo.transitions.RunningMongodProcess;
-import de.flapdoodle.embed.process.io.ProcessOutput;
-import de.flapdoodle.reverse.Transition;
-import de.flapdoodle.reverse.TransitionWalker;
-import de.flapdoodle.reverse.transitions.Start;
 import de.gtarc.opaca.model.Role;
 import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.PlatformConfig;
@@ -20,7 +12,9 @@ import org.bson.Document;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Provides basic CRUD functions to interact with a connected DB
@@ -28,28 +22,20 @@ import java.util.List;
 @Repository
 public class UserRepository {
 
-    private final MongoCollection<Document> collection;
+    private final PlatformConfig config;
+
+    private MongoCollection<Document> collection;
+    private Map<String, User> users;
 
     /**
      * Establishes a connection with either the embedded or external DB
      */
     public UserRepository(PlatformConfig config) {
+        this.config = config;
         if (config.dbEmbed) {
-            Mongod mongod = new Mongod() {
-                // Turn off logging for embedded mongodb
-                @Override public Transition<ProcessOutput> processOutput() {
-                    return Start.to(ProcessOutput.class)
-                            .initializedWith(ProcessOutput.silent())
-                            .withTransitionLabel("no output");
-                }
-            };
-            TransitionWalker.ReachedState<RunningMongodProcess> running = mongod.start(Version.V7_0_4);
-            ServerAddress serverAddress = running.current().getServerAddress();
-
-            MongoClient mongoClient = MongoClients.create("mongodb://" + serverAddress);
-            MongoDatabase db = mongoClient.getDatabase(config.dbName);
-            collection = db.getCollection("tokenUser");
-        } else {
+            users = new HashMap<>();
+        }
+        else {
             MongoClient mongoClient = MongoClients.create(config.dbURI);
             MongoDatabase database = mongoClient.getDatabase(config.dbName);
             collection = database.getCollection("tokenUser");
@@ -57,29 +43,44 @@ public class UserRepository {
     }
 
     public void save(User user) {
-        Document document = new Document();
-        document.put("username", user.getUsername());
-        document.put("password", user.getPassword());
-        document.put("role", user.getRole());
-        document.put("privileges", user.getPrivileges());
-        collection.insertOne(document);
+        if (config.dbEmbed) {
+            users.put(user.getUsername(), user);
+        }
+        else {
+            Document document = new Document();
+            document.put("username", user.getUsername());
+            document.put("password", user.getPassword());
+            document.put("role", user.getRole());
+            document.put("privileges", user.getPrivileges());
+            collection.insertOne(document);
+        }
     }
 
     public User findByUsername(String username) {
-        Document query = new Document("username", username);
-        Document result = collection.find(query).first();
-        if (result != null) {
-            return mapToUser(result);
+        if (config.dbEmbed) {
+            return users.get(username);
+        }
+        else {
+            Document query = new Document("username", username);
+            Document result = collection.find(query).first();
+            if (result != null) {
+                return mapToUser(result);
+            }
         }
         return null;
     }
 
     public List<User> findAll() {
-        List<User> users = new ArrayList<>();
-        for (Document document : collection.find()) {
-            users.add(mapToUser(document));
+        if (config.dbEmbed) {
+            return new ArrayList<>(users.values());
         }
-        return users;
+        else {
+            List<User> allUsers = new ArrayList<>();
+            for (Document document : collection.find()) {
+                allUsers.add(mapToUser(document));
+            }
+            return allUsers;
+        }
     }
 
     public boolean existsByUsername(String username) {
@@ -87,9 +88,14 @@ public class UserRepository {
     }
 
     public boolean deleteByUsername(String username) {
-        Document query = new Document("username", username);
-        DeleteResult result = collection.deleteOne(query);
-        return result.getDeletedCount() > 0;
+        if (config.dbEmbed) {
+            return users.remove(username) != null;
+        }
+        else {
+            Document query = new Document("username", username);
+            DeleteResult result = collection.deleteOne(query);
+            return result.getDeletedCount() > 0;
+        }
     }
 
     // Helper functions

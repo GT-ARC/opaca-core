@@ -3,6 +3,7 @@ package de.gtarc.opaca.platform.session;
 import java.util.*;
 
 import de.gtarc.opaca.model.PostAgentContainer;
+import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.containerclient.DockerClient;
 import de.gtarc.opaca.platform.containerclient.KubernetesClient;
 import org.springframework.stereotype.Component;
@@ -31,6 +32,9 @@ public class SessionData {
     /* KubernetesClient variables */
     public Map<String, KubernetesClient.PodInfo> pods = new HashMap<>();
 
+    /* UserData variables */
+    public Map<String, User> users = new HashMap<>();
+
     public void reset() {
         this.tokens.clear();
         this.runningContainers.clear();
@@ -39,7 +43,7 @@ public class SessionData {
         this.dockerContainers.clear();
         this.usedPorts.clear();
         this.pods.clear();
-        // TODO reset user data
+        this.users.clear();
     }
 
 }
