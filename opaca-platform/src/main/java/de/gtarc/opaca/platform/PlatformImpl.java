@@ -2,7 +2,6 @@ package de.gtarc.opaca.platform;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.platform.auth.JwtUtil;
 import de.gtarc.opaca.platform.user.TokenUserDetailsService;
@@ -50,7 +49,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Autowired
     private TokenUserDetailsService userDetailsService;
-
 
     private ContainerClient containerClient;
 
@@ -246,7 +244,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         String owner = "";
         if (config.enableAuth) {
             token = jwtUtil.generateTokenForAgentContainer(agentContainerId);
-            owner = userDetailsService.getTokenUser(jwtUtil.getCurrentRequestUser()).getUsername();
+            owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
         }
 
         // start container... this may raise an Exception, or returns the connectivity info

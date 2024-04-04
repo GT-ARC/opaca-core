@@ -7,6 +7,8 @@ services:
     build: .
     ports:
       - "8000:8000"
+    depends_on:
+      - mongodb
     # Environment variables with no value after ":" are taken from .env file
     environment:
       # General Settings
