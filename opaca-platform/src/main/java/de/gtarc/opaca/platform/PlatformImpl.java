@@ -13,7 +13,6 @@ import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -90,7 +89,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
         this.containerClient.initialize(config, sessionData);
         this.containerClient.testConnectivity();
-        // TODO add list of known used ports to config (e.g. the port of the RP itself, or others)
 
         for (var containerId : runningContainers.keySet()) {
             var image = runningContainers.get(containerId).getImage();
@@ -508,15 +506,6 @@ public class PlatformImpl implements RuntimePlatformApi {
                         );
     }
 
-    private ApiProxy getClient(AgentContainer container) {
-        return getClient(container.getContainerId());
-    }
-
-    private ApiProxy getClient(String containerId) {
-        var url = containerClient.getUrl(containerId);
-        return new ApiProxy(url);
-    }
-
     private ApiProxy getClient(String containerId, String token) {
         var url = containerClient.getUrl(containerId);
         return new ApiProxy(url, token);
@@ -540,13 +529,6 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw new IllegalArgumentException(String.format("Client Config %s does not match Container Environment %s",
                     request.getClientConfig().getType(), config.containerEnvironment));
         }
-    }
-
-    /**
-     * Creates a random String of length 24 containing upper and lower case characters as well as number
-     */
-    private String generateRandomPwd() {
-        return RandomStringUtils.random(24, true, true);
     }
 
 }

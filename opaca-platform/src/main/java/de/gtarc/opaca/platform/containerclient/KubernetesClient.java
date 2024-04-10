@@ -166,7 +166,7 @@ public class KubernetesClient implements ContainerClient {
             createServicesForPorts(containerId, image, portMap);
 
             var connectivity = new AgentContainer.Connectivity(
-                    config.getOwnBaseUrl().replaceAll(":\\d+$", ""),  // TODO is this correct?
+                    config.getOwnBaseUrl().replaceAll(":\\d+$", ""),
                     portMap.get(image.getApiPort()),
                     extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );

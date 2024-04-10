@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.util.EventProxy;
-import de.gtarc.opaca.util.RestHelper;
 import de.gtarc.opaca.util.RestHelper.RequestException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

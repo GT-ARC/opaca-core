@@ -17,8 +17,6 @@ import java.util.Map;
 @Data @AllArgsConstructor @NoArgsConstructor
 public class AgentContainerImage {
 
-    // TODO what does a container actually "provide", besides its agents and their actions? (Issue #42)
-
     // REQUIRED attributes for starting a container
 
     /** full path of the (Docker) Container, including repository and version */
