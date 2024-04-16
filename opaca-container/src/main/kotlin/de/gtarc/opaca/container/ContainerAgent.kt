@@ -223,23 +223,11 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     }
 
     private fun renewToken() {
-        val currentToken = parentProxy.token()
-        token = currentToken
-        println("NEW TOKEN RECEIVEIED")
-        println(token)
-        parentProxy = ApiProxy(runtimePlatformUrl, currentToken) 
-        if (currentToken != null) {
-            val agents = registeredAgents.keys.toList()
-            for (agent in agents) {
-                if (agent != null) {
-                    val res: String = invokeAskWait(agent, RenewToken(currentToken), -1)
-                    println("Response from agent: $res")
-                } else {
-                    throw NoSuchElementException("Agent is null")
-                }
-            }
-        } else {
-            throw IllegalStateException("Token cannot be null")
+        token = parentProxy.renewToken()
+        parentProxy = ApiProxy(runtimePlatformUrl, token) 
+        for (agentId in registeredAgents.keys.toList()) {
+            val ref = system.resolve(agentId)
+            ref tell RenewToken(token!!)
         }
     }
 
