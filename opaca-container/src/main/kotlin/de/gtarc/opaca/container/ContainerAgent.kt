@@ -206,10 +206,12 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
 
         // renew token every 9 hours (should be valid for 10 hours)
+        // (first called after one interval, not directly after startup)
         every(Duration.ofSeconds(60 * 60 * 9)) {
             // TODO test if token is close to expiring --> requires async encryption for tokens so container can check it
             if (! token.isNullOrEmpty()) {
                 try {
+                    log.info("Renewing token...")
                     renewToken()
                 } catch (e: Exception) {
                     log.error("Error during token renewal: ${e.message}")

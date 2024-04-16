@@ -142,10 +142,8 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public String renewToken() {
-        // TODO check what happens in no-auth case
+        // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
         String owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
-        System.out.println("TOKEN REWNEW");
-        System.out.println(owner);
         return jwtUtil.generateTokenForAgentContainer(owner);
     }
 
