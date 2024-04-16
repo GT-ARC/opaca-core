@@ -14,8 +14,6 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicReference
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import java.io.InputStream
 
 
@@ -45,7 +43,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     private val runtimePlatformUrl = System.getenv(AgentContainerApi.ENV_PLATFORM_URL)
 
     /** the token for accessing the parent Runtime Platform, received on initialization */
-    private var token: String? = System.getenv(AgentContainerApi.ENV_TOKEN)
+    private var token = System.getenv(AgentContainerApi.ENV_TOKEN)
 
     private var parentProxy: ApiProxy = ApiProxy(runtimePlatformUrl, token)
 

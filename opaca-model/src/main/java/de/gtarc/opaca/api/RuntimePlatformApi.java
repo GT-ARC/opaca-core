@@ -57,7 +57,7 @@ public interface RuntimePlatformApi extends CommonApi {
     String login(Login loginParams) throws IOException;
 
     /**
-     * Retrieve new Access Token for already logged in user. This makes the old token invalid.
+     * Retrieve new Access Token for already logged in user.
      *
      * REST: GET /token
      *
