@@ -49,8 +49,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     private var parentProxy: ApiProxy = ApiProxy(runtimePlatformUrl, token)
 
-    private val executorService = Executors.newSingleThreadScheduledExecutor()
-
     /** the owner who started the Agent Container */
     private val owner = System.getenv(AgentContainerApi.ENV_OWNER)
 
@@ -64,12 +62,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     override fun preStart() {
         log.info("Starting Container Agent...")
         super.preStart()
-        println("TOKEEEEEEEEEEEEEN")
-        println(token)
-        if (!token.isNullOrEmpty()) {
-            println("DRIN")
-            scheduleTokenRenewal()
-        }
         server.start()
     }
 
@@ -81,20 +73,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         server.stop()
         super.postStop()
     }
-
-    private fun scheduleTokenRenewal() {
-        val initialDelay = 1L
-        val period = 1L
-
-        executorService.scheduleAtFixedRate({
-            try {
-                renewToken()
-            } catch (e: Exception) {
-                println("Error during token renewal: ${e.message}")
-            }
-        }, initialDelay, period, TimeUnit.MINUTES)
-    }
-
 
     /**
      * Implementation of the Agent Container API
@@ -227,6 +205,17 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             }
         }
 
+        // renew token every 9 hours (should be valid for 10 hours)
+        every(Duration.ofSeconds(60 * 60 * 9)) {
+            // TODO test if token is close to expiring --> requires async encryption for tokens so container can check it
+            if (! token.isNullOrEmpty()) {
+                try {
+                    renewToken()
+                } catch (e: Exception) {
+                    log.error("Error during token renewal: ${e.message}")
+                }
+            }
+        }
     }
 
     private fun notifyPlatform() {
