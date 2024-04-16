@@ -55,7 +55,7 @@ Please refer to the [API docs](doc/api.md) page for more information about the d
 * run `mvn install -DskipTests` in the parent directory to build everything in order (skipping tests is necessary in this step, as the tests would require the Docker image that is built in the next step)
 * build the sample container with `docker build -t sample-agent-container-image examples/sample-container`
 * optional: run `mvn test` to check that everything is okay
-* start the platform with `java -jar opaca-platform/target/jiacpp-platform-<version>-with-dependencies.jar`
+* start the platform with `java -jar opaca-platform/target/opaca-platform-<version>-with-dependencies.jar`
 * go to <http://localhost:8000/swagger-ui/index.html>
 * go to `POST containers`, click "try it out", and set the `imageName` to `"sample-agent-container-image"`, or replace the entire value of `image` by the content from `examples/sample-container/src/main/resources/sample-image.json` (in this case, make sure to also provide values for the required parameters in `arguments`)
 * in another terminal, do `docker ps` to find the started image, and then `docker logs -f <container-name>` to show (and follow) the logs
@@ -80,6 +80,7 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 * `CONTAINER_ENVIRONMENT` (default: "docker") The environment where the Agent Containers should be running; possible values are `docker` and `kubernetes`.
 * `SESSION_POLICY` (default: "shutdown") How to behave when the platform is shut down and restarted. See [Session](doc/session.md) for details.
 * `DEFAULT_IMAGE_DIRECTORY` (default: null) The runtime platform will try to read any JSON files from this directory containing Agent Container Image descriptions and auto-deploy those to the platform when it starts.
+* `EVENT_HISTORY_SIZE`(default: 50) The maximum number of entries in the event history. Note that most events generate more than one entry.
 
 ### Image Registry Credentials
 * `REGISTRY_SEPARATOR` (default: ";") Separator for the below attributes for registry credentials.

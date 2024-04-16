@@ -5,14 +5,15 @@ import java.util.LinkedList;
 import java.util.List;
 import de.gtarc.opaca.model.Event;
 
-// TODO
-// 1. Truncating the history after a certain time, after a certain number of entries or similar
-
 /**
  * This class provides the Event History.
  */
 public class EventHistory {
+ 
+    public static int maxSize = 50;
+
     private static final EventHistory INSTANCE = new EventHistory();
+    
     private final List<Event> events = Collections.synchronizedList(new LinkedList<>());
 
     private EventHistory() {
@@ -25,6 +26,9 @@ public class EventHistory {
     public void addEvent(Event entry) {
         if (entry != null) {
             events.add(entry);
+            while (events.size() > maxSize) {
+                events.remove(0);
+            }
         }
     }
 

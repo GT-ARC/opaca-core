@@ -54,6 +54,9 @@ public class PlatformConfig {
     @Value("${default_image_directory}")
     public String defaultImageDirectory;
 
+    @Value("${event_history_size}")
+    public int eventHistorySize;
+
     // SECURITY & AUTHENTICATION
 
     @Value("${security.enableAuth}")
@@ -73,10 +76,10 @@ public class PlatformConfig {
     @Value("${db_embed}")
     public Boolean dbEmbed;
 
-    @Value("${spring.data.mongodb.uri}")
+    @Value("${db_uri}")
     public String dbURI;
 
-    @Value("${spring.data.mongodb.database}")
+    @Value("${db_name}")
     public String dbName;
 
     // IMAGE REGISTRY CREDENTIALS
@@ -127,6 +130,7 @@ public class PlatformConfig {
 
     public Map<String, Object> toMap() {
         Map<String, Object> res = new LinkedHashMap<>(); // keep insertion order
+        // general stuff
         res.put("publicUrl", publicUrl);
         res.put("serverPort", serverPort);
         res.put("containerEnvironment", containerEnvironment);
@@ -134,8 +138,14 @@ public class PlatformConfig {
         res.put("sessionPolicy", sessionPolicy);
         res.put("containerTimeoutSec", containerTimeoutSec);
         res.put("defaultImageDirectory", defaultImageDirectory);
+        res.put("eventHistorySize", eventHistorySize);
+        // auth stuff
         res.put("enableAuth", enableAuth);
+        // user management stuff
+        res.put("dbEmbed", dbEmbed);
+        // image registry stuff
         res.put("registryNames", registryNames);
+        // docker & kubernetes stuff
         if (containerEnvironment == PostAgentContainer.ContainerEnvironment.DOCKER) {
             res.put("remoteDockerHost", remoteDockerHost);
             res.put("remoteDockerPort", remoteDockerPort);

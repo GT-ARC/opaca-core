@@ -12,7 +12,7 @@ import lombok.extern.java.Log;
 
 import java.io.*;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -56,7 +56,7 @@ public class RestHelper {
 
     public void streamRequest(String method, String path, byte[] payload) throws IOException {
         // TODO find a way to unify this with "request" below, maybe with a callback to serialize the payload?
-        HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
+        HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl + path).toURL().openConnection();
         connection.setRequestMethod(method);
         connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
 
@@ -86,7 +86,7 @@ public class RestHelper {
 
     public InputStream request(String method, String path, Object payload) throws IOException {
         log.info(String.format("%s %s%s (%s)", method, baseUrl, path, payload));
-        HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
+        HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl + path).toURL().openConnection();
         connection.setRequestMethod(method);
         connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
 

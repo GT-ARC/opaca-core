@@ -4,13 +4,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import de.gtarc.opaca.model.Role;
+import de.gtarc.opaca.model.User;
 import jakarta.annotation.PostConstruct;
 
 import de.gtarc.opaca.platform.PlatformConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -31,7 +31,7 @@ public class TokenUserDetailsService implements UserDetailsService {
     private PlatformConfig config;
 
     @Autowired
-    private TokenUserRepository tokenUserRepository;
+    private UserRepository userRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -39,37 +39,37 @@ public class TokenUserDetailsService implements UserDetailsService {
 
     @PostConstruct
 	public void postConstruct() {
-        if (tokenUserRepository.findByUsername(config.platformAdminUser) == null) {
+        if (userRepository.findByUsername(config.platformAdminUser) == null) {
             if (config.platformAdminPwd == null) {
                 throw new RuntimeException("Platform password cannot be null even when platform authorization is not enabled!");
             }
-            createUser(config.platformAdminUser, config.platformAdminPwd, Role.ADMIN, null);
+            createUser(config.platformAdminUser, config.platformAdminPwd, Role.ADMIN, new ArrayList<>());
         }
 	}
 
     /** Returns the TokenUser as a standardized 'User' object */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        TokenUser user = tokenUserRepository.findByUsername(username);
+        User user = userRepository.findByUsername(username);
         if (user != null) {
-            return new User(username, user.getPassword(), getAuthorities(user));
+            return new org.springframework.security.core.userdetails.User(username, user.getPassword(), getAuthorities(user));
         } else {
             throw new UsernameNotFoundException("User not found: " + username);
         }
     }
 
     /**
-     * Adding a new user to the UserRepository. Users can be human [username, password, roles]
-     * or containers [containerID, password(random), roles]
+     * Adding a new user to the UserRepository. Users can be human [username, password, roles, privileges]
+     * or containers [containerID, password(random), roles, privileges]
      * If a User already exists, throw an exception
      */
     public void createUser(String username, String password, Role role, List<String> privileges) {
-        if (tokenUserRepository.findByUsername(username) != null) {
+        if (userRepository.findByUsername(username) != null) {
             throw new UserAlreadyExistsException(username);
         }
         else {
-            TokenUser user = new TokenUser(username, passwordEncoder.encode(password), role, privileges);
-            tokenUserRepository.save(user);
+            User user = new User(username, passwordEncoder.encode(password), role, privileges != null ? privileges : new ArrayList<>());
+            userRepository.save(user);
         }
     }
 
@@ -77,12 +77,8 @@ public class TokenUserDetailsService implements UserDetailsService {
      * Returns a user based on its username.
      * If the user was not found, throw an exception.
      */
-    public String getUser(String username) {
-        return getTokenUser(username).toString();
-    }
-
-    public TokenUser getTokenUser(String username) {
-        TokenUser user = tokenUserRepository.findByUsername(username);
+    public User getUser(String username) {
+        User user = userRepository.findByUsername(username);
         if (user == null) throw new UsernameNotFoundException(username);
         return user;
     }
@@ -91,7 +87,7 @@ public class TokenUserDetailsService implements UserDetailsService {
      * Return all users in the UserRepository
      */
     public List<String> getUsers() {
-        return tokenUserRepository.findAll().stream().map(TokenUser::toString).collect(Collectors.toList());
+        return userRepository.findAll().stream().map(User::toString).collect(Collectors.toList());
     }
 
     /**
@@ -100,10 +96,10 @@ public class TokenUserDetailsService implements UserDetailsService {
      * If the user does not exist, throw exception.
      */
     public Boolean removeUser(String username) {
-        if (! tokenUserRepository.existsById(username)) {
+        if (! userRepository.existsByUsername(username)) {
             throw new UsernameNotFoundException(username);
         }
-        return tokenUserRepository.deleteByUsername(username) > 0;
+        return userRepository.deleteByUsername(username);
     }
 
     /**
@@ -114,9 +110,9 @@ public class TokenUserDetailsService implements UserDetailsService {
      */
     public String updateUser(String username, String newUsername, String password, Role role,
                              List<String> privileges) {
-        TokenUser user = tokenUserRepository.findByUsername(username);
+        User user = userRepository.findByUsername(username);
         if (user == null) throw new UsernameNotFoundException(username);
-        if (tokenUserRepository.findByUsername(newUsername) != null &&
+        if (userRepository.findByUsername(newUsername) != null &&
                 !Objects.equals(username, newUsername)) throw new UserAlreadyExistsException(newUsername);
         if (password != null) user.setPassword(passwordEncoder.encode(password));
         if (role != null) user.setRole(role);
@@ -124,18 +120,18 @@ public class TokenUserDetailsService implements UserDetailsService {
         if (newUsername != null) {
             user.setUsername(newUsername);
             // If a new username (mongo ID) is given, the old entity should be deleted
-            tokenUserRepository.deleteByUsername(username);
+            userRepository.deleteByUsername(username);
             // TODO what happens if the deletion or creation fails?
             //  Updating should be atomic
         }
-        tokenUserRepository.save(user);
-        return getUser(user.getUsername());
+        userRepository.save(user);
+        return getUser(user.getUsername()).toString();
     }
 
     /**
      * Returns the role and privileges as granted authorities from the given user
      */
-    private Collection<? extends GrantedAuthority> getAuthorities(TokenUser user) {
+    private Collection<? extends GrantedAuthority> getAuthorities(User user) {
         List<String> authorities = new ArrayList<>();
         authorities.add(user.getRole().role());
         authorities.addAll(user.getPrivileges());
@@ -147,7 +143,7 @@ public class TokenUserDetailsService implements UserDetailsService {
      * Return the role associated to the username
      */
     public Role getUserRole(String username) {
-        TokenUser user = tokenUserRepository.findByUsername(username);
+        User user = userRepository.findByUsername(username);
         if (user == null) throw new UsernameNotFoundException(username);
         return user.getRole();
     }
@@ -156,7 +152,7 @@ public class TokenUserDetailsService implements UserDetailsService {
      * Return the privileges associated to the username
      */
     public List<String> getUserPrivileges(String username) {
-        TokenUser user = tokenUserRepository.findByUsername(username);
+        User user = userRepository.findByUsername(username);
         if (user == null) throw new UsernameNotFoundException(username);
         return user.getPrivileges();
     }

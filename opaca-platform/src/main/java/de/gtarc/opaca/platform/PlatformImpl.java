@@ -2,7 +2,6 @@ package de.gtarc.opaca.platform;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.platform.auth.JwtUtil;
 import de.gtarc.opaca.platform.user.TokenUserDetailsService;
@@ -14,7 +13,6 @@ import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -50,7 +48,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Autowired
     private TokenUserDetailsService userDetailsService;
-
 
     private ContainerClient containerClient;
 
@@ -92,7 +89,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
         this.containerClient.initialize(config, sessionData);
         this.containerClient.testConnectivity();
-        // TODO add list of known used ports to config (e.g. the port of the RP itself, or others)
 
         for (var containerId : runningContainers.keySet()) {
             var image = runningContainers.get(containerId).getImage();
@@ -257,10 +253,8 @@ public class PlatformImpl implements RuntimePlatformApi {
         String token = "";
         String owner = "";
         if (config.enableAuth) {
-            System.out.println("TOKEN INITAL");
             token = jwtUtil.generateTokenForAgentContainer(agentContainerId);
-            System.out.println(token);
-            owner = userDetailsService.getTokenUser(jwtUtil.getCurrentRequestUser()).getUsername();
+            owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
         }
 
         // start container... this may raise an Exception, or returns the connectivity info
@@ -524,15 +518,6 @@ public class PlatformImpl implements RuntimePlatformApi {
                         );
     }
 
-    private ApiProxy getClient(AgentContainer container) {
-        return getClient(container.getContainerId());
-    }
-
-    private ApiProxy getClient(String containerId) {
-        var url = containerClient.getUrl(containerId);
-        return new ApiProxy(url);
-    }
-
     private ApiProxy getClient(String containerId, String token) {
         var url = containerClient.getUrl(containerId);
         return new ApiProxy(url, token);
@@ -556,13 +541,6 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw new IllegalArgumentException(String.format("Client Config %s does not match Container Environment %s",
                     request.getClientConfig().getType(), config.containerEnvironment));
         }
-    }
-
-    /**
-     * Creates a random String of length 24 containing upper and lower case characters as well as number
-     */
-    private String generateRandomPwd() {
-        return RandomStringUtils.random(24, true, true);
     }
 
 }

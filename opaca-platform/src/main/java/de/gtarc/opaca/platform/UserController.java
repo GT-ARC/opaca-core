@@ -65,7 +65,7 @@ public class UserController {
         userDetailsService.createUser(user.getUsername(), user.getPassword(), user.getRole(), user.getPrivileges());
         log.info(String.format("ADD USER: [username='%s', role='%s', privileges=%s]",
                 user.getUsername(), user.getRole(), user.getPrivileges()));
-        return new ResponseEntity<>(userDetailsService.getUser(user.getUsername()), HttpStatus.CREATED);
+        return new ResponseEntity<>(userDetailsService.getUser(user.getUsername()).toString(), HttpStatus.CREATED);
     }
 
     /**
@@ -103,7 +103,7 @@ public class UserController {
     ) {
         if (!config.enableAuth || isAdminOrSelf(token, username)){
             log.info(String.format("GET USER: %s", username));
-            return new ResponseEntity<>(userDetailsService.getUser(username), HttpStatus.OK);
+            return new ResponseEntity<>(userDetailsService.getUser(username).toString(), HttpStatus.OK);
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN);
     }
