@@ -54,6 +54,9 @@ public class PlatformConfig {
     @Value("${default_image_directory}")
     public String defaultImageDirectory;
 
+    @Value("${event_history_size}")
+    public int eventHistorySize;
+
     // SECURITY & AUTHENTICATION
 
     @Value("${security.enableAuth}")
@@ -135,6 +138,7 @@ public class PlatformConfig {
         res.put("sessionPolicy", sessionPolicy);
         res.put("containerTimeoutSec", containerTimeoutSec);
         res.put("defaultImageDirectory", defaultImageDirectory);
+        res.put("eventHistorySize", eventHistorySize);
         // auth stuff
         res.put("enableAuth", enableAuth);
         // user management stuff
