@@ -64,7 +64,12 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     override fun preStart() {
         log.info("Starting Container Agent...")
         super.preStart()
-        scheduleTokenRenewal()
+        println("TOKEEEEEEEEEEEEEN")
+        println(token)
+        if (!token.isNullOrEmpty()) {
+            println("DRIN")
+            scheduleTokenRenewal()
+        }
         server.start()
     }
 
@@ -78,14 +83,13 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     }
 
     private fun scheduleTokenRenewal() {
-        val initialDelay = 1L // Delay before the first execution (0 if you want to start immediately)
-        val period = 1L // The period between successive executions
+        val initialDelay = 1L
+        val period = 1L
 
         executorService.scheduleAtFixedRate({
             try {
                 renewToken()
             } catch (e: Exception) {
-                // Handle any exceptions here, possibly logging them
                 println("Error during token renewal: ${e.message}")
             }
         }, initialDelay, period, TimeUnit.MINUTES)
