@@ -57,13 +57,13 @@ public interface RuntimePlatformApi extends CommonApi {
     String login(Login loginParams) throws IOException;
 
     /**
-     * Retrieve Access Token for given user to be passed as header for secured routes.
+     * Retrieve new Access Token for already logged in user. This makes the old token invalid.
      *
      * REST: GET /token
      *
      * @return JWT access token
      */
-    String token() throws IOException;
+    String renewToken() throws IOException;
 
     /*
      * AGENT CONTAINER ROUTES

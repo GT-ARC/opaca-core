@@ -101,7 +101,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         return new RuntimePlatform(
                 config.getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),
-                List.of(), // TODO "provides" pf platform? read from config? issue #42
+                List.of(), // TODO "provides" of platform? read from config? issue #42
                 List.copyOf(connectedPlatforms.keySet())
         );
     }
@@ -135,24 +135,19 @@ public class PlatformImpl implements RuntimePlatformApi {
                 .findAny().orElse(null);
     }
 
-
     @Override
     public String login(Login loginParams) {
         return jwtUtil.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
     }
 
     @Override
-    public String token() {
-        String owner = userDetailsService.getTokenUser(jwtUtil.getCurrentRequestUser()).getUsername();
+    public String renewToken() {
+        // TODO check what happens in no-auth case
+        String owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
         System.out.println("TOKEN REWNEW");
         System.out.println(owner);
         return jwtUtil.generateTokenForAgentContainer(owner);
     }
-
-
-    
-
-    
 
     @Override
     public void send(String agentId, Message message, String containerId, boolean forward) throws IOException, NoSuchElementException {

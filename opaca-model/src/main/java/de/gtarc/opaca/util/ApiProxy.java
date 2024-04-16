@@ -64,7 +64,7 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
-    public String token() throws IOException {
+    public String renewToken() throws IOException {
         return client.readStream(client.request("GET", "/token", null));
     }
 

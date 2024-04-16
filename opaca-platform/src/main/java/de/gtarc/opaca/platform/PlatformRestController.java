@@ -110,10 +110,9 @@ public class PlatformRestController {
 	}
 
 	@RequestMapping(value="/token", method=RequestMethod.GET)
-	@Operation(summary="Renew token with current token.", tags={"authentication"})
-	public String token(
-	) throws IOException {
-		return implementation.token();
+	@Operation(summary="Renew token for logged in user.", tags={"authentication"})
+	public String renewToken() throws IOException {
+		return implementation.renewToken();
 	}
 
 	/*

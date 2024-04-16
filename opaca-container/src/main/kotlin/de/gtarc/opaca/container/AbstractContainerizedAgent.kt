@@ -24,10 +24,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
 
     /** proxy to parent Runtime Platform for forwarding outgoing calls */
     private var runtimePlatformUrl: String? = null
-
-
     private var token: String? = null
-
     private lateinit var parentProxy: ApiProxy
 
     protected val actions = mutableListOf<Action>()
@@ -103,7 +100,6 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
             log.info("RENEW TOKEN $it")
             token = it.value
             parentProxy =  ApiProxy(runtimePlatformUrl, token) 
-            println("New Token received")
         }
 
         respond<StreamGet, Any?> {
