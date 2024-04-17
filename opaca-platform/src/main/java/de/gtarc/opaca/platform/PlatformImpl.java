@@ -101,7 +101,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         return new RuntimePlatform(
                 config.getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),
-                List.of(), // TODO "provides" pf platform? read from config? issue #42
+                List.of(), // TODO "provides" of platform? read from config? issue #42
                 List.copyOf(connectedPlatforms.keySet())
         );
     }
@@ -135,12 +135,17 @@ public class PlatformImpl implements RuntimePlatformApi {
                 .findAny().orElse(null);
     }
 
-
     @Override
     public String login(Login loginParams) {
         return jwtUtil.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
     }
-    
+
+    @Override
+    public String renewToken() {
+        // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
+        String owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
+        return jwtUtil.generateTokenForAgentContainer(owner);
+    }
 
     @Override
     public void send(String agentId, Message message, String containerId, boolean forward) throws IOException, NoSuchElementException {

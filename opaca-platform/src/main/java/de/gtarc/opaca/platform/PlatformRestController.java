@@ -109,6 +109,12 @@ public class PlatformRestController {
 		return implementation.login(loginParams);
 	}
 
+	@RequestMapping(value="/token", method=RequestMethod.GET)
+	@Operation(summary="Renew token for logged in user.", tags={"authentication"})
+	public String renewToken() throws IOException {
+		return implementation.renewToken();
+	}
+
 	/*
 	 * INFO ROUTES
 	 */

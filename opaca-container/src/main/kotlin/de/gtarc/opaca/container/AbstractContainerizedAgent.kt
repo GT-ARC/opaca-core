@@ -25,7 +25,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
     /** proxy to parent Runtime Platform for forwarding outgoing calls */
     private var runtimePlatformUrl: String? = null
     private var token: String? = null
-    private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl, token) }
+    private lateinit var parentProxy: ApiProxy
 
     protected val actions = mutableListOf<Action>()
     protected val actionCallbacks = mutableMapOf<String, (Map<String, JsonNode>) -> Any?>()
@@ -47,6 +47,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
             log.info("REGISTERED: Parent URL is ${it.parentUrl}")
             runtimePlatformUrl = it.parentUrl
             token = it.authToken
+            parentProxy =  ApiProxy(runtimePlatformUrl, token) 
         }
     }
 
@@ -93,6 +94,12 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
                 in actionCallbacks -> actionCallbacks[it.name]?.let { cb -> cb(it.parameters) }
                 else -> Unit
             }
+        }
+
+        on<RenewToken> {
+            log.info("RENEW TOKEN $it")
+            token = it.value
+            parentProxy =  ApiProxy(runtimePlatformUrl, token) 
         }
 
         respond<StreamGet, Any?> {

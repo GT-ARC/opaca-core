@@ -43,12 +43,12 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     private val runtimePlatformUrl = System.getenv(AgentContainerApi.ENV_PLATFORM_URL)
 
     /** the token for accessing the parent Runtime Platform, received on initialization */
-    private val token = System.getenv(AgentContainerApi.ENV_TOKEN)
+    private var token = System.getenv(AgentContainerApi.ENV_TOKEN)
+
+    private var parentProxy: ApiProxy = ApiProxy(runtimePlatformUrl, token)
 
     /** the owner who started the Agent Container */
     private val owner = System.getenv(AgentContainerApi.ENV_OWNER)
-
-    private val parentProxy: ApiProxy by lazy { ApiProxy(runtimePlatformUrl, token) }
 
     /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
@@ -71,7 +71,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         server.stop()
         super.postStop()
     }
-
 
     /**
      * Implementation of the Agent Container API
@@ -204,10 +203,32 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             }
         }
 
+        // renew token every 9 hours (should be valid for 10 hours)
+        // (first called after one interval, not directly after startup)
+        every(Duration.ofSeconds(60 * 60 * 9)) {
+            // TODO test if token is close to expiring --> requires async encryption for tokens so container can check it
+            if (! token.isNullOrEmpty()) {
+                try {
+                    log.info("Renewing token...")
+                    renewToken()
+                } catch (e: Exception) {
+                    log.error("Error during token renewal: ${e.message}")
+                }
+            }
+        }
     }
 
     private fun notifyPlatform() {
         parentProxy.notifyUpdateContainer(containerId)
+    }
+
+    private fun renewToken() {
+        token = parentProxy.renewToken()
+        parentProxy = ApiProxy(runtimePlatformUrl, token) 
+        for (agentId in registeredAgents.keys.toList()) {
+            val ref = system.resolve(agentId)
+            ref tell RenewToken(token!!)
+        }
     }
 
     private fun findRegisteredAgent(agentId: String?, action: String?, stream: String?): String? {
