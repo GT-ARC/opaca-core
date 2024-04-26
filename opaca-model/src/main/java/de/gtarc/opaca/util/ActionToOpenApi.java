@@ -3,8 +3,9 @@ package de.gtarc.opaca.util;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.core.util.DefaultIndenter;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import de.gtarc.opaca.model.Action;
@@ -17,7 +18,7 @@ import de.gtarc.opaca.model.Parameter.ArrayItems;
  */
 public class ActionToOpenApi {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         var agents = List.of(
             new AgentDescription("agentA", "typeA", List.of(
                 new Action("foo", Map.of(
@@ -28,7 +29,11 @@ public class ActionToOpenApi {
             ), List.of())
         );
         var openApi = createOpenApi(agents);
-        System.out.println(openApi);
+
+        var indenter =  new DefaultIndenter("  ", DefaultIndenter.SYS_LF);
+        var printer = new DefaultPrettyPrinter().withArrayIndenter(indenter).withObjectIndenter(indenter);
+        var json = RestHelper.mapper.writer(printer).writeValueAsString(openApi);
+        System.out.println(json);
     }
     
     public static JsonNode createOpenApi(List<AgentDescription> agents) {
