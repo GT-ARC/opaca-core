@@ -91,6 +91,7 @@ public class KubernetesClient implements ContainerClient {
         try {
             this.coreApi.listNamespacedPod(this.namespace).execute();
         } catch (ApiException e) {
+            log.severe("Could not initialize Kubernetes Client: " + e.getMessage());
             throw new RuntimeException("Could not initialize Kubernetes Client", e);
         }
     }
