@@ -87,7 +87,12 @@ public class DockerClient implements ContainerClient {
 
     @Override
     public void testConnectivity() {
-        this.dockerClient.listContainersCmd().exec();
+        try {
+            this.dockerClient.listContainersCmd().exec();
+        } catch (Exception e) {
+            log.severe("Could not initialize Docker Client: " + e.getMessage());
+            throw new RuntimeException("Could not initialize Docker Client", e);
+        }
     }
 
     @Override
