@@ -45,7 +45,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     /** the token for accessing the parent Runtime Platform, received on initialization */
     private var token = System.getenv(AgentContainerApi.ENV_TOKEN)
 
-    private var parentProxy: ApiProxy = ApiProxy(runtimePlatformUrl, token)
+    private var parentProxy: ApiProxy = ApiProxy(runtimePlatformUrl, containerId, token)
 
     /** the owner who started the Agent Container */
     private val owner = System.getenv(AgentContainerApi.ENV_OWNER)
@@ -191,7 +191,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             if (it.notify) {
                 notifyPlatform()
             }
-            Registered(runtimePlatformUrl, token)
+            Registered(runtimePlatformUrl, containerId, token)
         }
 
         // in case agents want to de-register themselves before the container as a whole terminates
@@ -224,7 +224,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     private fun renewToken() {
         token = parentProxy.renewToken()
-        parentProxy = ApiProxy(runtimePlatformUrl, token) 
+        parentProxy = ApiProxy(runtimePlatformUrl, containerId, token) 
         for (agentId in registeredAgents.keys.toList()) {
             val ref = system.resolve(agentId)
             ref tell RenewToken(token!!)

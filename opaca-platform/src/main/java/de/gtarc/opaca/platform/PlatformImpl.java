@@ -354,17 +354,17 @@ public class PlatformImpl implements RuntimePlatformApi {
         } else {
             if (loginConnection.getUsername() != null) {
                 // with auth, unidirectional
-                var token = new ApiProxy(url).login(new Login(loginConnection.getUsername(), loginConnection.getPassword()));
-                var info = new ApiProxy(url, token).getPlatformInfo();
+                var token = getPlatformClient(url).login(new Login(loginConnection.getUsername(), loginConnection.getPassword()));
+                var info = getPlatformClient(url, token).getPlatformInfo();
                 connectedPlatforms.put(url, info);
                 tokens.put(url, token);
             } else {
                 // without auth, bidirectional
                 try {
-                    var info = new ApiProxy(url).getPlatformInfo();
+                    var info = getPlatformClient(url).getPlatformInfo();
                     url = info.getBaseUrl();
                     pendingConnections.add(url);
-                    if (new ApiProxy(url).connectPlatform(new LoginConnection(null, null, config.getOwnBaseUrl()))) {
+                    if (getPlatformClient(url).connectPlatform(new LoginConnection(null, null, config.getOwnBaseUrl()))) {
                         connectedPlatforms.put(url, info);
                     }
                 } finally {
@@ -391,7 +391,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             if (tokens.containsKey(url)) {
                 tokens.remove(url);
             } else {
-                new ApiProxy(url).disconnectPlatform(config.getOwnBaseUrl());
+                getPlatformClient(url).disconnectPlatform(config.getOwnBaseUrl());
             }
             log.info(String.format("Disconnected from %s", url));
             return true;
@@ -436,7 +436,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw new NoSuchElementException(msg);
         }
         try {
-            var client = new ApiProxy(platformUrl);
+            var client = getPlatformClient(platformUrl);
             var platformInfo = client.getPlatformInfo();
             connectedPlatforms.put(platformUrl, platformInfo);
             return true;
@@ -462,7 +462,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         // TODO with connect not being bidirectional, this does not really make sense anymore
         //  adapt to possible new /subscribe route, or change entirely?
         for (String platformUrl : connectedPlatforms.keySet()) {
-            var client = new ApiProxy(platformUrl);
+            var client = getPlatformClient(platformUrl);
             try {
                 client.notifyUpdatePlatform(config.getOwnBaseUrl());
             } catch (IOException e) {
@@ -491,7 +491,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         // remote platforms
         var platformClients = connectedPlatforms.entrySet().stream()
             .filter(entry -> entry.getValue().getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action, parameters, stream)))
-            .map(entry -> new ApiProxy(entry.getKey(), tokens.get(entry.getKey())));
+            .map(entry -> getPlatformClient(entry.getKey(), tokens.get(entry.getKey())));
 
         return Stream.concat(containerClients, platformClients);
     }
@@ -511,9 +511,26 @@ public class PlatformImpl implements RuntimePlatformApi {
                         );
     }
 
+    private ApiProxy getClient(AgentContainer container) {
+        return getClient(container.getContainerId());
+    }
+
+    private ApiProxy getClient(String containerId) {
+        var url = containerClient.getUrl(containerId);
+        return new ApiProxy(url, config.getOwnBaseUrl(), null);
+    }
+
     private ApiProxy getClient(String containerId, String token) {
         var url = containerClient.getUrl(containerId);
-        return new ApiProxy(url, token);
+        return new ApiProxy(url, config.getOwnBaseUrl(), token);
+    }
+
+    private ApiProxy getPlatformClient(String url) {
+        return new ApiProxy(url, config.getOwnBaseUrl(), null);
+    }
+
+    private ApiProxy getPlatformClient(String url, String token) {
+        return new ApiProxy(url, config.getOwnBaseUrl(), token);
     }
 
     private String normalizeString(String string) {

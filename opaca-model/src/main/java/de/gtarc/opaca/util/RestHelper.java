@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import de.gtarc.opaca.model.ErrorResponse;
+import de.gtarc.opaca.model.Event;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.java.Log;
@@ -14,7 +15,9 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -25,6 +28,7 @@ import java.util.stream.Collectors;
 public class RestHelper {
 
     public final String baseUrl;
+    public final String senderId;
     public final String token;
 
     public static final ObjectMapper mapper = JsonMapper.builder()
@@ -60,12 +64,17 @@ public class RestHelper {
         connection.setRequestMethod(method);
         connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
 
+        if (senderId != null && ! senderId.isEmpty()) {
+            connection.setRequestProperty(Event.HEADER_SENDER_ID, senderId);
+        }
         if (token != null && !token.isEmpty()) {
             connection.setRequestProperty("Authorization", "Bearer " + token);
         }
 
         connection.setDoOutput(true);
         connection.connect();
+
+        createForwardEvent(method, path);
 
         try (OutputStream os = connection.getOutputStream();
             InputStream inputStream = new ByteArrayInputStream(payload);
@@ -90,6 +99,9 @@ public class RestHelper {
         connection.setRequestMethod(method);
         connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
 
+        if (senderId != null && ! senderId.isEmpty()) {
+            connection.setRequestProperty(Event.HEADER_SENDER_ID, senderId);
+        }
         if (token != null && ! token.isEmpty()) {
             connection.setRequestProperty("Authorization", "Bearer " + token);
         }
@@ -106,6 +118,8 @@ public class RestHelper {
         } else {
             connection.connect();
         }
+
+        createForwardEvent(method, path);
 
         if (connection.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST) {
             return connection.getInputStream();
@@ -156,6 +170,22 @@ public class RestHelper {
         public RequestException(String message, ErrorResponse nestedError) {
             super(message);
             this.nestedError = nestedError;
+        }
+    }
+
+    /**
+     * Get the latest CALL Event with same method and add FORWARD event related to that, if any.
+     * This does nothing if the Event History is empty, e.g. in the AgentContainer.
+     */
+    private void createForwardEvent(String method, String path) {
+        var key = String.format("%s %s", method, path.split("\\?")[0]);
+        System.out.println("FORWARDING? " + key);
+        Optional<Event> related = EventHistory.getInstance().getEvents().stream()
+                .filter(x -> x.getEventType() == Event.EventType.CALL && x.getRoute().equals(key))
+                .max(Comparator.comparing(Event::getTimestamp));
+        if (related.isPresent()) {
+            Event event = new Event(Event.EventType.FORWARD, null, null, baseUrl, null, related.get().getId());
+            EventHistory.getInstance().addEvent(event);
         }
     }
 

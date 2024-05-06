@@ -24,6 +24,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
 
     /** proxy to parent Runtime Platform for forwarding outgoing calls */
     private var runtimePlatformUrl: String? = null
+    private var containerId: String? = null
     private var token: String? = null
     private lateinit var parentProxy: ApiProxy
 
@@ -46,8 +47,9 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         ref invoke ask<Registered>(Register(desc, notify)) {
             log.info("REGISTERED: Parent URL is ${it.parentUrl}")
             runtimePlatformUrl = it.parentUrl
+            containerId = it.containerId
             token = it.authToken
-            parentProxy =  ApiProxy(runtimePlatformUrl, token) 
+            parentProxy =  ApiProxy(runtimePlatformUrl, containerId, token) 
         }
     }
 
@@ -99,7 +101,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         on<RenewToken> {
             log.info("RENEW TOKEN $it")
             token = it.value
-            parentProxy =  ApiProxy(runtimePlatformUrl, token) 
+            parentProxy =  ApiProxy(runtimePlatformUrl, containerId, token) 
         }
 
         respond<StreamGet, Any?> {
