@@ -44,7 +44,7 @@ public class UserTests {
 
     @Before
     public void printTest() {
-        System.out.println(">>> RUNNING TEST PlatformTests." + testName.getMethodName());
+        System.out.println(">>> RUNNING TEST UserTests." + testName.getMethodName());
     }
 
     @Test

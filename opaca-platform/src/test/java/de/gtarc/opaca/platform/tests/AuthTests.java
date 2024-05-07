@@ -66,7 +66,7 @@ public class AuthTests {
 
     @Before
     public void printTest() {
-        System.out.println(">>> RUNNING TEST PlatformTests." + testName.getMethodName());
+        System.out.println(">>> RUNNING TEST AuthTests." + testName.getMethodName());
     }
 
     @Test

@@ -52,7 +52,7 @@ public class InterPlatformTests {
 
     @Before
     public void printTest() {
-        System.out.println(">>> RUNNING TEST PlatformTests." + testName.getMethodName());
+        System.out.println(">>> RUNNING TEST InterPlatformTests." + testName.getMethodName());
     }
 
     @After

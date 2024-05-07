@@ -61,7 +61,7 @@ public class ContainerTests {
 
     @Before
     public void printTest() {
-        System.out.println(">>> RUNNING TEST PlatformTests." + testName.getMethodName());
+        System.out.println(">>> RUNNING TEST ContainerTests." + testName.getMethodName());
     }
 
     @After
