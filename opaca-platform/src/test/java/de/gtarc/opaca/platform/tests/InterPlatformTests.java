@@ -3,6 +3,7 @@ package de.gtarc.opaca.platform.tests;
 import de.gtarc.opaca.model.RuntimePlatform;
 import de.gtarc.opaca.platform.Application;
 import org.junit.*;
+import org.junit.rules.TestName;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -45,6 +46,14 @@ public class InterPlatformTests {
     public static void stopPlatforms() {
         platformA.close();
         platformB.close();
+    }
+
+    @Rule
+    public TestName testName = new TestName();
+
+    @Before
+    public void printTest() {
+        System.out.println(">>> RUNNING TEST PlatformTests." + testName.getMethodName());
     }
 
     @After

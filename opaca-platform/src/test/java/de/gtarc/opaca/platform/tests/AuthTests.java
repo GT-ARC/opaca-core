@@ -5,6 +5,7 @@ import de.gtarc.opaca.platform.Application;
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
 import org.junit.*;
+import org.junit.rules.TestName;
 import org.junit.runners.MethodSorters;
 
 import org.springframework.boot.SpringApplication;
@@ -60,6 +61,13 @@ public class AuthTests {
         platformB.close();
     }
 
+    @Rule
+    public TestName testName = new TestName();
+
+    @Before
+    public void printTest() {
+        System.out.println(">>> RUNNING TEST PlatformTests." + testName.getMethodName());
+    }
 
     @Test
     public void test01LoginA() throws Exception {
