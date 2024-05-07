@@ -294,11 +294,11 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 ```
 {
     "name": string,
-    "parameters": {string: string},
-    "result": string
+    "parameters": {string: Parameter},
+    "result": Parameter
 }
 ```
-Note: The `parameters` key is a map of the argument names to their expected types, e.g. `"x": "Int"`. Similarly, `result` denotes the action's return type.
+Note: The `parameters` key is a map of the argument names to their expected types. Similarly, `result` denotes the action's return type. Please refer to [Validation](validation.md) for the format and how parameter validation works.
 
 ### Message
 ```
