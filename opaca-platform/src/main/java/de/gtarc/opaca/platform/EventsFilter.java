@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -53,17 +54,15 @@ public class EventsFilter implements Filter {
     }
 
     private boolean requestShouldCreateEvent(HttpServletRequest request) {
-        Set<String> routes = Set.of(
-                "/login", "/token",
-                "/info", "/history", "/config",
-                "/invoke", "/stream", "/send", "/broadcast",
-                "/agents", "/containers", "/connections",
-                "/users"
+        Map<String, Set<String>> routes = Map.of(
+            "GET", Set.of("/stream", "/token"),
+            "POST", Set.of("/users", "/stream", "/invoke", "/send", "/broadcast", "/login", "/containers", "/connections"),
+            "PUT", Set.of("/users"),
+            "DELETE", Set.of("/users", "/containers", "/connections")
         );
-        return routes.stream().anyMatch(r -> request.getRequestURI().startsWith(r))
-                && ! request.getMethod().equals("GET");
+        return routes.getOrDefault(request.getMethod(), Set.of()).stream()
+                .anyMatch(r -> request.getRequestURI().startsWith(r));
     }
-
 
     private void addEvent(Event event) {
         EventHistory.getInstance().addEvent(event);
