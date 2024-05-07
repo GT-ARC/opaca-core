@@ -178,8 +178,7 @@ public class RestHelper {
      * This does nothing if the Event History is empty, e.g. in the AgentContainer.
      */
     private void createForwardEvent(String method, String path) {
-        var key = String.format("%s %s", method, path.split("\\?")[0]);
-        System.out.println("FORWARDING? " + key);
+        var key = String.format("%s %s", method, path.split("\\?")[0]); // part before the query
         Optional<Event> related = EventHistory.getInstance().getEvents().stream()
                 .filter(x -> x.getEventType() == Event.EventType.CALL && x.getRoute().equals(key))
                 .max(Comparator.comparing(Event::getTimestamp));
