@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
+import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -540,7 +540,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     private void checkUrl(String url) {
         try {
-            new URL(url);
+            new URI(url).toURL();
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid URL: " + e.getMessage());
         }

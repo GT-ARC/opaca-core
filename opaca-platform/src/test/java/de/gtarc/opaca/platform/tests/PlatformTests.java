@@ -12,7 +12,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -131,7 +130,7 @@ public class PlatformTests {
      * the platform checks if a port is available before trying to start the container
      */
     @Test
-    public void testPortMapping() throws IOException, InterruptedException {
+    public void testPortMapping() throws Exception {
         var image = getSampleContainerImage();
 
         // post container to both platforms
