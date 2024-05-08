@@ -3,6 +3,7 @@ package de.gtarc.opaca.test
 import de.dailab.jiacvi.behaviour.act
 import de.dailab.jiacvi.communication.LocalBroker
 import de.dailab.jiacvi.dsl.agentSystem
+import de.dailab.jiacvi.platform.sleep
 import de.gtarc.opaca.container.ContainerAgent
 import de.gtarc.opaca.container.AbstractContainerizedAgent
 import de.gtarc.opaca.container.Invoke
@@ -13,13 +14,18 @@ import de.gtarc.opaca.model.Parameter
 import java.time.Duration
 import com.fasterxml.jackson.databind.JsonNode
 
+val NUM_CLIENTS: Int = 5
+val TURN_DURATION: Long = 1000
+val USE_OPACA = false
+val ACTION_SLEEP: Long = 1000
+
 fun main() {
-    agentSystem("opaca-sample-container") {
+    agentSystem("test") {
         enable(LocalBroker)
         agents {
             add(ContainerAgent(AgentContainerImage()))
             add(ServerAgent("server"))
-            for (i in 1..10) {
+            for (i in 1..NUM_CLIENTS) {
                 add(ClientAgent("client_$i"))
             }
         }
@@ -28,27 +34,32 @@ fun main() {
 
 class ClientAgent(name: String): AbstractContainerizedAgent(name=name) {
     var turn = 0
+    
     override fun behaviour() = act {
-        every(Duration.ofMillis(200)) {
+        every(Duration.ofMillis(TURN_DURATION)) {
             log.info("$name executing in turn $turn")
-            opacaSyncInvoke("SendTurn", "server", mapOf("id" to name, "turn" to turn))
-            //jiacviAsyncInvoke("SendTurn", "server", mapOf("id" to name, "turn" to turn))
+            if (USE_OPACA)
+                opacaSyncInvoke("SendTurn", "server", mapOf("id" to name, "turn" to turn))
+            else
+                jiacviAsyncInvoke("SendTurn", "server", mapOf("id" to name, "turn" to turn))
+            turn++
         }
     }
+    
     fun opacaSyncInvoke(action: String, agent: String, parameters: Map<String, Any>) {
-        val res = sendOutboundInvoke(action, agent, parameters, String::class.java)
+        val res = sendOutboundInvoke(action, agent, parameters, String::class.java, 1)
         log.info("result is $res")
-        turn++
     }
+    
     fun jiacviAsyncInvoke(action: String, agent: String, parameters: Map<String, Any>) {
         // no problems here --> not related to JIAC VI but to OPACA
         val jsonParameters = parameters.entries.associate { Pair<String, JsonNode>(it.key, RestHelper.mapper.valueToTree(it.value)) }
         val request = Invoke(action, jsonParameters)
         val ref = system.resolve(agent)
+        log.info("asking (thread ${Thread.currentThread().name})")
         ref invoke ask<String>(request) {
-            log.info("result is $it")
-            turn++
-        }
+            log.info("result is $it (thread ${Thread.currentThread().name})")
+        }.timeout(Duration.ofSeconds(1))
     }
 }
 
@@ -58,17 +69,18 @@ class ServerAgent(name: String): AbstractContainerizedAgent(name=name) {
     override fun preStart() {
         super.preStart()
         addAction("SendTurn", mapOf("id" to Parameter("string"), "turn" to Parameter("int")), Parameter("String")) {
-            log.info("server got $it")
+            log.info("server got $it (thread ${Thread.currentThread().name})")
             val id = it["id"]!!.asText()
             val turn = it["turn"]!!.asInt()
             responses[id] = turn
+            sleep(ACTION_SLEEP)
             "$id $turn"
         }
     }
 
     override fun behaviour() = super.behaviour().and(act {
-        every(Duration.ofMillis(200)) {
-            log.info("$name executing")
+        every(Duration.ofMillis(TURN_DURATION)) {
+            log.info("$name executing (thread ${Thread.currentThread().name})")
             log.info("RESPONSES: ${responses.size} $responses")
             responses.clear()
         }
