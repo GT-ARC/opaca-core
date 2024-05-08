@@ -6,7 +6,7 @@ import de.gtarc.opaca.util.RestHelper;
 
 import java.io.*;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -58,14 +58,14 @@ public class TestUtils {
         }
     }
 
-    public static HttpURLConnection request(String host, String method, String path, Object payload) throws IOException {
+    public static HttpURLConnection request(String host, String method, String path, Object payload) throws Exception {
         return requestWithToken(host, method, path, payload, null);
     }
 
     // this is NOT using RestHelper since we are also interested in the exact HTTP Return Code
-    public static int streamRequest(String baseUrl, String method, String path, byte[] payload) throws IOException {
+    public static int streamRequest(String baseUrl, String method, String path, byte[] payload) throws Exception {
         // TODO reduce code duplication a bit?
-        HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + path).openConnection();
+        HttpURLConnection connection = (HttpURLConnection) new URI(baseUrl + path).toURL().openConnection();
         connection.setRequestMethod(method);
         connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
 
@@ -88,8 +88,8 @@ public class TestUtils {
     }
 
     // this is NOT using RestHelper since we are also interested in the exact HTTP Return Code
-    public static HttpURLConnection requestWithToken(String host, String method, String path, Object payload, String token) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) new URL(host + path).openConnection();
+    public static HttpURLConnection requestWithToken(String host, String method, String path, Object payload, String token) throws Exception {
+        HttpURLConnection connection = (HttpURLConnection) new URI(host + path).toURL().openConnection();
         connection.setRequestMethod(method);
 
         if (token != null) {
@@ -125,12 +125,12 @@ public class TestUtils {
         return RestHelper.readObject(content, ErrorResponse.class);
     }
 
-    public static String getBaseUrl(String localUrl) throws IOException {
+    public static String getBaseUrl(String localUrl) throws Exception {
         var con = request(localUrl, "GET", "/info", null);
         return result(con, RuntimePlatform.class).getBaseUrl();
     }
 
-    public static String postSampleContainer(String platformUrl) throws IOException {
+    public static String postSampleContainer(String platformUrl) throws Exception {
         var postContainer = getSampleContainerImage();
         var con = request(platformUrl, "POST", "/containers", postContainer);
         if (con.getResponseCode() != 200) {
@@ -140,7 +140,7 @@ public class TestUtils {
         return result(con);
     }
 
-    public static void connectPlatforms(String platformUrl, String connectedUrl) throws IOException {
+    public static void connectPlatforms(String platformUrl, String connectedUrl) throws Exception {
         var connectedBaseUrl = getBaseUrl(connectedUrl);
         var loginCon = new LoginConnection(null, null, connectedBaseUrl);
         var con = request(platformUrl, "POST", "/connections", loginCon);

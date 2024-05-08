@@ -71,8 +71,8 @@ AgentDescription *-- "*" Action: actions
 
 class Action {
     name: string
-    paramTypes: {string: string}
-    resultType: string
+    paramTypes: {string: Parameter}
+    resultType: Parameter
 }
 ' actually, the attributes are called "parameters" and "result", but adding "types" might be clearer
 

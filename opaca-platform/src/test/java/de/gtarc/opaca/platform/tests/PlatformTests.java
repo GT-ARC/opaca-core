@@ -6,12 +6,12 @@ import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
 import de.gtarc.opaca.platform.session.Session;
 import org.junit.*;
+import org.junit.rules.TestName;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -47,6 +47,14 @@ public class PlatformTests {
     public static void stopPlatform() {
         platformA.close();
         platformB.close();
+    }
+
+    @Rule
+    public TestName testName = new TestName();
+
+    @Before
+    public void printTest() {
+        System.out.println(">>> RUNNING TEST PlatformTests." + testName.getMethodName());
     }
 
     @After
@@ -122,7 +130,7 @@ public class PlatformTests {
      * the platform checks if a port is available before trying to start the container
      */
     @Test
-    public void testPortMapping() throws IOException, InterruptedException {
+    public void testPortMapping() throws Exception {
         var image = getSampleContainerImage();
 
         // post container to both platforms
@@ -236,10 +244,10 @@ public class PlatformTests {
         var con = request(PLATFORM_A_URL, "GET", "/history", null);
         List<Map<String, Object>> res = result(con, List.class);
         Assert.assertTrue(res.size() >= 4);
-        Assert.assertEquals("API_CALL", res.get(res.size() - 4).get("eventType"));
+        Assert.assertEquals("CALL", res.get(res.size() - 4).get("eventType"));
         Assert.assertEquals(res.get(res.size() - 4).get("id"), res.get(res.size() - 3).get("relatedId"));
-        Assert.assertEquals("invoke", res.get(res.size() - 2).get("methodName"));
-        Assert.assertEquals("API_ERROR", res.get(res.size() - 1).get("eventType"));
+        Assert.assertEquals("POST /invoke/UnknownAction", res.get(res.size() - 2).get("route"));
+        Assert.assertEquals("ERROR", res.get(res.size() - 1).get("eventType"));
     }
 
     /**

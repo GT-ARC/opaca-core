@@ -3,10 +3,10 @@ package de.gtarc.opaca.platform.tests;
 import de.gtarc.opaca.model.RuntimePlatform;
 import de.gtarc.opaca.platform.Application;
 import org.junit.*;
+import org.junit.rules.TestName;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -32,7 +32,7 @@ public class InterPlatformTests {
     private static String containerId = null;
 
     @BeforeClass
-    public static void setupPlatforms() throws IOException {
+    public static void setupPlatforms() throws Exception {
         platformA = SpringApplication.run(Application.class,
                 "--server.port=" + PLATFORM_A_PORT);
         platformB = SpringApplication.run(Application.class,
@@ -45,6 +45,14 @@ public class InterPlatformTests {
     public static void stopPlatforms() {
         platformA.close();
         platformB.close();
+    }
+
+    @Rule
+    public TestName testName = new TestName();
+
+    @Before
+    public void printTest() {
+        System.out.println(">>> RUNNING TEST InterPlatformTests." + testName.getMethodName());
     }
 
     @After
