@@ -11,13 +11,14 @@ import de.gtarc.opaca.util.ConfigLoader
 import de.gtarc.opaca.util.RestHelper
 import de.gtarc.opaca.model.AgentContainerImage
 import de.gtarc.opaca.model.Parameter
+import de.gtarc.opaca.test.NUM_CLIENTS
 import java.time.Duration
 import com.fasterxml.jackson.databind.JsonNode
 
-val NUM_CLIENTS: Int = 5
-val TURN_DURATION: Long = 1000
-val USE_OPACA = false
-val ACTION_SLEEP: Long = 1000
+val NUM_CLIENTS: Int = 10
+val TURN_DURATION: Long = 2000
+val USE_OPACA = true
+val ACTION_SLEEP: Long = 0
 
 fun main() {
     agentSystem("test") {
@@ -26,23 +27,27 @@ fun main() {
             add(ContainerAgent(AgentContainerImage()))
             add(ServerAgent("server"))
             for (i in 1..NUM_CLIENTS) {
-                add(ClientAgent("client_$i"))
+                add(ClientAgent("client_$i", i))
             }
         }
     }.start()
 }
 
-class ClientAgent(name: String): AbstractContainerizedAgent(name=name) {
-    var turn = 0
+class ClientAgent(name: String, val id: Int): AbstractContainerizedAgent(name=name) {
+    var turn = 1
+    var tick = 0
     
     override fun behaviour() = act {
-        every(Duration.ofMillis(TURN_DURATION)) {
+        every(Duration.ofMillis(TURN_DURATION / NUM_CLIENTS)) {
             log.info("$name executing in turn $turn")
-            if (USE_OPACA)
-                opacaSyncInvoke("SendTurn", "server", mapOf("id" to name, "turn" to turn))
-            else
-                jiacviAsyncInvoke("SendTurn", "server", mapOf("id" to name, "turn" to turn))
-            turn++
+            if (tick % NUM_CLIENTS == id / 2) {
+                if (USE_OPACA)
+                    opacaSyncInvoke("SendTurn", "server", mapOf("id" to name, "turn" to turn))
+                else
+                    jiacviAsyncInvoke("SendTurn", "server", mapOf("id" to name, "turn" to turn))
+                turn++
+            }
+            tick++
         }
     }
     
@@ -59,6 +64,8 @@ class ClientAgent(name: String): AbstractContainerizedAgent(name=name) {
         log.info("asking (thread ${Thread.currentThread().name})")
         ref invoke ask<String>(request) {
             log.info("result is $it (thread ${Thread.currentThread().name})")
+        }.error {
+            log.info("ERROR $it")
         }.timeout(Duration.ofSeconds(1))
     }
 }
@@ -82,7 +89,7 @@ class ServerAgent(name: String): AbstractContainerizedAgent(name=name) {
         every(Duration.ofMillis(TURN_DURATION)) {
             log.info("$name executing (thread ${Thread.currentThread().name})")
             log.info("RESPONSES: ${responses.size} $responses")
-            responses.clear()
+            //responses.clear()
         }
     })
 }
