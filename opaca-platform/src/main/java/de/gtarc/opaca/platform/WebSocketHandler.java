@@ -11,7 +11,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gtarc.opaca.model.Event;
-import jakarta.annotation.PostConstruct;
+
 @Component
 public class WebSocketHandler extends TextWebSocketHandler {
 
