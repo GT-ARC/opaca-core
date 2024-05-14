@@ -16,6 +16,15 @@ import de.gtarc.opaca.test.BATCH_SIZE
 import java.time.Duration
 import com.fasterxml.jackson.databind.JsonNode
 
+/*
+OBSERVATIONS
+- everything works fine with plain JIAC VI messaging (USE_OPACA = false)
+- it does not make a difference if one is running just the container without a platform, or distributed in two containers plus platform
+- if clients are subdivided into batches, all sending at the same time, exactly one per batch "survices"
+- it does not matter if the server is still busy with the last request, the new one will just be queues and executed later
+- instead, the invoke-ask callback is never executed (neither the timeout or error once the agent hangs)
+*/
+
 val NUM_CLIENTS: Int = 10
 val TURN_DURATION: Long = 1000
 val USE_OPACA = true
@@ -24,10 +33,12 @@ val TIMEOUT_SEC = 10
 val BATCH_SIZE = 2
 
 fun main() {
-    agentSystem("test") {
+    val name = "test-clients"
+    val image = RestHelper.readObject("{\"imageName\": \"${name}\"}", AgentContainerImage::class.java)
+    agentSystem(name) {
         enable(LocalBroker)
         agents {
-            add(ContainerAgent(AgentContainerImage()))
+            add(ContainerAgent(image))
             add(ServerAgent("server"))
             for (i in 0..<NUM_CLIENTS) {
                 add(ClientAgent("client_$i", i))
