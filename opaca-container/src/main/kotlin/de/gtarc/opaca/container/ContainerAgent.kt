@@ -31,7 +31,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     private val broker by resolve<BrokerAgentRef>()
 
-    private val server by lazy { OpacaServer(impl, AgentContainerApi.DEFAULT_PORT, token) }
+    private val server by lazy { JavalinOpacaServer(impl, AgentContainerApi.DEFAULT_PORT, token) }
 
     // information on current state of agent container
 
