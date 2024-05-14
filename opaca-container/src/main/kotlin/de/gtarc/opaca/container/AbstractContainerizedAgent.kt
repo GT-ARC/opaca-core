@@ -91,7 +91,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
 
     override fun behaviour() = act {
         respond<Invoke, Any?> {
-            log.info("RESPOND $it")
+           // log.info("RESPOND $it")
             when (it.name) {
                 in actionCallbacks -> actionCallbacks[it.name]?.let { cb -> cb(it.parameters) }
                 else -> Unit
@@ -126,7 +126,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
      * to communicate with agents in the same container, JIAC's own messaging should be used then.
      */
     fun <T> sendOutboundInvoke(action: String, agentId: String?, parameters: Map<String, Any?>, type: Class<T>, timeout:Int=-1): T {
-        log.info("Outbound Invoke: $action @ $agentId ($parameters)")
+      //  log.info("Outbound Invoke: $action @ $agentId ($parameters)")
         val jsonParameters = parameters.entries
             .associate { Pair<String, JsonNode>(it.key, RestHelper.mapper.valueToTree(it.value)) }
         val res = parentProxy.invoke(action, jsonParameters, agentId, timeout, null, true)

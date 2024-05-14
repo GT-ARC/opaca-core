@@ -94,7 +94,7 @@ public class RestHelper {
     }
 
     public InputStream request(String method, String path, Object payload) throws IOException {
-        log.info(String.format("%s %s%s (%s)", method, baseUrl, path, payload));
+        //log.info(String.format("%s %s%s (%s)", method, baseUrl, path, payload));
         HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl + path).toURL().openConnection();
         connection.setRequestMethod(method);
         connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
@@ -153,6 +153,7 @@ public class RestHelper {
     private IOException makeException(HttpURLConnection connection) throws IOException {
         var message = "Encountered an error when sending request to connected platform or container.";
         var response = readStream(connection.getErrorStream());
+        log.warning(response);
         try {
             var nestedError = mapper.readValue(response, ErrorResponse.class);
             return new RequestException(message, nestedError);

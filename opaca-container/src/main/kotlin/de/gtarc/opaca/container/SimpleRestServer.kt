@@ -9,8 +9,11 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.AbstractConnector
+import org.eclipse.jetty.server.ServerConnector
+import org.eclipse.jetty.server.Connector
 import org.eclipse.jetty.servlet.ServletHandler
 import org.eclipse.jetty.servlet.ServletHolder
+import org.eclipse.jetty.util.thread.QueuedThreadPool
 import java.util.stream.Collectors
 import java.util.concurrent.TimeUnit
 import java.io.ByteArrayOutputStream
@@ -28,7 +31,13 @@ import java.io.InputStream
  */
 class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?) {
 
-    private val server = Server(port)
+    private val server = Server(QueuedThreadPool(100))
+    init {
+        // nope... default should be even 200...
+        val connector = ServerConnector(server)
+        connector.setPort(port)
+        server.addConnector(connector)
+    }
 
     /**
      * servlet handling the different REST routes, delegating to `impl` for actual logic
@@ -57,6 +66,7 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
         }
 
         override fun doPost(request: HttpServletRequest, response: HttpServletResponse) {
+           // println("in doPOST")
             try {
                 checkToken(request)
                 val path = request.requestURI  // NOTE: queryParams (?...) go to request.queryString

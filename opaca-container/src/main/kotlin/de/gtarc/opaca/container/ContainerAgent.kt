@@ -8,6 +8,8 @@ import de.gtarc.opaca.util.RestHelper
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.BrokerAgentRef
 import de.dailab.jiacvi.behaviour.act
+import de.dailab.jiacvi.platform.currentThread
+import de.dailab.jiacvi.platform.ofMillis
 import java.lang.RuntimeException
 import java.time.Duration
 import java.time.ZoneId
@@ -109,7 +111,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
 
         override fun invoke(action: String, parameters: Map<String, JsonNode>, agentId: String?, timeout: Int, containerId: String, forward: Boolean): JsonNode? {
-            log.info("INVOKE ACTION OF AGENT: $agentId $action $parameters")
+            log.debug("INVOKE ACTION OF AGENT: $agentId $action $parameters")
 
             val agent = findRegisteredAgent(agentId, action, null)
             if (agent != null) {
@@ -150,22 +152,23 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
      * Call "ref invoke ask" at given JIAC VI agent, but wait for result and return it.
      */
     private fun <T> invokeAskWait(agentId: String, request: Any, timeout: Int): T {
+        log.info("INVOKE ASK WAIT ${Thread.currentThread().name} $request") // HTTP handler thread
         val lock = Semaphore(0)
         val result = AtomicReference<T>()
         val error = AtomicReference<Any>()
         val ref = system.resolve(agentId)
         ref invoke ask<T>(request) {
-            log.info("GOT RESULT $it")
+            log.info("RESULT $it in thread ${Thread.currentThread().name}")
             result.set(it)
             lock.release()
         }.error {
-            log.error("ERROR $it")
+            log.warn("ERROR $it")
             error.set(it)
             lock.release()
         }.timeout(Duration.ofSeconds(if (timeout > 0) timeout.toLong() else 30))
 
-        log.debug("waiting for invoke-ask result...")
-        lock.acquireUninterruptibly()
+        //log.info("waiting for invoke-ask result... ($request)")
+        lock.acquireUninterruptibly() // HTTP handler thread hängt dann hier, deshalb kriegen die client kein result, und hängen in ihrem http request
 
         if (error.get() == null) {
             return result.get()

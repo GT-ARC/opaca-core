@@ -12,13 +12,16 @@ import de.gtarc.opaca.util.RestHelper
 import de.gtarc.opaca.model.AgentContainerImage
 import de.gtarc.opaca.model.Parameter
 import de.gtarc.opaca.test.NUM_CLIENTS
+import de.gtarc.opaca.test.BATCH_SIZE
 import java.time.Duration
 import com.fasterxml.jackson.databind.JsonNode
 
 val NUM_CLIENTS: Int = 10
-val TURN_DURATION: Long = 2000
+val TURN_DURATION: Long = 1000
 val USE_OPACA = true
-val ACTION_SLEEP: Long = 0
+val ACTION_SLEEP: Long = 70
+val TIMEOUT_SEC = 10
+val BATCH_SIZE = 2
 
 fun main() {
     agentSystem("test") {
@@ -26,7 +29,7 @@ fun main() {
         agents {
             add(ContainerAgent(AgentContainerImage()))
             add(ServerAgent("server"))
-            for (i in 1..NUM_CLIENTS) {
+            for (i in 0..<NUM_CLIENTS) {
                 add(ClientAgent("client_$i", i))
             }
         }
@@ -34,17 +37,19 @@ fun main() {
 }
 
 class ClientAgent(name: String, val id: Int): AbstractContainerizedAgent(name=name) {
-    var turn = 1
+    var turn = 0
     var tick = 0
     
     override fun behaviour() = act {
-        every(Duration.ofMillis(TURN_DURATION / NUM_CLIENTS)) {
-            log.info("$name executing in turn $turn")
-            if (tick % NUM_CLIENTS == id / 2) {
-                if (USE_OPACA)
-                    opacaSyncInvoke("SendTurn", "server", mapOf("id" to name, "turn" to turn))
-                else
-                    jiacviAsyncInvoke("SendTurn", "server", mapOf("id" to name, "turn" to turn))
+        every(Duration.ofMillis(TURN_DURATION / (NUM_CLIENTS * 2))) {
+            if (tick % (NUM_CLIENTS * 2) == id / BATCH_SIZE + 1) {
+                log.info("$name executing in turn $turn")
+                if (turn > 0) {
+                    if (USE_OPACA)
+                        opacaSyncInvoke("SendTurn", "server", mapOf("id" to name, "turn" to turn))
+                    else
+                        jiacviAsyncInvoke("SendTurn", "server", mapOf("id" to name, "turn" to turn))
+                }
                 turn++
             }
             tick++
@@ -52,7 +57,7 @@ class ClientAgent(name: String, val id: Int): AbstractContainerizedAgent(name=na
     }
     
     fun opacaSyncInvoke(action: String, agent: String, parameters: Map<String, Any>) {
-        val res = sendOutboundInvoke(action, agent, parameters, String::class.java, 1)
+        val res = sendOutboundInvoke(action, agent, parameters, String::class.java, TIMEOUT_SEC)
         log.info("result is $res")
     }
     
@@ -66,12 +71,13 @@ class ClientAgent(name: String, val id: Int): AbstractContainerizedAgent(name=na
             log.info("result is $it (thread ${Thread.currentThread().name})")
         }.error {
             log.info("ERROR $it")
-        }.timeout(Duration.ofSeconds(1))
+        }.timeout(Duration.ofSeconds(TIMEOUT_SEC.toLong()))
     }
 }
 
 class ServerAgent(name: String): AbstractContainerizedAgent(name=name) {
     val responses = mutableMapOf<String, Int>()
+    var newResponses = 0
 
     override fun preStart() {
         super.preStart()
@@ -80,6 +86,7 @@ class ServerAgent(name: String): AbstractContainerizedAgent(name=name) {
             val id = it["id"]!!.asText()
             val turn = it["turn"]!!.asInt()
             responses[id] = turn
+            newResponses++
             sleep(ACTION_SLEEP)
             "$id $turn"
         }
@@ -88,8 +95,8 @@ class ServerAgent(name: String): AbstractContainerizedAgent(name=name) {
     override fun behaviour() = super.behaviour().and(act {
         every(Duration.ofMillis(TURN_DURATION)) {
             log.info("$name executing (thread ${Thread.currentThread().name})")
-            log.info("RESPONSES: ${responses.size} $responses")
-            //responses.clear()
+            log.info("RESPONSES: ${newResponses} $responses")
+            newResponses = 0
         }
     })
 }
