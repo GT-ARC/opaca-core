@@ -5,20 +5,8 @@ import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.model.Message
 import de.gtarc.opaca.util.RestHelper
 import io.javalin.Javalin
-import jakarta.servlet.http.HttpServlet
-import jakarta.servlet.http.HttpServletRequest
-import jakarta.servlet.http.HttpServletResponse
-import org.eclipse.jetty.server.Server
-import org.eclipse.jetty.server.AbstractConnector
-import org.eclipse.jetty.server.ServerConnector
-import org.eclipse.jetty.server.Connector
-import org.eclipse.jetty.servlet.ServletHandler
-import org.eclipse.jetty.servlet.ServletHolder
-import org.eclipse.jetty.util.thread.QueuedThreadPool
 import java.util.stream.Collectors
 import java.util.concurrent.TimeUnit
-import java.io.ByteArrayOutputStream
-import java.io.InputStream
 
 /**
  * TODO update javadoc
@@ -95,8 +83,16 @@ class JavalinOpacaServer(val impl: AgentContainerApi, val port: Int, val token: 
                 val agentId = it.pathParam("agentId")
                 impl.postStream(stream, it.bodyAsBytes(), agentId, "", false)
             }
-            // TODO custom error handler
-
+            .exception(Exception::class.java) { e, ctx -> 
+                val code = when (e) {
+                    is OpacaException -> e.statusCode
+                    else -> errorStatusCodes[e::class.java] ?: 500
+                }
+                val err = ErrorResponse(code, e.message, null)
+                ctx.status(code)
+                ctx.json(err)
+            }
+    
     init {
         registerErrorCode(NoSuchElementException::class.java, 404)
         registerErrorCode(NotAuthenticatedException::class.java, 403)
