@@ -33,6 +33,7 @@ public class AgentWebSocketClient {
     @OnWebSocketMessage
     public void onMessage(String message) {
         System.out.println("Received: " + message);
+        WebSocketConnectionManager.notifyListeners(message);  // Notify listeners about the received message
         if ("close".equalsIgnoreCase(message.trim())) {
             latch.countDown();
         }

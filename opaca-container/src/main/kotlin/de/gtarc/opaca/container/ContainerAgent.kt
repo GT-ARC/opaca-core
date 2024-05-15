@@ -26,7 +26,7 @@ const val CONTAINER_AGENT = "container-agent"
  * sufficient, since all "outside" calls would go through the Runtime Container.
  * Still, might be improved a bit...
  */
-class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAINER_AGENT) {
+class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAINER_AGENT), WebSocketConnectionManager.MessageListener  {
 
     private val broker by resolve<BrokerAgentRef>()
 
@@ -62,6 +62,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         log.info("Starting Container Agent...")
         super.preStart()
         server.start()
+        WebSocketConnectionManager.addMessageListener(this)
         WebSocketConnectionManager.connectToWebSocket(runtimePlatformUrl);
     }
 
@@ -72,6 +73,10 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         log.info("Stopping Container Agent...")
         server.stop()
         super.postStop()
+    }
+
+    override fun onMessage(message: String) {
+        println("Received WebSocket message: $message")
     }
 
     /**

@@ -8,11 +8,19 @@ import org.eclipse.jetty.client.HttpProxy;
 import org.eclipse.jetty.util.component.LifeCycle;
 
 import java.net.URI;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 public class WebSocketConnectionManager {
 
     private static final int RECONNECT_DELAY = 1000;  // Reconnect delay in milliseconds
     private static final long PING_INTERVAL = 10000;  // Ping interval in milliseconds
     private static final int MAX_RETRIES = 100;       // Maximum retry attempts
+    private static final List<MessageListener> listeners = new CopyOnWriteArrayList<>();
+
+    public interface MessageListener {
+        void onMessage(String message);
+    }
 
     public static void connectToWebSocket(String runtimePlatformUrl) {
         HttpClient httpClient = new HttpClient();
@@ -67,6 +75,20 @@ public class WebSocketConnectionManager {
             }
         } catch (Exception e) {
             System.err.println("Failed to stop WebSocket client: " + e.getMessage());
+        }
+    }
+
+    public static void addMessageListener(MessageListener listener) {
+        listeners.add(listener);
+    }
+
+    public static void removeMessageListener(MessageListener listener) {
+        listeners.remove(listener);
+    }
+
+    static void notifyListeners(String message) {
+        for (MessageListener listener : listeners) {
+            listener.onMessage(message);
         }
     }
 }
