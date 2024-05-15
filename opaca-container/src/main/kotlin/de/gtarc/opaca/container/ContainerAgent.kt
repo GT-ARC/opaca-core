@@ -222,9 +222,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             .map { it.agentId }
             .ifEmpty { 
                 throw NoSuchElementException(when {
-                    action != null => "Action $action of Agent $agentId not found",
-                    stream != null => "Stream $stream of Agent $agentId not found",
-                    else => "Agent $agentId not found"
+                    action != null -> "Action $action of Agent $agentId not found"
+                    stream != null -> "Stream $stream of Agent $agentId not found"
+                    else -> "Agent $agentId not found"
                 })
              }
             .first()
