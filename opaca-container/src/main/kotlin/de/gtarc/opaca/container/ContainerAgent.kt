@@ -97,12 +97,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         override fun send(agentId: String, message: Message, containerId: String, forward: Boolean) {
             log.debug("SEND: $agentId $message")
             val agent = findRegisteredAgent(agentId, action=null, stream=null)
-            if (agent != null) {
-                val ref = system.resolve(agent)
-                ref tell message
-            } else {
-                throw NoSuchElementException("Agent $agentId not found")
-            }
+            val ref = system.resolve(agent)
+            ref tell message
         }
 
         override fun broadcast(channel: String, message: Message, containerId: String, forward: Boolean) {
@@ -112,37 +108,22 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         override fun invoke(action: String, parameters: Map<String, JsonNode>, agentId: String?, timeout: Int, containerId: String, forward: Boolean): JsonNode? {
             log.debug("INVOKE ACTION OF AGENT: $agentId $action $parameters")
-
             val agent = findRegisteredAgent(agentId, action, null)
-            if (agent != null) {
-                val res: Any = invokeAskWait(agent, Invoke(action, parameters), timeout)
-                return RestHelper.mapper.valueToTree(res)
-            } else {
-                throw NoSuchElementException("Action $action of Agent $agentId not found")
-            }
+            val res: Any = invokeAskWait(agent, Invoke(action, parameters), timeout)
+            return RestHelper.mapper.valueToTree(res)
         }
 
         override fun postStream(stream: String, data: ByteArray, agentId: String?, containerId: String, forward: Boolean) {
             log.debug("POST STREAM TO AGENT: $agentId $stream")
-
             val agent = findRegisteredAgent(agentId, null, stream)
-            if (agent != null) {
-                invokeAskWait<Any?>(agent, StreamPost(stream, data), -1)
-            } else {
-                throw NoSuchElementException("Stream $stream of Agent $agentId not found")
-            }
+            invokeAskWait<Any?>(agent, StreamPost(stream, data), -1)
         }
 
         override fun getStream(stream: String, agentId: String?, containerId: String, forward: Boolean): InputStream? {
             log.debug("GET STREAM OF AGENT: $agentId $stream")
-
             val agent = findRegisteredAgent(agentId, null, stream)
-            if (agent != null) {
-                val inputStream: InputStream = invokeAskWait(agent, StreamGet(stream), -1)
-                return inputStream
-            } else {
-                throw NoSuchElementException("Stream $stream of Agent $agentId not found")
-            }
+            val inputStream: InputStream = invokeAskWait(agent, StreamGet(stream), -1)
+            return inputStream
         }
     }
 
@@ -232,14 +213,21 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
     }
 
-    private fun findRegisteredAgent(agentId: String?, action: String?, stream: String?): String? {
+    private fun findRegisteredAgent(agentId: String?, action: String?, stream: String?): String {
         return registeredAgents.values.asSequence()
             .filter { agt -> agentId == null || agt.agentId == agentId }
             .filter { agt -> action == null || agt.actions.any { act -> act.name == action } }
             .filter { agt -> stream == null || agt.streams.any { str -> str.name == stream } }
             // TODO also check action parameters?
             .map { it.agentId }
-            .firstOrNull()
+            .ifEmpty { 
+                throw NoSuchElementException(when {
+                    action != null => "Action $action of Agent $agentId not found",
+                    stream != null => "Stream $stream of Agent $agentId not found",
+                    else => "Agent $agentId not found"
+                })
+             }
+            .first()
     }
 
     private fun getParameters(): Map<String, String> {
