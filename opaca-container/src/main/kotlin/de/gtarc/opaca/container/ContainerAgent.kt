@@ -80,22 +80,22 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     private val impl = object : AgentContainerApi {
 
         override fun getContainerInfo(): AgentContainer {
-            log.info("GET INFO")
+            log.debug("GET INFO")
             return AgentContainer(containerId, image, getParameters(), agents, owner, startedAt, null)
         }
 
         override fun getAgents(): List<AgentDescription> {
-            log.info("GET AGENTS")
+            log.debug("GET AGENTS")
             return registeredAgents.values.toList()
         }
 
         override fun getAgent(agentId: String?): AgentDescription? {
-            log.info("GET AGENT: $agentId")
+            log.debug("GET AGENT: $agentId")
             return registeredAgents[agentId]
         }
 
         override fun send(agentId: String, message: Message, containerId: String, forward: Boolean) {
-            log.info("SEND: $agentId $message")
+            log.debug("SEND: $agentId $message")
             val agent = findRegisteredAgent(agentId, action=null, stream=null)
             if (agent != null) {
                 val ref = system.resolve(agent)
@@ -106,7 +106,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
 
         override fun broadcast(channel: String, message: Message, containerId: String, forward: Boolean) {
-            log.info("BROADCAST: $channel $message")
+            log.debug("BROADCAST: $channel $message")
             broker.publish(channel, message)
         }
 
@@ -123,27 +123,25 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
 
         override fun postStream(stream: String, data: ByteArray, agentId: String?, containerId: String, forward: Boolean) {
-            log.info("POST STREAM TO AGENT: $agentId $stream")
+            log.debug("POST STREAM TO AGENT: $agentId $stream")
 
             val agent = findRegisteredAgent(agentId, null, stream)
             if (agent != null) {
-                val res: Any = invokeAskWait(agent, StreamPost(stream, data), -1)
-                // TODO not really needed to wait here?! except for re-throwing an error maybe...
+                invokeAskWait<Any?>(agent, StreamPost(stream, data), -1)
             } else {
-                throw NoSuchElementException("Agent $agentId not found for Stream $stream")
+                throw NoSuchElementException("Stream $stream of Agent $agentId not found")
             }
         }
 
-        override fun getStream(streamId: String, agentId: String?, containerId: String, forward: Boolean): InputStream? {
-            log.info("GET STREAM OF AGENT: $agentId $streamId")
+        override fun getStream(stream: String, agentId: String?, containerId: String, forward: Boolean): InputStream? {
+            log.debug("GET STREAM OF AGENT: $agentId $stream")
 
-            val agent = findRegisteredAgent(agentId, null, streamId)
+            val agent = findRegisteredAgent(agentId, null, stream)
             if (agent != null) {
-                val inputStream: InputStream = invokeAskWait(agent, StreamGet(streamId), -1)
+                val inputStream: InputStream = invokeAskWait(agent, StreamGet(stream), -1)
                 return inputStream
-
             } else {
-                throw NoSuchElementException("Stream $streamId of Agent $agentId not found")
+                throw NoSuchElementException("Stream $stream of Agent $agentId not found")
             }
         }
     }
