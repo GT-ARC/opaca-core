@@ -29,7 +29,7 @@ import java.io.InputStream
  * the ContainerAgent and "make room" for some basic exception handling, translating no-such-element
  * or actual internal errors (e.g. when executing an action) to appropriate HTTP status codes.
  */
-class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?) {
+class RestServerJetty(val impl: AgentContainerApi, val port: Int, val token: String?) {
 
     private val server = Server(QueuedThreadPool(100))
     init {

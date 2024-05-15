@@ -9,18 +9,19 @@ import java.util.stream.Collectors
 import java.util.concurrent.TimeUnit
 
 /**
- * TODO update javadoc
+ * New version of the server providing the REST routes for the OPACA Agent Container API using
+ * Javalin. Internally, this uses Jetty and is still very lightweight, but has a much nicer API
+ * to work with and define the different routes. The functionality is still limited (intentionally)
+ * since it should only be used by the OPACA Runtime Platform, which provides features like the
+ * web UI for the user.
  * 
- * Minimal Jetty server for providing the REST interface. There's probably a better way to do this.
- * The goal is just a minimal REST server for providing the AgentContainer API to be called by the
- * Runtime Platform; things like a web interface, model checking, security, etc. should be provided
- * by the Runtime Platform and are thus intentionally not considered here.
- *
- * Previously, this was a part of the ContainerAgent itself. Moved to a separate class to unclutter
- * the ContainerAgent and "make room" for some basic exception handling, translating no-such-element
- * or actual internal errors (e.g. when executing an action) to appropriate HTTP status codes.
+ * Requests arriving here are executed in a thread of the underlying Jetty HTTP handler, which then
+ * calls functions of the API Implementation and the Container Agent (still in that thread!). Any
+ * callbacks, e.g. for invoke-ask, are then handled by the Container Agent's thread. This allows
+ * for concurrent execution, but in some cases still causes problems if many requests arrive at
+ * the same time (and is not really nice in any case).
  */
-class JavalinOpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?) {
+class RestServerJavalin(val impl: AgentContainerApi, val port: Int, val token: String?) {
 
     private val errorStatusCodes = mutableMapOf<Class<out Exception>, Int>()
 
