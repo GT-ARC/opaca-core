@@ -127,6 +127,11 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
                 else -> Unit
             }
         }
+
+        respond<Notify, Any?> {
+            reactions[it.action]?.invoke()
+        }
+
     }
 
     /**

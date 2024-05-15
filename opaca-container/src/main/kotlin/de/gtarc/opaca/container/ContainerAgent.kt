@@ -1,6 +1,7 @@
 package de.gtarc.opaca.container
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.model.*
 import de.gtarc.opaca.util.ApiProxy
@@ -77,6 +78,23 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     override fun onMessage(message: String) {
         println("Received WebSocket message: $message")
+        val mapper = ObjectMapper()
+        val jsonNode: JsonNode = mapper.readTree(message)
+        val route = jsonNode.path("route").asText()
+        println(route)
+        if (route.isNotBlank()) {
+            val action = extractActionFromRoute(route)
+            println(action)
+            if (action != null) {
+                impl.notifyAgentAboutAction(action)
+            }
+        }
+    }
+
+    private fun extractActionFromRoute(route: String): String? {
+        val regex = Regex("invoke/(\\w+)")
+        val matchResult = regex.find(route)
+        return matchResult?.groupValues?.get(1)
     }
 
     /**
@@ -92,6 +110,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         override fun notifyAgentAboutAction(action: String) {
             log.info("NOTIFY ABOUT ACTION: $action")
             val matchingAgents = findAllMatchingAgents(action)
+            println(matchingAgents)
             matchingAgents.forEach { agentId ->
                 try {
                     val ref = system.resolve(agentId)
