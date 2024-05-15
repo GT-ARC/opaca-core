@@ -20,4 +20,5 @@ data class Invoke(val name: String, val parameters: Map<String, JsonNode>)
 data class RenewToken(val value: String)
 
 data class StreamGet(val name: String)
+data class Notify(val action: String)
 data class StreamPost(val name: String, val body: ByteArray)

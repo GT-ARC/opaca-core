@@ -5,6 +5,7 @@ import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.model.*
 import de.gtarc.opaca.util.ApiProxy
 import de.gtarc.opaca.util.RestHelper
+import de.gtarc.opaca.util.WebSocketConnectionManager
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.BrokerAgentRef
 import de.dailab.jiacvi.behaviour.act
@@ -61,6 +62,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         log.info("Starting Container Agent...")
         super.preStart()
         server.start()
+        WebSocketConnectionManager.connectToWebSocket(runtimePlatformUrl);
     }
 
     /**
@@ -81,6 +83,20 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             log.info("GET INFO")
             return AgentContainer(containerId, image, getParameters(), agents, owner, startedAt, null)
         }
+
+        override fun notifyAgentAboutAction(action: String) {
+            log.info("NOTIFY ABOUT ACTION: $action")
+            val matchingAgents = findAllMatchingAgents(action)
+            matchingAgents.forEach { agentId ->
+                try {
+                    val ref = system.resolve(agentId)
+                    ref tell Notify(action!!)
+                } catch (e: Exception) {
+                    log.error("Failed to notify agent $agentId about action $action", e)
+                }
+            }
+        }
+
 
         override fun getAgents(): List<AgentDescription> {
             log.info("GET AGENTS")
@@ -239,6 +255,13 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             // TODO also check action parameters?
             .map { it.agentId }
             .firstOrNull()
+    }
+
+    private fun findAllMatchingAgents(action: String?): List<String> {
+        return registeredAgents.values.asSequence()
+            .filter { agent -> action == null || agent.reactions.contains(action) }
+            .map { it.agentId }
+            .toList()
     }
 
     private fun getParameters(): Map<String, String> {

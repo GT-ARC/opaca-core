@@ -139,6 +139,12 @@ class OpacaServer(val impl: AgentContainerApi, val port: Int, val token: String?
             val queryParams = parseQueryString(query)
             val timeout = queryParams.getOrDefault("timeout", "-1").toInt()
 
+            val notify = Regex("^/notify/([^/]+)$").find(path)
+            if (notify != null) {
+                val actionName = notify.groupValues[1]
+                impl.notifyAgentAboutAction(actionName)
+            }
+
             val send = Regex("^/send/([^/]+)$").find(path)
             if (send != null) {
                 val id = send.groupValues[1]

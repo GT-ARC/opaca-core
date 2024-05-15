@@ -30,6 +30,8 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
 
     protected val actions = mutableListOf<Action>()
     protected val actionCallbacks = mutableMapOf<String, (Map<String, JsonNode>) -> Any?>()
+    protected val reactions = mutableMapOf<String, () -> Any?>()
+    protected val reactionsList = mutableListOf<String>()
 
     protected val streams = mutableListOf<Stream>()
     protected val streamGetCallbacks = mutableMapOf<String, () -> Any?>()
@@ -64,6 +66,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         this.name,
         this.javaClass.name,
         actions,
+        reactionsList,
         streams
     )
 
@@ -77,6 +80,11 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         actionCallbacks[action.name] = callback
     }
     
+    fun addReaction(actionName: String, callback: () -> Any?) {
+        reactions[actionName] = callback
+        reactionsList.add(actionName)
+    }
+
     fun addStreamGet(name: String, callback: (() -> Any?)) {
         val stream = Stream(name, Stream.Mode.GET)
         streams.add(stream)

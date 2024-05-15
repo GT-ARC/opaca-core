@@ -30,4 +30,6 @@ public interface AgentContainerApi extends CommonApi{
      */
     AgentContainer getContainerInfo() throws IOException;
 
+    void notifyAgentAboutAction(String action) throws IOException;
+
 }

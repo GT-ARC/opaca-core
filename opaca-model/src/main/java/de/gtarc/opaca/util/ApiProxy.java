@@ -171,6 +171,13 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         return client.post("/connections/notify", platformUrl, Boolean.class);
     }
 
+    @Override
+    public void notifyAgentAboutAction(String action) throws IOException {
+        String path = String.format("/notify/%s", action);
+        client.post(path, null, Boolean.class); 
+    }
+
+
     /**
      * Helper method for building Query string (without initial ?); will be more useful when there are more.
      */
