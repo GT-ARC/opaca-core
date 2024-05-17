@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.model.*;
+import de.gtarc.opaca.util.RestHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,7 +30,7 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
 
     public ApiProxy(String baseUrl, String senderId, String token) {
         this.baseUrl = baseUrl;
-        this.client = new RestHelper(baseUrl, senderId, token);
+        this.client = new RestHelper(baseUrl, senderId, token, null, RestHelper.Encoding.JSON);
     }
 
     // INFO ROUTES

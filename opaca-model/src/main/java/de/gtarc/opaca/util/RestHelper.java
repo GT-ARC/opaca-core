@@ -9,13 +9,14 @@ import de.gtarc.opaca.model.ErrorResponse;
 import de.gtarc.opaca.model.Event;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.java.Log;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URI;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -28,8 +29,19 @@ import java.util.stream.Collectors;
 public class RestHelper {
 
     public final String baseUrl;
+
     public final String senderId;
+
     public final String token;
+
+    public final Integer timeout;
+
+    @NonNull
+    public final Encoding encoding;
+
+    public RestHelper(String baseUrl) {
+        this(baseUrl, null, null, null, Encoding.JSON);
+    }
 
     public static final ObjectMapper mapper = JsonMapper.builder()
             .findAndAddModules().build();
@@ -93,11 +105,11 @@ public class RestHelper {
         }
     }
 
-    public InputStream request(String method, String path, Object payload) throws IOException {
+    public InputStream requestWithCookies(String method, String path, Object payload, List<HttpCookie> cookies) throws IOException {
         log.info(String.format("%s %s%s (%s)", method, baseUrl, path, payload));
         HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl + path).toURL().openConnection();
         connection.setRequestMethod(method);
-        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+        connection.setRequestProperty("Content-Type", getContentType());
 
         if (senderId != null && ! senderId.isEmpty()) {
             connection.setRequestProperty(Event.HEADER_SENDER_ID, senderId);
@@ -105,29 +117,47 @@ public class RestHelper {
         if (token != null && ! token.isEmpty()) {
             connection.setRequestProperty("Authorization", "Bearer " + token);
         }
-        
-        if (payload != null) {
-            String json = mapper.writeValueAsString(payload);
-            byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
-            connection.setDoOutput(true);
-            connection.setFixedLengthStreamingMode(bytes.length);
-            connection.connect();
-            try (OutputStream os = connection.getOutputStream()) {
-                os.write(bytes);
-            }
-        } else {
-            connection.connect();
+        if (timeout != null && timeout > 0) {
+            connection.setConnectTimeout(timeout);
+        }
+        if (cookies != null && !cookies.isEmpty()) {
+            var cookieString = cookies.stream()
+                    .map(c ->  c.getName() + "=" + c.getValue())
+                    .collect(Collectors.joining("; "));
+            connection.setRequestProperty("Cookie", cookieString);
         }
 
-        createForwardEvent(method, path);
+        try {
+            if (payload != null) {
+                String content = encodePayload(payload);
+                byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
+                connection.setDoOutput(true);
+                connection.setFixedLengthStreamingMode(bytes.length);
+                connection.connect();
+                try (OutputStream os = connection.getOutputStream()) {
+                    os.write(bytes);
+                }
+            } else {
+                connection.connect();
+            }
+            
+            createForwardEvent(method, path);
 
-        if (connection.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST) {
-            return connection.getInputStream();
-        } else {
+            if (connection.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST) {
+                return connection.getInputStream();
+            } else {
+                throw makeException(connection);
+            }
+        } catch (SocketTimeoutException e) {
             throw makeException(connection);
         }
+
     }
-    
+
+    public InputStream request(String method, String path, Object payload) throws IOException {
+        return requestWithCookies(method, path, payload, null);
+    }
+
     public static JsonNode readJson(String json) throws IOException {
         return mapper.readTree(json);
     }
@@ -151,7 +181,7 @@ public class RestHelper {
     }
 
     private IOException makeException(HttpURLConnection connection) throws IOException {
-        var message = "Encountered an error when sending request to connected platform or container.";
+        var message = "Encountered an error when sending request to " + baseUrl;
         var response = readStream(connection.getErrorStream());
         try {
             var nestedError = mapper.readValue(response, ErrorResponse.class);
@@ -186,6 +216,41 @@ public class RestHelper {
             Event event = new Event(Event.EventType.FORWARD, null, null, baseUrl, null, related.get().getId());
             EventHistory.getInstance().addEvent(event);
         }
+    }
+
+    private String getContentType() {
+        switch (encoding) {
+            case JSON: return "application/json; charset=UTF-8";
+            case URLENCODED: return "application/x-www-form-urlencoded; charset=UTF-8";
+        }
+        return "application/json; charset=UTF-8";
+    }
+
+    public String encodePayload(Object payload) throws JsonProcessingException {
+        switch (encoding) {
+            case JSON: return mapper.writeValueAsString(payload);
+            case URLENCODED: return encodeUrlencoded(payload);
+        }
+        return "";
+    }
+
+    @SuppressWarnings("unchecked")
+    public String encodeUrlencoded(Object payload) {
+        try {
+            return ((Map<String, String>) payload).entrySet().stream()
+                    .map(e -> {
+                        var name = URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8);
+                        var value = URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8);
+                        return name + "=" + value;
+                    }).collect(Collectors.joining("&"));
+        } catch (Exception e) {
+            log.severe("Invalid payload for encoding " + encoding + ": " + e.getMessage());
+            return "";
+        }
+    }
+
+    public enum Encoding {
+        JSON, URLENCODED
     }
 
 }
