@@ -132,6 +132,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     /**
      * Call "ref invoke ask" at given JIAC VI agent, but wait for result and return it.
+     * This method is executed by the HTTP handler in its own thread, not by the Container Agent.
      */
     private fun waitForInvoke(agentId: String, request: Any, timeout: Int): Any {
         log.info("INVOKE ASK WAIT ${Thread.currentThread().name} $request") // HTTP handler thread
@@ -178,8 +179,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         // check for and execute new pending invokes
         every(Duration.ofMillis(100)) {
-            while (pendingInvokes.isNotEmpty()) {
-                val pendInv = pendingInvokes.removeFirst()
+            while (true) {
+                val pendInv = pendingInvokes.removeFirstOrNull()
+                if (pendInv == null) break
                 val ref = system.resolve(pendInv.agentId)
                 ref invoke ask<Any>(pendInv.request) {
                     log.info("RESULT $it in thread ${Thread.currentThread().name}")
