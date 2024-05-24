@@ -47,6 +47,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     /** the token for accessing the parent Runtime Platform, received on initialization */
     private var token = System.getenv(AgentContainerApi.ENV_TOKEN)
 
+    /** API Proxy for sending request to this ContainerAgent's parent RuntimePlatform */
     private var parentProxy: ApiProxy = ApiProxy(runtimePlatformUrl, containerId, token)
 
     /** the owner who started the Agent Container */
@@ -54,9 +55,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
-
-    /** list of currently pending invokes issued by the HTTP handler to be executed by the ContainerAgent */
-    private val pendingInvokes = mutableListOf<PendingInvoke>()
 
     /**
      * Start the Web Server.
@@ -128,25 +126,17 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             val inputStream: InputStream = waitForInvoke(agent, StreamGet(stream), -1) as InputStream
             return inputStream
         }
-    }
 
-    /**
-     * Call "ref invoke ask" at given JIAC VI agent, but wait for result and return it.
-     * This method is executed by the HTTP handler in its own thread, not by the Container Agent.
-     */
-    private fun waitForInvoke(agentId: String, request: Any, timeout: Int): Any {
-        log.info("INVOKE ASK WAIT ${Thread.currentThread().name} $request") // HTTP handler thread
-
-        val pendInv = PendingInvoke(agentId, request, timeout, Semaphore(0), null, null)
-        pendingInvokes.add(pendInv)
-        pendInv.lock.acquireUninterruptibly() // HTTP handler thread hängt dann hier, deshalb kriegen die client kein result, und hängen in ihrem http request
-
-        if (pendInv.result != null) {
-            return pendInv.result!!
-        } else {
-            when (val e = pendInv.error) {
-                is Throwable -> throw e
-                else -> throw RuntimeException(e.toString())
+        private fun waitForInvoke(agentId: String, request: Any, timeout: Int): Any {
+            // send pending invoke to ContainerAgent to execute asyncronously
+            val pendInv = PendingInvoke(agentId, request, timeout, Semaphore(0), null, null)
+            self tell pendInv
+            pendInv.lock.acquireUninterruptibly()
+            // wait for lock to be released by ContainerAgent, then...
+            return when {
+                pendInv.result != null -> pendInv.result!!
+                pendInv.error is Throwable -> throw pendInv.error as Throwable
+                else -> throw RuntimeException(pendInv.error.toString())
             }
         }
     }
@@ -177,22 +167,18 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             }
         }
 
-        // check for and execute new pending invokes
-        every(Duration.ofMillis(100)) {
-            while (true) {
-                val pendInv = pendingInvokes.removeFirstOrNull()
-                if (pendInv == null) break
-                val ref = system.resolve(pendInv.agentId)
-                ref invoke ask<Any>(pendInv.request) {
-                    log.info("RESULT $it in thread ${Thread.currentThread().name}")
-                    pendInv.result = it
-                    pendInv.lock.release()
-                }.error {
-                    log.warn("ERROR $it")
-                    pendInv.error = it
-                    pendInv.lock.release()
-                }.timeout(Duration.ofSeconds(if (pendInv.timeout > 0) pendInv.timeout.toLong() else 30))
-            }
+        // get pending incoming invoke from HTTP handler and execute it, notify HTTP handler via semaphore
+        on<PendingInvoke> {
+            val ref = system.resolve(it.agentId)
+            ref invoke ask<Any>(it.request) { res ->
+                log.info("RESULT $res")
+                it.result = res
+                it.lock.release()
+            }.error { err ->
+                log.warn("ERROR $err")
+                it.error = err
+                it.lock.release()
+            }.timeout(Duration.ofSeconds(if (it.timeout > 0) it.timeout.toLong() else 30))
         }
 
         // renew token every 9 hours (should be valid for 10 hours)
@@ -254,6 +240,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         server.registerErrorCode(exceptionClass, code)
     }
 
+    // purely internal message sent from the HTTP handler to the ContainerAgent
     private data class PendingInvoke(
         // information on what to invoke
         val agentId: String,
