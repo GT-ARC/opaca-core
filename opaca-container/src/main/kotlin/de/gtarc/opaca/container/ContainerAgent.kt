@@ -55,6 +55,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
 
+    /** list of currently pending invokes issued by the HTTP handler to be executed by the ContainerAgent */
+    private val pendingInvokes = mutableListOf<PendingInvoke>()
 
     /**
      * Start the Web Server.
@@ -75,7 +77,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     }
 
     /**
-     * Implementation of the Agent Container API
+     * Implementation of the Agent Container API. The methods of this class are executed by the
+     * HTTP handler in its thread. It acts as bridge between HTTP handler and Container Agent.
      */
     private val impl = object : AgentContainerApi {
 
@@ -109,20 +112,20 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         override fun invoke(action: String, parameters: Map<String, JsonNode>, agentId: String?, timeout: Int, containerId: String, forward: Boolean): JsonNode? {
             log.debug("INVOKE ACTION OF AGENT: $agentId $action $parameters")
             val agent = findRegisteredAgent(agentId, action, null)
-            val res: Any = invokeAskWait(agent, Invoke(action, parameters), timeout)
+            val res: Any = waitForInvoke(agent, Invoke(action, parameters), timeout)
             return RestHelper.mapper.valueToTree(res)
         }
 
         override fun postStream(stream: String, data: ByteArray, agentId: String?, containerId: String, forward: Boolean) {
             log.debug("POST STREAM TO AGENT: $agentId $stream")
             val agent = findRegisteredAgent(agentId, null, stream)
-            invokeAskWait<Any?>(agent, StreamPost(stream, data), -1)
+            waitForInvoke(agent, StreamPost(stream, data), -1)
         }
 
         override fun getStream(stream: String, agentId: String?, containerId: String, forward: Boolean): InputStream? {
             log.debug("GET STREAM OF AGENT: $agentId $stream")
             val agent = findRegisteredAgent(agentId, null, stream)
-            val inputStream: InputStream = invokeAskWait(agent, StreamGet(stream), -1)
+            val inputStream: InputStream = waitForInvoke(agent, StreamGet(stream), -1) as InputStream
             return inputStream
         }
     }
@@ -130,29 +133,17 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     /**
      * Call "ref invoke ask" at given JIAC VI agent, but wait for result and return it.
      */
-    private fun <T> invokeAskWait(agentId: String, request: Any, timeout: Int): T {
+    private fun waitForInvoke(agentId: String, request: Any, timeout: Int): Any {
         log.info("INVOKE ASK WAIT ${Thread.currentThread().name} $request") // HTTP handler thread
-        val lock = Semaphore(0)
-        val result = AtomicReference<T>()
-        val error = AtomicReference<Any>()
-        val ref = system.resolve(agentId)
-        ref invoke ask<T>(request) {
-            log.info("RESULT $it in thread ${Thread.currentThread().name}")
-            result.set(it)
-            lock.release()
-        }.error {
-            log.warn("ERROR $it")
-            error.set(it)
-            lock.release()
-        }.timeout(Duration.ofSeconds(if (timeout > 0) timeout.toLong() else 30))
 
-        //log.info("waiting for invoke-ask result... ($request)")
-        lock.acquireUninterruptibly() // HTTP handler thread hängt dann hier, deshalb kriegen die client kein result, und hängen in ihrem http request
+        val pendInv = PendingInvoke(agentId, request, timeout, Semaphore(0), null, null)
+        pendingInvokes.add(pendInv)
+        pendInv.lock.acquireUninterruptibly() // HTTP handler thread hängt dann hier, deshalb kriegen die client kein result, und hängen in ihrem http request
 
-        if (error.get() == null) {
-            return result.get()
+        if (pendInv.result != null) {
+            return pendInv.result!!
         } else {
-            when (val e = error.get()) {
+            when (val e = pendInv.error) {
                 is Throwable -> throw e
                 else -> throw RuntimeException(e.toString())
             }
@@ -185,6 +176,23 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             }
         }
 
+        // check for and execute new pending invokes
+        every(Duration.ofMillis(100)) {
+            while (pendingInvokes.isNotEmpty()) {
+                val pendInv = pendingInvokes.removeFirst()
+                val ref = system.resolve(pendInv.agentId)
+                ref invoke ask<Any>(pendInv.request) {
+                    log.info("RESULT $it in thread ${Thread.currentThread().name}")
+                    pendInv.result = it
+                    pendInv.lock.release()
+                }.error {
+                    log.warn("ERROR $it")
+                    pendInv.error = it
+                    pendInv.lock.release()
+                }.timeout(Duration.ofSeconds(if (pendInv.timeout > 0) pendInv.timeout.toLong() else 30))
+            }
+        }
+
         // renew token every 9 hours (should be valid for 10 hours)
         // (first called after one interval, not directly after startup)
         every(Duration.ofSeconds(60 * 60 * 9)) {
@@ -213,6 +221,10 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
     }
 
+    /*
+     * actually this method is also called only by the HTTP handler, but it's fast-running
+     * and might also  be useful for the ContainerAgent itself, so I will leave his here...
+     */
     private fun findRegisteredAgent(agentId: String?, action: String?, stream: String?): String {
         return registeredAgents.values.asSequence()
             .filter { agt -> agentId == null || agt.agentId == agentId }
@@ -239,5 +251,16 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     fun registerErrorCode(exceptionClass: Class<out Exception>, code: Int) {
         server.registerErrorCode(exceptionClass, code)
     }
+
+    private data class PendingInvoke(
+        // information on what to invoke
+        val agentId: String,
+        val request: Any,
+        val timeout: Int,
+        // (waiting for) the result
+        val lock: Semaphore,
+        var result: Any?,
+        var error: Any?
+    )
 
 }
