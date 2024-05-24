@@ -5,8 +5,6 @@ import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.model.Message
 import de.gtarc.opaca.util.RestHelper
 import io.javalin.Javalin
-import java.util.stream.Collectors
-import java.util.concurrent.TimeUnit
 
 /**
  * New version of the server providing the REST routes for the OPACA Agent Container API using
@@ -25,9 +23,6 @@ class RestServerJavalin(val impl: AgentContainerApi, val port: Int, val token: S
 
     private val errorStatusCodes = mutableMapOf<Class<out Exception>, Int>()
 
-    // TODO move to init?
-    // TODO make reusable methods for routes
-    // use async to fix the AOT problem???
     private val server = Javalin.create()
             .before {
                 val tokenFromRequest = it.header("Authorization")?.removePrefix("Bearer ")

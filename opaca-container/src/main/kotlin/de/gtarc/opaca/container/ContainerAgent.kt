@@ -8,14 +8,11 @@ import de.gtarc.opaca.util.RestHelper
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.BrokerAgentRef
 import de.dailab.jiacvi.behaviour.act
-import de.dailab.jiacvi.platform.currentThread
-import de.dailab.jiacvi.platform.ofMillis
 import java.lang.RuntimeException
 import java.time.Duration
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.concurrent.Semaphore
-import java.util.concurrent.atomic.AtomicReference
 import java.io.InputStream
 
 
