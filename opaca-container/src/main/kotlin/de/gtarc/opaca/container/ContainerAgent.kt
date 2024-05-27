@@ -112,15 +112,21 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             val matchingAgents = findAllMatchingAgents(action)
             println(matchingAgents)
             matchingAgents.forEach { agentId ->
+
                 try {
+                    println("Notifying agent now")
                     val ref = system.resolve(agentId)
-                    ref tell Notify(action!!)
+                    println(ref)
+                    
+                    ref.tell(Notify(action))
+                    
+
                 } catch (e: Exception) {
-                    log.error("Failed to notify agent $agentId about action $action", e)
+                    print("error")
                 }
+
             }
         }
-
 
         override fun getAgents(): List<AgentDescription> {
             log.info("GET AGENTS")
