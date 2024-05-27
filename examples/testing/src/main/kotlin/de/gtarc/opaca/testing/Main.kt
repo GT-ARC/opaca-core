@@ -3,15 +3,14 @@ package de.gtarc.opaca.testing
 import de.gtarc.opaca.testing.manyonone.runManyOnOneTest
 
 
-fun main() {
-    testEnv()
-    runManyOnOneTest()
-}
+val TEST_CASES = mapOf(
+    "many-on-one" to ::runManyOnOneTest
+)
 
-private fun testEnv() {
+fun main(args: Array<String>) {
     if (System.getenv("PLATFORM_URL").isNullOrEmpty() || System.getenv("CONTAINER_ID").isNullOrEmpty()) {
         println("""
-            If you are running this from the command line, make sure that both the
+            When running this from the command line, make sure that both the
             `PLATFORM_URL` and `CONTAINER_ID` environment variables are set. Usually,
             those are set by the Runtime Platform when starting the container. For the
             sake of easily running this test, the PLATFORM_URL should point back to the
@@ -22,5 +21,19 @@ private fun testEnv() {
         """.trimIndent())
         System.exit(1)
     }
-}
 
+    val testCase = args.getOrNull(0)
+    if (testCase == null) {
+        println("Please specify the test case to run as a command line parameter.")
+        System.exit(1)
+    }
+
+    val callback = TEST_CASES[testCase]
+    if (callback == null) {
+        println("Invalid test case. Valid test cases are: ${TEST_CASES.keys}")
+        System.exit(1)
+    } else {
+        callback.invoke()
+    }
+
+}
