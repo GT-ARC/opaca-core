@@ -15,13 +15,9 @@ import io.javalin.Javalin
  * 
  * Requests arriving here are executed in a thread of the underlying Jetty HTTP handler, which then
  * calls functions of the API Implementation and the Container Agent (still in that thread!). Any
- * callbacks, e.g. for invoke-ask, are then handled by the Container Agent's thread. This allows
- * for concurrent execution, but in some cases still causes problems if many requests arrive at
- * the same time (and is not really nice in any case).
+ * callbacks, e.g. for invoke-ask, are then handled by the Container Agent's thread.
  */
 class RestServerJavalin(val impl: AgentContainerApi, val port: Int, val token: String?) {
-
-    private val errorStatusCodes = mutableMapOf<Class<out Exception>, Int>()
 
     private val server = Javalin.create()
             .before {
@@ -80,20 +76,12 @@ class RestServerJavalin(val impl: AgentContainerApi, val port: Int, val token: S
                 impl.postStream(stream, it.bodyAsBytes(), agentId, "", false)
             }
             .exception(Exception::class.java) { e, ctx -> 
-                val code = when (e) {
-                    is OpacaException -> e.statusCode
-                    else -> errorStatusCodes[e::class.java] ?: 500
-                }
+                val code = ExceptionMapping.getErrorCode(e)
                 val err = ErrorResponse(code, e.message, null)
                 ctx.status(code)
                 ctx.json(err)
             }
-    
-    init {
-        registerErrorCode(NoSuchElementException::class.java, 404)
-        registerErrorCode(NotAuthenticatedException::class.java, 403)
-    }
-                    
+                        
     fun start() {
         server.start(port)
     }
@@ -102,11 +90,34 @@ class RestServerJavalin(val impl: AgentContainerApi, val port: Int, val token: S
         server.stop()
     }
 
+}
+
+/**
+ * Singleton for managing special Exceptions that should result in some specific HTTP error
+ * code. Initially registers 404 for "not found" and 403 for "not allowed" respectively.
+ * More mappings can be added by other domain specific agents, too.
+ * Also, users can always use an OpacaException to define a specific HTTP error code.
+ */
+object ExceptionMapping {
+
+    private val errorStatusCodes = mutableMapOf<Class<out Exception>, Int>()
+
+    init {
+        registerErrorCode(NoSuchElementException::class.java, 404)
+        registerErrorCode(NotAuthenticatedException::class.java, 403)
+    }
+
     fun registerErrorCode(exceptionClass: Class<out Exception>, code: Int) {
         errorStatusCodes[exceptionClass] = code
     }
+    
+    fun getErrorCode(e: Exception, default: Int = 500) = when (e) {
+        is OpacaException -> e.statusCode
+        else -> errorStatusCodes[e::class.java] ?: default
+    }
 
-    class NotAuthenticatedException(message: String): RuntimeException(message)
-    class OpacaException(val statusCode: Int, message: String): Exception(message)
 }
 
+class NotAuthenticatedException(message: String): RuntimeException(message)
+
+class OpacaException(val statusCode: Int, message: String): Exception(message)

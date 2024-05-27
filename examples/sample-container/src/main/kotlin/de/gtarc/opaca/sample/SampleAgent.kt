@@ -7,7 +7,7 @@ import de.gtarc.opaca.model.Message
 import de.gtarc.opaca.model.Parameter
 import java.io.ByteArrayInputStream
 import java.nio.charset.Charset
-import de.gtarc.opaca.container.RestServerJavalin.OpacaException
+import de.gtarc.opaca.container.OpacaException
 import java.io.IOException
 
 class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {

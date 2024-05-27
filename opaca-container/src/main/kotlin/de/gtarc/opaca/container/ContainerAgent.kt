@@ -233,10 +233,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             .associate { Pair(it.name, System.getenv().getOrDefault(it.name, it.defaultValue)) }
     }
 
-    fun registerErrorCode(exceptionClass: Class<out Exception>, code: Int) {
-        server.registerErrorCode(exceptionClass, code)
-    }
-
     // purely internal message sent from the HTTP handler to the ContainerAgent
     private data class PendingInvoke(
         // information on what to invoke
