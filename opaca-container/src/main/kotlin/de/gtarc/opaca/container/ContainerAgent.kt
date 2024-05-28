@@ -15,7 +15,6 @@ import java.time.Duration
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.concurrent.Semaphore
-import java.util.concurrent.atomic.AtomicReference
 import java.io.InputStream
 
 
@@ -31,7 +30,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     private val broker by resolve<BrokerAgentRef>()
 
-    private val server by lazy { OpacaServer(impl, AgentContainerApi.DEFAULT_PORT, token) }
+    private val server by lazy { RestServerJavalin(impl, AgentContainerApi.DEFAULT_PORT, token) }
 
     // information on current state of agent container
 
@@ -47,6 +46,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     /** the token for accessing the parent Runtime Platform, received on initialization */
     private var token = System.getenv(AgentContainerApi.ENV_TOKEN)
 
+    /** API Proxy for sending request to this ContainerAgent's parent RuntimePlatform */
     private var parentProxy: ApiProxy = ApiProxy(runtimePlatformUrl, containerId, token)
 
     /** the owner who started the Agent Container */
@@ -54,7 +54,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
-
 
     /**
      * Start the Web Server.
@@ -98,12 +97,13 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     }
 
     /**
-     * Implementation of the Agent Container API
+     * Implementation of the Agent Container API. The methods of this class are executed by the
+     * HTTP handler in its thread. It acts as bridge between HTTP handler and Container Agent.
      */
     private val impl = object : AgentContainerApi {
 
         override fun getContainerInfo(): AgentContainer {
-            log.info("GET INFO")
+            log.debug("GET INFO")
             return AgentContainer(containerId, image, getParameters(), agents, owner, startedAt, null)
         }
 
@@ -129,96 +129,57 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
 
         override fun getAgents(): List<AgentDescription> {
-            log.info("GET AGENTS")
+            log.debug("GET AGENTS")
             return registeredAgents.values.toList()
         }
 
         override fun getAgent(agentId: String?): AgentDescription? {
-            log.info("GET AGENT: $agentId")
+            log.debug("GET AGENT: $agentId")
             return registeredAgents[agentId]
         }
 
         override fun send(agentId: String, message: Message, containerId: String, forward: Boolean) {
-            log.info("SEND: $agentId $message")
+            log.debug("SEND: $agentId $message")
             val agent = findRegisteredAgent(agentId, action=null, stream=null)
-            if (agent != null) {
-                val ref = system.resolve(agent)
-                ref tell message
-            } else {
-                throw NoSuchElementException("Agent $agentId not found")
-            }
+            val ref = system.resolve(agent)
+            ref tell message
         }
 
         override fun broadcast(channel: String, message: Message, containerId: String, forward: Boolean) {
-            log.info("BROADCAST: $channel $message")
+            log.debug("BROADCAST: $channel $message")
             broker.publish(channel, message)
         }
 
         override fun invoke(action: String, parameters: Map<String, JsonNode>, agentId: String?, timeout: Int, containerId: String, forward: Boolean): JsonNode? {
-            log.info("INVOKE ACTION OF AGENT: $agentId $action $parameters")
-
+            log.debug("INVOKE ACTION OF AGENT: $agentId $action $parameters")
             val agent = findRegisteredAgent(agentId, action, null)
-            if (agent != null) {
-                val res: Any = invokeAskWait(agent, Invoke(action, parameters), timeout)
-                return RestHelper.mapper.valueToTree(res)
-            } else {
-                throw NoSuchElementException("Action $action of Agent $agentId not found")
-            }
+            val res: Any = waitForInvoke(agent, Invoke(action, parameters), timeout)
+            return RestHelper.mapper.valueToTree(res)
         }
 
         override fun postStream(stream: String, data: ByteArray, agentId: String?, containerId: String, forward: Boolean) {
-            log.info("POST STREAM TO AGENT: $agentId $stream")
-
+            log.debug("POST STREAM TO AGENT: $agentId $stream")
             val agent = findRegisteredAgent(agentId, null, stream)
-            if (agent != null) {
-                val res: Any = invokeAskWait(agent, StreamPost(stream, data), -1)
-                // TODO not really needed to wait here?! except for re-throwing an error maybe...
-            } else {
-                throw NoSuchElementException("Agent $agentId not found for Stream $stream")
-            }
+            waitForInvoke(agent, StreamPost(stream, data), -1)
         }
 
-        override fun getStream(streamId: String, agentId: String?, containerId: String, forward: Boolean): InputStream? {
-            log.info("GET STREAM OF AGENT: $agentId $streamId")
-
-            val agent = findRegisteredAgent(agentId, null, streamId)
-            if (agent != null) {
-                val inputStream: InputStream = invokeAskWait(agent, StreamGet(streamId), -1)
-                return inputStream
-
-            } else {
-                throw NoSuchElementException("Stream $streamId of Agent $agentId not found")
-            }
+        override fun getStream(stream: String, agentId: String?, containerId: String, forward: Boolean): InputStream? {
+            log.debug("GET STREAM OF AGENT: $agentId $stream")
+            val agent = findRegisteredAgent(agentId, null, stream)
+            val inputStream: InputStream = waitForInvoke(agent, StreamGet(stream), -1) as InputStream
+            return inputStream
         }
-    }
 
-    /**
-     * Call "ref invoke ask" at given JIAC VI agent, but wait for result and return it.
-     */
-    private fun <T> invokeAskWait(agentId: String, request: Any, timeout: Int): T {
-        val lock = Semaphore(0)
-        val result = AtomicReference<T>()
-        val error = AtomicReference<Any>()
-        val ref = system.resolve(agentId)
-        ref invoke ask<T>(request) {
-            log.info("GOT RESULT $it")
-            result.set(it)
-            lock.release()
-        }.error {
-            log.error("ERROR $it")
-            error.set(it)
-            lock.release()
-        }.timeout(Duration.ofSeconds(if (timeout > 0) timeout.toLong() else 30))
-
-        log.debug("waiting for invoke-ask result...")
-        lock.acquireUninterruptibly()
-
-        if (error.get() == null) {
-            return result.get()
-        } else {
-            when (val e = error.get()) {
-                is Throwable -> throw e
-                else -> throw RuntimeException(e.toString())
+        private fun waitForInvoke(agentId: String, request: Any, timeout: Int): Any {
+            // send pending invoke to ContainerAgent to execute asyncronously
+            val pendInv = PendingInvoke(agentId, request, timeout, Semaphore(0), null, null)
+            self tell pendInv
+            pendInv.lock.acquireUninterruptibly()
+            // wait for lock to be released by ContainerAgent, then...
+            return when {
+                pendInv.result != null -> pendInv.result!!
+                pendInv.error is Throwable -> throw pendInv.error as Throwable
+                else -> throw RuntimeException(pendInv.error.toString())
             }
         }
     }
@@ -249,6 +210,20 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             }
         }
 
+        // get pending incoming invoke from HTTP handler and execute it, notify HTTP handler via semaphore
+        on<PendingInvoke> {
+            val ref = system.resolve(it.agentId)
+            ref invoke ask<Any>(it.request) { res ->
+                log.info("RESULT $res")
+                it.result = res
+                it.lock.release()
+            }.error { err ->
+                log.warn("ERROR $err")
+                it.error = err
+                it.lock.release()
+            }.timeout(Duration.ofSeconds(if (it.timeout > 0) it.timeout.toLong() else 30))
+        }
+
         // renew token every 9 hours (should be valid for 10 hours)
         // (first called after one interval, not directly after startup)
         every(Duration.ofSeconds(60 * 60 * 9)) {
@@ -277,14 +252,25 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         }
     }
 
-    private fun findRegisteredAgent(agentId: String?, action: String?, stream: String?): String? {
+    /*
+     * actually this method is also called only by the HTTP handler, but it's fast-running
+     * and might also  be useful for the ContainerAgent itself, so I will leave his here...
+     */
+    private fun findRegisteredAgent(agentId: String?, action: String?, stream: String?): String {
         return registeredAgents.values.asSequence()
             .filter { agt -> agentId == null || agt.agentId == agentId }
             .filter { agt -> action == null || agt.actions.any { act -> act.name == action } }
             .filter { agt -> stream == null || agt.streams.any { str -> str.name == stream } }
             // TODO also check action parameters?
             .map { it.agentId }
-            .firstOrNull()
+            .ifEmpty { 
+                throw NoSuchElementException(when {
+                    action != null -> "Action $action of Agent $agentId not found"
+                    stream != null -> "Stream $stream of Agent $agentId not found"
+                    else -> "Agent $agentId not found"
+                })
+             }
+            .first()
     }
 
     private fun findAllMatchingAgents(action: String?): List<String> {
@@ -300,8 +286,16 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             .associate { Pair(it.name, System.getenv().getOrDefault(it.name, it.defaultValue)) }
     }
 
-    fun registerErrorCode(exceptionClass: Class<out Exception>, code: Int) {
-        server.registerErrorCode(exceptionClass, code)
-    }
+    // purely internal message sent from the HTTP handler to the ContainerAgent
+    private data class PendingInvoke(
+        // information on what to invoke
+        val agentId: String,
+        val request: Any,
+        val timeout: Int,
+        // (waiting for) the result
+        val lock: Semaphore,
+        var result: Any?,
+        var error: Any?
+    )
 
 }
