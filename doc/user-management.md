@@ -26,7 +26,7 @@ When starting the Runtime Platform and the MongoDB together, either through the 
 
 The user-related information is stored in a **MongoRepository**, which is used to create basic CRUD queries to interact with the connected MongoDB. When interacting with the connected MongoDB, the `username` or `name` of the respective entities (user/container) will act as a unique _String_ identifier in the database. Duplicate names for users/containers are therefore not possible.
 
-If the external MongoDB is started with the `docker-compose.yml`, the connected MongoDB is started with two persistent data volumes attached to it. The first volume is called _opaca-platform_data_ and stores all user-related information stored in the `TokenUser` class. The seconds volume is called _opaca-platform_config_ and stores metadata for a sharded cluster. The latter volume is currently not actively used, but is defined to prevent the creation of additional volumes. These volumes persist, even after the deletion of the respected MongoDB compose stack.
+If the external MongoDB is started with the `docker-compose.yml`, the connected MongoDB is started with two persistent data volumes attached to it. The first volume is called _opaca-platform_data_ and stores all user-related information stored in the `TokenUser` class. The seconds volume is called _opaca-platform_config_ and stores metadata for a shared cluster. The latter volume is currently not actively used, but is defined to prevent the creation of additional volumes. These volumes persist, even after the deletion of the respected MongoDB compose stack.
 
 ### Embedded Database
 

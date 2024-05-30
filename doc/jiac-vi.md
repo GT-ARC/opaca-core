@@ -263,7 +263,7 @@ By using the keyword `every` the specified function will be registered at the sc
 
 ```kotlin
 override fun behaviour() = act {
-    every(Durartion.ofMillis(100)) { // <1>
+    every(Duration.ofMillis(100)) { // <1>
         log.info("Executing...")
     }
 
@@ -351,7 +351,7 @@ A service provides a set of reusable functionality for a specific purpose for it
 
 Agents can typically also be seen as services, as they fulfill the same principles. In modern system it is not only beneficially but also necessary to provide services to external system and also consume the services provided by external APIs.
 
-For these reason `JIACVI` integrates a service model to facilitate the orchestration of available functionality.
+For these reason `JIAC VI` integrates a service model to facilitate the orchestration of available functionality.
 
 NOTE: Service Documentation under construction
 
