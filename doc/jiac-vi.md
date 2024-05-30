@@ -223,6 +223,16 @@ By default, an agent will be restarted 3 times with a waiting time in between th
 
 Generally each agent is equipped with a set of one or more behaviours that are defined by overriding the `behaviour` method of an agent. `JIAC VI` provides a implementation for a reactive behaviour that can be defined conveniently via an DSL using the `act` method. The parameter to `act` is a runnable `{ ... }` that can be used to register different callbacks for different events using the `on`, `listen`, `every` and `respond` methods described below, each of  which take additional (type-) parameters as well as a runnable `{ ... }` that will be executed when that event is triggered.
 
+The following is an overview of the different standard callbacks and how they are triggered:
+
+| Callback        | Trigger                                                    |
+| --------------- | ---------------------------------------------------------- |
+| `on<T>`         | `tell` message of type `T`                                 |
+| `on<T>(c)`      | `tell` message of type `T` matching condition `c`          |
+| `listen<T>(s)`  | `publish` message of type `T` to channel `s`               |
+| `every(t)`      | time `t` passed since startup or last execution            |
+| `respond<T, V>` | `invoke ask` message of type `T` expecting result type `V` |
+
 
 ### Reactive
 
