@@ -135,6 +135,7 @@ New SNAPSHOT releases are deployed by CI each time a new commit is pushed to the
 * [Authentication](doc/auth.md)
 * [User Management](doc/user-management.md)
 * [Parameter Validation](doc/validation.md)
+* [JIAC VI Basics](doc/jiac-vi.md)
 
 
 ## Publications
