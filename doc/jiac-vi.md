@@ -221,7 +221,7 @@ By default, an agent will be restarted 3 times with a waiting time in between th
 
 ## Behaviours
 
-Generally each agent is equipped with a set of one or more behaviours that are defined by overriding the `behaviour` method of an agent. `JIAC VI` provides a implementation for a reactive behaviour that can be defined conveniently via an DSL using the `act` method. The parameter to `act` is a runnable `{ ... }` that can be used to register different callbacks for different events using the `on`, `listen`, `every` and `respond` methods described below, each of  which take additional (type-) parameters as well as a runnable `{ ... }` that will be executed when that event is triggered.
+Generally each agent is equipped with a set of one or more behaviours that are defined by overriding the `behaviour` method of an agent. `JIAC VI` provides an implementation for a reactive behaviour that can be defined conveniently via an DSL using the `act` method. The parameter to `act` is a runnable `{ ... }` that can be used to register different callbacks for different events using the `on`, `listen`, `every` and `respond` methods described below, each of  which take additional (type-) parameters as well as a runnable `{ ... }` that will be executed when that event is triggered.
 
 The following is an overview of the different standard callbacks and how they are triggered:
 
@@ -337,7 +337,7 @@ class CustomBehaviour : Behaviour() {
 
 ## Messaging
 
-A `BrokerAgent` is a special kind of agents that translate messages to be send to external systems.
+A `BrokerAgent` is a special kind of agent that translates messages to be send to external systems.
 
 Via the broker agents it is possible to receive any arbitrary byte message. Yet in order to understand a message a dedicated format is needed that defines how meta information like headers, receiver or serialization is encoded.
 
@@ -349,9 +349,9 @@ technology stack, e.g. mqtt, http, etc.
 
 A service provides a set of reusable functionality for a specific purpose for its clients. Usually they are modelled with separation of concern in mind and provide a discrete unit of functionality autonomously.
 
-Agents can typically also be seen as services, as they fulfill the same principles. In modern system it is not only beneficially but also necessary to provide services to external system and also consume the services provided by external APIs.
+Agents can typically also be seen as services, as they fulfill the same principles. In modern systems it is not only beneficial but also necessary to provide services to external system and also consume the services provided by external APIs.
 
-For these reason `JIAC VI` integrates a service model to facilitate the orchestration of available functionality.
+For these reasons, `JIAC VI` integrates a service model to facilitate the orchestration of available functionality.
 
 NOTE: Service Documentation under construction
 
