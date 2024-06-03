@@ -343,16 +343,3 @@ Via the broker agents it is possible to receive any arbitrary byte message. Yet 
 
 NOTE: The core provides no implementation to communicate externally. Please refer to the modules to choose a suitable
 technology stack, e.g. mqtt, http, etc.
-
-
-## Services
-
-A service provides a set of reusable functionality for a specific purpose for its clients. Usually they are modelled with separation of concern in mind and provide a discrete unit of functionality autonomously.
-
-Agents can typically also be seen as services, as they fulfill the same principles. In modern systems it is not only beneficial but also necessary to provide services to external system and also consume the services provided by external APIs.
-
-For these reasons, `JIAC VI` integrates a service model to facilitate the orchestration of available functionality.
-
-NOTE: Service Documentation under construction
-
-Please refer to the `services` directory in the source tree of the `examples` module.
