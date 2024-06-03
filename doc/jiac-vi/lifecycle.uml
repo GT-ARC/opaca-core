@@ -1,6 +1,6 @@
 @startuml
 
-:Unitialized;
+:Uninitialized;
 
 if (Added to System)
 
