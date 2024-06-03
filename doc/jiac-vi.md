@@ -1,6 +1,6 @@
 # JIAC VI Basic Documentation
 
-The reference implementation of the OPACA Agent Container is written in JIAC VI, developed by DAI-Labor, and in particular by Christian Rakow. This document provides a broad overview of the framework and its most relevant features for developing OPACA Agent Containers. The documentation is separated into multiple sections. First an introduction to *JIAC Intelligent Agent Componentware* (JIAC VI) and its concepts.
+The reference implementation of the OPACA Agent Container is written in JIAC VI, developed by DAI-Labor, and in particular by Christian Rakow. This document provides a broad overview of the framework and its most relevant features for developing OPACA Agent Containers. The documentation is separated into multiple sections. First an introduction to *JIAC Intelligent Agent Componentware* (JIAC VI) and its concepts. ("JIAC" is usually spelled as one word, i.e. "jiac-six", not "j-i-a-c-six".)
 
 
 
@@ -343,3 +343,21 @@ Via the broker agents it is possible to receive any arbitrary byte message. Yet 
 
 NOTE: The core provides no implementation to communicate externally. Please refer to the modules to choose a suitable
 technology stack, e.g. mqtt, http, etc.
+
+
+
+## Relation to OPACA
+
+While JIAC VI is used in the [reference implementation](implementation.md) of the OPACA Agent Container, there is no connection of the two beyond that: JIAC VI existed before OPACA and can be used in other contexts, and OPACA Agent Containers can be implemented using different languages and frameworks than Kotlin and JIAC VI. Still, there are similar or corresponding elements in the two frameworks, and understand those relations may help understand how they work together.
+
+| JIAC VI Concept | OPACA Concept  | Description |
+| --------------- | -------------- | ----------- |
+| `AgentSystem`   | AgentContainer | One application serving a specific purpose that may include several agents and actions. |
+| `Agent`         | Agent          | One entity in the system, offering services or exhibiting some other behavior. Note that there does not have to be a 1:1 relation between JIAC VI agents and OPACA agents. |
+| `tell`          | `/send`        | Sending an asynchronous directed message to a single agent identified by name. |
+| `publish`       | `/broadcast`   | Sending an asynchronous message to a group of agents that may be "interested" in a specific topic. |
+| `invoke ask`    | `/invoke`      | Invoke some action or service provided by another agent and wait for the result. Be be precise, a JIAC VI agent calling `invoke ask` does not actually wait (block) until the result arrives but instead registers a callback function, whereas an OPACA `/invoke` HTTP call will actually block until the response is returned. |
+| `every`         | -              | Timed behavior repeated in regular intervals. Since this is purely internal, there is no correspondence to this in the OPACA API. |
+| -               | `/steam`       | Used for posting or retrieving steamed data to or from OPACA agents; internally this is done using `invoke ask` in JIAC VI, but there is no actual concept for steaming data in JIAC VI. |
+
+In OPACA, `tell`, `publish` and `invoke ask` are used for "internal" communication between agents of the same Agent Container, as well as for communication between the `ContainerAgent` and `ContainerizedAgents` (i.e. for "incoming" communication). For "outgoing" communication to agents in a different container, the `sendOutbound...` methods of `ContainerizedAgent` should be used, calling the respective REST routes of the parent Runtime Platform (this way, those are handled by the issuing agent itself without overloading the `ContainerAgent`).

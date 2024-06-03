@@ -82,7 +82,7 @@ Each Agent Container includes one `ContainerAgent`, which will run a very simple
 
 Those agents should extend the `AbstractContainerizedAgent` which will handle much of the logic for registering and deregistering with the Container Agent (and thus the parent Runtime Platform), and also provides useful helper methods for defining and reacting to OPACA Actions and Streams, and for sending "outbound" `send`, `broadcast` and `invoke` requests to their parent Runtime Platform and thus other Agent Containers.
 
-Besides the Container Agent and registered Containerized Agents, the agent system in the container can also include any number of "internal" agents, that do not register with the Container Agent and thus do not show up in the containers `agents` list. The communication between those and the Containerized Agents should happen through the regular `tell`, `publish` and `invoke ask` behaviors of JIAC VI.
+Besides the Container Agent and registered Containerized Agents, the agent system in the container can also include any number of "internal" agents, that do not register with the Container Agent and thus do not show up in the container's `agents` list. The communication between those and the Containerized Agents should happen through the regular `tell`, `publish` and `invoke ask` behaviors of JIAC VI. Please refer to the last part of the [documentation on JIAC VI](jiac-vi.md) for how those relate to the respective OPACA functions.
 
 ### Examples
 
