@@ -4,11 +4,11 @@ This document is intended to provide a high-level overview of the reference impl
 
 A multi-agent system in the OPACA approach consists of two types of components: **Runtime Platforms (RP)** and **Agent Containers (AC)**.
 
-The following figure illustrates how the RP and AC can be deployed and connected with each others. The runtime platform can run natively on a computer, in Docker or in Kubernetes. Agent containers typically run in Kubernetes or a (remote) Docker engine, but may also be deployed natively and bundled with a Runtime platform for resource-limited devices (work in progress). Multiple RPs (and their containers) can be connected to each other. Very limited devices such as microcontroller sensor nodes may be connected via the REST API.
+The following figure (from the above paper) illustrates how the RP and AC can be deployed and connected with each others. The runtime platform can run natively on a computer, in Docker or in Kubernetes. Agent containers typically run in Kubernetes or a (remote) Docker engine, but may also be deployed natively and bundled with a Runtime platform for resource-limited devices (work in progress). Multiple RPs (and their containers) can be connected to each other. Very limited devices such as microcontroller sensor nodes may be connected via the REST API.
 
 ![Runtime Platform and Agent Container Deployment and Interactions](img/cloud-premise.png)
 
-Please refer to the documentation on the different [environments](environments.md) the Runtime Platform and Agent Containers can run in.
+Please also refer to the documentation on the different [environments](environments.md) the Runtime Platform and Agent Containers can run in.
 
 
 ## Runtime Platform
@@ -47,13 +47,13 @@ When the Agent Container is removed, the backing container is stopped and the re
 
 #### Connections Management
 
-When connecting to another Runtime Platform, the platform will get that platform's info (the containers running there) and add the platform to the list of connected platforms. Note that if the platform requires [authentication](auth.md), the connection will be in one direction only, whereas if no authentication is required, the other platform will be asked to connect back to the calling platform. Connected platforms are notified when containers are added or removed. Also see [here](protocols.md) for details.
+When connecting to another Runtime Platform, the platform will get that platform's info (the containers running there) and add the platform to the list of connected platforms. Note that if the platform requires [authentication](auth.md), the connection will be in one direction only, whereas if no authentication is required, the other platform will be asked to connect back to the calling platform. Connected platforms are notified when containers are added or removed. Also see [here](protocols.md) for details on the protocol.
 
 #### Message Forwarding
 
-For the routes of the Agent Container API, i.e. `send`, `broadcast` and `invoke`, the Runtime Platform will look up the deployed Agent Container (or connected Runtime Platform) that provides the requested agent or action and forward the call to those. If there are multiple "candidates" that provide the requested action and/or an agent with the given name, then each of those will be asked in turn, starting with locally deployed containers and then connected platforms, until one of the calls is successful. Only a `broadcast` will always be forwarded to all deployed containers and platforms.
+For the routes of the Agent Container API, i.e. `send`, `broadcast` and `invoke`, the Runtime Platform will look up the deployed Agent Container (or connected Runtime Platform) that provides the requested agent or action and forward the call to those. If there are multiple "candidates" that provide the requested action and/or an agent with the given name, then each of those will be tried in turn, starting with locally deployed containers and then connected platforms, until one of the calls is successful. Only a `broadcast` will always be forwarded to all deployed containers and connected platforms.
 
-Note that in all cases, connected runtime platforms will _only_ be considered if the query-parameter `forward` is `true`. If the request should only be sent to a specific container, that container's `containerId` can be provided.
+Note that in all cases, connected runtime platforms will _only_ be considered if the query-parameter `forward` is `true` (and in the forwarded request, the same parameter will be set to `false`, i.e. requests will only be forwarded to directly connected platforms and not over multiple "hops"). If the request should only be sent to a specific container, that container's `containerId` can be provided.
 
 #### Other Functions
 
@@ -62,23 +62,23 @@ Besides that, the runtime platform offers additional routes and functionality fo
 
 ## Agent Container
 
-Agent Containers are containerized applications that implement the OPACA Agent Container API. They provide REST routes for finding out about the agents within the container, and to interact with them by means of sending asynchronous messages (unicast and broadcast) and invoking synchronous actions.
+Agent Containers are containerized applications that implement the OPACA Agent Container API, allowing other applications to get information about its agents and actions and to interact with them.
 
-Note that all interaction with Agent Containers -- both originating from a user of the system or a different container -- will be routed via the container's parent Runtime Platform: A user would typically not interact with an AC directly, but invoke the services at the Runtime Platform, which then delegates to the appropriate AC. Likewise, an AC calling an action at another AC will call that action at its own parent platform, which then relays it to that other agent container (possibly routing it via a connected platform first). Please refer to the different [Protocols](protocols.md) for details.
+Note that all interaction with Agent Containers -- both originating from a user of the system or a different container -- will be routed via the container's parent Runtime Platform: A user would typically not interact with an AC directly, but call the route at the Runtime Platform, which then delegates to the appropriate AC. Likewise, an AC calling an action at another AC will call that action at its own parent platform, which then relays it to that other agent container (possibly routing it via a connected platform first). Please refer to the different [Protocols](protocols.md) for details.
 
 ### Overview
 
 The Agent Container provides REST routes that allow the outside world to find out about the agents running inside the container, and to interact with those agents by means of sending asynchronous messages (unicast and broadcast) and invoking synchronous actions.
 
-* The `agents` route is used to get information on one or all agents and their actions running in the component.
+* The `agents` route is used to get information on one or all agents running in the container and their respective actions.
 * The `send` and `broadcast` routes are used to send an asynchronous message to a specific agent, or to all agents subscribed to the given channel or topic.
 * The `invoke` route is used to invoke an action or service provided by either any or the given agent and get the result (synchronously). Expected parameter and output types, as well as an optional description, are given in the action object returned by the above `agents` route.
 
 ### Implementation Details
 
-The reference implementation of the Agent Container is done in Kotlin in [JIAC VI](jiac-vi.md), but any other language or framework can be used, too, as long as the OPACA API is implemented. Depending on the purpose of the container, it does not even have to be actual "agents" but just a simple web server.
+The reference implementation of the Agent Container is done in Kotlin in [JIAC VI](jiac-vi.md), but any other language or framework can be used, too, as long as the OPACA API is implemented. Depending on the purpose of the container, it does not even have to be actual "agents" but can e.g. be just a simple web app.
 
-Each Agent Container includes one `ContainerAgent`, which will run a very simple web server providing the different OPACA API routes, and act as a bridge between that web server and the actual "JIAC VI world". It keeps track of the "actual" agents running in the container and their actions and will forward any incoming requests to the appropriate agent. The Container Agent itself does not appear in the list of `agents` returned by the respective API route, but only agents that register with the Container Agent.
+Each Agent Container includes one `ContainerAgent`, which will run a very simple HTTP server providing the different OPACA API routes, and act as a bridge between that server and the "JIAC VI world". It keeps track of the "actual" agents running in the container and their actions and will forward any incoming requests to the appropriate agent. The Container Agent itself does not appear in the list of `agents` returned by the respective API route, but only agents that register with the Container Agent.
 
 Those agents should extend the `AbstractContainerizedAgent` which will handle much of the logic for registering and deregistering with the Container Agent (and thus the parent Runtime Platform), and also provides useful helper methods for defining and reacting to OPACA Actions and Streams, and for sending "outbound" `send`, `broadcast` and `invoke` requests to their parent Runtime Platform and thus other Agent Containers.
 
