@@ -39,7 +39,7 @@ A multi-agent system in the OPACA approach consists of two types of components:
 
 * **Runtime Platforms** are used to manage one or more Agent Containers, deploying those in Docker or Kubernetes. They connect different Agent Containers while also providing basic services such as yellow pages, authentication, etc.
 
-Please refer to the [API docs](doc/api.md) page for more information about the different routes provided for the API and the respective requests and responses.
+Please refer to the [API docs](doc/api.md) page for more information about the different routes provided for the API and the respective requests and responses. An overview over the reference implementation can be found [here](doc/implementation.md).
 
 
 ## Modules
@@ -129,12 +129,14 @@ New SNAPSHOT releases are deployed by CI each time a new commit is pushed to the
 ## Additional Information
 
 * [API Routes and Models](doc/api.md)
+* [Reference Implementation](doc/implementation.md)
 * [Protocols](doc/protocols.md)
 * [Execution Environments](doc/environments.md)
 * [Session Handling](doc/session.md)
 * [Authentication](doc/auth.md)
 * [User Management](doc/user-management.md)
 * [Parameter Validation](doc/validation.md)
+* [JIAC VI Basics](doc/jiac-vi.md)
 
 
 ## Publications
