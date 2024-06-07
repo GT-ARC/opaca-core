@@ -67,24 +67,31 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         streams
     )
 
-    fun addAction(name: String, parameters: Map<String, Parameter>, result: Parameter?, callback: (Map<String, JsonNode>) -> Any?) {
-        addAction(Action(name, parameters, result), callback)
-    }
+    fun addAction(name: String, parameters: Map<String, Parameter>, result: Parameter?, callback: (Map<String, JsonNode>) -> Any?) =
+            addAction(Action(name, parameters, result), callback)
+    
+    fun addAction(name: String, description: String?, parameters: Map<String, Parameter>, result: Parameter?, callback: (Map<String, JsonNode>) -> Any?) =
+            addAction(Action(name, description, parameters, result), callback)
 
     fun addAction(action: Action, callback: (Map<String, JsonNode>) -> Any?) {
         log.info("Added action: $action")
         actions.add(action)
         actionCallbacks[action.name] = callback
     }
-    
-    fun addStreamGet(name: String, callback: (() -> Any?)) {
-        val stream = Stream(name, Stream.Mode.GET)
+
+    fun addStreamGet(name: String, callback: (() -> Any?)) = addStreamGet(name, null, callback)
+
+    fun addStreamGet(name: String, description: String?, callback: (() -> Any?)) {
+        val stream = Stream(name, Stream.Mode.GET, description)
         streams.add(stream)
         streamGetCallbacks[stream.name] = callback
     }
 
-    fun addStreamPost(name: String, callback: ((ByteArray) -> Any?)) {
-        val stream = Stream(name, Stream.Mode.POST)
+
+    fun addStreamPost(name: String, callback: ((ByteArray) -> Any?)) = addStreamPost(name, null, callback)
+
+    fun addStreamPost(name: String, description: String?, callback: ((ByteArray) -> Any?)) {
+        val stream = Stream(name, Stream.Mode.POST, description)
         streams.add(stream)
         streamPostCallbacks[stream.name] = callback
     }
@@ -125,11 +132,11 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
      * Send invoke to another agent via the parent RuntimePlatform. While this can also be used
      * to communicate with agents in the same container, JIAC's own messaging should be used then.
      */
-    fun <T> sendOutboundInvoke(action: String, agentId: String?, parameters: Map<String, Any?>, type: Class<T>): T {
+    fun <T> sendOutboundInvoke(action: String, agentId: String?, parameters: Map<String, Any?>, type: Class<T>, timeout:Int=-1): T {
         log.info("Outbound Invoke: $action @ $agentId ($parameters)")
         val jsonParameters = parameters.entries
             .associate { Pair<String, JsonNode>(it.key, RestHelper.mapper.valueToTree(it.value)) }
-        val res = parentProxy.invoke(action, jsonParameters, agentId, -1, null, true)
+        val res = parentProxy.invoke(action, jsonParameters, agentId, timeout, null, true)
         return RestHelper.mapper.treeToValue(res, type)
     }
 
