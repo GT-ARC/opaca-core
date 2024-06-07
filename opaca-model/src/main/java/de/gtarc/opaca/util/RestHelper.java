@@ -9,7 +9,6 @@ import de.gtarc.opaca.model.ErrorResponse;
 import de.gtarc.opaca.model.Event;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.extern.java.Log;
 
 import java.io.*;
@@ -19,6 +18,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 /**
@@ -36,11 +36,8 @@ public class RestHelper {
 
     public final Integer timeout;
 
-    @NonNull
-    public final Encoding encoding;
-
     public RestHelper(String baseUrl) {
-        this(baseUrl, null, null, null, Encoding.JSON);
+        this(baseUrl, null, null, null);
     }
 
     public static final ObjectMapper mapper = JsonMapper.builder()
@@ -70,18 +67,9 @@ public class RestHelper {
         }
     }
 
+    // TODO find a way to further unify this with "requestWithCookies" below, maybe with a callback to serialize the payload?
     public void streamRequest(String method, String path, byte[] payload) throws IOException {
-        // TODO find a way to unify this with "request" below, maybe with a callback to serialize the payload?
-        HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl + path).toURL().openConnection();
-        connection.setRequestMethod(method);
-        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-
-        if (senderId != null && ! senderId.isEmpty()) {
-            connection.setRequestProperty(Event.HEADER_SENDER_ID, senderId);
-        }
-        if (token != null && !token.isEmpty()) {
-            connection.setRequestProperty("Authorization", "Bearer " + token);
-        }
+        var connection = createConnection(method, path, null);
 
         connection.setDoOutput(true);
         connection.connect();
@@ -105,31 +93,15 @@ public class RestHelper {
         }
     }
 
-    public InputStream requestWithCookies(String method, String path, Object payload, List<HttpCookie> cookies) throws IOException {
+    public InputStream requestWithCookies(String method, String path, List<HttpCookie> cookies, Object payload) throws IOException {
         log.info(String.format("%s %s%s (%s)", method, baseUrl, path, payload));
-        HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl + path).toURL().openConnection();
-        connection.setRequestMethod(method);
-        connection.setRequestProperty("Content-Type", getContentType());
-
-        if (senderId != null && ! senderId.isEmpty()) {
-            connection.setRequestProperty(Event.HEADER_SENDER_ID, senderId);
-        }
-        if (token != null && ! token.isEmpty()) {
-            connection.setRequestProperty("Authorization", "Bearer " + token);
-        }
-        if (timeout != null && timeout > 0) {
-            connection.setConnectTimeout(timeout);
-        }
-        if (cookies != null && !cookies.isEmpty()) {
-            var cookieString = cookies.stream()
-                    .map(c ->  c.getName() + "=" + c.getValue())
-                    .collect(Collectors.joining("; "));
-            connection.setRequestProperty("Cookie", cookieString);
-        }
+        var connection = createConnection(method, path, cookies);
 
         try {
             if (payload != null) {
-                String content = encodePayload(payload);
+                String content = (payload instanceof String)
+                        ? (String) payload
+                        : mapper.writeValueAsString(payload);
                 byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
                 connection.setDoOutput(true);
                 connection.setFixedLengthStreamingMode(bytes.length);
@@ -155,7 +127,31 @@ public class RestHelper {
     }
 
     public InputStream request(String method, String path, Object payload) throws IOException {
-        return requestWithCookies(method, path, payload, null);
+        return requestWithCookies(method, path, null, payload);
+    }
+
+    private HttpURLConnection createConnection(String method, String path, List<HttpCookie> cookies) throws IOException {
+        HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl + path).toURL().openConnection();
+        connection.setRequestMethod(method);
+        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+
+        if (senderId != null && ! senderId.isEmpty()) {
+            connection.setRequestProperty(Event.HEADER_SENDER_ID, senderId);
+        }
+        if (token != null && ! token.isEmpty()) {
+            connection.setRequestProperty("Authorization", "Bearer " + token);
+        }
+        if (timeout != null && timeout > 0) {
+            connection.setConnectTimeout(timeout);
+        }
+        if (cookies != null && !cookies.isEmpty()) {
+            var cookieString = cookies.stream()
+                    .map(c ->  c.getName() + "=" + c.getValue())
+                    .collect(Collectors.joining("; "));
+            connection.setRequestProperty("Cookie", cookieString);
+        }
+
+        return  connection;
     }
 
     public static JsonNode readJson(String json) throws IOException {
@@ -180,7 +176,7 @@ public class RestHelper {
                 .lines().collect(Collectors.joining("\n"));
     }
 
-    private IOException makeException(HttpURLConnection connection) throws IOException {
+    protected IOException makeException(HttpURLConnection connection) throws IOException {
         var message = "Encountered an error when sending request to " + baseUrl;
         var response = readStream(connection.getErrorStream());
         try {
@@ -218,39 +214,19 @@ public class RestHelper {
         }
     }
 
-    private String getContentType() {
-        switch (encoding) {
-            case JSON: return "application/json; charset=UTF-8";
-            case URLENCODED: return "application/x-www-form-urlencoded; charset=UTF-8";
-        }
-        return "application/json; charset=UTF-8";
-    }
-
-    public String encodePayload(Object payload) throws JsonProcessingException {
-        switch (encoding) {
-            case JSON: return mapper.writeValueAsString(payload);
-            case URLENCODED: return encodeUrlencoded(payload);
-        }
-        return "";
-    }
-
-    @SuppressWarnings("unchecked")
-    public String encodeUrlencoded(Object payload) {
-        try {
-            return ((Map<String, String>) payload).entrySet().stream()
-                    .map(e -> {
-                        var name = URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8);
-                        var value = URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8);
-                        return name + "=" + value;
-                    }).collect(Collectors.joining("&"));
-        } catch (Exception e) {
-            log.severe("Invalid payload for encoding " + encoding + ": " + e.getMessage());
-            return "";
-        }
-    }
-
-    public enum Encoding {
-        JSON, URLENCODED
+    /**
+     * helper function in case the payload should be an urlencoded string
+     * e.g.
+     * var body = RestHelper.encodeUrlencoded(payload)
+     * client.request("GET", "/some/path", body)
+     */
+    public static String encodeUrlencoded(Map<String, String> payload) {
+        return payload.entrySet().stream()
+                .map(e -> {
+                    var name = URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8);
+                    var value = URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8);
+                    return name + "=" + value;
+                }).collect(Collectors.joining("&"));
     }
 
 }
