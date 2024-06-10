@@ -1,7 +1,6 @@
 package de.gtarc.opaca.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import de.gtarc.opaca.model.Action;
 import de.gtarc.opaca.model.AgentDescription;
 import de.gtarc.opaca.model.Message;
 

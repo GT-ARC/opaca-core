@@ -12,7 +12,6 @@ import de.gtarc.opaca.platform.session.SessionData;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.util.ActionToOpenApi;
 import de.gtarc.opaca.util.ApiProxy;
-import io.swagger.v3.core.util.Json;
 import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
 import org.springframework.beans.factory.annotation.Autowired;
