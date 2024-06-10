@@ -4,95 +4,103 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.core.util.DefaultIndenter;
-import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import de.gtarc.opaca.model.Action;
 import de.gtarc.opaca.model.AgentDescription;
-import de.gtarc.opaca.model.Parameter;
-import de.gtarc.opaca.model.Parameter.ArrayItems;
 
 /**
  * ActionToOpenApi
  */
 public class ActionToOpenApi {
 
-    public static void main(String[] args) throws Exception {
-        var agents = List.of(
-            new AgentDescription("agentA", "typeA", List.of(
-                new Action("foo", Map.of(
-                    "param1", new Parameter("string"),
-                    "param2", new Parameter("int", false),
-                    "param3", new Parameter("array", true, new ArrayItems("Car", null))
-                ), new Parameter("string"))
-            ), List.of())
-        );
-        var openApi = createOpenApi(agents);
-
-        var indenter =  new DefaultIndenter("  ", DefaultIndenter.SYS_LF);
-        var printer = new DefaultPrettyPrinter().withArrayIndenter(indenter).withObjectIndenter(indenter);
-        var json = RestHelper.mapper.writer(printer).writeValueAsString(openApi);
-        System.out.println(json);
-    }
-    
-    public static JsonNode createOpenApi(List<AgentDescription> agents) {
+    public static JsonNode createOpenApiSchema(List<AgentDescription> agents) {
         var paths = new HashMap<String, Object>();
 
         for (AgentDescription agent : agents) {
             for (Action action : agent.getActions()) {
-
                 var requestBody = Map.of(
-                    "content", Map.of(
-                        "application/json", Map.of(
-                            "schema", Map.of(
-                                "type", "object",
-                                "properties", action.getParameters()
-                            )
-                        )
-                    ),
-                    "required", true
+                        "content", Map.of(
+                                "application/json", Map.of(
+                                        "schema", Map.of(
+                                                "type", "object",
+                                                "properties", action.getParameters() // TODO check if this is OpenAPI conform
+                                        )
+                                )
+                        ),
+                        "required", true
                 );
 
                 var responses = Map.of(
-                    "200", Map.of(
-                        "description", "OK",
-                        "content", Map.of(
-                            "*/*", Map.of(
-                                "schema", action.getResult()
-                            )
+                        "200", Map.of(
+                                "description", "OK",
+                                "content", Map.of(
+                                        "*/*", Map.of(
+                                                "schema", action.getResult()
+                                        )
+                                )
+                        ),
+                        "default", Map.of(
+                                "description", "Unexpected error",
+                                "content", Map.of(
+                                        "*/*", Map.of(
+                                                "schema", "#/components/schemas/ErrorModel"
+                                        )
+                                )
                         )
-                    )
-                    // TODO error responses necessary?
+                        // TODO Further error responses necessary?
                 );
 
                 var path = Map.of(
-                    "post", Map.of(
-                        "summary", "", // TODO ???
-                        "operationId", "", // TODO ???
-                        "parameters", List.of(), // TODO query parameters for timeout, containerId, forward?
-                        "requestBody", requestBody,
-                        "responses", responses,
-                        "security", List.of(
-                            Map.of("bearerAuth", List.of())
+                        "post", Map.of(
+                                "tags", List.of("agent"),
+                                "description", action.getDescription() == null ? "" : action.getDescription(),
+                                "operationId", action.getName(),
+                                "parameters", List.of(
+                                        Map.of(
+                                                "name", "timeout",
+                                                "in", "query",
+                                                "description", "Timeout in seconds after which the action should abort",
+                                                "required", false,
+                                                "allowEmptyValue", true
+                                        ),
+                                        Map.of(
+                                                "name", "containerId",
+                                                "in", "query",
+                                                "description", "Id of the container where the agent is running",
+                                                "required", false,
+                                                "allowEmptyValue", true
+                                        ),
+                                        Map.of(
+                                                "name", "forward",
+                                                "in", "query",
+                                                "description", "Whether or not to include the connected runtime platforms",
+                                                "required", false,
+                                                "allowEmptyValue", true
+                                        )
+                                ),
+                                "requestBody", requestBody,
+                                "responses", responses,
+                                "security", List.of(
+                                        Map.of("bearerAuth", List.of())
+                                )
                         )
-                    )
                 );
 
                 paths.put(String.format("/invoke/%s/%s", action.getName(), agent.getAgentId()), path);
             }
         }
 
-        var components = Map.of(); // TODO JSON Schema definitions used in action params and results
-
         var root = Map.of(
-            "openapi", "3.0.1",
-            "info", Map.of(), // TODO same as for OPACA API?
-            "servers", Map.of(), // TODO same as for OPACA API?
-            "paths", paths,
-            "components", components, 
-            "securitySchemes", Map.of() // TODO same as for OPACA API?
+            "openapi", "3.1.0",
+                "info", Map.of(), // TODO Maybe a combination of agent names and agent descriptions if available?
+                "paths", paths,
+                "components", Map.of(), // TODO what are some schemas and how to use them here?
+                "security", List.of(
+                    Map.of("bearerAuth", List.of())
+                )
         );
+
         return RestHelper.mapper.convertValue(root, JsonNode.class);
     }
 

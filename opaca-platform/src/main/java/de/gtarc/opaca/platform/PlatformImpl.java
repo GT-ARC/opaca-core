@@ -10,7 +10,9 @@ import de.gtarc.opaca.platform.containerclient.DockerClient;
 import de.gtarc.opaca.platform.containerclient.KubernetesClient;
 import de.gtarc.opaca.platform.session.SessionData;
 import de.gtarc.opaca.model.*;
+import de.gtarc.opaca.util.ActionToOpenApi;
 import de.gtarc.opaca.util.ApiProxy;
+import io.swagger.v3.core.util.Json;
 import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -133,6 +135,21 @@ public class PlatformImpl implements RuntimePlatformApi {
                 .flatMap(c -> c.getAgents().stream())
                 .filter(a -> a.getAgentId().equals(agentId))
                 .findAny().orElse(null);
+    }
+
+    @Override
+    public JsonNode getActions() {
+        return ActionToOpenApi.createOpenApiSchema(runningContainers.values().stream()
+                .flatMap(c -> c.getAgents().stream())
+                .collect(Collectors.toList()));
+    }
+
+    @Override
+    public JsonNode getAgentActions(String agentId) {
+        return ActionToOpenApi.createOpenApiSchema(List.of(runningContainers.values().stream()
+                .flatMap(c -> c.getAgents().stream())
+                .filter(a -> a.getAgentId().equals(agentId))
+                .findAny().orElseThrow()));
     }
 
     @Override

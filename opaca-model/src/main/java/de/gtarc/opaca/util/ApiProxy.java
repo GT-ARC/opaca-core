@@ -84,6 +84,17 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
+    public JsonNode getActions() throws IOException {
+        return client.get("/actions", JsonNode.class);
+    }
+
+    @Override
+    public JsonNode getAgentActions(String agentId) throws IOException {
+        var path = String.format("/actions/%s", agentId);
+        return client.get(path, JsonNode.class);
+    }
+
+    @Override
     public void send(String agentId, Message message, String containerId, boolean forward) throws IOException {
         var path = String.format("/send/%s?%s", agentId, buildQuery(containerId, forward, null));
         client.post(path, message, null);

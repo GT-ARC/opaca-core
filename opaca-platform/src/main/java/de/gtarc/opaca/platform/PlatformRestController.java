@@ -7,6 +7,10 @@ import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.util.EventHistory;
 import de.gtarc.opaca.util.RestHelper.RequestException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -156,6 +160,22 @@ public class PlatformRestController {
 	) throws IOException {
 		log.info(String.format("GET AGENT: %s", agentId));
 		return implementation.getAgent(agentId);
+	}
+
+	@RequestMapping(value="/actions", method = RequestMethod.GET)
+	@Operation(summary = "Get a list of all actions on this Platform", tags={"agents"})
+	public JsonNode getActions() throws IOException {
+		log.info("GET ACTIONS");
+		return implementation.getActions();
+	}
+
+	@RequestMapping(value="/actions/{agentId}", method=RequestMethod.GET)
+	@Operation(summary="Get a list of actions of a single agent", tags = {"agents"})
+	public JsonNode getAgentActions(
+			@PathVariable String agentId
+	) throws IOException {
+		log.info(String.format("GET AGENT ACTIONS: %s", agentId));
+		return implementation.getAgentActions(agentId);
 	}
 
 	@RequestMapping(value="/send/{agentId}", method=RequestMethod.POST)

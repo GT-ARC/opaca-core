@@ -1,6 +1,7 @@
 package de.gtarc.opaca.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import de.gtarc.opaca.model.Action;
 import de.gtarc.opaca.model.AgentDescription;
 import de.gtarc.opaca.model.Message;
 
@@ -34,6 +35,24 @@ public interface CommonApi {
      * @return Description of that agent
      */
     AgentDescription getAgent(String agentId) throws IOException;
+
+    /**
+     * Get a list of all actions available on the Runtime Platform.
+     *
+     * REST: GET /actions
+     *
+     * @return List of all actions on the Runtime Platform
+     */
+    JsonNode getActions() throws IOException;
+
+    /**
+     * Get a list of all actions provided by the agent.
+     *
+     * REST: GET /actions/{agentId}
+     * @param agentId ID of the agent
+     * @return List of actions by that agent
+     */
+    JsonNode getAgentActions(String agentId) throws IOException;
 
     /**
      * Send message to a single agent in the container.
