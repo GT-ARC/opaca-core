@@ -13,6 +13,9 @@ import lombok.NoArgsConstructor;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Event {
 
+    public static final String HEADER_SENDER_ID = "sender-id";
+
+
     /** unique ID of this event */
     final String id = UUID.randomUUID().toString();
 
@@ -22,24 +25,29 @@ public class Event {
     /** to differentiate certain types of events */
     EventType eventType;
 
-    /** name of the API method that was called */
-    String methodName;
+    /** method and route of the API, for CALL event */
+    String route;
 
-    /** input parameters of the API method */
-    Object[] inputParams;
+    /** the ID of the sending AgentContainer or RuntimePlatform, if set in the header, for CALL event */
+    String senderId;
 
-    /** result of the API call, if any */
-    Object result;
+    /** receiver of forwarded call, for FORWARD event */
+    String receiver;
+
+    /** HTTP status code, for ERROR event */
+    Integer statusCode;
 
     /** optional ID of a different event this event relates to */
     String relatedId;
+
 
     /**
      * Nested EventType enum
      */
     public enum EventType {
-        API_CALL,
-        API_RESULT,
-        API_ERROR
+        CALL,
+        FORWARD,
+        SUCCESS,
+        ERROR
     }
 }

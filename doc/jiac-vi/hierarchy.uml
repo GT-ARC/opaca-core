@@ -1,0 +1,34 @@
+@startuml
+
+object RootGuardian {
+    name = /
+}
+note right: /
+
+RootGuardian --> MyAgent
+
+object MyAgent {
+    name = MyAgent
+    id = 0
+}
+note right: /MyAgent
+
+object "ChildAgent" as C
+object C {
+    name = ChildAgent
+    id = 1
+}
+note bottom of C: /MyAgent/ChildAgent@1
+
+object "ChildAgent" as C2
+object C2 {
+    name = ChildAgent
+    id = 2
+}
+note bottom of C2: /MyAgent/ChildAgent@2
+
+MyAgent --> C
+MyAgent --> C2
+
+
+@enduml

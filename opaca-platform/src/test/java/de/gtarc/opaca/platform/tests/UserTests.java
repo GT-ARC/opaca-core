@@ -7,6 +7,7 @@ import de.gtarc.opaca.platform.Application;
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
 import org.junit.*;
+import org.junit.rules.TestName;
 import org.junit.runners.MethodSorters;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -36,6 +37,14 @@ public class UserTests {
     @AfterClass
     public static void stopPlatform() {
         platformA.close();
+    }
+
+    @Rule
+    public TestName testName = new TestName();
+
+    @Before
+    public void printTest() {
+        System.out.println(">>> RUNNING TEST UserTests." + testName.getMethodName());
     }
 
     @Test

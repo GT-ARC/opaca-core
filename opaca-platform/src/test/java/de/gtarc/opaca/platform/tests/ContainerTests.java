@@ -10,11 +10,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.junit.*;
+import org.junit.rules.TestName;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.io.InputStreamReader;
 import java.net.DatagramPacket;
@@ -45,7 +45,7 @@ public class ContainerTests {
     private static String containerId = null;
 
     @BeforeClass
-    public static void setupPlatform() throws IOException {
+    public static void setupPlatform() throws Exception {
         platform = SpringApplication.run(Application.class,
                 "--server.port=" + PLATFORM_PORT);
         containerId = postSampleContainer(PLATFORM_URL);
@@ -54,6 +54,14 @@ public class ContainerTests {
     @AfterClass
     public static void stopPlatform() {
         platform.close();
+    }
+
+    @Rule
+    public TestName testName = new TestName();
+
+    @Before
+    public void printTest() {
+        System.out.println(">>> RUNNING TEST ContainerTests." + testName.getMethodName());
     }
 
     @After

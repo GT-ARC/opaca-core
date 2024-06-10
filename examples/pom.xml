@@ -17,6 +17,7 @@
     <modules>
         <module>sample-container</module>
         <module>ping-pong</module>
+        <module>testing</module>
     </modules>
 
     <properties>

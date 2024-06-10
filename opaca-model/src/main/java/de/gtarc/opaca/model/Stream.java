@@ -19,8 +19,15 @@ public class Stream {
     @NonNull
     Mode mode;
 
+    /** optional human-readable description of what this stream does */
+    String description;
+
     public enum Mode {
         GET, POST
+    }
+
+    public Stream(String name, Mode mode) {
+        this(name, mode, null);
     }
 
 }

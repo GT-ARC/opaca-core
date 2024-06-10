@@ -4,11 +4,9 @@ The User-Management system provides the ability to manage multiple users with di
 
 The User-Management is implemented with Spring Boot, Spring Data and uses Spring Security to implement a security filter chain, which checks for required permissions/authorities/roles of the requested user, based on the provided JWT (JSON Web Token). The JWT is generated after a successful login from a user or a successful container addition to the Runtime Platform.
 
-## User Database with MongoDB/Embedded Mongo
+## User Database
 
-The User Management stores all user-related information, including roles and privileges, in a Mongo database. Upon starting the Runtime Platform via the `docker-compose` file, specific environment parameters can be set for the Runtime Platform, pertaining the Spring Boot configuration to interact with the MongoDB.
-
-There are currently two available options to save user-related information in a MongoDB: An external MongoDB instance, for example a running Docker container, or an embedded MongoDB. These options can be selected by setting the environment variable `DB_EMBED` to either `true` or `false`. 
+There are currently two available options to save user-related information in a MongoDB: An external MongoDB instance, for example a running Docker container, or an embedded database using a simple hashmap for quick starts. These options can be selected by setting the environment variable `DB_EMBED` to either `true` or `false`. 
 
 ### MongoDB Docker Container
 
@@ -26,17 +24,17 @@ The configuration for the MongoDB consists of following two environment variable
 **NOTE:** \
 When starting the Runtime Platform and the MongoDB together, either through the docker-compose file or a modified launch configuration, the application might throw a _MongoSocketReadException_ due to the MongoDB container still starting up. This is a normal behavior and when configured correctly, the application should connect to the database shortly after. If the problem persist, check the connection URI and make sure the MongoDB instance is running and was initialized with the correct root user credentials.
 
-The user-related information is stored in a **MongoRepository**, which is used to create basic CRUD queries to interact with the connected/embedded MongoDB. When interacting with the connected MongoDB, the `username` or `name` of the respective entities (user/container) will act as a unique _String_ identifier in the database. Duplicate names for users/containers are therefore not possible.
+The user-related information is stored in a **MongoRepository**, which is used to create basic CRUD queries to interact with the connected MongoDB. When interacting with the connected MongoDB, the `username` or `name` of the respective entities (user/container) will act as a unique _String_ identifier in the database. Duplicate names for users/containers are therefore not possible.
 
 If the external MongoDB is started with the `docker-compose.yml`, the connected MongoDB is started with two persistent data volumes attached to it. The first volume is called _opaca-platform_data_ and stores all user-related information stored in the `TokenUser` class. The seconds volume is called _opaca-platform_config_ and stores metadata for a sharded cluster. The latter volume is currently not actively used, but is defined to prevent the creation of additional volumes. These volumes persist, even after the deletion of the respected MongoDB compose stack.
 
-### Embedded MongoDB
+### Embedded Database
 
 Set `DB_EMBED: true` to use this saving method. Recommended for quick-starts, development and testing.
 
-The embedded MongoDB is provided by [flapdoodle](https://github.com/flapdoodle-oss/de.flapdoodle.embed.mongo.spring), a third-party dependency. This option uses the same data structure as the external MongoDB container. The currently used MongoDB version is _7.0.4_. Before the first usage, the MongoDB version is downloaded from the official Mongo repository and stored locally. The local storage directory for Windows is `C:/users/[username]/.embedmongo/`.
+The embedded database system uses a simple hash map to store all user-related information as a `TokenUser`, which includes the users name, encrypted password, role and a list of its privileges. 
 
-Since the embedded MongoDB is for quick deployment usage only, data is **NOT** persistently stored when using the embedded MongoDB. Instead, upon starting the application, a temporary directory is created, which for Windows is located at `C:/users/[username]/AppData/Local/Temp/`. After exiting the application this directory is cleared, but the directory path still persists.
+Since the embedded database is for quick deployment usage only, data is **NOT** persistently stored when using the embedded database. All stored users will be automatically deleted when the application is terminated. If you need to store user data persistently, please use the added MongoDB functionality.
 
 ## User-Management Models
 

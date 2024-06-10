@@ -10,7 +10,8 @@ import de.gtarc.opaca.model.Event;
  */
 public class EventHistory {
  
-    public static int maxSize = 50;
+    // max number of entries in the history; default is zero, use any negative value for no limit
+    public static int maxSize = 0;
 
     private static final EventHistory INSTANCE = new EventHistory();
     
@@ -26,7 +27,7 @@ public class EventHistory {
     public void addEvent(Event entry) {
         if (entry != null) {
             events.add(entry);
-            while (events.size() > maxSize) {
+            while (maxSize >= 0 && events.size() > maxSize) {
                 events.remove(0);
             }
         }
