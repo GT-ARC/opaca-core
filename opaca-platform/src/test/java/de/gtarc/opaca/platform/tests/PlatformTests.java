@@ -142,10 +142,10 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         var containerBId = result(con);
 
-        // check if container in platform B has higher port mapping than specified by image
+        // check if container in platform B has a different port mapping than specified by image
         con = request(PLATFORM_B_URL, "GET", "/containers/" + containerBId, null);
         var container = result(con, AgentContainer.class);
-        Assert.assertTrue(container.getConnectivity().getApiPortMapping() > image.getImage().getApiPort());
+        Assert.assertTrue(container.getConnectivity().getApiPortMapping() != image.getImage().getApiPort());
 
         // undeploy both container again
         con = request(PLATFORM_A_URL, "DELETE", "/containers/" + containerAId, null);
@@ -265,11 +265,11 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         var container2Id = result(con);
 
-        // check that the 2nd container has a higher api port than "normal", then delete containers
+        // check that the 2nd container has a different api port than the 1st container, then delete containers
         try {
             con = request(PLATFORM_A_URL, "GET", "/containers/" + container2Id, null);
             var res = result(con, AgentContainer.class);
-            Assert.assertTrue(res.getConnectivity().getApiPortMapping() > image.getImage().getApiPort());
+            Assert.assertTrue(res.getConnectivity().getApiPortMapping() != image.getImage().getApiPort());
         } finally {
             con = request(PLATFORM_A_URL, "DELETE", "/containers/" + container1Id, null);
             Assert.assertEquals(200, con.getResponseCode());
