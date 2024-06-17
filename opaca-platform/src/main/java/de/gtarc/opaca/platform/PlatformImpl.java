@@ -10,7 +10,6 @@ import de.gtarc.opaca.platform.containerclient.DockerClient;
 import de.gtarc.opaca.platform.containerclient.KubernetesClient;
 import de.gtarc.opaca.platform.session.SessionData;
 import de.gtarc.opaca.model.*;
-import de.gtarc.opaca.util.ActionToOpenApi;
 import de.gtarc.opaca.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
@@ -137,18 +136,8 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public JsonNode getActions() {
-        return ActionToOpenApi.createOpenApiSchema(runningContainers.values().stream()
-                .flatMap(c -> c.getAgents().stream())
-                .collect(Collectors.toList()));
-    }
-
-    @Override
-    public JsonNode getAgentActions(String agentId) {
-        return ActionToOpenApi.createOpenApiSchema(List.of(runningContainers.values().stream()
-                .flatMap(c -> c.getAgents().stream())
-                .filter(a -> a.getAgentId().equals(agentId))
-                .findAny().orElseThrow()));
+    public String getActions() {
+        return ActionToOpenApi.createOpenApiSchema(runningContainers.values());
     }
 
     @Override

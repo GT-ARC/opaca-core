@@ -160,18 +160,9 @@ public class PlatformRestController {
 
 	@RequestMapping(value="/actions", method = RequestMethod.GET)
 	@Operation(summary = "Get a list of all actions on this Platform", tags={"agents"})
-	public JsonNode getActions() throws IOException {
+	public String getActions() throws IOException {
 		log.info("GET ACTIONS");
 		return implementation.getActions();
-	}
-
-	@RequestMapping(value="/actions/{agentId}", method=RequestMethod.GET)
-	@Operation(summary="Get a list of actions of a single agent", tags = {"agents"})
-	public JsonNode getAgentActions(
-			@PathVariable String agentId
-	) throws IOException {
-		log.info(String.format("GET AGENT ACTIONS: %s", agentId));
-		return implementation.getAgentActions(agentId);
 	}
 
 	@RequestMapping(value="/send/{agentId}", method=RequestMethod.POST)
