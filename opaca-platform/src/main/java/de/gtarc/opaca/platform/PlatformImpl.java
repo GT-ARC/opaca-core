@@ -13,6 +13,7 @@ import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -266,7 +267,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 tokens.put(agentContainerId, token);
                 validators.put(agentContainerId, new ArgumentValidator(container.getImage()));
                 container.setOwner(owner);
-                userDetailsService.createUser(agentContainerId, agentContainerId,
+                userDetailsService.createUser(agentContainerId, generateRandomPwd(),
                         config.enableAuth ? userDetailsService.getUserRole(owner) : Role.GUEST,
                         config.enableAuth ? userDetailsService.getUserPrivileges(owner) : null);
                 log.info("Container started: " + agentContainerId);
@@ -552,5 +553,13 @@ public class PlatformImpl implements RuntimePlatformApi {
                     request.getClientConfig().getType(), config.containerEnvironment));
         }
     }
+
+    /**
+     * Creates a random String of length 24 containing upper and lower case characters and numbers
+     */
+    private String generateRandomPwd() {
+        return RandomStringUtils.random(24, true, true);
+    }
+
 
 }
