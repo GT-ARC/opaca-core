@@ -1,19 +1,21 @@
 package de.gtarc.opaca.container
 
 import com.fasterxml.jackson.databind.JsonNode
-import de.gtarc.opaca.api.AgentContainerApi
-import de.gtarc.opaca.model.*
-import de.gtarc.opaca.util.ApiProxy
-import de.gtarc.opaca.util.RestHelper
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.BrokerAgentRef
 import de.dailab.jiacvi.behaviour.act
-import java.lang.RuntimeException
+import de.gtarc.opaca.api.AgentContainerApi
+import de.gtarc.opaca.model.AgentContainer
+import de.gtarc.opaca.model.AgentContainerImage
+import de.gtarc.opaca.model.AgentDescription
+import de.gtarc.opaca.model.Message
+import de.gtarc.opaca.util.ApiProxy
+import de.gtarc.opaca.util.RestHelper
+import java.io.InputStream
 import java.time.Duration
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.concurrent.Semaphore
-import java.io.InputStream
 
 
 const val CONTAINER_AGENT = "container-agent"
@@ -199,7 +201,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
     private fun renewToken() {
         token = parentProxy.renewToken()
-        parentProxy = ApiProxy(runtimePlatformUrl, containerId, token) 
+        parentProxy = ApiProxy(runtimePlatformUrl, containerId, token)
         for (agentId in registeredAgents.keys.toList()) {
             val ref = system.resolve(agentId)
             ref tell RenewToken(token!!)

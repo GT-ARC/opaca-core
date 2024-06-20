@@ -49,7 +49,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
             runtimePlatformUrl = it.parentUrl
             containerId = it.containerId
             token = it.authToken
-            parentProxy =  ApiProxy(runtimePlatformUrl, containerId, token) 
+            parentProxy =  ApiProxy(runtimePlatformUrl, containerId, token)
         }
     }
 
@@ -108,7 +108,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         on<RenewToken> {
             log.info("RENEW TOKEN $it")
             token = it.value
-            parentProxy =  ApiProxy(runtimePlatformUrl, containerId, token) 
+            parentProxy =  ApiProxy(runtimePlatformUrl, containerId, token)
         }
 
         respond<StreamGet, Any?> {
