@@ -5,8 +5,7 @@ import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.LocalAgentRef
 import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.model.*
-import de.gtarc.opaca.util.ApiProxy
-import de.gtarc.opaca.util.RestHelper
+import de.gtarc.opaca.util.*
 import java.io.InputStream
 
 /**
@@ -50,7 +49,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
             runtimePlatformUrl = it.parentUrl
             containerId = it.containerId
             token = it.authToken
-            parentProxy =  ApiProxy(runtimePlatformUrl, containerId, token, null)
+            parentProxy =  ApiProxy(runtimePlatformUrl, containerId, token)
         }
     }
 
@@ -109,7 +108,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         on<RenewToken> {
             log.info("RENEW TOKEN $it")
             token = it.value
-            parentProxy =  ApiProxy(runtimePlatformUrl, containerId, token, null)
+            parentProxy =  ApiProxy(runtimePlatformUrl, containerId, token)
         }
 
         respond<StreamGet, Any?> {

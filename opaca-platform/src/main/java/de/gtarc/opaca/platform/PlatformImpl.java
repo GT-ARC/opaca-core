@@ -517,20 +517,20 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     private ApiProxy getClient(String containerId) {
         var url = containerClient.getUrl(containerId);
-        return new ApiProxy(url, config.getOwnBaseUrl(), null, null);
+        return new ApiProxy(url, config.getOwnBaseUrl(), null);
     }
 
     private ApiProxy getClient(String containerId, String token) {
         var url = containerClient.getUrl(containerId);
-        return new ApiProxy(url, config.getOwnBaseUrl(), token, null);
+        return new ApiProxy(url, config.getOwnBaseUrl(), token);
     }
 
     private ApiProxy getPlatformClient(String url) {
-        return new ApiProxy(url, config.getOwnBaseUrl(), null, null);
+        return new ApiProxy(url, config.getOwnBaseUrl(), null);
     }
 
     private ApiProxy getPlatformClient(String url, String token) {
-        return new ApiProxy(url, config.getOwnBaseUrl(), token, null);
+        return new ApiProxy(url, config.getOwnBaseUrl(), token);
     }
 
     private String normalizeString(String string) {

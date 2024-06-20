@@ -27,6 +27,10 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         this(baseUrl, null, null, null);
     }
 
+    public ApiProxy(String baseUrl, String senderId, String token) {
+        this(baseUrl, senderId, token, null);
+    }
+
     public ApiProxy(String baseUrl, String senderId, String token, Integer timeout) {
         this.baseUrl = baseUrl;
         this.client = new RestHelper(baseUrl, senderId, token, timeout);

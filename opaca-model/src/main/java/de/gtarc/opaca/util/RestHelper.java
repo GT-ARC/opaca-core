@@ -40,6 +40,10 @@ public class RestHelper {
         this(baseUrl, null, null, null);
     }
 
+    public RestHelper(String baseUrl, String senderId, String token) {
+        this(baseUrl, senderId, token, null);
+    }
+
     public static final ObjectMapper mapper = JsonMapper.builder()
             .findAndAddModules().build();
 
