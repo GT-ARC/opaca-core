@@ -18,11 +18,13 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 /**
- * Helper class for issuing different REST calls in Java.
+ * Helper class for issuing different REST calls in Java. While this class can theoretically
+ * be used for all kinds of REST or HTTP requests, is has been created especially for calling
+ * OPACA API routes (at the AC by the RP, or at the RP by the AC), setting some headers and 
+ * properties that are required for that, and logging certain requests in the OPACA Event History.
  */
 @Log
 @AllArgsConstructor
@@ -71,7 +73,13 @@ public class RestHelper {
         }
     }
 
-    // TODO find a way to further unify this with "requestWithCookies" below, maybe with a callback to serialize the payload?
+    /**
+     * Variant of request that sends the payload as a stream. Currently only used for POST /stream route.
+     * 
+     * TODO further unify this with regular "request" method? can we _always_ send the payload as a stream?
+     *      why does this method explicitly close the connection and the other doesn't? why does the other
+     *      have an additional layer of try/catch? check what of that's really necessary.
+     */
     public void streamRequest(String method, String path, byte[] payload) throws IOException {
         var connection = createConnection(method, path, null);
 
@@ -97,7 +105,7 @@ public class RestHelper {
         }
     }
 
-    public InputStream requestWithCookies(String method, String path, List<HttpCookie> cookies, Object payload) throws IOException {
+    public InputStream request(String method, String path, List<HttpCookie> cookies, Object payload) throws IOException {
         log.info(String.format("%s %s%s (%s)", method, baseUrl, path, payload));
         var connection = createConnection(method, path, cookies);
 
@@ -127,13 +135,15 @@ public class RestHelper {
         } catch (SocketTimeoutException e) {
             throw makeException(connection);
         }
-
     }
 
     public InputStream request(String method, String path, Object payload) throws IOException {
-        return requestWithCookies(method, path, null, payload);
+        return request(method, path, null, payload);
     }
 
+    /**
+     * Create connection for given method and path with all the necessary properties and headers.
+     */
     private HttpURLConnection createConnection(String method, String path, List<HttpCookie> cookies) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl + path).toURL().openConnection();
         connection.setRequestMethod(method);
@@ -164,7 +174,7 @@ public class RestHelper {
 
     public static Map<String, JsonNode> readMap(String json) throws IOException {
         TypeReference<Map<String, JsonNode>> prototype = new TypeReference<>() {};
-         return mapper.readValue(json, prototype);
+        return mapper.readValue(json, prototype);
     }
 
     public static <T> T readObject(String json, Class<T> type) throws IOException {
