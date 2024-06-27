@@ -160,9 +160,11 @@ public class PlatformRestController {
 
 	@RequestMapping(value="/actions", method = RequestMethod.GET)
 	@Operation(summary = "Get a list of all actions on this Platform", tags={"agents"})
-	public String getActions() throws IOException {
+	public String getActions(
+			@RequestParam(required = false) boolean yaml
+	) throws IOException {
 		log.info("GET ACTIONS");
-		return implementation.getActions();
+		return implementation.getActions(yaml);
 	}
 
 	@RequestMapping(value="/send/{agentId}", method=RequestMethod.POST)

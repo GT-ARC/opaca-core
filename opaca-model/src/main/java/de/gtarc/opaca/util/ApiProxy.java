@@ -84,8 +84,9 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
-    public String getActions() throws IOException {
-        return client.get("/actions", String.class);
+    public String getActions(boolean yaml) throws IOException {
+        var path = String.format("/actions/%s", yaml);
+        return client.get(path, String.class);
     }
 
     @Override

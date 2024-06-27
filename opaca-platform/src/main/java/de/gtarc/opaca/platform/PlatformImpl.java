@@ -136,8 +136,8 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public String getActions() {
-        return ActionToOpenApi.createOpenApiSchema(runningContainers.values());
+    public String getActions(boolean yaml) {
+        return ActionToOpenApi.createOpenApiSchema(runningContainers.values(), yaml);
     }
 
     @Override
