@@ -398,6 +398,7 @@ public class PlatformTests {
         var containerId = result(con);
 
         try {
+            // Test JSON format
             con = request(PLATFORM_A_URL, "GET", "/actions", null);
             Assert.assertEquals(200, con.getResponseCode());
             var openApiSchema = result(con);
@@ -408,6 +409,14 @@ public class PlatformTests {
             parseOptions.setResolveFully(true);
             SwaggerParseResult result = parser.readContents(openApiSchema, null, parseOptions);
             Assert.assertTrue(result.getMessages().isEmpty());    // Check if parser result holds error messages
+
+            // Test YAML format
+            con = request(PLATFORM_A_URL, "GET", "/actions?yaml=true", null);
+            Assert.assertEquals(200, con.getResponseCode());
+            var openApiSchemaYaml = result(con);
+
+            result = parser.readContents(openApiSchemaYaml, null, parseOptions);
+            Assert.assertTrue(result.getMessages().isEmpty());
         } finally {
             // stop container
             con = request(PLATFORM_A_URL, "DELETE", "/containers/" + containerId, null);

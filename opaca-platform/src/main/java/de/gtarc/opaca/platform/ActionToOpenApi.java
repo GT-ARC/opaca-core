@@ -136,7 +136,7 @@ public class ActionToOpenApi {
     private static Schema<?> schemaFromParameter(Parameter parameter) {
         Schema<?> fieldSchema = new Schema<>();
 
-        if (parameter == null) {
+        if (parameter == null || parameter.getType().equals("null")) {
             fieldSchema.setType("object");
             fieldSchema.nullable(true);
             return fieldSchema;
