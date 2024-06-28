@@ -92,11 +92,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
             return registeredAgents[agentId]
         }
 
-        override fun getActions(yaml: Boolean): String {
-            log.debug("GET ACTIONS")
-            return registeredAgents.values.flatMap { it.actions }.toString()
-        }
-
         override fun send(agentId: String, message: Message, containerId: String, forward: Boolean) {
             log.debug("SEND: $agentId $message")
             val agent = findRegisteredAgent(agentId, action=null, stream=null)
