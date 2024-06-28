@@ -138,6 +138,15 @@ public class PlatformRestController {
 		return implementation.getHistory();
 	}
 
+	@RequestMapping(value="/actions", method = RequestMethod.GET)
+	@Operation(summary = "Get a list of all actions on this Platform", tags={"agents"})
+	public String getActions(
+			@RequestParam(required = false) boolean yaml
+	) throws IOException {
+		log.info("GET ACTIONS");
+		return implementation.getActions(yaml);
+	}
+
 	/*
 	 * AGENTS ROUTES
 	 */
@@ -156,15 +165,6 @@ public class PlatformRestController {
 	) throws IOException {
 		log.info(String.format("GET AGENT: %s", agentId));
 		return implementation.getAgent(agentId);
-	}
-
-	@RequestMapping(value="/actions", method = RequestMethod.GET)
-	@Operation(summary = "Get a list of all actions on this Platform", tags={"agents"})
-	public String getActions(
-			@RequestParam(required = false) boolean yaml
-	) throws IOException {
-		log.info("GET ACTIONS");
-		return implementation.getActions(yaml);
 	}
 
 	@RequestMapping(value="/send/{agentId}", method=RequestMethod.POST)

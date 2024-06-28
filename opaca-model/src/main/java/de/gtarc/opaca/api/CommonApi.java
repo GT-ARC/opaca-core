@@ -36,16 +36,6 @@ public interface CommonApi {
     AgentDescription getAgent(String agentId) throws IOException;
 
     /**
-     * Get a list of all actions available on the Runtime Platform.
-     *
-     * REST: GET /actions
-     *
-     * @param yaml If true the response will be in YAML format, otherwise it will be JSON
-     * @return List of all actions on the Runtime Platform
-     */
-    String getActions(boolean yaml) throws IOException;
-
-    /**
      * Send message to a single agent in the container.
      *
      * REST: POST /send/{id}?containerId={containerId}&forward={true|false}`
