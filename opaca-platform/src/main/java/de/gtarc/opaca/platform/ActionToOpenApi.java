@@ -136,7 +136,7 @@ public class ActionToOpenApi {
             return new ObjectSchema().nullable(true);
         }
 
-        Schema<?> schema = switch (parameter.getType()) {
+        return switch (parameter.getType()) {
             case "string" -> new StringSchema();
             case "number" -> new NumberSchema();
             case "integer" -> new IntegerSchema();
@@ -145,7 +145,6 @@ public class ActionToOpenApi {
             case "array" -> new ArraySchema().items(schemaFromParameter(toParameter(parameter.getItems())));
             default -> new Schema<>().$ref("#/components/schemas/" + parameter.getType());
         };
-        return schema.nullable(! Boolean.TRUE.equals(parameter.getRequired())); // note: could be null
     }
 
     private static io.swagger.v3.oas.models.parameters.Parameter makeQueryParam(String name, String description, Schema<?> schema) {
