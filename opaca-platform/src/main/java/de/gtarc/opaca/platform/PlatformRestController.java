@@ -3,6 +3,7 @@ package de.gtarc.opaca.platform;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.RuntimePlatformApi;
+import de.gtarc.opaca.api.RuntimePlatformApi.ActionFormat;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.util.EventHistory;
 import de.gtarc.opaca.util.RestHelper.RequestException;
@@ -139,12 +140,12 @@ public class PlatformRestController {
 	}
 
 	@RequestMapping(value="/actions", method = RequestMethod.GET)
-	@Operation(summary = "Get a list of all actions on this Platform", tags={"agents"})
-	public String getActions(
-			@RequestParam(required = false) boolean yaml
+	@Operation(summary = "Get an Open-API compliant list of all agent actions currently available on this Platform", tags={"info"})
+	public String getOpenApiActions(
+			@RequestParam(required = false, defaultValue = "JSON") ActionFormat format
 	) throws IOException {
-		log.info("GET ACTIONS");
-		return implementation.getActions(yaml);
+		log.info("Get Actions");
+		return implementation.getOpenApiActions(format);
 	}
 
 	/*

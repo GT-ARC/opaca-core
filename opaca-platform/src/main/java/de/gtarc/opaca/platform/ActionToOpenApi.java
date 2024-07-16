@@ -3,6 +3,8 @@ package de.gtarc.opaca.platform;
 import java.util.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import de.gtarc.opaca.api.RuntimePlatformApi.ActionFormat;
 import de.gtarc.opaca.model.*;
 
 import io.swagger.v3.core.util.Json;
@@ -21,7 +23,7 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
  */
 public class ActionToOpenApi {
 
-    public static String createOpenApiSchema(Collection<AgentContainer> agentsContainers, boolean yaml) {
+    public static String createOpenApiSchema(Collection<AgentContainer> agentsContainers, ActionFormat format) {
         // Check for custom definitions in agent container images and add to openapi components
         // Also check for external definitions by url
         Components components = new Components();
@@ -130,7 +132,10 @@ public class ActionToOpenApi {
         openAPI.setComponents(components);
         openAPI.setSecurity(List.of(new SecurityRequirement().addList("bearerAuth")));
 
-        return yaml ? Yaml.pretty(openAPI) : Json.pretty(openAPI);
+        return switch (format) {
+            case JSON -> Json.pretty(openAPI);
+            case YAML -> Yaml.pretty(openAPI);
+        };
     }
 
     private static Schema<?> schemaFromParameter(Parameter parameter) {

@@ -56,6 +56,12 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         return client.get("/info", AgentContainer.class);
     }
 
+    @Override
+    public String getOpenApiActions(ActionFormat format) throws IOException {
+        var path = String.format("/actions/%s", format); // XXX is  this correct? should be request param -> ?
+        return client.get(path, String.class);
+    }
+
     // AUTHENTICATION
 
     @Override
@@ -81,12 +87,6 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     public AgentDescription getAgent(String agentId) throws IOException {
         var path = String.format("/agents/%s", agentId);
         return client.get(path, AgentDescription.class);
-    }
-
-    @Override
-    public String getActions(boolean yaml) throws IOException {
-        var path = String.format("/actions/%s", yaml);
-        return client.get(path, String.class);
     }
 
     @Override

@@ -3,6 +3,7 @@ package de.gtarc.opaca.platform;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.RuntimePlatformApi;
+import de.gtarc.opaca.api.RuntimePlatformApi.ActionFormat;
 import de.gtarc.opaca.platform.auth.JwtUtil;
 import de.gtarc.opaca.platform.user.TokenUserDetailsService;
 import de.gtarc.opaca.platform.containerclient.ContainerClient;
@@ -116,6 +117,23 @@ public class PlatformImpl implements RuntimePlatformApi {
         return EventHistory.getInstance().getEvents();
     }
 
+    @Override
+    public String getOpenApiActions(ActionFormat format) {
+        return ActionToOpenApi.createOpenApiSchema(runningContainers.values(), format);
+    }
+
+    @Override
+    public String login(Login loginParams) {
+        return jwtUtil.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
+    }
+
+    @Override
+    public String renewToken() {
+        // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
+        String owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
+        return jwtUtil.generateTokenForAgentContainer(owner);
+    }
+
     /*
      * AGENTS ROUTES
      */
@@ -133,23 +151,6 @@ public class PlatformImpl implements RuntimePlatformApi {
                 .flatMap(c -> c.getAgents().stream())
                 .filter(a -> a.getAgentId().equals(agentId))
                 .findAny().orElse(null);
-    }
-
-    @Override
-    public String getActions(boolean yaml) {
-        return ActionToOpenApi.createOpenApiSchema(runningContainers.values(), yaml);
-    }
-
-    @Override
-    public String login(Login loginParams) {
-        return jwtUtil.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
-    }
-
-    @Override
-    public String renewToken() {
-        // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
-        String owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
-        return jwtUtil.generateTokenForAgentContainer(owner);
     }
 
     @Override
@@ -220,10 +221,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (lastException != null) throw lastException;
         throw new NoSuchElementException(String.format("Not found: stream '%s' @ agent '%s'", stream, agentId));
     }
-    
-    /*
-     * CONTAINERS ROUTES
-     */
 
     @Override
     public void postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException {
@@ -243,6 +240,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (lastException != null) throw lastException;
         throw new NoSuchElementException(String.format("Not found: stream '%s' @ agent '%s'", stream, agentId));
     }
+    
+    /*
+     * CONTAINERS ROUTES
+     */
 
     @Override
     public String addContainer(PostAgentContainer postContainer) throws IOException {
@@ -386,8 +387,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         return List.copyOf(connectedPlatforms.keySet());
     }
 
-
-
     @Override
     public boolean disconnectPlatform(String url) throws IOException {
         url = normalizeString(url);
@@ -514,15 +513,6 @@ public class PlatformImpl implements RuntimePlatformApi {
                                     && (arguments == null || (validator != null && validator.isArgsValid(x.getParameters(), arguments)))))
                                 && (stream == null || a.getStreams().stream().anyMatch(x -> x.getName().equals(stream)))
                         );
-    }
-
-    private ApiProxy getClient(AgentContainer container) {
-        return getClient(container.getContainerId());
-    }
-
-    private ApiProxy getClient(String containerId) {
-        var url = containerClient.getUrl(containerId);
-        return new ApiProxy(url, config.getOwnBaseUrl(), null);
     }
 
     private ApiProxy getClient(String containerId, String token) {
