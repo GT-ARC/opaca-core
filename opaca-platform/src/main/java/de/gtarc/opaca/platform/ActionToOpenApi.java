@@ -81,28 +81,26 @@ public class ActionToOpenApi {
                 for (Action action : agent.getActions()) {
 
                     // Request Body
-                    Schema<?> responseBodySchema = new Schema<>().type("object");
+                    Schema<?> requestBodySchema = new ObjectSchema();
                     List<String> requiredList = new ArrayList<>();
                     for (var parameter : action.getParameters().entrySet()) {
-                        responseBodySchema.addProperty(parameter.getKey(), schemaFromParameter(parameter.getValue()));
+                        requestBodySchema.addProperty(parameter.getKey(), schemaFromParameter(parameter.getValue()));
                         if (parameter.getValue().getRequired()) {
                             requiredList.add(parameter.getKey());
                         }
                     }
-                    responseBodySchema.setRequired(requiredList);
+                    requestBodySchema.setRequired(requiredList);
                     RequestBody requestBody = new RequestBody()
-                            .content(new Content().addMediaType("application/json", new MediaType().schema(responseBodySchema)))
+                            .content(new Content().addMediaType("application/json", new MediaType().schema(requestBodySchema)))
                             .required(true);
 
                     // Responses
                     ApiResponse response200 = new ApiResponse()
                             .description("OK")
-                            .content(new Content().addMediaType("*/*",
-                                    new MediaType().schema(schemaFromParameter(action.getResult()))));
+                            .content(new Content().addMediaType("*/*", new MediaType().schema(schemaFromParameter(action.getResult()))));
                     ApiResponse responseDefault = new ApiResponse()
                             .description("Unexpected error")
                             .content(new Content().addMediaType("application/json", new MediaType().schema(new Schema<>().$ref("#/components/schemas/Error"))));
-
 
                     // Path Item
                     PathItem pathItem = new PathItem().post(new Operation()
@@ -119,14 +117,13 @@ public class ActionToOpenApi {
         }
 
         // Merge everything together
-        OpenAPI openAPI = new OpenAPI();
-
-        openAPI.setInfo(new Info()
-                .title("Collection of actions provided by the agents running on the OPACA platform")
-                .version("0.2"));
-        openAPI.setPaths(paths);
-        openAPI.setComponents(components);
-        openAPI.setSecurity(List.of(new SecurityRequirement().addList("bearerAuth")));
+        OpenAPI openAPI = new OpenAPI()
+                .info(new Info()
+                        .title("Collection of actions provided by the agents running on the OPACA platform")
+                        .version("0.2"))
+                .paths(paths)
+                .components(components)
+                .security(List.of(new SecurityRequirement().addList("bearerAuth")));
 
         return switch (format) {
             case JSON -> Json.pretty(openAPI);
@@ -150,7 +147,7 @@ public class ActionToOpenApi {
         };
     }
 
-    private static io.swagger.v3.oas.models.parameters.Parameter makeQueryParam(String name, String description, Schema schema) {
+    private static io.swagger.v3.oas.models.parameters.Parameter makeQueryParam(String name, String description, Schema<?> schema) {
         return new io.swagger.v3.oas.models.parameters.Parameter()
                 .name(name)
                 .in("query")
