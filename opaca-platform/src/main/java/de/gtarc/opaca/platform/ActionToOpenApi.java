@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import de.gtarc.opaca.api.RuntimePlatformApi.ActionFormat;
 import de.gtarc.opaca.model.*;
-
+import de.gtarc.opaca.model.Parameter.ArrayItems;
 import io.swagger.v3.core.util.Json;
 import io.swagger.v3.core.util.Yaml;
 import io.swagger.v3.oas.models.*;
@@ -19,15 +19,29 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 
 /**
- * ActionToOpenApi
+ * Creates an Open-API compliant specification of all the Actions provided by the Agents on this platform,
+ * that can be called using the /invoke route. This is complementary to the /api-docs route provided by
+ * Swagger itself, which can only provide Open-API specifications for all the "static" services that are
+ * part of the OPACA API, but not for the "dynamic" actions that may come and go at runtime.
  */
 public class ActionToOpenApi {
 
+    private static ObjectMapper mapper = new ObjectMapper();
+
+    /**
+     * Create Open-API spec in JSON or YAML format for the actions in the given Agent Containers. This method
+     * can provide an Open-API spec for all containers on the platform or for containers for this and connected
+     * platforms, but to stay consistent with other similar OPACA routes like /agents or /info, only the containers
+     * running on the platform itself should be passed.
+     * 
+     * @param agentsContainers List of agent containers currently running on this platform
+     * @param format Whether to return the spec in JSON or YAML format
+     * @return
+     */
     public static String createOpenApiSchema(Collection<AgentContainer> agentsContainers, ActionFormat format) {
         // Check for custom definitions in agent container images and add to openapi components
         // Also check for external definitions by url
         Components components = new Components();
-        ObjectMapper mapper = new ObjectMapper();
         for (AgentContainerImage images : agentsContainers.stream().map(AgentContainer::getImage).toList()) {
             for (var definition : images.getDefinitions().entrySet()) {
                 Schema<?> schema = mapper.convertValue(definition.getValue(), Schema.class);
@@ -39,36 +53,18 @@ public class ActionToOpenApi {
             }
         }
 
-        // Add query parameters to components
-        io.swagger.v3.oas.models.parameters.Parameter timeoutParameter = new io.swagger.v3.oas.models.parameters.Parameter()
-                .name("timeout")
-                .in("query")
-                .required(false)
-                .description("Timeout in seconds after which the action should abort")
-                .allowEmptyValue(true)
-                .schema(new IntegerSchema());
-        io.swagger.v3.oas.models.parameters.Parameter containerIdParam = new io.swagger.v3.oas.models.parameters.Parameter()
-                .name("containerId")
-                .in("query")
-                .required(false)
-                .description("Id of the container on which the agent is running")
-                .allowEmptyValue(true)
-                .schema(new StringSchema());
-        io.swagger.v3.oas.models.parameters.Parameter forwardParam = new io.swagger.v3.oas.models.parameters.Parameter()
-                .name("forward")
-                .in("query")
-                .required(false)
-                .description("Whether or not to include the connected runtime platforms")
-                .allowEmptyValue(true)
-                .schema(new BooleanSchema());
-        components.addParameters("timeoutParam", timeoutParameter);
-        components.addParameters("containerIdParam", containerIdParam);
-        components.addParameters("forwardParam", forwardParam);
+        // Add standard query parameters to components
+        components.addParameters("timeoutParam", makeQueryParam("timeout", 
+                "Timeout in seconds after which the action should abort", new IntegerSchema()));
+        components.addParameters("containerIdParam", makeQueryParam("containerId", 
+                "Id of the container on which the agent is running", new StringSchema()));
+        components.addParameters("forwardParam", makeQueryParam("forward", 
+                "Whether or not to include the connected runtime platforms", new BooleanSchema()));
 
         // Add Error schema to components
-        components.addSchemas("Error", new Schema<>().type("object")
-                .addProperty("code", new Schema<>().type("integer"))
-                .addProperty("message", new Schema<>().type("string")));
+        components.addSchemas("Error", new ObjectSchema()
+                .addProperty("code", new IntegerSchema())
+                .addProperty("message", new StringSchema()));
 
         // Add security scheme
         components.addSecuritySchemes("bearerAuth", new SecurityScheme()
@@ -139,39 +135,33 @@ public class ActionToOpenApi {
     }
 
     private static Schema<?> schemaFromParameter(Parameter parameter) {
-        Schema<?> fieldSchema = new Schema<>();
-
         if (parameter == null || parameter.getType().equals("null")) {
-            fieldSchema.setType("object");
-            fieldSchema.nullable(true);
-            return fieldSchema;
+            return new ObjectSchema().nullable(true);
         }
 
-        switch (parameter.getType()) {
-            case "string":
-                fieldSchema.setType("string");
-                break;
-            case "number":
-                fieldSchema.setType("number");
-                break;
-            case "integer":
-                fieldSchema.setType("integer");
-                break;
-            case "boolean":
-                fieldSchema.setType("boolean");
-                break;
-            case "object":
-                fieldSchema.setType("object");
-                break;
-            case "array":
-                fieldSchema.setType("array");
-                fieldSchema.setItems(schemaFromParameter(new Parameter(parameter.getItems().getType(), false, parameter.getItems().getItems())));
-                break;
-            default:
-                fieldSchema.$ref("#/components/schemas/" + parameter.getType());
-                break;
-        }
-        return fieldSchema;
+        return switch (parameter.getType()) {
+            case "string" -> new StringSchema();
+            case "number" -> new NumberSchema();
+            case "integer" -> new IntegerSchema();
+            case "boolean" -> new BooleanSchema();
+            case "object" -> new ObjectSchema();
+            case "array" -> new ArraySchema().items(schemaFromParameter(toParameter(parameter.getItems())));
+            default -> new Schema<>().$ref("#/components/schemas/" + parameter.getType());
+        };
+    }
+
+    private static io.swagger.v3.oas.models.parameters.Parameter makeQueryParam(String name, String description, Schema schema) {
+        return new io.swagger.v3.oas.models.parameters.Parameter()
+                .name(name)
+                .in("query")
+                .required(false)
+                .description(description)
+                .allowEmptyValue(true)
+                .schema(schema);
+    }
+
+    private static Parameter toParameter(ArrayItems itemsParam) {
+        return new Parameter(itemsParam.getType(), false, itemsParam.getItems());
     }
 
 }
