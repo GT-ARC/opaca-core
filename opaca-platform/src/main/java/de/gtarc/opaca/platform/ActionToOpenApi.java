@@ -106,7 +106,7 @@ public class ActionToOpenApi {
                     PathItem pathItem = new PathItem().post(new Operation()
                             .requestBody(requestBody)
                             .responses(new ApiResponses().addApiResponse("200", response200).addApiResponse("default", responseDefault))
-                            .description(action.getDescription() != null ? action.getDescription() : "")
+                            .description(action.getDescription())
                             .operationId(container.getContainerId() + ";" + agent.getAgentId() + ";" + action.getName())
                             .addParametersItem(new io.swagger.v3.oas.models.parameters.Parameter().$ref("#/components/parameters/timeoutParam"))
                             .addParametersItem(new io.swagger.v3.oas.models.parameters.Parameter().$ref("#/components/parameters/containerIdParam"))
@@ -136,7 +136,7 @@ public class ActionToOpenApi {
             return new ObjectSchema().nullable(true);
         }
 
-        return switch (parameter.getType()) {
+        Schema<?> schema = switch (parameter.getType()) {
             case "string" -> new StringSchema();
             case "number" -> new NumberSchema();
             case "integer" -> new IntegerSchema();
@@ -145,6 +145,7 @@ public class ActionToOpenApi {
             case "array" -> new ArraySchema().items(schemaFromParameter(toParameter(parameter.getItems())));
             default -> new Schema<>().$ref("#/components/schemas/" + parameter.getType());
         };
+        return schema.nullable(! Boolean.TRUE.equals(parameter.getRequired())); // note: could be null
     }
 
     private static io.swagger.v3.oas.models.parameters.Parameter makeQueryParam(String name, String description, Schema<?> schema) {
