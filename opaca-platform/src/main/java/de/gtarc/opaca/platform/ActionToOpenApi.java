@@ -25,6 +25,11 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
  */
 public class ActionToOpenApi {
 
+    public enum ActionFormat {
+        JSON,
+        YAML
+    }
+
     private final static ObjectMapper mapper = new ObjectMapper();
 
     /**

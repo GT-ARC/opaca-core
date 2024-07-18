@@ -12,6 +12,7 @@ import java.util.Map;
  * and documentation for implementers.
  */
 public interface RuntimePlatformApi extends CommonApi {
+
     /**
      * Get full information on the Runtime Platform, including all running Agent Containers and
      * Agents, connected other platforms, etc.
