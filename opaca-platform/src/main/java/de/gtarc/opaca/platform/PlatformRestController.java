@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.model.*;
+import de.gtarc.opaca.platform.ActionToOpenApi.ActionFormat;
 import de.gtarc.opaca.util.EventHistory;
 import de.gtarc.opaca.util.RestHelper.RequestException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -136,6 +137,15 @@ public class PlatformRestController {
 	public List<Event> getHistory() throws IOException {
 		log.info("Get History");
 		return implementation.getHistory();
+	}
+
+	@RequestMapping(value="v3/api-docs/actions", method = RequestMethod.GET)
+	@Operation(summary = "Get an Open-API compliant list of all agent actions currently available on this Platform", tags={"info"}, hidden=true)
+	public String getOpenApiActions(
+			@RequestParam(required = false, defaultValue = "JSON") ActionFormat format
+	) throws IOException {
+		log.info("Get Actions");
+		return ActionToOpenApi.createOpenApiSchema(implementation.getContainers(), format, config.enableAuth);
 	}
 
 	/*

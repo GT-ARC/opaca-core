@@ -5,6 +5,9 @@ import de.gtarc.opaca.platform.Application;
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
 import de.gtarc.opaca.platform.session.Session;
+import io.swagger.v3.parser.OpenAPIV3Parser;
+import io.swagger.v3.parser.core.models.ParseOptions;
+import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import org.junit.*;
 import org.junit.rules.TestName;
 import org.springframework.boot.SpringApplication;
@@ -380,6 +383,42 @@ public class PlatformTests {
         } finally {
             // stop container
             con = request(PLATFORM_A_URL, "DELETE", "/containers/" + newContainerId, null);
+            Assert.assertEquals(200, con.getResponseCode());
+        }
+    }
+
+    /**
+     * Checks if a valid openapi specification is returned for the list of actions on the platform
+     */
+    @Test
+    public void testOpenApiConformity() throws Exception {
+        var image = getSampleContainerImage();
+        var con = request(PLATFORM_A_URL, "POST", "/containers", image);
+        Assert.assertEquals(200, con.getResponseCode());
+        var containerId = result(con);
+
+        try {
+            OpenAPIV3Parser parser = new OpenAPIV3Parser();
+            ParseOptions parseOptions = new ParseOptions();
+            parseOptions.setResolve(true);
+            parseOptions.setResolveFully(true);
+
+            // Test JSON format
+            con = request(PLATFORM_A_URL, "GET", "/v3/api-docs/actions", null);
+            Assert.assertEquals(200, con.getResponseCode());
+            var openApiSchema = result(con);
+            SwaggerParseResult result = parser.readContents(openApiSchema, null, parseOptions);
+            Assert.assertTrue(result.getMessages().isEmpty());    // Check if parser result holds error messages
+
+            // Test YAML format
+            con = request(PLATFORM_A_URL, "GET", "/v3/api-docs/actions?format=YAML", null);
+            Assert.assertEquals(200, con.getResponseCode());
+            var openApiSchemaYaml = result(con);
+            result = parser.readContents(openApiSchemaYaml, null, parseOptions);
+            Assert.assertTrue(result.getMessages().isEmpty());
+        } finally {
+            // stop container
+            con = request(PLATFORM_A_URL, "DELETE", "/containers/" + containerId, null);
             Assert.assertEquals(200, con.getResponseCode());
         }
     }
