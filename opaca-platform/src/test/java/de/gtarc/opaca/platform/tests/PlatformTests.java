@@ -404,14 +404,14 @@ public class PlatformTests {
             parseOptions.setResolveFully(true);
 
             // Test JSON format
-            con = request(PLATFORM_A_URL, "GET", "/actions", null);
+            con = request(PLATFORM_A_URL, "GET", "/v3/api-docs/actions", null);
             Assert.assertEquals(200, con.getResponseCode());
             var openApiSchema = result(con);
             SwaggerParseResult result = parser.readContents(openApiSchema, null, parseOptions);
             Assert.assertTrue(result.getMessages().isEmpty());    // Check if parser result holds error messages
 
             // Test YAML format
-            con = request(PLATFORM_A_URL, "GET", "/actions?format=YAML", null);
+            con = request(PLATFORM_A_URL, "GET", "/v3/api-docs/actions?format=YAML", null);
             Assert.assertEquals(200, con.getResponseCode());
             var openApiSchemaYaml = result(con);
             result = parser.readContents(openApiSchemaYaml, null, parseOptions);
