@@ -53,18 +53,21 @@ public class ActionToOpenApi {
             }
         }
 
-        // Add standard query parameters to components
-        components.addParameters("timeoutParam", makeQueryParam("timeout", 
-                "Timeout in seconds after which the action should abort", new IntegerSchema()));
-        components.addParameters("containerIdParam", makeQueryParam("containerId", 
-                "Id of the container on which the agent is running", new StringSchema()));
-        components.addParameters("forwardParam", makeQueryParam("forward", 
-                "Whether or not to include the connected runtime platforms", new BooleanSchema()));
+        // Only add query parameters and errors if any action is available
+        if (!agentsContainers.isEmpty()) {
+            // Add standard query parameters to components
+            components.addParameters("timeoutParam", makeQueryParam("timeout",
+                    "Timeout in seconds after which the action should abort", new IntegerSchema()));
+            components.addParameters("containerIdParam", makeQueryParam("containerId",
+                    "Id of the container on which the agent is running", new StringSchema()));
+            components.addParameters("forwardParam", makeQueryParam("forward",
+                    "Whether or not to include the connected runtime platforms", new BooleanSchema()));
 
-        // Add Error schema to components
-        components.addSchemas("Error", new ObjectSchema()
-                .addProperty("code", new IntegerSchema())
-                .addProperty("message", new StringSchema()));
+            // Add Error schema to components
+            components.addSchemas("Error", new ObjectSchema()
+                    .addProperty("code", new IntegerSchema())
+                    .addProperty("message", new StringSchema()));
+        }
 
         // Add security scheme
         components.addSecuritySchemes("bearerAuth", new SecurityScheme()
