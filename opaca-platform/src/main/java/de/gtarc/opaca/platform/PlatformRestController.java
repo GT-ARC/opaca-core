@@ -139,7 +139,7 @@ public class PlatformRestController {
 	}
 
 	@RequestMapping(value="v3/api-docs/actions", method = RequestMethod.GET)
-	@Operation(summary = "Get an Open-API compliant list of all agent actions currently available on this Platform", tags={"info"})
+	@Operation(summary = "Get an Open-API compliant list of all agent actions currently available on this Platform", tags={"info"}, hidden=true)
 	public String getOpenApiActions(
 			@RequestParam(required = false, defaultValue = "JSON") ActionFormat format
 	) throws IOException {
