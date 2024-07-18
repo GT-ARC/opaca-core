@@ -4,7 +4,6 @@ import java.util.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import de.gtarc.opaca.api.RuntimePlatformApi.ActionFormat;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.model.Parameter.ArrayItems;
 import io.swagger.v3.core.util.Json;
@@ -26,7 +25,7 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
  */
 public class ActionToOpenApi {
 
-    private static ObjectMapper mapper = new ObjectMapper();
+    private final static ObjectMapper mapper = new ObjectMapper();
 
     /**
      * Create Open-API spec in JSON or YAML format for the actions in the given Agent Containers. This method
@@ -36,9 +35,11 @@ public class ActionToOpenApi {
      * 
      * @param agentsContainers List of agent containers currently running on this platform
      * @param format Whether to return the spec in JSON or YAML format
+     * @param enableAuth Indicates if platform has authentication enabled
      * @return
      */
-    public static String createOpenApiSchema(Collection<AgentContainer> agentsContainers, ActionFormat format) {
+    public static String createOpenApiSchema(Collection<AgentContainer> agentsContainers, ActionFormat format,
+                                             Boolean enableAuth) {
         // Check for custom definitions in agent container images and add to openapi components
         // Also check for external definitions by url
         Components components = new Components();
@@ -69,12 +70,14 @@ public class ActionToOpenApi {
                     .addProperty("message", new StringSchema()));
         }
 
-        // Add security scheme
-        components.addSecuritySchemes("bearerAuth", new SecurityScheme()
-                .type(SecurityScheme.Type.HTTP)
-                .scheme("bearer")
-                .bearerFormat("JWT"));
-
+        // Only create security component if auth is enabled
+        if (enableAuth) {
+            // Add security scheme
+            components.addSecuritySchemes("bearerAuth", new SecurityScheme()
+                    .type(SecurityScheme.Type.HTTP)
+                    .scheme("bearer")
+                    .bearerFormat("JWT"));
+        }
         // Create Paths
         Paths paths = new Paths();
 
@@ -125,8 +128,12 @@ public class ActionToOpenApi {
                         .title("Collection of actions provided by the agents running on the OPACA platform")
                         .version("0.2"))
                 .paths(paths)
-                .components(components)
-                .security(List.of(new SecurityRequirement().addList("bearerAuth")));
+                .components(components);
+
+        // Only add security requirement if auth is enabled
+        if (enableAuth) {
+            openAPI.security(List.of(new SecurityRequirement().addList("bearerAuth")));
+        }
 
         return switch (format) {
             case JSON -> Json.pretty(openAPI);
