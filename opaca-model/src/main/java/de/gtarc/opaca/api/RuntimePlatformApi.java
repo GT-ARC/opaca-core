@@ -12,9 +12,6 @@ import java.util.Map;
  * and documentation for implementers.
  */
 public interface RuntimePlatformApi extends CommonApi {
-
-    public enum ActionFormat { JSON, YAML }
-
     /**
      * Get full information on the Runtime Platform, including all running Agent Containers and
      * Agents, connected other platforms, etc.
@@ -43,16 +40,6 @@ public interface RuntimePlatformApi extends CommonApi {
      * @return list of recent events, most-recent last
      */
     List<Event> getHistory() throws IOException;
-
-    /**
-     * Get a list of all actions available on the Runtime Platform.
-     *
-     * REST: GET /actions
-     *
-     * @param format Whether the response will be in JSON or YAML format.
-     * @return List of all actions on the Runtime Platform
-     */
-    String getOpenApiActions(ActionFormat format) throws IOException;
 
     /*
      * AUTHENTICATION

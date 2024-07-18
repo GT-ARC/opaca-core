@@ -3,7 +3,6 @@ package de.gtarc.opaca.platform;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.RuntimePlatformApi;
-import de.gtarc.opaca.api.RuntimePlatformApi.ActionFormat;
 import de.gtarc.opaca.platform.auth.JwtUtil;
 import de.gtarc.opaca.platform.user.TokenUserDetailsService;
 import de.gtarc.opaca.platform.containerclient.ContainerClient;
@@ -115,11 +114,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public List<Event> getHistory() {
         return EventHistory.getInstance().getEvents();
-    }
-
-    @Override
-    public String getOpenApiActions(ActionFormat format) {
-        return ActionToOpenApi.createOpenApiSchema(runningContainers.values(), format);
     }
 
     @Override

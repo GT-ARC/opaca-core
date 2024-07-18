@@ -3,7 +3,6 @@ package de.gtarc.opaca.platform;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.RuntimePlatformApi;
-import de.gtarc.opaca.api.RuntimePlatformApi.ActionFormat;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.util.EventHistory;
 import de.gtarc.opaca.util.RestHelper.RequestException;
@@ -145,7 +144,7 @@ public class PlatformRestController {
 			@RequestParam(required = false, defaultValue = "JSON") ActionFormat format
 	) throws IOException {
 		log.info("Get Actions");
-		return implementation.getOpenApiActions(format);
+		return ActionToOpenApi.createOpenApiSchema(implementation.getContainers(), format, config.enableAuth);
 	}
 
 	/*
