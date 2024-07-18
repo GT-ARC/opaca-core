@@ -138,7 +138,7 @@ public class PlatformRestController {
 		return implementation.getHistory();
 	}
 
-	@RequestMapping(value="/actions", method = RequestMethod.GET)
+	@RequestMapping(value="v3/api-docs/actions", method = RequestMethod.GET)
 	@Operation(summary = "Get an Open-API compliant list of all agent actions currently available on this Platform", tags={"info"})
 	public String getOpenApiActions(
 			@RequestParam(required = false, defaultValue = "JSON") ActionFormat format
