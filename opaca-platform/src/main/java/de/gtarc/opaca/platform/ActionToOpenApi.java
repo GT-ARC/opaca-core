@@ -39,7 +39,7 @@ public class ActionToOpenApi {
      * @return
      */
     public static String createOpenApiSchema(Collection<AgentContainer> agentsContainers, ActionFormat format,
-                                             Boolean enableAuth) {
+                                             boolean enableAuth) {
         // Check for custom definitions in agent container images and add to openapi components
         // Also check for external definitions by url
         Components components = new Components();
@@ -53,19 +53,16 @@ public class ActionToOpenApi {
                 components.addSchemas(definition.getKey(), schema);
             }
         }
-
         // Only create security component if auth is enabled
         if (enableAuth) {
-            // Add security scheme
             components.addSecuritySchemes("bearerAuth", new SecurityScheme()
                     .type(SecurityScheme.Type.HTTP)
                     .scheme("bearer")
                     .bearerFormat("JWT"));
         }
-        // Create Paths
-        Paths paths = new Paths();
 
-        // Loop through each container and agent to add each action to the openapi spec
+        // Loop through each container and agent to add Paths for each action to the openapi spec
+        Paths paths = new Paths();
         for (var container : agentsContainers) {
             for (var agent : container.getAgents()) {
                 for (Action action : agent.getActions()) {
@@ -128,12 +125,8 @@ public class ActionToOpenApi {
                         .title("Collection of actions provided by the agents running on the OPACA platform")
                         .version("0.2"))
                 .paths(paths)
+                .security(enableAuth ? List.of(new SecurityRequirement().addList("bearerAuth")) : null)
                 .components(components);
-
-        // Only add security requirement if auth is enabled
-        if (enableAuth) {
-            openAPI.security(List.of(new SecurityRequirement().addList("bearerAuth")));
-        }
 
         return switch (format) {
             case JSON -> Json.pretty(openAPI);
