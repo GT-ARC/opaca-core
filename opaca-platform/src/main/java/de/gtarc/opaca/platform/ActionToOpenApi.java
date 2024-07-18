@@ -54,22 +54,6 @@ public class ActionToOpenApi {
             }
         }
 
-        // Only add query parameters and errors if any action is available
-        if (!agentsContainers.isEmpty()) {
-            // Add standard query parameters to components
-            components.addParameters("timeoutParam", makeQueryParam("timeout",
-                    "Timeout in seconds after which the action should abort", new IntegerSchema()));
-            components.addParameters("containerIdParam", makeQueryParam("containerId",
-                    "Id of the container on which the agent is running", new StringSchema()));
-            components.addParameters("forwardParam", makeQueryParam("forward",
-                    "Whether or not to include the connected runtime platforms", new BooleanSchema()));
-
-            // Add Error schema to components
-            components.addSchemas("Error", new ObjectSchema()
-                    .addProperty("code", new IntegerSchema())
-                    .addProperty("message", new StringSchema()));
-        }
-
         // Only create security component if auth is enabled
         if (enableAuth) {
             // Add security scheme
@@ -120,6 +104,22 @@ public class ActionToOpenApi {
                     paths.addPathItem(String.format("/invoke/%s/%s", action.getName(), agent.getAgentId()), pathItem);
                 }
             }
+        }
+
+        // Only add query parameters and errors if any action was added to the path
+        if (!paths.isEmpty()) {
+            // Add standard query parameters to components
+            components.addParameters("timeoutParam", makeQueryParam("timeout",
+                    "Timeout in seconds after which the action should abort", new IntegerSchema()));
+            components.addParameters("containerIdParam", makeQueryParam("containerId",
+                    "Id of the container on which the agent is running", new StringSchema()));
+            components.addParameters("forwardParam", makeQueryParam("forward",
+                    "Whether or not to include the connected runtime platforms", new BooleanSchema()));
+
+            // Add Error schema to components
+            components.addSchemas("Error", new ObjectSchema()
+                    .addProperty("code", new IntegerSchema())
+                    .addProperty("message", new StringSchema()));
         }
 
         // Merge everything together
