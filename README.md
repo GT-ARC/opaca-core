@@ -59,7 +59,7 @@ The OPACA framework has been written in **Java** and **Kotlin** and uses Apache 
 * optional: run `mvn test` to check that everything is okay
 * start the platform with `java -jar opaca-platform/target/opaca-platform-<version>-with-dependencies.jar`
 * go to <http://localhost:8000/swagger-ui/index.html>
-* go to `POST containers`, click "try it out", and set the `imageName` to `"sample-agent-container-image"`, or replace the entire value of `image` by the content from `examples/sample-container/src/main/resources/sample-image.json` (in this case, make sure to also provide values for the required parameters in `arguments`)
+* go to `POST containers`, click "try it out", and set the `imageName` to `"sample-agent-container-image"` and remove all other attributes of the `image`, _or_ replace the entire value of `image` by the content from `examples/sample-container/src/main/resources/sample-image.json` (in this case, make sure to also provide values for the required parameters in `arguments`)
 * alternatively, run this `curl` command to deploy the container: `curl -X 'POST' 'http://localhost:8000/containers' -H 'Content-Type: application/json' -d '{"image": {"imageName": "sample-agent-container-image"}}'`
 * in another terminal, do `docker ps` to find the started container, and then `docker logs -f <container-name>` to show (and follow) the logs
 * in the Web UI, run the `GET containers` or `GET agents` routes to see the running agents and their actions
