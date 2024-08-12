@@ -154,9 +154,11 @@ public class PlatformRestController {
 
 	@RequestMapping(value="/agents", method=RequestMethod.GET)
 	@Operation(summary="Get List of Agents of all Agent Containers on this Platform", tags={"agents"})
-	public List<AgentDescription> getAgents() throws IOException {
+	public List<AgentDescription> getAgents(
+		@RequestParam(required = false, defaultValue = "false") boolean includeConnected
+	) throws IOException {
 		log.info("GET AGENTS");
-		return implementation.getAgents();
+		return includeConnected ? implementation.getAllAgents() : implementation.getAgents();
 	}
 
 	@RequestMapping(value="/agents/{agentId}", method=RequestMethod.GET)
