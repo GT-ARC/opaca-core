@@ -70,6 +70,22 @@ public class InterPlatformTests {
     }
 
     /**
+     * call get-agents with or without "includeConnected" parameter
+     */
+    @Test
+    public void testGetAgents() throws Exception {
+        var con = request(PLATFORM_A_URL, "GET", "/agents", null);
+        var res = result(con, List.class);
+        Assert.assertEquals(2, res.size());
+        con = request(PLATFORM_B_URL, "GET", "/agents", null);
+        res = result(con, List.class);
+        Assert.assertEquals(0, res.size());
+        con = request(PLATFORM_B_URL, "GET", "/agents?includeConnected=true", null);
+        res = result(con, List.class);
+        Assert.assertEquals(2, res.size());
+    }
+
+    /**
      * call invoke, check result
      * (forwarded from platform B to platform A)
      */

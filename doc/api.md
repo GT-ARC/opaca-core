@@ -24,10 +24,11 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * output: `AgentContainer`
 * errors: none
 
-### `GET /agents`
+### `GET /agents?includeConnected={true|false}`
 
-* get all agents running in the agent container, or in all agent containers of the platform
+* get all agents running in the agent container, or in all agent containers of the platform (or connected platforms)
 * input: none
+  * includeConnected: (optional, default `false`) `true/false`, whether to include agents of connected platforms (only for Runtime Platform!)
 * output: `[ AgentDescription ]`
 * errors: none
 
