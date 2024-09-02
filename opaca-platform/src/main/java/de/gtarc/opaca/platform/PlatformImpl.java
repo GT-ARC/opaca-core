@@ -318,7 +318,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             case 0:
                 throw new IllegalArgumentException("No matching container is currently running; please use POST instead.");
             default:
-                throw new IllegalArgumentException("More than one matching containers are currently running; please DELETE manually, then POST.");
+                throw new IllegalArgumentException("More than one matching container is currently running; please DELETE manually, then POST.");
         }
     }
 
