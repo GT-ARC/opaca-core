@@ -87,6 +87,23 @@ public interface RuntimePlatformApi extends CommonApi {
     String addContainer(PostAgentContainer container) throws IOException;
 
     /**
+     * Deploy a container to the Runtime Platform, replacing an existing container of the same image.
+     * This is a convenience-route useful for development, which allows to quickly update a container
+     * without having to first search the existing container, remove that container, and then start
+     * the new one.
+     * 
+     * This route will check if there is exactly one running container of the same image (or an older
+     * version of the image, matching by image name), and in this case tries to stop the running container
+     * and then deploy the new container. Will fail in any other case.
+     * 
+     * REST: PUT /containers
+     *
+     * @param container The container to start, replacing an existing container of the same image
+     * @return ID of the started container
+     */
+    String updateContainer(PostAgentContainer container) throws IOException;
+
+    /**
      * Get descriptions of all currently running Agent Containers.
      *
      * REST: GET /containers

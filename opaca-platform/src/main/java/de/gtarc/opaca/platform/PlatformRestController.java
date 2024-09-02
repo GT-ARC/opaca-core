@@ -280,6 +280,15 @@ public class PlatformRestController {
 		return implementation.addContainer(container);
 	}
 
+	@RequestMapping(value="/containers", method=RequestMethod.PUT)
+	@Operation(summary="Start a new Agent Container on this platform, replacing an existing container of the same image", tags={"containers"})
+	public String updateContainer(
+			@RequestBody PostAgentContainer container
+	) throws IOException {
+		log.info(String.format("UPDATE CONTAINER: %s", container));
+		return implementation.updateContainer(container);
+	}
+
 	@RequestMapping(value="/containers", method=RequestMethod.GET)
 	@Operation(summary="Get all Agent Containers running on this platform", tags={"containers"})
 	public List<AgentContainer> getContainers() throws IOException {

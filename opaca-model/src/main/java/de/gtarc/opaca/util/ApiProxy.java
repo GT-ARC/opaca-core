@@ -129,6 +129,11 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         return client.post("/containers", container, String.class);
     }
 
+    @Override
+    public String updateContainer(PostAgentContainer container) throws IOException {
+        return client.put("/containers", container, String.class);
+    }
+
     @SuppressWarnings({"unchecked"})
     @Override
     public List<AgentContainer> getContainers() throws IOException {

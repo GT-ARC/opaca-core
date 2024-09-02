@@ -217,7 +217,7 @@ public class DockerClient implements ContainerClient {
      * Raise NoSuchElementException if image can not be pulled for whatever reason.
      */
     private void pullDockerImage(String imageName) {
-        log.info("Pulling Image..." + imageName);
+        log.info("Pulling Image... " + imageName);
         try {
             var registry = imageName.split("/")[0];
             dockerClient.pullImageCmd(imageName)

@@ -305,6 +305,24 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
+    public String updateContainer(PostAgentContainer container) throws IOException {
+        var matchingContainers = runningContainers.values().stream()
+                .filter(c -> c.getImage().getImageName().equals(container.getImage().getImageName()))
+                .toList();
+        switch (matchingContainers.size()) {
+            case 1: {
+                var oldContainer = matchingContainers.get(0);
+                removeContainer(oldContainer.getContainerId());
+                return addContainer(container);
+            }
+            case 0:
+                throw new IllegalArgumentException("No matching container is currently running; please use POST instead.");
+            default:
+                throw new IllegalArgumentException("More than one matching containers are currently running; please DELETE manually, then POST.");
+        }
+    }
+
+    @Override
     public List<AgentContainer> getContainers() {
         return List.copyOf(runningContainers.values());
     }

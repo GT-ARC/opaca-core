@@ -60,6 +60,11 @@ public class RestHelper {
         return type == null ? null : mapper.readValue(stream, type);
     }
 
+    public <T> T put(String path, Object payload, Class<T> type) throws IOException {
+        var stream = request("PUT", path, payload);
+        return type == null ? null : mapper.readValue(stream, type);
+    }
+
     public <T> T delete(String path, Object payload, Class<T> type) throws IOException {
         var stream = request("DELETE", path, payload);
         return type == null ? null : mapper.readValue(stream, type);
