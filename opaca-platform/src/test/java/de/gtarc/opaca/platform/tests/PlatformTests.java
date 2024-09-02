@@ -129,6 +129,34 @@ public class PlatformTests {
     }
 
     /**
+     * update container
+     */
+    @Test
+    public void testUpdateContainer() throws Exception {
+        var image = getSampleContainerImage();
+
+        // update without existing container
+        var con = request(PLATFORM_A_URL, "PUT", "/containers", image);
+        Assert.assertEquals(400, con.getResponseCode());
+
+        // deploy and update container
+        var container1 = result(request(PLATFORM_A_URL, "POST", "/containers", image));
+        con = request(PLATFORM_A_URL, "PUT", "/containers", image);
+        Assert.assertEquals(200, con.getResponseCode());
+        var container1new = result(con);
+        Assert.assertNotEquals(container1new, container1);
+        
+        // ambiguous update
+        var container2 = result(request(PLATFORM_A_URL, "POST", "/containers", image));
+        con = request(PLATFORM_A_URL, "PUT", "/containers", image);
+        Assert.assertEquals(400, con.getResponseCode());
+
+        // cleanup
+        result(request(PLATFORM_A_URL, "DELETE", "/containers/" + container1new, null));
+        result(request(PLATFORM_A_URL, "DELETE", "/containers/" + container2, null));
+    }
+
+    /**
      * deploy a container with api port 8082 on platform B, which should now work since
      * the platform checks if a port is available before trying to start the container
      */
