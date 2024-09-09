@@ -160,6 +160,13 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * output: ID of the created AgentContainer (string)
 * errors: 404 if image not found, 502 (bad gateway) if container did not start properly
 
+### `PUT /containers`
+
+* similar to "POST", but replaces an existing container belonging to the same image (identified by image-name); only works if there is _exactly_ one matching running container, otherwise fails
+* body: `PostAgentContainer`
+* output: ID of the created AgentContainer (string)
+* errors: 404 if image not found, 502 (bad gateway) if container did not start properly, 400 if zero or more than one matching containers found
+
 ### `POST /containers/notify`
 
 * notify the platform about changes in one of its containers

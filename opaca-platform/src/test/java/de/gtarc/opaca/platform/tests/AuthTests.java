@@ -444,6 +444,27 @@ public class AuthTests {
         Assert.assertEquals(200, con.getResponseCode());
     }
 
+    @Test
+    public void test12PutOwnContainer() throws Exception {
+        var image = getSampleContainerImage();
+        var token1 = getUserToken("contributor");
+        var token2 = getUserToken("contributor2");
+
+        // create container
+        result(requestWithToken(PLATFORM_A, "POST", "/containers", image, token1));
+
+        // owner can update the container...
+        var con = requestWithToken(PLATFORM_A, "PUT", "/containers", image, token1);
+        Assert.assertEquals(200, con.getResponseCode());
+        var newContainerId = result(con);
+
+        // ... but someone else can't
+        con = requestWithToken(PLATFORM_A, "PUT", "/containers", image, token2);
+        Assert.assertEquals(403, con.getResponseCode());
+
+        // cleanup container
+        result(requestWithToken(PLATFORM_A, "DELETE", "/containers/" + newContainerId, image, token1));
+    }
 
     // Helper methods
 
