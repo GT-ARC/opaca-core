@@ -7,6 +7,7 @@
 * basic user management
 * description and validation of action parameters using JSON Schema
 * various smaller fixes
+* added route/parameter to get agents of connected platforms, too
 
 
 ## 0.1 Release

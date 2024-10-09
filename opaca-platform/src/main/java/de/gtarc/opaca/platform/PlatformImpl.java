@@ -135,15 +135,17 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public List<AgentDescription> getAgents() {
-        return runningContainers.values().stream()
-                .flatMap(c -> c.getAgents().stream())
-                .collect(Collectors.toList());
+        return streamAgents(false).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<AgentDescription> getAllAgents() throws IOException {
+        return streamAgents(true).collect(Collectors.toList());
     }
 
     @Override
     public AgentDescription getAgent(String agentId) {
-        return runningContainers.values().stream()
-                .flatMap(c -> c.getAgents().stream())
+        return streamAgents(true)
                 .filter(a -> a.getAgentId().equals(agentId))
                 .findAny().orElse(null);
     }
@@ -512,6 +514,18 @@ public class PlatformImpl implements RuntimePlatformApi {
 
         return Stream.concat(containerClients, platformClients);
     }
+
+    /**
+     * Get Stream of all Agents on this platform or on this and connected platforms.
+     */
+    private Stream<AgentDescription> streamAgents(boolean includeConnected) {
+        var containers = includeConnected ? Stream.concat(
+                runningContainers.values().stream(),
+                connectedPlatforms.values().stream().flatMap(rp -> rp.getContainers().stream())
+            ) : runningContainers.values().stream();
+        return containers.flatMap(c -> c.getAgents().stream());
+    }
+
     /**
      * Check if Container ID matches and has matching agent and/or action.
      */
