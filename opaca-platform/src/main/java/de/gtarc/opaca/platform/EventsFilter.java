@@ -21,7 +21,7 @@ import java.util.Set;
 public class EventsFilter implements Filter {
 
     @Autowired
-    private WebSocketHandler webSocketHandler;
+    private WebSocketConfig webSocketHandler;
 
     @Override
     public void init(FilterConfig filterConfig) {}
