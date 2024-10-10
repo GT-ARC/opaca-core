@@ -6,7 +6,7 @@ import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.model.*
 import de.gtarc.opaca.util.ApiProxy
 import de.gtarc.opaca.util.RestHelper
-import de.gtarc.opaca.util.WebSocketConnectionManager
+import de.gtarc.opaca.util.WebSocketConnector
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.BrokerAgentRef
 import de.dailab.jiacvi.behaviour.act
@@ -62,8 +62,8 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         log.info("Starting Container Agent...")
         super.preStart()
         server.start()
-        WebSocketConnectionManager.addMessageListener(this::onMessage)
-        WebSocketConnectionManager.connectToWebSocket(runtimePlatformUrl);
+
+        WebSocketConnector.subscribe(runtimePlatformUrl, "/invoke", this::onMessage)
     }
 
     /**
