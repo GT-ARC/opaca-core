@@ -3,9 +3,6 @@ package de.gtarc.opaca.util;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.client.api.Request;
-import org.eclipse.jetty.client.HttpProxy;
-import org.eclipse.jetty.util.component.LifeCycle;
 
 import java.net.URI;
 import java.util.List;

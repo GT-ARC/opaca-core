@@ -5,6 +5,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.PingMessage;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -13,13 +14,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gtarc.opaca.model.Event;
+import lombok.extern.java.Log;
 
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.PingMessage;
-import org.springframework.web.socket.WebSocketSession;
-import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 @Component
+@Log
 public class WebSocketHandler extends TextWebSocketHandler {
 
     private CopyOnWriteArrayList<WebSocketSession> sessions = new CopyOnWriteArrayList<>();
@@ -31,14 +30,14 @@ public class WebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
         executorService.scheduleAtFixedRate(() -> sendPingToClient(session), 0, 10, TimeUnit.SECONDS);
-        System.out.println("New WebSocket Connection established");
+        log.info("New WebSocket Connection established");
     }
 
     private void sendPingToClient(WebSocketSession session) {
         try {
             session.sendMessage(new PingMessage());
         } catch (IOException e) {
-            System.out.println("Error sending ping to WebSocket client: " + e.getMessage());
+            log.warning("Error sending ping to WebSocket client: " + e.getMessage());
         }
     }
 
@@ -46,23 +45,19 @@ public class WebSocketHandler extends TextWebSocketHandler {
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String topic = message.getPayload();
         sessionTopics.put(session, topic);
-        System.out.println("New Topic Consumption activated");
-        System.out.println(topic);
+        log.info("New Topic Consumption activated for topic " + topic);
     }
 
     public void broadcastEvent(String topic, Event message) {
-        System.out.println("Broadcast new event ");
-        System.out.println(topic);
-        System.out.println(sessionTopics);
+        log.fine("Broadcasting new event to topic " + topic);
         for (WebSocketSession session : sessions) {
             if (topic.equals(sessionTopics.get(session))) {
                 try {
-                    System.out.println("Send new message");
+                    log.fine("Sending new message...");
                     String messageJson = objectMapper.writeValueAsString(message);
                     session.sendMessage(new TextMessage(messageJson));
-                    System.out.println("Sent new message");
                 } catch (Exception e) {
-                    System.out.println("Error sending message: " + e.getMessage());
+                    log.warning("Error sending message: " + e.getMessage());
                 }
             }
         }
@@ -72,6 +67,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         sessions.remove(session);
         sessionTopics.remove(session);
-        System.out.println("Websocket connection closed");
+        log.info("Websocket connection closed");
     }
 }
