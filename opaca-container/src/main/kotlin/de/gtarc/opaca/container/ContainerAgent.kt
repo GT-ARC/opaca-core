@@ -26,7 +26,7 @@ const val CONTAINER_AGENT = "container-agent"
  * sufficient, since all "outside" calls would go through the Runtime Container.
  * Still, might be improved a bit...
  */
-class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAINER_AGENT), WebSocketConnectionManager.MessageListener  {
+class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAINER_AGENT) {
 
     private val broker by resolve<BrokerAgentRef>()
 
@@ -62,7 +62,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         log.info("Starting Container Agent...")
         super.preStart()
         server.start()
-        WebSocketConnectionManager.addMessageListener(this)
+        WebSocketConnectionManager.addMessageListener(this::onMessage)
         WebSocketConnectionManager.connectToWebSocket(runtimePlatformUrl);
     }
 
@@ -75,25 +75,19 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         super.postStop()
     }
 
-    override fun onMessage(message: String) {
+    fun onMessage(message: String) {
         println("Received WebSocket message: $message")
         val mapper = ObjectMapper()
         val jsonNode: JsonNode = mapper.readTree(message)
         val route = jsonNode.path("route").asText()
         println(route)
         if (route.isNotBlank()) {
-            val action = extractActionFromRoute(route)
+            val action = Regex("invoke/(\\w+)").find(route)?.groupValues?.get(1)
             println(action)
             if (action != null) {
                 impl.notifyAgentAboutAction(action)
             }
         }
-    }
-
-    private fun extractActionFromRoute(route: String): String? {
-        val regex = Regex("invoke/(\\w+)")
-        val matchResult = regex.find(route)
-        return matchResult?.groupValues?.get(1)
     }
 
     /**
@@ -109,22 +103,16 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         override fun notifyAgentAboutAction(action: String) {
             log.info("NOTIFY ABOUT ACTION: $action")
-            val matchingAgents = findAllMatchingAgents(action)
-            println(matchingAgents)
-            matchingAgents.forEach { agentId ->
-
-                try {
-                    println("Notifying agent now")
-                    val ref = system.resolve(agentId)
-                    println(ref)
-                    
-                    ref.tell(Notify(action))
-                    
-
-                } catch (e: Exception) {
-                    print("error")
+            for (agent in registeredAgents) {
+                if (agent.reactions.contains(action)) {
+                    try {
+                        println("Notifying agent ${agent.agentId}")
+                        val ref = system.resolve(agent.agentId)
+                        ref.tell(Notify(action))
+                    } catch (e: Exception) {
+                        print("Notify failed: ${e}")
+                    }
                 }
-
             }
         }
 
@@ -271,13 +259,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
                 })
              }
             .first()
-    }
-
-    private fun findAllMatchingAgents(action: String?): List<String> {
-        return registeredAgents.values.asSequence()
-            .filter { agent -> action == null || agent.reactions.contains(action) }
-            .map { it.agentId }
-            .toList()
     }
 
     private fun getParameters(): Map<String, String> {
