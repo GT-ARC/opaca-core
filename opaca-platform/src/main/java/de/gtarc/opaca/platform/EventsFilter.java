@@ -71,7 +71,6 @@ public class EventsFilter implements Filter {
         EventHistory.getInstance().addEvent(event);
         if (event.getEventType() == Event.EventType.CALL) {
             String[] routeParts = event.getRoute().split("\\s+");
-            String method = routeParts[0];
             String firstPathSegment = "/" + routeParts[1].split("/")[1];
             webSocketHandler.broadcastEvent(firstPathSegment, event);
         }

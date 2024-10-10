@@ -103,7 +103,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
 
         override fun notifyAgentAboutAction(action: String) {
             log.info("NOTIFY ABOUT ACTION: $action")
-            for (agent in registeredAgents) {
+            for (agent in getAgents()) {
                 if (agent.reactions.contains(action)) {
                     try {
                         println("Notifying agent ${agent.agentId}")

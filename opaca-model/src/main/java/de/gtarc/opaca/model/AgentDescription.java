@@ -32,5 +32,4 @@ public class AgentDescription {
     @NonNull
     List<Stream> streams = List.of();
 
-
 }

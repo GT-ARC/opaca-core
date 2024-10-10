@@ -3,6 +3,7 @@ package de.gtarc.opaca.platform;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.PingMessage;
@@ -29,16 +30,8 @@ public class WebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
-        executorService.scheduleAtFixedRate(() -> sendPingToClient(session), 0, 10, TimeUnit.SECONDS);
+        executorService.scheduleAtFixedRate(() -> send(session, new PingMessage()), 0, 10, TimeUnit.SECONDS);
         log.info("New WebSocket Connection established");
-    }
-
-    private void sendPingToClient(WebSocketSession session) {
-        try {
-            session.sendMessage(new PingMessage());
-        } catch (IOException e) {
-            log.warning("Error sending ping to WebSocket client: " + e.getMessage());
-        }
     }
 
     @Override
@@ -48,6 +41,21 @@ public class WebSocketHandler extends TextWebSocketHandler {
         log.info("New Topic Consumption activated for topic " + topic);
     }
 
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        sessions.remove(session);
+        sessionTopics.remove(session);
+        log.info("Websocket connection closed");
+    }
+
+    private void send(WebSocketSession session, WebSocketMessage<?> message) {
+        try {
+            session.sendMessage(message);
+        } catch (IOException e) {
+            log.warning("Error sending message: " + e.getMessage());
+        }
+    }
+
     public void broadcastEvent(String topic, Event message) {
         log.fine("Broadcasting new event to topic " + topic);
         for (WebSocketSession session : sessions) {
@@ -55,18 +63,11 @@ public class WebSocketHandler extends TextWebSocketHandler {
                 try {
                     log.fine("Sending new message...");
                     String messageJson = objectMapper.writeValueAsString(message);
-                    session.sendMessage(new TextMessage(messageJson));
+                    send(session, new TextMessage(messageJson));
                 } catch (Exception e) {
                     log.warning("Error sending message: " + e.getMessage());
                 }
             }
         }
-    }
-
-    @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        sessions.remove(session);
-        sessionTopics.remove(session);
-        log.info("Websocket connection closed");
     }
 }
