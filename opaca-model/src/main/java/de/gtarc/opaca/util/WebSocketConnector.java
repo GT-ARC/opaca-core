@@ -12,7 +12,11 @@ import java.util.function.Consumer;
  */
 public class WebSocketConnector {
 
-    public static CompletableFuture<WebSocket> subscribe(String runtimePlatformUrl, String topic, Consumer<String> callback) {        
+    public interface MessageListener {
+        void onMessage(String message);
+    } 
+
+    public static CompletableFuture<WebSocket> subscribe(String runtimePlatformUrl, String topic, MessageListener callback) {
         URI endpoint = URI.create(runtimePlatformUrl.replaceAll("^http", "ws") + "/subscribe");
         WebSocket.Listener listener = new WebSocket.Listener() {
             
@@ -24,7 +28,7 @@ public class WebSocketConnector {
             
             @Override
             public CompletionStage<?> onText(WebSocket webSocket, CharSequence message, boolean last) {
-                callback.accept(message.toString());
+                callback.onMessage(message.toString());
                 return WebSocket.Listener.super.onText(webSocket, message, last);
             }
         };

@@ -118,6 +118,7 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
                 : String.format("/stream/%s/%s?%s", stream, agentId, buildQuery(containerId, forward, null));
         client.postStream(path, inputStream);
     }
+
     // CONTAINER ROUTES
 
     @Override
@@ -169,12 +170,6 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     @Override
     public boolean notifyUpdatePlatform(String platformUrl) throws IOException {
         return client.post("/connections/notify", platformUrl, Boolean.class);
-    }
-
-    @Override
-    public void notifyAgentAboutAction(String action) throws IOException {
-        String path = String.format("/notify/%s", action);
-        client.post(path, null, Boolean.class); 
     }
 
 

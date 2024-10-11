@@ -1,7 +1,6 @@
 package de.gtarc.opaca.container
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
 import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.model.*
 import de.gtarc.opaca.util.ApiProxy
@@ -63,7 +62,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         super.preStart()
         server.start()
 
-        WebSocketConnector.subscribe(runtimePlatformUrl, "/invoke", this::onMessage)
+        WebSocketConnector.subscribe(runtimePlatformUrl, "/invoke", webSocketImpl)
     }
 
     /**
@@ -75,17 +74,34 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         super.postStop()
     }
 
-    fun onMessage(message: String) {
-        println("Received WebSocket message: $message")
-        val mapper = ObjectMapper()
-        val jsonNode: JsonNode = mapper.readTree(message)
-        val route = jsonNode.path("route").asText()
-        println(route)
-        if (route.isNotBlank()) {
-            val action = Regex("invoke/(\\w+)").find(route)?.groupValues?.get(1)
-            println(action)
-            if (action != null) {
-                impl.notifyAgentAboutAction(action)
+    /**
+     * Callback for the /subscribe websocket, reacting on events from the runtime platform
+     */
+    private val webSocketImpl = object : WebSocketConnector.MessageListener {
+
+        override fun onMessage(message: String) {
+            println("Received WebSocket message: $message")
+            val route = RestHelper.readObject(message, Event::class.java).route
+            if (route.isNotBlank()) {
+                val action = Regex("invoke/(\\w+)").find(route)?.groupValues?.get(1)
+                if (action != null) {
+                    notifyAgentAboutAction(action)
+                }
+            }
+        }
+
+        fun notifyAgentAboutAction(action: String) {
+            log.info("NOTIFY ABOUT ACTION: $action")
+            for (agent in impl.getAgents()) {
+                if (agent.reactions.contains(action)) {
+                    try {
+                        println("Notifying agent ${agent.agentId}")
+                        val ref = system.resolve(agent.agentId)
+                        ref.tell(Notify(action))
+                    } catch (e: Exception) {
+                        println("Notify failed: ${e}")
+                    }
+                }
             }
         }
     }
@@ -99,21 +115,6 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         override fun getContainerInfo(): AgentContainer {
             log.debug("GET INFO")
             return AgentContainer(containerId, image, getParameters(), agents, owner, startedAt, null)
-        }
-
-        override fun notifyAgentAboutAction(action: String) {
-            log.info("NOTIFY ABOUT ACTION: $action")
-            for (agent in getAgents()) {
-                if (agent.reactions.contains(action)) {
-                    try {
-                        println("Notifying agent ${agent.agentId}")
-                        val ref = system.resolve(agent.agentId)
-                        ref.tell(Notify(action))
-                    } catch (e: Exception) {
-                        print("Notify failed: ${e}")
-                    }
-                }
-            }
         }
 
         override fun getAgents(): List<AgentDescription> {
