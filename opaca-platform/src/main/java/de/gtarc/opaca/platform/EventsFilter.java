@@ -76,7 +76,6 @@ public class EventsFilter implements Filter {
         }
     }
 
-
     private Event createCallEvent(String route, String sender) {
         return new Event(Event.EventType.CALL, route, sender, null, null, null);
     }

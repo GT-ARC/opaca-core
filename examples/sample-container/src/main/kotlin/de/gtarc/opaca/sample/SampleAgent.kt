@@ -18,7 +18,9 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
 
     override fun preStart() {
         super.preStart()
+
         addReaction("DoThis", this::actionHelloWorld)
+        
         addAction("DoThis", mapOf(
             "message" to Parameter("string", true),
             "sleep_seconds" to Parameter("integer", true)
