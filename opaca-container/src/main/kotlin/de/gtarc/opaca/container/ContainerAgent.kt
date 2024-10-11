@@ -23,9 +23,11 @@ const val CONTAINER_AGENT = "container-agent"
  * Agent providing the REST interface of the Agent Container using a simple Jetty server.
  * The API is not quite as fancy one provided using Spring Boot or similar, but might be
  * sufficient, since all "outside" calls would go through the Runtime Container.
- * Still, might be improved a bit...
  */
-class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAINER_AGENT) {
+class ContainerAgent(
+        val image: AgentContainerImage, 
+        val subscribeToEvents: Boolean = false
+    ): Agent(overrideName=CONTAINER_AGENT) {
 
     private val broker by resolve<BrokerAgentRef>()
 
@@ -61,8 +63,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         log.info("Starting Container Agent...")
         super.preStart()
         server.start()
-
-        WebSocketConnector.subscribe(runtimePlatformUrl, "/invoke", webSocketImpl)
+        if (subscribeToEvents) {
+            WebSocketConnector.subscribe(runtimePlatformUrl, "/invoke", webSocketImpl)
+        }
     }
 
     /**
