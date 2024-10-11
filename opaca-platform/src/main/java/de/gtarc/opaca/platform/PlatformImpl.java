@@ -10,6 +10,7 @@ import de.gtarc.opaca.platform.containerclient.DockerClient;
 import de.gtarc.opaca.platform.containerclient.KubernetesClient;
 import de.gtarc.opaca.platform.session.SessionData;
 import de.gtarc.opaca.model.*;
+import de.gtarc.opaca.model.AgentContainer.Connectivity;
 import de.gtarc.opaca.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
@@ -249,9 +250,19 @@ public class PlatformImpl implements RuntimePlatformApi {
             token = jwtUtil.generateTokenForAgentContainer(agentContainerId);
             owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
         }
+        // create user first so the container can immediately talk with the platform
+        userDetailsService.createUser(agentContainerId, agentContainerId,
+                config.enableAuth ? userDetailsService.getUserRole(owner) : Role.GUEST,
+                config.enableAuth ? userDetailsService.getUserPrivileges(owner) : null);
 
         // start container... this may raise an Exception, or returns the connectivity info
-        var connectivity = containerClient.startContainer(agentContainerId, token, owner, postContainer);
+        Connectivity connectivity;
+        try {
+            connectivity = containerClient.startContainer(agentContainerId, token, owner, postContainer);
+        } catch (Exception e) {
+            userDetailsService.removeUser(agentContainerId);
+            throw e;
+        }
 
         // wait until container is up and running...
         var start = System.currentTimeMillis();
@@ -266,9 +277,6 @@ public class PlatformImpl implements RuntimePlatformApi {
                 tokens.put(agentContainerId, token);
                 validators.put(agentContainerId, new ArgumentValidator(container.getImage()));
                 container.setOwner(owner);
-                userDetailsService.createUser(agentContainerId, agentContainerId,
-                        config.enableAuth ? userDetailsService.getUserRole(owner) : Role.GUEST,
-                        config.enableAuth ? userDetailsService.getUserPrivileges(owner) : null);
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
                     log.warning("Agent Container ID does not match: Expected " +
@@ -297,6 +305,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         log.warning("Stopping Container. " + errorMessage);
         try {
             containerClient.stopContainer(agentContainerId);
+            userDetailsService.removeUser(agentContainerId);
         } catch (Exception e) {
             log.warning("Failed to stop container: " + e.getMessage());
         }

@@ -66,8 +66,7 @@ public class TokenUserDetailsService implements UserDetailsService {
     public void createUser(String username, String password, Role role, List<String> privileges) {
         if (userRepository.findByUsername(username) != null) {
             throw new UserAlreadyExistsException(username);
-        }
-        else {
+        } else {
             User user = new User(username, passwordEncoder.encode(password), role, privileges != null ? privileges : new ArrayList<>());
             userRepository.save(user);
         }

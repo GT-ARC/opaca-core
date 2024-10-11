@@ -16,7 +16,7 @@ public class WebSocketConnector {
         void onMessage(String message);
     } 
 
-    public static CompletableFuture<WebSocket> subscribe(String runtimePlatformUrl, String topic, MessageListener callback) {
+    public static CompletableFuture<WebSocket> subscribe(String runtimePlatformUrl, String token, String topic, MessageListener callback) {
         URI endpoint = URI.create(runtimePlatformUrl.replaceAll("^http", "ws") + "/subscribe");
         WebSocket.Listener listener = new WebSocket.Listener() {
             
@@ -32,7 +32,12 @@ public class WebSocketConnector {
                 return WebSocket.Listener.super.onText(webSocket, message, last);
             }
         };
-        return HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(endpoint, listener);
+ 
+        var builder = HttpClient.newHttpClient().newWebSocketBuilder();
+        if (token != null) {
+            builder.header("Authorization", "Bearer " + token);
+        }
+        return builder.buildAsync(endpoint, listener);
     }
 
 }

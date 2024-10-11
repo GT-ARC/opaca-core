@@ -64,7 +64,7 @@ class ContainerAgent(
         super.preStart()
         server.start()
         if (subscribeToEvents) {
-            WebSocketConnector.subscribe(runtimePlatformUrl, "/invoke", webSocketImpl)
+            WebSocketConnector.subscribe(runtimePlatformUrl, token, "/invoke", webSocketImpl)
         }
     }
 

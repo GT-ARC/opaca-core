@@ -91,7 +91,7 @@ public class PlatformTests {
     public void testWebSocketEvents() throws Exception {
         // create web socket listener and collect messages
         var messages = new ArrayList<String>();
-        WebSocketConnector.subscribe(PLATFORM_A_URL, "/invoke", messages::add);
+        WebSocketConnector.subscribe(PLATFORM_A_URL, null, "/invoke", messages::add);
 
         // make sure connection is established first
         Thread.sleep(200);
