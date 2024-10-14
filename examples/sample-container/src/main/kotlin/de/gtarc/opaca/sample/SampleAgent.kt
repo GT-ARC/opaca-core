@@ -5,6 +5,7 @@ import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.container.AbstractContainerizedAgent
 import de.gtarc.opaca.model.Message
 import de.gtarc.opaca.model.Parameter
+import de.gtarc.opaca.model.Event
 import java.io.ByteArrayInputStream
 import java.nio.charset.Charset
 import de.gtarc.opaca.container.OpacaException
@@ -15,11 +16,10 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     private var lastMessage: Any? = null
     private var lastBroadcast: Any? = null
     private var lastPostedStream: Any? = null
+    private var lastEvent: Event? = null
 
     override fun preStart() {
         super.preStart()
-
-        addReaction("DoThis", this::actionHelloWorld)
         
         addAction("DoThis", mapOf(
             "message" to Parameter("string", true),
@@ -91,11 +91,12 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             log.info("LISTEN $it")
             lastBroadcast = it.payload
         }
-    })
 
-    private fun actionHelloWorld() {
-        println("Hello World")
-    }
+        listen<Event>("DoThis") {
+            log.info("EVENT $it")
+            lastEvent = it
+        }
+    })
 
     private fun actionGetStream(): ByteArrayInputStream {
         val data = "{\"key\":\"value\"}".toByteArray(Charset.forName("UTF-8"))

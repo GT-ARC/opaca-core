@@ -29,14 +29,12 @@ public class AgentDescription {
     @NonNull
     List<Action> actions = List.of();
 
-    List<String> reactions = List.of();
-    
     /** list of endpoints for sending or receiving streaming data */
     @NonNull
     List<Stream> streams = List.of();
 
-    public AgentDescription(String agentId, String agentType, List<Action> actions, List<String> reactions, List<Stream> streams) {
-        this(agentId, agentType, null, actions, reactions, streams);
+    public AgentDescription(String agentId, String agentType, List<Action> actions, List<Stream> streams) {
+        this(agentId, agentType, null, actions, streams);
     }
 
 }

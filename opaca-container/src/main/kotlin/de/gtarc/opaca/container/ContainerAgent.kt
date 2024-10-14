@@ -67,7 +67,7 @@ class ContainerAgent(
         super.preStart()
         server.start()
         if (subscribeToEvents) {
-            WebSocketConnector.subscribe(runtimePlatformUrl, token, "/invoke", webSocketImpl)
+            WebSocketConnector.subscribe(runtimePlatformUrl, token, "/invoke", this::onEvent)
         }
     }
 
@@ -83,32 +83,12 @@ class ContainerAgent(
     /**
      * Callback for the /subscribe websocket, reacting on events from the runtime platform
      */
-    private val webSocketImpl = object : WebSocketConnector.MessageListener {
-
-        override fun onMessage(message: String) {
-            println("Received WebSocket message: $message")
-            val route = RestHelper.readObject(message, Event::class.java).route
-            if (route.isNotBlank()) {
-                val action = Regex("invoke/(\\w+)").find(route)?.groupValues?.get(1)
-                if (action != null) {
-                    notifyAgentAboutAction(action)
-                }
-            }
-        }
-
-        fun notifyAgentAboutAction(action: String) {
-            log.info("NOTIFY ABOUT ACTION: $action")
-            for (agent in impl.getAgents()) {
-                if (agent.reactions.contains(action)) {
-                    try {
-                        println("Notifying agent ${agent.agentId}")
-                        val ref = system.resolve(agent.agentId)
-                        ref.tell(Notify(action))
-                    } catch (e: Exception) {
-                        println("Notify failed: ${e}")
-                    }
-                }
-            }
+    fun onEvent(message: String) {
+        log.debug("WEBSOCKET EVENT: $message")
+        val event = RestHelper.readObject(message, Event::class.java)
+        val action = Regex("invoke/(\\w+)").find(event.route)?.groupValues?.get(1)
+        if (action != null) {
+            broker.publish(action, event)
         }
     }
 
