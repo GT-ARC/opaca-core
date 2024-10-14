@@ -125,7 +125,6 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
                 else -> Unit
             }
         }
-
     }
 
     /**

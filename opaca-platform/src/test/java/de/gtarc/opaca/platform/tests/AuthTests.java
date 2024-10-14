@@ -178,17 +178,14 @@ public class AuthTests {
         // create web socket listener and collect messages
         var without_auth = new ArrayList<String>();
         WebSocketConnector.subscribe(PLATFORM_A, null, "/invoke", without_auth::add);
-
         var with_auth = new ArrayList<String>();
-        WebSocketConnector.subscribe(PLATFORM_A, containerToken, "/invoke", with_auth::add);
-        System.out.println("URL " + PLATFORM_A);
-        System.out.println("TOKEN " + containerToken);
+        WebSocketConnector.subscribe(PLATFORM_A, token_A, "/invoke", with_auth::add);
 
         // make sure connection is established first
         Thread.sleep(1000);
 
         // trigger different events
-        request(PLATFORM_A, "POST", "/invoke/doesNotMatter", Map.of()).getResponseCode();
+        requestWithToken(PLATFORM_A, "POST", "/invoke/doesNotMatter", Map.of(), token_A).getResponseCode();
 
         // check that correct events have been received
         Assert.assertEquals(0, without_auth.size());
