@@ -128,6 +128,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         Pair("lastMessage", lastMessage),
         Pair("lastBroadcast", lastBroadcast),
         Pair("lastPostedStream", lastPostedStream),
+        Pair("lastEvent", lastEvent),
         Pair(AgentContainerApi.ENV_CONTAINER_ID, System.getenv(AgentContainerApi.ENV_CONTAINER_ID)),
         Pair(AgentContainerApi.ENV_PLATFORM_URL, System.getenv(AgentContainerApi.ENV_PLATFORM_URL)),
         Pair(AgentContainerApi.ENV_OWNER, System.getenv(AgentContainerApi.ENV_OWNER)),
