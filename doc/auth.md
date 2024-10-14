@@ -4,7 +4,17 @@ The Runtime Platform can optionally require Authentication on all routes, as det
 
 Using the Swagger UI, you have to click the "Authorize" button and enter the token, which will subsequently be used for all requests. When calling the routes programmatically, including e.g. from within the Agent Container, the token has to be provided as a header field, e.g. `connection.setRequestProperty("Authorization", "Bearer " + token)`.
 
-Note: At the moment the Runtime Platform is using a very basic configuration for authentication, allowing just a single authorized user. Later, this will be extended to e.g. a passwords-file based authentication, or relying on an external User Management service.
+## Enabling Authentication
+
+By default, authentication is disabled, to enable it, set the `ENABLE_AUTH` environment variable to `true`. Also, you will have to specify a "secret" and admin-password. All of those are set via Environment Variables, either in the Docker Compose or using `export` (or equivalent) before starting the container, e.g.:
+
+```bash
+export ENABLE_AUTH=true
+export SECRET=...
+export PLATFORM_ADMIN_PWD=...
+```
+
+Please refer to the [User Management](user-management.md) documentation on how to add additional users to the system.
 
 ## Authenticating Users against the Runtime Platform
 

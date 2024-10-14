@@ -1,5 +1,6 @@
 package de.gtarc.opaca.platform.tests;
 
+import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.platform.Application;
 import de.gtarc.opaca.util.WebSocketConnector;
@@ -423,7 +424,10 @@ public class AuthTests {
         Assert.assertEquals(200, con.getResponseCode());
         var newContainerId = result(con);
 
-        var contContainerToken = getToken(newContainerId, newContainerId);
+        // get the container's token to "impersonate" it in the next requests
+        var query = buildQuery(Map.of("containerId", newContainerId));
+        con = requestWithToken(PLATFORM_A, "POST", "/invoke/GetInfo" + query, Map.of(), token_cont);
+        var contContainerToken = (String) result(con, Map.class).get(AgentContainerApi.ENV_TOKEN);
         Assert.assertFalse(contContainerToken.isEmpty());
 
         // Check if container can perform actions which require "CONTRIBUTOR" role
@@ -465,6 +469,27 @@ public class AuthTests {
         Assert.assertEquals(200, con.getResponseCode());
     }
 
+    @Test
+    public void test12PutOwnContainer() throws Exception {
+        var image = getSampleContainerImage();
+        var token1 = getUserToken("contributor");
+        var token2 = getUserToken("contributor2");
+
+        // create container
+        result(requestWithToken(PLATFORM_A, "POST", "/containers", image, token1));
+
+        // owner can update the container...
+        var con = requestWithToken(PLATFORM_A, "PUT", "/containers", image, token1);
+        Assert.assertEquals(200, con.getResponseCode());
+        var newContainerId = result(con);
+
+        // ... but someone else can't
+        con = requestWithToken(PLATFORM_A, "PUT", "/containers", image, token2);
+        Assert.assertEquals(403, con.getResponseCode());
+
+        // cleanup container
+        result(requestWithToken(PLATFORM_A, "DELETE", "/containers/" + newContainerId, image, token1));
+    }
 
     // Helper methods
 

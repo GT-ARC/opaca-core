@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.model.*;
+import de.gtarc.opaca.platform.ActionToOpenApi.ActionFormat;
 import de.gtarc.opaca.util.EventHistory;
 import de.gtarc.opaca.util.RestHelper.RequestException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -138,15 +139,26 @@ public class PlatformRestController {
 		return implementation.getHistory();
 	}
 
+	@RequestMapping(value="v3/api-docs/actions", method = RequestMethod.GET)
+	@Operation(summary = "Get an Open-API compliant list of all agent actions currently available on this Platform", tags={"info"}, hidden=true)
+	public String getOpenApiActions(
+			@RequestParam(required = false, defaultValue = "JSON") ActionFormat format
+	) throws IOException {
+		log.info("Get Actions");
+		return ActionToOpenApi.createOpenApiSchema(implementation.getContainers(), format, config.enableAuth);
+	}
+
 	/*
 	 * AGENTS ROUTES
 	 */
 
 	@RequestMapping(value="/agents", method=RequestMethod.GET)
 	@Operation(summary="Get List of Agents of all Agent Containers on this Platform", tags={"agents"})
-	public List<AgentDescription> getAgents() throws IOException {
+	public List<AgentDescription> getAgents(
+		@RequestParam(required = false, defaultValue = "false") boolean includeConnected
+	) throws IOException {
 		log.info("GET AGENTS");
-		return implementation.getAgents();
+		return includeConnected ? implementation.getAllAgents() : implementation.getAgents();
 	}
 
 	@RequestMapping(value="/agents/{agentId}", method=RequestMethod.GET)
@@ -268,6 +280,15 @@ public class PlatformRestController {
 	) throws IOException {
 		log.info(String.format("ADD CONTAINER: %s", container));
 		return implementation.addContainer(container);
+	}
+
+	@RequestMapping(value="/containers", method=RequestMethod.PUT)
+	@Operation(summary="Start a new Agent Container on this platform, replacing an existing container of the same image", tags={"containers"})
+	public String updateContainer(
+			@RequestBody PostAgentContainer container
+	) throws IOException {
+		log.info(String.format("UPDATE CONTAINER: %s", container));
+		return implementation.updateContainer(container);
 	}
 
 	@RequestMapping(value="/containers", method=RequestMethod.GET)

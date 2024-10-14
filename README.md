@@ -31,7 +31,7 @@ The goal of OPACA is to combine multi-agent systems with microservices and conta
 * Dynamic Multi-Tenancy
 * Distribution
 
-This way, we make it easier to deploy and connect heterogeneous systems consisting of components implemented using different agent-frameworks and/or non-agent components in different languages.
+This way, we make it easier to deploy and connect heterogeneous systems consisting of components implemented using different agent-frameworks and/or non-agent components in different languages. Please refer to the [OPACA paper](https://doi.org/10.1109/ACCESS.2024.3353613) for more details.
 
 A multi-agent system in the OPACA approach consists of two types of components:
 
@@ -39,7 +39,7 @@ A multi-agent system in the OPACA approach consists of two types of components:
 
 * **Runtime Platforms** are used to manage one or more Agent Containers, deploying those in Docker or Kubernetes. They connect different Agent Containers while also providing basic services such as yellow pages, authentication, etc.
 
-Please refer to the [API docs](doc/api.md) page for more information about the different routes provided for the API and the respective requests and responses.
+Please refer to the [API docs](doc/api.md) page for more information about the different routes provided for the API and the respective requests and responses. An overview over the reference implementation can be found [here](doc/implementation.md).
 
 
 ## Modules
@@ -52,13 +52,16 @@ Please refer to the [API docs](doc/api.md) page for more information about the d
 
 ## Getting Started / Quick Testing Guide
 
+The OPACA framework has been written in **Java** and **Kotlin** and uses Apache **Maven** as a build system; those have to be installed in order to build and run the system. Please refer to the `pom.xml` build files for required versions. Other dependencies are automatically retrieved by Maven from public repositories (see later in this document for details). The Agent Containers are by default built and run in **Docker**; please refer to [the respective docs](doc/environments.md) for details and alternatives.
+
 * run `mvn install -DskipTests` in the parent directory to build everything in order (skipping tests is necessary in this step, as the tests would require the Docker image that is built in the next step)
 * build the sample container with `docker build -t sample-agent-container-image examples/sample-container`
 * optional: run `mvn test` to check that everything is okay
 * start the platform with `java -jar opaca-platform/target/opaca-platform-<version>-with-dependencies.jar`
 * go to <http://localhost:8000/swagger-ui/index.html>
-* go to `POST containers`, click "try it out", and set the `imageName` to `"sample-agent-container-image"`, or replace the entire value of `image` by the content from `examples/sample-container/src/main/resources/sample-image.json` (in this case, make sure to also provide values for the required parameters in `arguments`)
-* in another terminal, do `docker ps` to find the started image, and then `docker logs -f <container-name>` to show (and follow) the logs
+* go to `POST containers`, click "try it out", and set the `imageName` to `"sample-agent-container-image"` and remove all other attributes of the `image`, _or_ replace the entire value of `image` by the content from `examples/sample-container/src/main/resources/sample-image.json` (in this case, make sure to also provide values for the required parameters in `arguments`)
+* alternatively, run this `curl` command to deploy the container: `curl -X 'POST' 'http://localhost:8000/containers' -H 'Content-Type: application/json' -d '{"image": {"imageName": "sample-agent-container-image"}}'`
+* in another terminal, do `docker ps` to find the started container, and then `docker logs -f <container-name>` to show (and follow) the logs
 * in the Web UI, run the `GET containers` or `GET agents` routes to see the running agents and their actions
 * use the `POST send` or `POST invoke` routes to send messages to the agent (with any payload; reply-to does not matter for now), or invoke the agent's dummy action (the action takes some time to run); check the logs of the agent container; you can also invoke the action and then immediately re-send the message to check that both work concurrently
 * shut down the platform with Ctrl+C; the agent container(s) should shut down as well
@@ -98,9 +101,9 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 
 ### Security & Authentication
 * `ENABLE_AUTH` (default: false) Whether to require token-based authentication on all routes; see [Authentication](doc/auth.md) for details.
-* `SECRET` (default: empty) The secret used to encrypt and decrypt the JWT tokens used for authentication.
-* `USERNAME_PLATFORM` (default: admin) Name of a single authorized user (temporary)
-* `PASSWORD_PLATFORM` (default: "") Password of a single authorized user (temporary)
+* `SECRET` (default: null) The secret used to encrypt and decrypt the JWT tokens used for authentication.
+* `PLATFORM_ADMIN_USER` (default: admin) Name of the "admin" user
+* `PLATFORM_ADMIN_PWD` (default: "") Password of the "admin" user
 
 ### User Management MongoDB
 * `DB_EMBED` (default: true) Switches between an embedded and external MongoDB.
@@ -129,12 +132,14 @@ New SNAPSHOT releases are deployed by CI each time a new commit is pushed to the
 ## Additional Information
 
 * [API Routes and Models](doc/api.md)
+* [Reference Implementation](doc/implementation.md)
 * [Protocols](doc/protocols.md)
 * [Execution Environments](doc/environments.md)
 * [Session Handling](doc/session.md)
 * [Authentication](doc/auth.md)
 * [User Management](doc/user-management.md)
 * [Parameter Validation](doc/validation.md)
+* [JIAC VI Basics](doc/jiac-vi.md)
 
 
 ## Publications

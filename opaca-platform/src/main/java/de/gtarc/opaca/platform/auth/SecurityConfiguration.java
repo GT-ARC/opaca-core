@@ -19,6 +19,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 
 import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.SignatureException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -144,7 +145,7 @@ public class SecurityConfiguration {
                     jwtToken = requestTokenHeader.substring(7);
                     try {
                         username = jwtUtil.getUsernameFromToken(jwtToken);
-                    } catch (IllegalArgumentException e) {
+                    } catch (SignatureException | IllegalArgumentException e) {
                         handleException(response, HttpStatus.UNAUTHORIZED, e.getMessage());
                     } catch (MalformedJwtException e) {
                         handleException(response, HttpStatus.BAD_REQUEST, e.getMessage());

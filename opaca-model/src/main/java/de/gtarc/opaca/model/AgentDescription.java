@@ -22,6 +22,9 @@ public class AgentDescription {
     /** name/type of the agent, e.g. "VehicleAgent" or similar */
     String agentType;
 
+    /** optional human-readable description of the agent */
+    String description;
+
     /** list of actions provided by this agent, if any */
     @NonNull
     List<Action> actions = List.of();
@@ -31,5 +34,9 @@ public class AgentDescription {
     /** list of endpoints for sending or receiving streaming data */
     @NonNull
     List<Stream> streams = List.of();
+
+    public AgentDescription(String agentId, String agentType, List<Action> actions, List<String> reactions, List<Stream> streams) {
+        this(agentId, agentType, null, actions, reactions, streams);
+    }
 
 }

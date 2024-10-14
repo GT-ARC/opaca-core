@@ -24,12 +24,16 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
 
     @Deprecated
     public ApiProxy(String baseUrl) {
-        this(baseUrl, null, null);
+        this(baseUrl, null, null, null);
     }
 
     public ApiProxy(String baseUrl, String senderId, String token) {
+        this(baseUrl, senderId, token, null);
+    }
+
+    public ApiProxy(String baseUrl, String senderId, String token, Integer timeout) {
         this.baseUrl = baseUrl;
-        this.client = new RestHelper(baseUrl, senderId, token);
+        this.client = new RestHelper(baseUrl, senderId, token, timeout);
     }
 
     // INFO ROUTES
@@ -37,6 +41,12 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     @Override
     public RuntimePlatform getPlatformInfo() throws IOException {
         return client.get("/info", RuntimePlatform.class);
+    }
+
+    @SuppressWarnings({"unchecked"})
+    @Override
+    public List<AgentDescription> getAllAgents() throws IOException {
+        return client.get("/agents?includeConnected=true", List.class);
     }
 
     @SuppressWarnings("unchecked")
@@ -124,6 +134,11 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     @Override
     public String addContainer(PostAgentContainer container) throws IOException {
         return client.post("/containers", container, String.class);
+    }
+
+    @Override
+    public String updateContainer(PostAgentContainer container) throws IOException {
+        return client.put("/containers", container, String.class);
     }
 
     @SuppressWarnings({"unchecked"})

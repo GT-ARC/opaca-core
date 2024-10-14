@@ -17,11 +17,18 @@ public class Action {
     @NonNull
     String name;
 
+    /** optional human-readable description of what this action does */
+    String description;
+
     /** parameter names and types */
     @NonNull
     Map<String, Parameter> parameters = Map.of();
 
     /** type of result */
     Parameter result;
+
+    public Action(String name, Map<String, Parameter> parameters, Parameter result) {
+        this(name, null, parameters, result);
+    }
 
 }

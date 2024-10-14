@@ -40,7 +40,8 @@ public class ArgumentValidator {
             var argument = arguments.get(name);
             var type = parameters.get(name).getType();
             var items = parameters.get(name).getItems();
-            if (! isArgumentValid(argument, type, items)) return false;
+            var optional = ! parameters.get(name).getRequired();
+            if (! isArgumentValid(argument, type, optional, items)) return false;
         }
 
         return true;
@@ -55,7 +56,8 @@ public class ArgumentValidator {
         return arguments.keySet().stream().anyMatch(name -> ! parameters.containsKey(name));
     }
 
-    private boolean isArgumentValid(JsonNode node, String type, Parameter.ArrayItems items) {
+    private boolean isArgumentValid(JsonNode node, String type, boolean optional, Parameter.ArrayItems items) {
+        if (optional && node.isNull()) return true;
         return switch (type) {
             case "integer" -> node.isInt();
             case "number" -> node.isNumber();
@@ -70,7 +72,7 @@ public class ArgumentValidator {
     private boolean isValidList(JsonNode node, Parameter.ArrayItems items) {
         if (node.isArray() && items != null) {
             for (JsonNode child : node) {
-                if (! isArgumentValid(child, items.getType(), items.getItems())) return false;
+                if (! isArgumentValid(child, items.getType(), false, items.getItems())) return false;
             }
             return true;
         }

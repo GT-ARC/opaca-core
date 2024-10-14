@@ -23,6 +23,18 @@ public interface RuntimePlatformApi extends CommonApi {
      */
     RuntimePlatform getPlatformInfo() throws IOException;
 
+    
+    /**
+     * Complementary to {@link CommonApi#getAgents()}: Get list of Agents running in this Runtime Platform
+     * or connected platforms, i.e. the entire list of agents and their actions that can be reached by
+     * sending an send/invoke/broadcast to this Runtime Platform with query parameter forward=true.
+     *
+     * REST: GET /agents?includeConnected=true
+     *
+     * @return List of Agents running on this Runtime Platform, or connected platforms.
+     */
+    List<AgentDescription> getAllAgents() throws IOException;
+
     /** Get Configuration of this Runtime Platform, e.g. what container backend is used, what container registries are
      * available, etc. The details of this may vary depending on the implementation and used backend. Make sure not to
      * give away any secret information like passwords!
@@ -85,6 +97,23 @@ public interface RuntimePlatformApi extends CommonApi {
      * @return ID of the started container
      */
     String addContainer(PostAgentContainer container) throws IOException;
+
+    /**
+     * Deploy a container to the Runtime Platform, replacing an existing container of the same image.
+     * This is a convenience-route useful for development, which allows to quickly update a container
+     * without having to first search the existing container, remove that container, and then start
+     * the new one.
+     * 
+     * This route will check if there is exactly one running container of the same image (or an older
+     * version of the image, matching by image name), and in this case tries to stop the running container
+     * and then deploy the new container. Will fail in any other case.
+     * 
+     * REST: PUT /containers
+     *
+     * @param container The container to start, replacing an existing container of the same image
+     * @return ID of the started container
+     */
+    String updateContainer(PostAgentContainer container) throws IOException;
 
     /**
      * Get descriptions of all currently running Agent Containers.

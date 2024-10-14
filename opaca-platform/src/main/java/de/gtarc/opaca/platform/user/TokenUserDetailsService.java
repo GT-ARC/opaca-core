@@ -39,12 +39,14 @@ public class TokenUserDetailsService implements UserDetailsService {
 
     @PostConstruct
 	public void postConstruct() {
-        if (userRepository.findByUsername(config.platformAdminUser) == null) {
-            if (config.platformAdminPwd == null) {
-                throw new RuntimeException("Platform password cannot be null even when platform authorization is not enabled!");
-            }
-            createUser(config.platformAdminUser, config.platformAdminPwd, Role.ADMIN, new ArrayList<>());
+        // delete and re-create admin user in case password changed (alternatively, delete in pre-destroy?)
+        if (userRepository.findByUsername(config.platformAdminUser) != null) {
+            removeUser(config.platformAdminUser);
         }
+        if (config.platformAdminPwd == null) {
+            throw new RuntimeException("Platform password cannot be null even when platform authorization is not enabled!");
+        }
+        createUser(config.platformAdminUser, config.platformAdminPwd, Role.ADMIN, new ArrayList<>());
 	}
 
     /** Returns the TokenUser as a standardized 'User' object */

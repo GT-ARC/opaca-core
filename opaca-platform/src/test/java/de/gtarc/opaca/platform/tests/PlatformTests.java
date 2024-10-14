@@ -6,7 +6,9 @@ import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
 import de.gtarc.opaca.platform.session.Session;
 import de.gtarc.opaca.util.WebSocketConnector;
-
+import io.swagger.v3.parser.OpenAPIV3Parser;
+import io.swagger.v3.parser.core.models.ParseOptions;
+import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import org.junit.*;
 import org.junit.rules.TestName;
 import org.springframework.boot.SpringApplication;
@@ -151,6 +153,34 @@ public class PlatformTests {
     }
 
     /**
+     * update container
+     */
+    @Test
+    public void testUpdateContainer() throws Exception {
+        var image = getSampleContainerImage();
+
+        // update without existing container
+        var con = request(PLATFORM_A_URL, "PUT", "/containers", image);
+        Assert.assertEquals(400, con.getResponseCode());
+
+        // deploy and update container
+        var container1 = result(request(PLATFORM_A_URL, "POST", "/containers", image));
+        con = request(PLATFORM_A_URL, "PUT", "/containers", image);
+        Assert.assertEquals(200, con.getResponseCode());
+        var container1new = result(con);
+        Assert.assertNotEquals(container1new, container1);
+        
+        // ambiguous update
+        var container2 = result(request(PLATFORM_A_URL, "POST", "/containers", image));
+        con = request(PLATFORM_A_URL, "PUT", "/containers", image);
+        Assert.assertEquals(400, con.getResponseCode());
+
+        // cleanup
+        result(request(PLATFORM_A_URL, "DELETE", "/containers/" + container1new, null));
+        result(request(PLATFORM_A_URL, "DELETE", "/containers/" + container2, null));
+    }
+
+    /**
      * deploy a container with api port 8082 on platform B, which should now work since
      * the platform checks if a port is available before trying to start the container
      */
@@ -167,10 +197,10 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         var containerBId = result(con);
 
-        // check if container in platform B has higher port mapping than specified by image
+        // check if container in platform B has a different port mapping than specified by image
         con = request(PLATFORM_B_URL, "GET", "/containers/" + containerBId, null);
         var container = result(con, AgentContainer.class);
-        Assert.assertTrue(container.getConnectivity().getApiPortMapping() > image.getImage().getApiPort());
+        Assert.assertTrue(container.getConnectivity().getApiPortMapping() != image.getImage().getApiPort());
 
         // undeploy both container again
         con = request(PLATFORM_A_URL, "DELETE", "/containers/" + containerAId, null);
@@ -290,11 +320,11 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         var container2Id = result(con);
 
-        // check that the 2nd container has a higher api port than "normal", then delete containers
+        // check that the 2nd container has a different api port than the 1st container, then delete containers
         try {
             con = request(PLATFORM_A_URL, "GET", "/containers/" + container2Id, null);
             var res = result(con, AgentContainer.class);
-            Assert.assertTrue(res.getConnectivity().getApiPortMapping() > image.getImage().getApiPort());
+            Assert.assertTrue(res.getConnectivity().getApiPortMapping() != image.getImage().getApiPort());
         } finally {
             con = request(PLATFORM_A_URL, "DELETE", "/containers/" + container1Id, null);
             Assert.assertEquals(200, con.getResponseCode());
@@ -405,6 +435,42 @@ public class PlatformTests {
         } finally {
             // stop container
             con = request(PLATFORM_A_URL, "DELETE", "/containers/" + newContainerId, null);
+            Assert.assertEquals(200, con.getResponseCode());
+        }
+    }
+
+    /**
+     * Checks if a valid openapi specification is returned for the list of actions on the platform
+     */
+    @Test
+    public void testOpenApiConformity() throws Exception {
+        var image = getSampleContainerImage();
+        var con = request(PLATFORM_A_URL, "POST", "/containers", image);
+        Assert.assertEquals(200, con.getResponseCode());
+        var containerId = result(con);
+
+        try {
+            OpenAPIV3Parser parser = new OpenAPIV3Parser();
+            ParseOptions parseOptions = new ParseOptions();
+            parseOptions.setResolve(true);
+            parseOptions.setResolveFully(true);
+
+            // Test JSON format
+            con = request(PLATFORM_A_URL, "GET", "/v3/api-docs/actions", null);
+            Assert.assertEquals(200, con.getResponseCode());
+            var openApiSchema = result(con);
+            SwaggerParseResult result = parser.readContents(openApiSchema, null, parseOptions);
+            Assert.assertTrue(result.getMessages().isEmpty());    // Check if parser result holds error messages
+
+            // Test YAML format
+            con = request(PLATFORM_A_URL, "GET", "/v3/api-docs/actions?format=YAML", null);
+            Assert.assertEquals(200, con.getResponseCode());
+            var openApiSchemaYaml = result(con);
+            result = parser.readContents(openApiSchemaYaml, null, parseOptions);
+            Assert.assertTrue(result.getMessages().isEmpty());
+        } finally {
+            // stop container
+            con = request(PLATFORM_A_URL, "DELETE", "/containers/" + containerId, null);
             Assert.assertEquals(200, con.getResponseCode());
         }
     }

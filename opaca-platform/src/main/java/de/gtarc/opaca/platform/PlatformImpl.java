@@ -14,6 +14,7 @@ import de.gtarc.opaca.model.AgentContainer.Connectivity;
 import de.gtarc.opaca.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -117,25 +118,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         return EventHistory.getInstance().getEvents();
     }
 
-    /*
-     * AGENTS ROUTES
-     */
-
-    @Override
-    public List<AgentDescription> getAgents() {
-        return runningContainers.values().stream()
-                .flatMap(c -> c.getAgents().stream())
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public AgentDescription getAgent(String agentId) {
-        return runningContainers.values().stream()
-                .flatMap(c -> c.getAgents().stream())
-                .filter(a -> a.getAgentId().equals(agentId))
-                .findAny().orElse(null);
-    }
-
     @Override
     public String login(Login loginParams) {
         return jwtUtil.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
@@ -146,6 +128,27 @@ public class PlatformImpl implements RuntimePlatformApi {
         // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
         String owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
         return jwtUtil.generateTokenForAgentContainer(owner);
+    }
+
+    /*
+     * AGENTS ROUTES
+     */
+
+    @Override
+    public List<AgentDescription> getAgents() {
+        return streamAgents(false).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<AgentDescription> getAllAgents() throws IOException {
+        return streamAgents(true).collect(Collectors.toList());
+    }
+
+    @Override
+    public AgentDescription getAgent(String agentId) {
+        return streamAgents(true)
+                .filter(a -> a.getAgentId().equals(agentId))
+                .findAny().orElse(null);
     }
 
     @Override
@@ -216,10 +219,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (lastException != null) throw lastException;
         throw new NoSuchElementException(String.format("Not found: stream '%s' @ agent '%s'", stream, agentId));
     }
-    
-    /*
-     * CONTAINERS ROUTES
-     */
 
     @Override
     public void postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException {
@@ -239,6 +238,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (lastException != null) throw lastException;
         throw new NoSuchElementException(String.format("Not found: stream '%s' @ agent '%s'", stream, agentId));
     }
+    
+    /*
+     * CONTAINERS ROUTES
+     */
 
     @Override
     public String addContainer(PostAgentContainer postContainer) throws IOException {
@@ -251,7 +254,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
         }
         // create user first so the container can immediately talk with the platform
-        userDetailsService.createUser(agentContainerId, agentContainerId,
+        userDetailsService.createUser(agentContainerId, generateRandomPwd(),
                 config.enableAuth ? userDetailsService.getUserRole(owner) : Role.GUEST,
                 config.enableAuth ? userDetailsService.getUserPrivileges(owner) : null);
 
@@ -310,6 +313,24 @@ public class PlatformImpl implements RuntimePlatformApi {
             log.warning("Failed to stop container: " + e.getMessage());
         }
         throw new IOException(errorMessage);
+    }
+
+    @Override
+    public String updateContainer(PostAgentContainer container) throws IOException {
+        var matchingContainers = runningContainers.values().stream()
+                .filter(c -> c.getImage().getImageName().equals(container.getImage().getImageName()))
+                .toList();
+        switch (matchingContainers.size()) {
+            case 1: {
+                var oldContainer = matchingContainers.get(0);
+                removeContainer(oldContainer.getContainerId());
+                return addContainer(container);
+            }
+            case 0:
+                throw new IllegalArgumentException("No matching container is currently running; please use POST instead.");
+            default:
+                throw new IllegalArgumentException("More than one matching container is currently running; please DELETE manually, then POST.");
+        }
     }
 
     @Override
@@ -389,8 +410,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     public List<String> getConnections() {
         return List.copyOf(connectedPlatforms.keySet());
     }
-
-
 
     @Override
     public boolean disconnectPlatform(String url) throws IOException {
@@ -504,6 +523,18 @@ public class PlatformImpl implements RuntimePlatformApi {
 
         return Stream.concat(containerClients, platformClients);
     }
+
+    /**
+     * Get Stream of all Agents on this platform or on this and connected platforms.
+     */
+    private Stream<AgentDescription> streamAgents(boolean includeConnected) {
+        var containers = includeConnected ? Stream.concat(
+                runningContainers.values().stream(),
+                connectedPlatforms.values().stream().flatMap(rp -> rp.getContainers().stream())
+            ) : runningContainers.values().stream();
+        return containers.flatMap(c -> c.getAgents().stream());
+    }
+
     /**
      * Check if Container ID matches and has matching agent and/or action.
      */
@@ -552,5 +583,13 @@ public class PlatformImpl implements RuntimePlatformApi {
                     request.getClientConfig().getType(), config.containerEnvironment));
         }
     }
+
+    /**
+     * Creates a random String of length 24 containing upper and lower case characters and numbers
+     */
+    private String generateRandomPwd() {
+        return RandomStringUtils.random(24, true, true);
+    }
+
 
 }
