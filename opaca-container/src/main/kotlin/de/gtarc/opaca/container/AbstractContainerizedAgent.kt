@@ -87,7 +87,6 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         streamGetCallbacks[stream.name] = callback
     }
 
-
     fun addStreamPost(name: String, callback: ((ByteArray) -> Any?)) = addStreamPost(name, null, callback)
 
     fun addStreamPost(name: String, description: String?, callback: ((ByteArray) -> Any?)) {

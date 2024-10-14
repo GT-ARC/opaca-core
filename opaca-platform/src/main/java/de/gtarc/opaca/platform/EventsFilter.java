@@ -6,7 +6,7 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Service;
-
+import org.springframework.beans.factory.annotation.Autowired;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
@@ -19,6 +19,9 @@ import java.util.Set;
  */
 @Service @NoArgsConstructor
 public class EventsFilter implements Filter {
+
+    @Autowired
+    private WebSocketConfig webSocketHandler;
 
     @Override
     public void init(FilterConfig filterConfig) {}
@@ -66,6 +69,11 @@ public class EventsFilter implements Filter {
 
     private void addEvent(Event event) {
         EventHistory.getInstance().addEvent(event);
+        if (event.getEventType() == Event.EventType.CALL) {
+            String[] routeParts = event.getRoute().split("\\s+");
+            String firstPathSegment = "/" + routeParts[1].split("/")[1];
+            webSocketHandler.broadcastEvent(firstPathSegment, event);
+        }
     }
 
     private Event createCallEvent(String route, String sender) {

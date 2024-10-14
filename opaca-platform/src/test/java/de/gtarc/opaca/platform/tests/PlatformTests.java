@@ -5,6 +5,7 @@ import de.gtarc.opaca.platform.Application;
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
 import de.gtarc.opaca.platform.session.Session;
+import de.gtarc.opaca.util.WebSocketConnector;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.ParseOptions;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
@@ -15,6 +16,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -81,6 +83,28 @@ public class PlatformTests {
         Assert.assertEquals(200, con.getResponseCode());
         var info = result(con, RuntimePlatform.class);
         Assert.assertNotNull(info);
+    }
+
+    /**
+     * test that events for certain CALL events are sent out via web sockets. the requests
+     * themselves are not important here and do not even have to succeed...
+     */
+    @Test
+    public void testWebSocketEvents() throws Exception {
+        // create web socket listener and collect messages
+        var messages = new ArrayList<String>();
+        WebSocketConnector.subscribe(PLATFORM_A_URL, null, "/invoke", messages::add);
+
+        // make sure connection is established first
+        Thread.sleep(200);
+
+        // trigger different events
+        request(PLATFORM_A_URL, "POST", "/invoke/doesNotMatter", Map.of()).getResponseCode();
+        request(PLATFORM_A_URL, "POST", "/invoke/stillDoesNotMatter", Map.of()).getResponseCode();
+        request(PLATFORM_A_URL, "POST", "/invoke/neitherThisTime", Map.of()).getResponseCode();
+
+        // check that correct events have been received
+        Assert.assertEquals(3, messages.size());
     }
 
     /**

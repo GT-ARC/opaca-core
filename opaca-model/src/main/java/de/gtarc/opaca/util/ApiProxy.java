@@ -128,6 +128,7 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
                 : String.format("/stream/%s/%s?%s", stream, agentId, buildQuery(containerId, forward, null));
         client.postStream(path, inputStream);
     }
+
     // CONTAINER ROUTES
 
     @Override

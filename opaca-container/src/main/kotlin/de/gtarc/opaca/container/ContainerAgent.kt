@@ -1,6 +1,7 @@
 package de.gtarc.opaca.container
 
 import com.fasterxml.jackson.databind.JsonNode
+import de.gtarc.opaca.util.WebSocketConnector
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.BrokerAgentRef
 import de.dailab.jiacvi.behaviour.act
@@ -9,6 +10,7 @@ import de.gtarc.opaca.model.AgentContainer
 import de.gtarc.opaca.model.AgentContainerImage
 import de.gtarc.opaca.model.AgentDescription
 import de.gtarc.opaca.model.Message
+import de.gtarc.opaca.model.Event
 import de.gtarc.opaca.util.ApiProxy
 import de.gtarc.opaca.util.RestHelper
 import java.io.InputStream
@@ -24,9 +26,11 @@ const val CONTAINER_AGENT = "container-agent"
  * Agent providing the REST interface of the Agent Container using a simple Jetty server.
  * The API is not quite as fancy one provided using Spring Boot or similar, but might be
  * sufficient, since all "outside" calls would go through the Runtime Container.
- * Still, might be improved a bit...
  */
-class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAINER_AGENT) {
+class ContainerAgent(
+        val image: AgentContainerImage, 
+        val subscribeToEvents: Boolean = false
+    ): Agent(overrideName=CONTAINER_AGENT) {
 
     private val broker by resolve<BrokerAgentRef>()
 
@@ -62,6 +66,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         log.info("Starting Container Agent...")
         super.preStart()
         server.start()
+        if (subscribeToEvents) {
+            WebSocketConnector.subscribe(runtimePlatformUrl, token, "/invoke", this::onEvent)
+        }
     }
 
     /**
@@ -71,6 +78,18 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         log.info("Stopping Container Agent...")
         server.stop()
         super.postStop()
+    }
+
+    /**
+     * Callback for the /subscribe websocket, reacting on events from the runtime platform
+     */
+    fun onEvent(message: String) {
+        log.debug("WEBSOCKET EVENT: $message")
+        val event = RestHelper.readObject(message, Event::class.java)
+        val action = Regex("invoke/(\\w+)").find(event.route)?.groupValues?.get(1)
+        if (action != null) {
+            broker.publish(action, event)
+        }
     }
 
     /**

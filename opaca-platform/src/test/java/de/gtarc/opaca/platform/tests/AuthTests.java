@@ -3,6 +3,8 @@ package de.gtarc.opaca.platform.tests;
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.platform.Application;
+import de.gtarc.opaca.util.WebSocketConnector;
+
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
 import org.junit.*;
@@ -12,6 +14,7 @@ import org.junit.runners.MethodSorters;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 
@@ -168,6 +171,25 @@ public class AuthTests {
         // agent container must be able to call parent platform route to notify platform of change
         con = requestWithToken(PLATFORM_A, "POST", "/invoke/TestAction", Map.of(), token_A);
         Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    @Test
+    public void test04WebSocketEvents() throws Exception {
+        // create web socket listener and collect messages
+        var without_auth = new ArrayList<String>();
+        WebSocketConnector.subscribe(PLATFORM_A, null, "/invoke", without_auth::add);
+        var with_auth = new ArrayList<String>();
+        WebSocketConnector.subscribe(PLATFORM_A, token_A, "/invoke", with_auth::add);
+
+        // make sure connection is established first
+        Thread.sleep(1000);
+
+        // trigger different events
+        requestWithToken(PLATFORM_A, "POST", "/invoke/doesNotMatter", Map.of(), token_A).getResponseCode();
+
+        // check that correct events have been received
+        Assert.assertEquals(0, without_auth.size());
+        Assert.assertEquals(1, with_auth.size());
     }
 
 

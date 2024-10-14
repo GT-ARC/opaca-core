@@ -5,6 +5,7 @@ import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.container.AbstractContainerizedAgent
 import de.gtarc.opaca.model.Message
 import de.gtarc.opaca.model.Parameter
+import de.gtarc.opaca.model.Event
 import java.io.ByteArrayInputStream
 import java.nio.charset.Charset
 import de.gtarc.opaca.container.OpacaException
@@ -15,6 +16,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     private var lastMessage: Any? = null
     private var lastBroadcast: Any? = null
     private var lastPostedStream: Any? = null
+    private var lastEvent: Event? = null
 
     override fun preStart() {
         super.preStart()
@@ -89,6 +91,11 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             log.info("LISTEN $it")
             lastBroadcast = it.payload
         }
+
+        listen<Event>("DoThis") {
+            log.info("EVENT $it")
+            lastEvent = it
+        }
     })
 
     private fun actionGetStream(): ByteArrayInputStream {
@@ -121,6 +128,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         Pair("lastMessage", lastMessage),
         Pair("lastBroadcast", lastBroadcast),
         Pair("lastPostedStream", lastPostedStream),
+        Pair("lastEvent", lastEvent),
         Pair(AgentContainerApi.ENV_CONTAINER_ID, System.getenv(AgentContainerApi.ENV_CONTAINER_ID)),
         Pair(AgentContainerApi.ENV_PLATFORM_URL, System.getenv(AgentContainerApi.ENV_PLATFORM_URL)),
         Pair(AgentContainerApi.ENV_OWNER, System.getenv(AgentContainerApi.ENV_OWNER)),
