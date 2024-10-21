@@ -99,8 +99,7 @@ class ServerAgent(name: String): AbstractContainerizedAgent(name=name) {
     val responses = mutableMapOf<String, Int>()
     var newResponses = 0
 
-    override fun preStart() {
-        super.preStart()
+    override fun setupAgent() {
         addAction("SendTurn", mapOf("id" to Parameter("string"), "turn" to Parameter("int")), Parameter("String")) {
             log.info("server got $it (thread ${Thread.currentThread().name})")
             val id = it["id"]!!.asText()

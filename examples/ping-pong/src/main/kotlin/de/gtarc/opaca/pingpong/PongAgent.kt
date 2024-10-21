@@ -10,15 +10,13 @@ import kotlin.random.Random
 
 class PongAgent: AbstractContainerizedAgent(name="pong-agent-${Random.nextInt()}") {
 
-    override fun preStart() {
+    override fun setupAgent() {
         addAction("PongAction", mapOf(
             "request" to Parameter("integer", true),
             "offer" to Parameter("integer", true)
         ), Parameter("string", true)) {
             pongAction(it["request"]!!.asInt(), it["offer"]!!.asInt())
         }
-
-        super.preStart()
     }
 
     override fun behaviour() = super.behaviour().and(act {
