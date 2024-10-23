@@ -157,8 +157,11 @@ public class InterPlatformTests {
         var message = Map.of("payload", "testBroadcastNoForward", "replyTo", "doesnotmatter");
         var con = request(PLATFORM_B_URL, "POST", "/broadcast/topic?forward=false", message);
         Assert.assertEquals(200, con.getResponseCode());
+        Thread.sleep(500);
+
         // no error, but message was not forwarded
         con = request(PLATFORM_A_URL, "POST", "/invoke/GetInfo/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
         Assert.assertNotEquals("testBroadcastNoForward", res.get("lastBroadcast"));
     }

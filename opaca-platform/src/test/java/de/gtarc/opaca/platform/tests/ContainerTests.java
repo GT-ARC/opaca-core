@@ -452,14 +452,17 @@ public class ContainerTests {
 
             // directed /invoke of GetInfo to check last messages of first container
             con = request(PLATFORM_URL, "POST", "/invoke/GetInfo/sample1?containerId=" + containerId, Map.of());
+            Assert.assertEquals(200, con.getResponseCode());
             var res1 = result(con, Map.class);
             System.out.println(res1);
             Assert.assertEquals(containerId, res1.get(AgentContainerApi.ENV_CONTAINER_ID));
             Assert.assertEquals(msg1.get("payload"), res1.get("lastBroadcast"));
             Assert.assertNotEquals(msg2.get("payload"), res1.get("lastMessage"));
+            Thread.sleep(500);
 
             // directed /invoke of GetInfo to check last messages of second container
             con = request(PLATFORM_URL, "POST", "/invoke/GetInfo/sample1?containerId=" + newContainerId, Map.of());
+            Assert.assertEquals(200, con.getResponseCode());
             var res2 = result(con, Map.class);
             System.out.println(res1);
             Assert.assertEquals(newContainerId, res2.get(AgentContainerApi.ENV_CONTAINER_ID));

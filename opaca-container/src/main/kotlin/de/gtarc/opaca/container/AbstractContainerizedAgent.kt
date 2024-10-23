@@ -39,7 +39,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
     final override fun preStart() {
         super.preStart()
         setupAgent()
-        register(false)
+        register(true)
     }
 
     /** override in subclasses to do setup stuff, e.g. adding actions */

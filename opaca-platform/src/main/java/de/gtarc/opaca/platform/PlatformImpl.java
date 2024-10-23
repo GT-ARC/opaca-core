@@ -421,7 +421,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         containerId = normalizeString(containerId);
         if (! runningContainers.containsKey(containerId)) {
             var msg = String.format("Container did not exist: %s", containerId);
-            log.warning(msg);
             throw new NoSuchElementException(msg);
         }
         try {
@@ -449,7 +448,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
         if (!connectedPlatforms.containsKey(platformUrl)) {
             var msg = String.format("Platform was not connected: %s", platformUrl);
-            log.warning(msg);
             throw new NoSuchElementException(msg);
         }
         try {

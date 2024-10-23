@@ -55,6 +55,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
 
+    /** flag to determine if platform should be notified about changes */
+    private var isNotifyPlatform = false
+
     /**
      * Start the Web Server.
      */
@@ -62,6 +65,7 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
         log.info("Starting Container Agent...")
         super.preStart()
         server.start()
+        isNotifyPlatform = true
     }
 
     /**
@@ -196,7 +200,9 @@ class ContainerAgent(val image: AgentContainerImage): Agent(overrideName=CONTAIN
     }
 
     private fun notifyPlatform() {
-        parentProxy.notifyUpdateContainer(containerId)
+        if (isNotifyPlatform) {
+            parentProxy.notifyUpdateContainer(containerId)
+        }
     }
 
     private fun renewToken() {
