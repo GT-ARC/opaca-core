@@ -43,6 +43,12 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         return client.get("/info", RuntimePlatform.class);
     }
 
+    @SuppressWarnings({"unchecked"})
+    @Override
+    public List<AgentDescription> getAllAgents() throws IOException {
+        return client.get("/agents?includeConnected=true", List.class);
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public Map<String, ?> getPlatformConfig() throws IOException {
@@ -122,6 +128,7 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
                 : String.format("/stream/%s/%s?%s", stream, agentId, buildQuery(containerId, forward, null));
         client.postStream(path, inputStream);
     }
+
     // CONTAINER ROUTES
 
     @Override

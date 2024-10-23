@@ -10,7 +10,7 @@ fun main() {
     agentSystem("opaca-sample-container") {
         enable(LocalBroker)
         agents {
-            add(ContainerAgent(image))
+            add(ContainerAgent(image, true))
             add(SampleAgent("sample1"))
             add(SampleAgent("sample2"))
             add(SimpleUIAgent())

@@ -314,6 +314,23 @@ public class ContainerTests {
     }
 
     /**
+     * call DoThis route and check that the agent received a new Event via websocket
+     */
+    @Test
+    public void testWebsocketEvent() throws Exception {
+        var con = request(PLATFORM_URL, "POST", "/invoke/GetInfo", Map.of());
+        var lastEvent = result(con, Map.class).get("lastEvent");
+        Thread.sleep(500);
+
+        // invoke DoThis (the params are wrong, but this does not matter here)
+        request(PLATFORM_URL, "POST", "/invoke/DoThis", Map.of()).getResponseCode();
+
+        con = request(PLATFORM_URL, "POST", "/invoke/GetInfo", Map.of());
+        var newEvent = result(con, Map.class).get("lastEvent");
+        Assert.assertNotEquals(lastEvent, newEvent);
+    }
+
+    /**
      * call send, check that it arrived via another invoke
      */
     @Test

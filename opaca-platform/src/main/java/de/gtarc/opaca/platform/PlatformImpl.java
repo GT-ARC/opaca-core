@@ -10,6 +10,7 @@ import de.gtarc.opaca.platform.containerclient.DockerClient;
 import de.gtarc.opaca.platform.containerclient.KubernetesClient;
 import de.gtarc.opaca.platform.session.SessionData;
 import de.gtarc.opaca.model.*;
+import de.gtarc.opaca.model.AgentContainer.Connectivity;
 import de.gtarc.opaca.util.ApiProxy;
 import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
@@ -135,15 +136,17 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public List<AgentDescription> getAgents() {
-        return runningContainers.values().stream()
-                .flatMap(c -> c.getAgents().stream())
-                .collect(Collectors.toList());
+        return streamAgents(false).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<AgentDescription> getAllAgents() throws IOException {
+        return streamAgents(true).collect(Collectors.toList());
     }
 
     @Override
     public AgentDescription getAgent(String agentId) {
-        return runningContainers.values().stream()
-                .flatMap(c -> c.getAgents().stream())
+        return streamAgents(true)
                 .filter(a -> a.getAgentId().equals(agentId))
                 .findAny().orElse(null);
     }
@@ -250,9 +253,19 @@ public class PlatformImpl implements RuntimePlatformApi {
             token = jwtUtil.generateTokenForAgentContainer(agentContainerId);
             owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
         }
+        // create user first so the container can immediately talk with the platform
+        userDetailsService.createUser(agentContainerId, generateRandomPwd(),
+                config.enableAuth ? userDetailsService.getUserRole(owner) : Role.GUEST,
+                config.enableAuth ? userDetailsService.getUserPrivileges(owner) : null);
 
         // start container... this may raise an Exception, or returns the connectivity info
-        var connectivity = containerClient.startContainer(agentContainerId, token, owner, postContainer);
+        Connectivity connectivity;
+        try {
+            connectivity = containerClient.startContainer(agentContainerId, token, owner, postContainer);
+        } catch (Exception e) {
+            userDetailsService.removeUser(agentContainerId);
+            throw e;
+        }
 
         // wait until container is up and running...
         var start = System.currentTimeMillis();
@@ -267,9 +280,6 @@ public class PlatformImpl implements RuntimePlatformApi {
                 tokens.put(agentContainerId, token);
                 validators.put(agentContainerId, new ArgumentValidator(container.getImage()));
                 container.setOwner(owner);
-                userDetailsService.createUser(agentContainerId, generateRandomPwd(),
-                        config.enableAuth ? userDetailsService.getUserRole(owner) : Role.GUEST,
-                        config.enableAuth ? userDetailsService.getUserPrivileges(owner) : null);
                 log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
                     log.warning("Agent Container ID does not match: Expected " +
@@ -298,6 +308,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         log.warning("Stopping Container. " + errorMessage);
         try {
             containerClient.stopContainer(agentContainerId);
+            userDetailsService.removeUser(agentContainerId);
         } catch (Exception e) {
             log.warning("Failed to stop container: " + e.getMessage());
         }
@@ -510,6 +521,18 @@ public class PlatformImpl implements RuntimePlatformApi {
 
         return Stream.concat(containerClients, platformClients);
     }
+
+    /**
+     * Get Stream of all Agents on this platform or on this and connected platforms.
+     */
+    private Stream<AgentDescription> streamAgents(boolean includeConnected) {
+        var containers = includeConnected ? Stream.concat(
+                runningContainers.values().stream(),
+                connectedPlatforms.values().stream().flatMap(rp -> rp.getContainers().stream())
+            ) : runningContainers.values().stream();
+        return containers.flatMap(c -> c.getAgents().stream());
+    }
+
     /**
      * Check if Container ID matches and has matching agent and/or action.
      */

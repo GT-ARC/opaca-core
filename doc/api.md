@@ -2,6 +2,8 @@
 
 This document shows a high-level, easy-to-read, language-agnostic overview of the OPACA API, the different routes, etc. It _should_ be kept up to date, but might not always _be_ up-to-date. When in doubt, please consult the Interfaces and Model classes in the `opaca-model` module, or just start a Runtime Platform and check the documentation in the Swagger Web UI.
 
+Note that besides the REST routes described in this file, the OPACA Runtime Platform also provides a `/subscribe` endpoint to which one can subscribe via a [websocket](websockets.md) to get notifications about different events.
+
 
 ## Environment Variables (Agent Container)
 
@@ -24,10 +26,11 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * output: `AgentContainer`
 * errors: none
 
-### `GET /agents`
+### `GET /agents?includeConnected={true|false}`
 
-* get all agents running in the agent container, or in all agent containers of the platform
+* get all agents running in the agent container, or in all agent containers of the platform (or connected platforms)
 * input: none
+  * includeConnected: (optional, default `false`) `true/false`, whether to include agents of connected platforms (only for Runtime Platform!)
 * output: `[ AgentDescription ]`
 * errors: none
 

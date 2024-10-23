@@ -23,6 +23,18 @@ public interface RuntimePlatformApi extends CommonApi {
      */
     RuntimePlatform getPlatformInfo() throws IOException;
 
+    
+    /**
+     * Complementary to {@link CommonApi#getAgents()}: Get list of Agents running in this Runtime Platform
+     * or connected platforms, i.e. the entire list of agents and their actions that can be reached by
+     * sending an send/invoke/broadcast to this Runtime Platform with query parameter forward=true.
+     *
+     * REST: GET /agents?includeConnected=true
+     *
+     * @return List of Agents running on this Runtime Platform, or connected platforms.
+     */
+    List<AgentDescription> getAllAgents() throws IOException;
+
     /** Get Configuration of this Runtime Platform, e.g. what container backend is used, what container registries are
      * available, etc. The details of this may vary depending on the implementation and used backend. Make sure not to
      * give away any secret information like passwords!
