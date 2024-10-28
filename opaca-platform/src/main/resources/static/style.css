@@ -1,0 +1,10 @@
+body {
+	background: url(opaca-logo.png) fixed top right no-repeat;
+	background-size: 400pt 100pt;
+    max-width: 1000px;
+    font-family: sans-serif;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}

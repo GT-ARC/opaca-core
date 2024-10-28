@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OPACA Runtime Platform</title>
+    <link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+<body>
+    <h1>OPACA Runtime Platform</h1>
+    <p>
+        You are seeing the "landing page" of the OPACA Runtime Platform. <br /> <strong>Please visit <a href="swagger-ui/index.html"> the Swagger Web UI</a></strong> to view and interact with the platform's API.
+    </p>
+    <h2>About OPACA</h2>
+    <p>
+        The goal of OPACA is to combine multi-agent systems with microservices and container-technologies using a
+        simple, universal API, build around a set of simple design principles and requirements:
+    </p>
+    <ul>
+        <li>Open, Standardized Interfaces</li>
+        <li>Being Language Agnostic</li>
+        <li>Modularity and Reusability</li>
+        <li>Self-Description</li>
+        <li>Dynamic Multi-Tenancy</li>
+        <li>Distribution</li>
+    </ul>
+    <p>
+        This way, we make it easier to deploy and connect heterogeneous systems consisting of components implemented
+        using different agent-frameworks and/or non-agent components in different languages.
+        A multi-agent system in the OPACA approach consists of two types of components:
+    </p>
+    <ul>
+        <li>
+            <strong>Agent Containers</strong> are containerized applications that implement the OPACA Agent Container
+            API. They provide REST routes for finding out about the agents within the container, and to interact with
+            them by of sending asynchronous messages (unicast and broadcast) and invoking synchronous actions.
+        </li>
+        <li>
+            <strong>Runtime Platforms</strong> are used to manage one or more Agent Containers, deploying those in
+            Docker or Kubernetes. They connect different Agent Containers while also providing basic services such as
+            yellow pages, authentication, etc.
+        </li>
+    </ul>
+
+    <h2>Further Information</h2>
+    <ul>
+        <li>
+            Github Repository (including documentation): <a href="https://github.com/GT-ARC/opaca-core" target="_blank">https://github.com/gt-arc/opaca-core</a>
+        </li>
+        <li>
+            Publication: <a href="https://ieeexplore.ieee.org/document/10398198" target="_blank">Acar et al.: OPACA: Toward an Open,
+                Language- and Platform-Independent API for Containerized Agents</a> (2024, IEEE Access)
+        </li>
+    </ul>
+</body>
+</html>
