@@ -265,6 +265,6 @@ public class DockerClient implements ContainerClient {
                 x -> new AuthConfig()
                         .withRegistryAddress(x.getRegistry())
                         .withUsername(x.getLogin())
-                        .withPassword(x.getLogin())));
+                        .withPassword(x.getPassword())));
     }
 }
