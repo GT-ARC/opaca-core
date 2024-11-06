@@ -166,6 +166,7 @@ public class ActionToOpenApi {
     }
 
     private static Parameter toParameter(ArrayItems itemsParam) {
+        if (itemsParam == null) return null;
         return new Parameter(itemsParam.getType(), false, itemsParam.getItems());
     }
 
