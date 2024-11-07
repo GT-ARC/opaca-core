@@ -10,6 +10,12 @@
     <p>
         You are seeing the "landing page" of the OPACA Runtime Platform. <br /> <strong>Please visit <a href="swagger-ui/index.html"> the Swagger Web UI</a></strong> to view and interact with the platform's API.
     </p>
+    <p>
+        Alternatively, you can also interact with the platform via HTTP calls, e.g. using <code>curl</code>. For example, to invoke an action of an agent running on the platform, you can use a call like this:
+    </p>
+    <code>
+        curl -X POST http://[host]:[port]/invoke/[NameOfTheAction] -H 'Content-Type: application/json' -d '{"[param]": [value], ...}'
+    </code>
     <h2>About OPACA</h2>
     <p>
         The goal of OPACA is to combine multi-agent systems with microservices and container-technologies using a
