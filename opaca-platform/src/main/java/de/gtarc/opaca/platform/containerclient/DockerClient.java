@@ -102,7 +102,7 @@ public class DockerClient implements ContainerClient {
         var extraPorts = image.getExtraPorts();
 
         try {
-            if (! isImagePresent(imageName)) {
+            if (config.alwaysPullImages || ! isImagePresent(imageName)) {
                 pullDockerImage(imageName);
             }
 

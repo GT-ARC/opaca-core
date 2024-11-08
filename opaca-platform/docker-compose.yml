@@ -21,6 +21,7 @@ services:
       CONTAINER_TIMEOUT_SEC:
       DEFAULT_IMAGE_DIRECTORY:
       EVENT_HISTORY_SIZE:
+      ALWAYS_PULL_IMAGES:
       # Security & Authentication
       ENABLE_AUTH:
       SECRET:
