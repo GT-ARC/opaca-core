@@ -40,8 +40,21 @@ the `Parameter.ArrayItems` class. The items' `type` can then be any primitive
 or complex type. It can also be an array, in that case, the item's items' type has to be 
 defined again.
 
+## Optional and Mismatched Parameters
+
+The Parameter specification has an (optional) parameter `required: boolean` which specifies if the parameter is required or not. The default is `true`, i.e. unless explicitly specified otherwise, all parameters have to be present and not `null` (i.e. there is no distinction between "required" and "nullable"). Analogously, an action's result type can also have the `required: false` attribute, meaning that the action can return the specified type, or `null`.
+
+A non-required parameter can be omitted entirely from the JSON, or set to `null`, and it is the Agent Container's responsibility to assume a suitable default value. (The container may also use a default if the parameter is omitted, and `null` if it is explicitly set to `null`; if ambiguous, this should be described in the action's `description`.)
+
+For example, consider an action with parameters as `{"foo": {"type": "string"}, "bar": {"type": "boolean", "required": false}}`. Then these arguments will all be **valid**: `{"foo": "x", "bar": true}`, `{"foo": "x", "bar": null}`, `{"foo": "x"}`, whereas the following will be **invalid**: `{"bar": true}` (missing required parameter), `{"foo": null, "bar": true}` (required parameter is null), `{"foo": "x", "bar": 2}` (mismatched type), `{"foo": "x", "buzz": true}` (unknown parameter). Note that in those cases the Platform will actually report the action as "not found".
+
+When an action is called using the `/invoke` route, the OPACA Runtime Platform will search all the available actions of all agents (in one container, in all containers of the platform, or in all containers of this and connected platforms, based on the values of the `containerId` and `forward` query parameters) for an action that matches the given name, agent-id (if set), and parameters, and return "not found" if no such action was found.
+
+This can be confusing, as there is no dedicated error message for "mismatched parameters", and those will just show as "not found", too. If you get a "not found" error when calling an action that you know should be there, please double-check the expected and provided parameter types.
+
 ## Examples
 
-For examples, please see `examples/sample-container`. 
+For examples, please see `examples/sample-container`.
+
 * The `sample-container.json`file contains sample complex type definitions. 
 * The `SampleAgent.kt` file contains sample action and parameter definitions.
