@@ -146,7 +146,7 @@ class ContainerAgent(
         }
 
         private fun waitForInvoke(agentId: String, request: Any, timeout: Int): Any {
-            // send pending invoke to ContainerAgent to execute asyncronously
+            // send pending invoke to ContainerAgent to execute asynchronously
             val pendInv = PendingInvoke(agentId, request, timeout, Semaphore(0), null, null)
             self tell pendInv
             pendInv.lock.acquireUninterruptibly()

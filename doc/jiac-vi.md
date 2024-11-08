@@ -1,6 +1,6 @@
 # JIAC VI Basic Documentation
 
-The reference implementation of the OPACA Agent Container is written in JIAC VI, developed by DAI-Labor, and in particular by Christian Rakow. This document provides a broad overview of the framework and its most relevant features for developing OPACA Agent Containers. The documentation is separated into multiple sections. First an introduction to *JIAC Intelligent Agent Componentware* (JIAC VI) and its concepts. ("JIAC" is usually spelled as one word, i.e. "jiac-six", not "j-i-a-c-six".)
+The reference implementation of the OPACA Agent Container is written in JIAC VI, developed by DAI-Labor, and in particular by Christian Rakow. This document provides a broad overview of the framework and its most relevant features for developing OPACA Agent Containers. The documentation is separated into multiple sections. First an introduction to *JIAC Intelligent Agent Componentware* (JIAC VI) and its concepts in general, then how it relates to and is used in OPACA.
 
 
 
@@ -159,7 +159,7 @@ Agents on an `AgentSystem` are organized in a tree-like hierarchy. The goal with
 
 ![Hierarchy](jiac-vi/hierarchy.png)
 
-The hierarchy also defines the address of an agent, which follows an URI like format. Parent and children are separated by `/`, `@ID` can be used to address specific agents by their identifier. The address is relevant in order to communicate and send messages to specific agents.
+The hierarchy also defines the address of an agent, which follows a URI like format. Parent and children are separated by `/`, `@ID` can be used to address specific agents by their identifier. The address is relevant in order to communicate and send messages to specific agents.
 
 NOTE: The id must be unique across all children of a parent.
 
@@ -226,7 +226,7 @@ Generally each agent is equipped with a set of one or more behaviours that are d
 The following is an overview of the different standard callbacks and how they are triggered:
 
 | Callback        | Trigger                                                    |
-| --------------- | ---------------------------------------------------------- |
+|-----------------|------------------------------------------------------------|
 | `on<T>`         | `tell` message of type `T`                                 |
 | `on<T>(c)`      | `tell` message of type `T` matching condition `c`          |
 | `listen<T>(s)`  | `publish` message of type `T` to channel `s`               |
@@ -266,7 +266,6 @@ override fun behaviour() = act {
     every(Duration.ofMillis(100)) { // <1>
         log.info("Executing...")
     }
-
 }
 ```
 * 1: Will execute the function every 100ms
@@ -337,7 +336,7 @@ class CustomBehaviour : Behaviour() {
 
 ## Messaging
 
-A `BrokerAgent` is a special kind of agent that translates messages to be send to external systems.
+A `BrokerAgent` is a special kind of agent that translates messages to be sent to external systems.
 
 Via the broker agents it is possible to receive any arbitrary byte message. Yet in order to understand a message a dedicated format is needed that defines how meta information like headers, receiver or serialization is encoded.
 
@@ -348,7 +347,7 @@ technology stack, e.g. mqtt, http, etc.
 
 ## Relation to OPACA
 
-While JIAC VI is used in the [reference implementation](implementation.md) of the OPACA Agent Container, there is no connection of the two beyond that: JIAC VI existed before OPACA and can be used in other contexts, and OPACA Agent Containers can be implemented using different languages and frameworks than Kotlin and JIAC VI. Still, there are similar or corresponding elements in the two frameworks, and understanding those relations may help to understand how they work together.
+While JIAC VI is used in the [reference implementation](implementation.md) of the OPACA Agent Container, there is no connection of the two beyond that: JIAC VI existed before OPACA and can be used in other contexts, and OPACA Agent Containers can be implemented using different languages and frameworks than Kotlin and JIAC VI. Still, there are similar or corresponding elements in the two frameworks, that make JIAC VI well suited for implementing OPACA Agent Containers, and understanding those relations may help to understand how they work together.
 
 | JIAC VI Concept | OPACA Concept  | Description |
 | --------------- | -------------- | ----------- |
@@ -360,4 +359,14 @@ While JIAC VI is used in the [reference implementation](implementation.md) of th
 | `every`         | -              | Timed behavior repeated in regular intervals. Since this is purely internal, there is no correspondence to this in the OPACA API. |
 | -               | `/stream`      | Used for posting or retrieving steamed data to or from OPACA agents; internally this is done using `invoke ask` in JIAC VI, but there is no actual concept for steaming data in JIAC VI. |
 
-In OPACA, `tell`, `publish` and `invoke ask` are used for *internal* communication between agents of the same Agent Container, including for communication between the `ContainerAgent` and `ContainerizedAgents` (i.e. for the "last mile" of *incoming* communication). For *outgoing* communication to agents in a different container, the `sendOutbound...` methods of `ContainerizedAgent` should be used, calling the respective REST routes of the parent Runtime Platform (this way, those are handled by the issuing agent itself without overloading the `ContainerAgent`).
+Each Agent-Container using the JIAC VI reference implementation should consist of:
+* exactly one `ContainerAgent`, handling the connection to the parent Runtime Platform
+* one or more Agents extending `AbstractContainerizedAgent`, being the agents that are "exposed" via the OPACA API
+* zero or more regular JIAC VI agents (not extending `AbstractContainerizedAgent`) for internal purposes
+
+Within the container, `tell`, `publish` and `invoke ask` are used for *internal* communication between agents of the same Agent Container, including for communication between the `ContainerAgent` and Containerized Agents (i.e. for the "last mile" of *incoming* communication). For *outgoing* communication to agents in a different container, the `sendOutbound...` methods of `AbstractContainerizedAgent` should be used, calling the respective REST routes of the parent Runtime Platform (this way, those are handled by the issuing agent itself without overloading the `ContainerAgent`).
+
+### Notes
+
+* In JIAC VI, the `respond` callback of `invoke ask` can _not_ return a `null` value. If the OPACA action should return a null/empty result, please return `Unit` from the callback, which is then translated to `null` by the Container Agent.
+* Similarly, due to the JSON deserialization of action parameters, parameters that were given a `null` value are not actually `null` in the `respond` callback, but instead instances of Jackson's `NullNode`; keep this in mind when testing if an optional parameter is present or not.
