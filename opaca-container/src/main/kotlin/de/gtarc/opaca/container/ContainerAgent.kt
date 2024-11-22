@@ -34,7 +34,7 @@ class ContainerAgent(
 
     private val broker by resolve<BrokerAgentRef>()
 
-    private val server by lazy { RestServerJavalin(impl, AgentContainerApi.DEFAULT_PORT, token) }
+    private val server by lazy { RestServerJavalin(impl, image.apiPort, token) }
 
     // information on current state of agent container
 
