@@ -23,6 +23,11 @@ val ROOMS = mapOf(
     100 to "vip"
 )
 
+/**
+ * Dummy-version of the agent controlling the ZEKI LED-based wayfinding system.
+ * Since this service would have an effect on the real world, the dummy-version does not really
+ * do anything, except finding the room id for a given room name.
+ */
 class WayfindingAgent : AbstractContainerizedAgent(name="wayfinding-agent") {
 
 

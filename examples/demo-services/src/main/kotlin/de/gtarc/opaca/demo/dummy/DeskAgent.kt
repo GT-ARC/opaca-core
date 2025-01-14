@@ -4,6 +4,10 @@ import de.gtarc.opaca.container.AbstractContainerizedAgent
 import de.gtarc.opaca.model.Parameter
 import de.gtarc.opaca.model.Parameter.ArrayItems
 
+/**
+ * Dummy-agent providing actions for seeing bookings of imaginary desks. Somewhat inspired by
+ * a similar system at ZEKI, but much dumbed down and only returning hard-coded values.
+ */
 class DeskAgent(): AbstractContainerizedAgent(name="desk-agent") {
 
     override fun preStart() {

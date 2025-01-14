@@ -3,6 +3,10 @@ package de.gtarc.opaca.demo.reallab
 import de.gtarc.opaca.container.AbstractContainerizedAgent
 import de.gtarc.opaca.model.Parameter
 
+/**
+ * Dummy-version of the agent for managing the inventory list of the ZEKI fridge.
+ * Can be used for listing, adding and removing grocery items from the inventory.
+ */
 class FridgeAgent : AbstractContainerizedAgent(name="fridge-agent") {
 
     data class Grocery(
@@ -27,7 +31,6 @@ class FridgeAgent : AbstractContainerizedAgent(name="fridge-agent") {
         Grocery("water", 3, "12.09.2027", "drinks"),
         Grocery("coke", 1, "30.09.2027", "drinks")
     )
-
 
     override fun preStart() {
         super.preStart()

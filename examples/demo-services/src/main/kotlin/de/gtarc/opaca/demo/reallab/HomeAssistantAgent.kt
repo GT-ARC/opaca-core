@@ -5,7 +5,11 @@ import de.gtarc.opaca.model.Parameter
 import kotlin.random.Random
 import kotlin.text.Regex
 
-
+/**
+ * Dummy-version of the agent interacting with the ZEKI Home Assistant for reading various sensors.
+ * In reality, there are many more sensors per room, one for each value to be measured (temperature,
+ * co2, etc.), but this has been simplified here. The get-value action just returns a random number.
+ */
 class HomeAssistantAgent: AbstractContainerizedAgent(name="home-assistant-agent") {
 
     val SENSORS = mapOf(
@@ -59,7 +63,7 @@ class HomeAssistantAgent: AbstractContainerizedAgent(name="home-assistant-agent"
 
     private fun actionGetValue(sensor: String, key: String): Double {
         log.info("Getting the $key value of the sensor $sensor...")
-        return Random.nextDouble(-20.0,50.0)
+        return Random.nextDouble(-20.0, 50.0)
     }
 
     private fun getSensorFromRoomHint(hint: String): String? {

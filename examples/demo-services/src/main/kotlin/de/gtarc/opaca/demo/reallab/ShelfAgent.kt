@@ -5,6 +5,12 @@ import de.gtarc.opaca.model.Parameter
 import java.net.URI
 import java.net.HttpURLConnection;
 
+/**
+ * Dummy version of agent controlling the shelves in the ZEKI kitchen. The agent can tell where
+ * certain items can be found (hardcoded according to actual shelves in the kitchen) and open and
+ * close those shelves (which, of course, does nothing in this version). Opening and closing actually
+ * do exactly the same thing, as the real shelves don't know their state and can only be toggled.
+ */
 class ShelfAgent : AbstractContainerizedAgent(name="shelf-agent") {
 
     val CONTENTS = mapOf(

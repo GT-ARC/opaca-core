@@ -14,20 +14,13 @@ fun main() {
         agents {
             add(ContainerAgent(image))
             // dummy-fied Real-lab agents
-            /*
-            add(RoomBookingAgent())
-            add(SensorsAgent())
             add(FridgeAgent())
-            add(WayfindingAgent())
-            add(ShelfAgent())
             add(HomeAssistantAgent())
-             */
+            add(ShelfAgent())
+            add(WayfindingAgent())
             // additional dummy agents
-            /*
-            add(RoomAgent())
             add(DeskAgent())
-            add(CarFleetAgent())
-             */
+            add(RoomBookingAgent())
             add(ServletAgent())
         }
     }.start()
