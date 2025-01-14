@@ -37,7 +37,7 @@ class FridgeAgent : AbstractContainerizedAgent(name="fridge-agent") {
 
         this.addAction("GetGroceries", mapOf(
             "category" to Parameter("string")
-        ), Parameter("array", true, Parameter.ArrayItems("string", null))) {
+        ), Parameter("array", true, Parameter.ArrayItems("object", null))) {
             getGroceries(it["category"]!!.asText())
         }
 
@@ -62,9 +62,9 @@ class FridgeAgent : AbstractContainerizedAgent(name="fridge-agent") {
         }
     }
 
-    private fun getGroceries(category: String): List<String> {
+    private fun getGroceries(category: String): List<Grocery> {
         log.info("Getting groceries of $category category...")
-        return GROCERIES.filter { it.category == category }.map { it.name }
+        return GROCERIES.filter { it.category == category }
     }
 
     private fun addGroceries(name: String, amount: Int, expirationDate: String, category: String) {
