@@ -26,7 +26,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
     private var runtimePlatformUrl: String? = null
     private var containerId: String? = null
     private var token: String? = null
-    private lateinit var parentProxy: ApiProxy
+    protected lateinit var parentProxy: ApiProxy
 
     protected val actions = mutableListOf<Action>()
     protected val actionCallbacks = mutableMapOf<String, (Map<String, JsonNode>) -> Any?>()
