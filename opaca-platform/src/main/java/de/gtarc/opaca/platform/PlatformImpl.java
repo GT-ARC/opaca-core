@@ -698,7 +698,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw lastException;
         }
         if (isParamMismatch.get()) {
-            throw new RuntimeException(String.format("API call \"%s\" failed because of mismatched action arguments.", apiCallType));
+            throw new IOException(String.format("API call \"%s\" failed because of mismatched action arguments.", apiCallType));
         }
         throw new NoSuchElementException(String.format("API call \"%s\" failed.", apiCallType));
     }
