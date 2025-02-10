@@ -13,7 +13,6 @@ import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.model.AgentContainer.Connectivity;
 import de.gtarc.opaca.util.ApiProxy;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -27,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -155,96 +155,56 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public void send(String agentId, Message message, String containerId, boolean forward) throws IOException, NoSuchElementException {
-        var clients = getClients(containerId, agentId, null, null, null, forward);
-        validateClients(clients, null, String.format("Not found: agent '%s'", agentId));
-
-        IOException lastException = null;
-        for (var client: clients.keySet()) {
-            log.info("Forwarding /send to " + client.baseUrl);
-            try {
-                client.send(agentId, message, containerId, false);
-                return;
-            } catch (IOException e) {
-                log.warning("Failed to forward /send to " + client.baseUrl + ": " + e);
-                lastException = e;
-            }
-        }
-        if (lastException != null) throw lastException;
-        throw new RuntimeException(String.format("Failed to send message to agent '%s'", agentId));
+        iterateClientMatches(
+                getClients(containerId, agentId, null, null, null, forward),
+                match -> {
+                    match.getClient().send(agentId, message, containerId, false);
+                    return null;
+                },
+                "send"
+        );
     }
 
     @Override
-    public void broadcast(String channel, Message message, String containerId, boolean forward) {
-        var clients = getClients(containerId, null, null, null, null, forward);
-        validateClients(clients, null, String.format("Not found: container '%s'", containerId));
-
-        for (var client: clients.keySet()) {
-            log.info("Forwarding /broadcast to " + client.baseUrl);
-            try {
-                client.broadcast(channel, message, containerId, false);
-            } catch (IOException e) {
-                log.warning("Failed to forward /broadcast to " + client.baseUrl + ": " + e);
-            }
-        }
+    public void broadcast(String channel, Message message, String containerId, boolean forward) throws IOException {
+        iterateClientMatches(
+                getClients(containerId, null, null, null, null, forward),
+                match -> {
+                    match.getClient().broadcast(channel, message, containerId, false);
+                    return null;
+                },
+                "broadcast"
+        );
     }
 
     @Override
     public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
-        var clients = getClients(containerId, agentId, action, parameters, null, forward);
-        validateClients(clients, "Parameters did not match.",
-                String.format("Not found: action '%s' @ agent '%s'", action, agentId));
-
-        IOException lastException = null;
-        for (var client : clients.keySet()) {
-            try {
-                return client.invoke(action, parameters, agentId, timeout, containerId, false);
-            } catch (IOException e) {
-                log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s': %s",
-                        action, agentId, client.baseUrl, e));
-                lastException = e;
-            }
-        }
-        if (lastException != null) throw lastException;
-        throw new RuntimeException(String.format("Failed to invoke action '%s' @ agent '%s'", action, agentId));
+        return (JsonNode) iterateClientMatches(
+                getClients(containerId, agentId, action, parameters, null, forward),
+                match -> match.getClient().invoke(action, parameters, agentId, timeout, containerId, false),
+                "invoke"
+        );
     }
 
     @Override
     public InputStream getStream(String stream, String agentId, String containerId, boolean forward) throws IOException {
-        var clients = getClients(containerId, agentId, null, null, stream, forward);
-        validateClients(clients, null, String.format("Not found: stream '%s' @ agent '%s'", stream, agentId));
-
-        IOException lastException = null;
-        for (var client : clients.keySet()) {
-            try {
-                return client.getStream(stream, agentId, containerId, false);
-            } catch (IOException e) {
-                log.warning(String.format("Failed to get stream '%s' @ agent '%s' and client '%s': %s",
-                        stream, agentId, client.baseUrl, e));
-                lastException = e;
-            }
-        }
-        if (lastException != null) throw lastException;
-        throw new RuntimeException("Failed to get stream '%s' @ agent '%s'");
+        return (InputStream) iterateClientMatches(
+                getClients(containerId, agentId, null, null, stream, forward),
+                match -> match.getClient().getStream(stream, agentId, containerId, false),
+                "GET stream"
+        );
     }
 
     @Override
     public void postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException {
-        var clients = getClients(containerId, agentId, null, null, stream, forward);
-        validateClients(clients, null, String.format("Not found: stream '%s' @ agent '%s'", stream, agentId));
-        
-        IOException lastException = null;
-        for (var client : clients.keySet()) {
-            try {
-                client.postStream(stream, inputStream, agentId, containerId, false);
-                return;
-            } catch (IOException e) {
-                log.warning(String.format("Failed to post stream '%s' @ agent '%s' and client '%s': %s",
-                        stream, agentId, client.baseUrl, e));
-                lastException = e;
-            }
-        }
-        if (lastException != null) throw lastException;
-        throw new RuntimeException("Failed to post stream '%s' to agent '%s'");
+        iterateClientMatches(
+                getClients(containerId, agentId, null, null, stream, forward),
+                match -> {
+                    match.getClient().postStream(stream, inputStream, agentId, containerId, false);
+                    return null;
+                },
+                "POST stream"
+        );
     }
     
     /*
@@ -516,24 +476,24 @@ public class PlatformImpl implements RuntimePlatformApi {
      * @param includeConnected Whether to also forward to connected Runtime Platforms
      * @return list of clients to send requests to these valid containers/platforms
      */
-    private HashMap<ApiProxy, MatchResult> getClients(String containerId, String agentId, String action, Map<String, JsonNode> parameters, String stream, boolean includeConnected) {
-        var clients = new HashMap<ApiProxy, MatchResult>();
+    private Stream<ClientMatch> getClients(String containerId, String agentId, String action, Map<String, JsonNode> parameters, String stream, boolean includeConnected) {
+        // var clients = new HashMap<ApiProxy, MatchResult>();
 
-        // local containers
-        runningContainers.values().forEach(container -> clients.put(
-                getClient(container.getContainerId(), tokens.get(container.getContainerId())),
-                new MatchResult(containerId, agentId, action, parameters, stream).makeContainerMatch(container)
-        ));
+        var localMatches = runningContainers.values().stream().map(container -> {
+            var client = getClient(container.getContainerId(), tokens.get(container.getContainerId()));
+            return new ClientMatch(containerId, agentId, action, parameters, stream)
+                    .makeContainerMatch(container, client);
+        });
 
-        if (!includeConnected) return clients;
+        if (!includeConnected) return localMatches;
 
-        // remote platforms
-        connectedPlatforms.forEach((key, value) -> clients.put(
-                getPlatformClient(key, tokens.get(key)),
-                new MatchResult(containerId, agentId, action, parameters, stream).makePlatformMatch(value)
-        ));
+        var platformMatches = connectedPlatforms.entrySet().stream().map(entry -> {
+            var client = getPlatformClient(entry.getKey(), tokens.get(entry.getKey()));
+            return new ClientMatch(containerId, agentId, action, parameters, stream)
+                    .makePlatformMatch(entry.getValue(), client);
+        });
 
-        return clients;
+        return Stream.concat(localMatches, platformMatches);
     }
 
     /**
@@ -604,7 +564,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
 
-    private class MatchResult {
+    private class ClientMatch {
         @Getter
         private boolean containerMatch = false;
         @Getter
@@ -619,20 +579,26 @@ public class PlatformImpl implements RuntimePlatformApi {
         private final String containerId;
         private final String agentId;
         private final String actionName;
-        private final Map<String, JsonNode> arguments;
+        private final Map<String, JsonNode> actionArgs;
         private final String streamName;
+
+        @Getter
+        private ApiProxy client = null;
 
         private ArgumentValidator validator = null;
 
-        public MatchResult(String containerId, String agentId, String actionName, Map<String, JsonNode> arguments, String streamName) {
+        public ClientMatch(String containerId, String agentId, String actionName, Map<String, JsonNode> actionArgs, String streamName) {
             this.containerId = containerId;
             this.agentId = agentId;
             this.actionName = actionName;
-            this.arguments = arguments;
+            this.actionArgs = actionArgs;
             this.streamName = streamName;
         }
 
-        public MatchResult makeContainerMatch(AgentContainer container) {
+        public ClientMatch makeContainerMatch(AgentContainer container, ApiProxy client) {
+            if (client != null) {
+                this.client = client;
+            }
             this.validator = validators.containsKey(container.getContainerId())
                     ? validators.get(container.getContainerId())
                     : new ArgumentValidator(container.getImage());
@@ -643,20 +609,24 @@ public class PlatformImpl implements RuntimePlatformApi {
             return this;
         }
 
-        public MatchResult makePlatformMatch(RuntimePlatform runtimePlatform) {
+        public ClientMatch makePlatformMatch(RuntimePlatform runtimePlatform, ApiProxy client) {
+            this.client = client;
             for (var container : runtimePlatform.getContainers()) {
-                makeContainerMatch(container);
+                makeContainerMatch(container, null);
             }
             return this;
         }
 
         public boolean isFullMatch() {
-            return (containerMatch && agentMatch && actionMatch && paramsMatch)
-                    || (containerMatch && agentMatch && streamMatch);
+            return containerMatch && agentMatch && actionMatch && paramsMatch && streamMatch;
         }
 
         public boolean isParamsMismatch() {
             return containerMatch && agentMatch && actionMatch && !paramsMatch;
+        }
+
+        public String getParamsDescription() {
+            return String.format("containerId=%s, agentId=%s, actionName=%s, actionArgs=%s, streamName=%s", containerId, agentId, actionName, actionArgs, streamName);
         }
 
         private void checkAgentMatch(AgentContainer container, String agentId) {
@@ -670,15 +640,23 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
 
         private void checkActionMatch(AgentDescription agent, String actionName) {
+            System.out.printf("Checking agent %s for action %s\n", agentId, actionName);
             for (var action : agent.getActions()) {
                 if (actionName == null || action.getName().equals(actionName)) {
                     actionMatch = true;
-                    checkParamsMatch(action, arguments);
+                    checkParamsMatch(action, actionArgs);
                 }
             }
         }
 
         private void checkParamsMatch(Action action, Map<String, JsonNode> arguments) {
+            System.out.printf("Checking parameters match for %s\n", action.getName());
+            if (arguments != null) {
+                if (validator != null) {
+                    var isArgsValid = validator.isArgsValid(action.getParameters(), arguments);
+                    System.out.printf("paramsMatch: %s, %s, %s\n", isArgsValid, action.getParameters(), arguments);
+                }
+            }
             if (arguments == null || (validator != null && validator.isArgsValid(action.getParameters(), arguments))) {
                 paramsMatch = true;
             }
@@ -694,22 +672,39 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
     }
 
-    /**
-     * Check that there is at least one full match among the given clients.
-     * @param clients Mapping of clients -> match results
-     */
-    private void validateClients(
-            @NonNull HashMap<ApiProxy, MatchResult> clients,
-            String mismatchMessage,
-            String notFoundMessage
-    ) throws NoSuchElementException {
-        if (clients.values().stream().anyMatch(MatchResult::isFullMatch)) return;
-        if (clients.values().stream().anyMatch(MatchResult::isParamsMismatch)) {
-            /* better exception class? */
-            throw new NoSuchElementException(mismatchMessage);
-        } else {
-            throw new NoSuchElementException(notFoundMessage);
+    private Object iterateClientMatches(
+            Stream<ClientMatch> clientMatches,
+            ThrowingFunction<ClientMatch, Object> processor,
+            String apiCallType
+    ) throws IOException, NoSuchElementException {
+        AtomicBoolean isParamMismatch = new AtomicBoolean(false);
+        IOException lastException = null;
+
+        for (ClientMatch match: (Iterable<? extends ClientMatch>) clientMatches::iterator) {
+            System.out.printf("Iterating client match %s\n", match.getParamsDescription());
+            if (match.isFullMatch()) {
+                try {
+                    return processor.apply(match);
+                } catch (IOException e) {
+                    log.warning(String.format("API call \"%s\" failed with parameters: %s and error: %s", apiCallType, match.getParamsDescription(), e));
+                    lastException = e;
+                }
+            } else if (match.isParamsMismatch()) {
+                isParamMismatch.set(true);
+            }
         }
+
+        if (lastException != null) {
+            throw lastException;
+        }
+        if (isParamMismatch.get()) {
+            throw new RuntimeException(String.format("API call \"%s\" failed because of mismatched action arguments.", apiCallType));
+        }
+        throw new NoSuchElementException(String.format("API call \"%s\" failed.", apiCallType));
+    }
+
+    private interface ThrowingFunction<T, R> {
+        R apply(T t) throws IOException;
     }
 
 }
