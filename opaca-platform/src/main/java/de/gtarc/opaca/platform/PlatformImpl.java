@@ -161,7 +161,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                     match.getClient().send(agentId, message, containerId, false);
                     return null;
                 },
-                "send"
+                "send", true
         );
     }
 
@@ -173,7 +173,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                     match.getClient().broadcast(channel, message, containerId, false);
                     return null;
                 },
-                "broadcast"
+                "broadcast", false
         );
     }
 
@@ -182,7 +182,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         return (JsonNode) iterateClientMatches(
                 getClients(containerId, agentId, action, parameters, null, forward),
                 match -> match.getClient().invoke(action, parameters, agentId, timeout, containerId, false),
-                "invoke"
+                "invoke", true
         );
     }
 
@@ -191,7 +191,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         return (InputStream) iterateClientMatches(
                 getClients(containerId, agentId, null, null, stream, forward),
                 match -> match.getClient().getStream(stream, agentId, containerId, false),
-                "GET stream"
+                "GET stream", true
         );
     }
 
@@ -203,7 +203,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                     match.getClient().postStream(stream, inputStream, agentId, containerId, false);
                     return null;
                 },
-                "POST stream"
+                "POST stream", true
         );
     }
     
@@ -675,9 +675,10 @@ public class PlatformImpl implements RuntimePlatformApi {
     private Object iterateClientMatches(
             Stream<ClientMatch> clientMatches,
             ThrowingFunction<ClientMatch, Object> processor,
-            String apiCallType
-    ) throws IOException, NoSuchElementException {
-        AtomicBoolean isParamMismatch = new AtomicBoolean(false);
+            String apiCallType,
+            boolean failOnNoMatch
+    ) throws NoSuchElementException, IOException {
+        ClientMatch mismatchedParamsClient = null;
         IOException lastException = null;
 
         for (ClientMatch match: (Iterable<? extends ClientMatch>) clientMatches::iterator) {
@@ -690,17 +691,23 @@ public class PlatformImpl implements RuntimePlatformApi {
                     lastException = e;
                 }
             } else if (match.isParamsMismatch()) {
-                isParamMismatch.set(true);
+                mismatchedParamsClient = match;
             }
         }
 
         if (lastException != null) {
             throw lastException;
         }
-        if (isParamMismatch.get()) {
-            throw new IOException(String.format("API call \"%s\" failed because of mismatched action arguments.", apiCallType));
+        if (mismatchedParamsClient != null) {
+            throw new IOException(String.format("API call \"%s\" failed because of mismatched action arguments. Required: ",
+                    mismatchedParamsClient.actionArgs));
         }
-        throw new NoSuchElementException(String.format("API call \"%s\" failed.", apiCallType));
+
+        if (failOnNoMatch) {
+            throw new NoSuchElementException(String.format("API call \"%s\" failed.", apiCallType));
+        } else {
+            return null;
+        }
     }
 
     private interface ThrowingFunction<T, R> {
