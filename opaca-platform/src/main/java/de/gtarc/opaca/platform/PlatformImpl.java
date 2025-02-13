@@ -206,7 +206,57 @@ public class PlatformImpl implements RuntimePlatformApi {
                 "POST stream", true
         );
     }
-    
+
+    /**
+     * Iterate over the provided ClientMatch stream, applying the given processor to all that are a full match.
+     * The result of the first successful processor is returned.
+     *
+     * @param clientMatches The stream of ClientMatch objects.
+     * @param processor A function that is applied to all eligible matches. Is allowed to throw IOException.
+     * @param apiCallType A string indicating the type of API call that is made in the processor. Is used for logging.
+     * @param failOnNoMatch If true, throw a NoSuchElementException in case no client matched the requirements.
+     * @return The result of the first successful processor function.
+     * @throws NoSuchElementException In case no client matched the requirements, or when a client matched the requirements
+     * but had mismatched action arguments.
+     * @throws IOException In case all matching clients fail with this exception type.
+     */
+    private Object iterateClientMatches(
+            Stream<ClientMatch> clientMatches,
+            ThrowingFunction<ClientMatch, Object> processor,
+            String apiCallType,
+            boolean failOnNoMatch
+    ) throws NoSuchElementException, IOException {
+        ClientMatch mismatchedParamsClient = null;
+        IOException lastException = null;
+
+        for (ClientMatch match: (Iterable<? extends ClientMatch>) clientMatches::iterator) {
+            if (match.isFullMatch()) {
+                try {
+                    return processor.apply(match);
+                } catch (IOException e) {
+                    log.warning(String.format("API call \"%s\" failed with parameters: %s and error: %s", apiCallType, match.getParamsDescription(), e));
+                    lastException = e;
+                }
+            } else if (match.isParamsMismatch()) {
+                mismatchedParamsClient = match;
+            }
+        }
+
+        if (lastException != null) {
+            throw lastException;
+        }
+        if (mismatchedParamsClient != null) {
+            throw new NoSuchElementException(String.format("API call \"%s\" failed because of mismatched arguments. Required: %s",
+                    apiCallType, mismatchedParamsClient.actionArgs));
+        }
+
+        if (failOnNoMatch) {
+            throw new NoSuchElementException(String.format("API call \"%s\" failed.", apiCallType));
+        } else {
+            return null;
+        }
+    }
+
     /*
      * CONTAINERS ROUTES
      */
@@ -507,22 +557,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         return containers.flatMap(c -> c.getAgents().stream());
     }
 
-    /**
-     * Check if Container ID matches and has matching agent and/or action.
-     */
-    private boolean matches(AgentContainer container, String containerId, String agentId, String action, Map<String, JsonNode> arguments, String stream) {
-        var validator = validators.containsKey(container.getContainerId())
-                ? validators.get(container.getContainerId()) // own container
-                : new ArgumentValidator(container.getImage()); // connected rp container
-        return (containerId == null || container.getContainerId().equals(containerId)) &&
-                container.getAgents().stream()
-                        .anyMatch(a -> (agentId == null || a.getAgentId().equals(agentId))
-                                && (action == null || a.getActions().stream().anyMatch(x -> x.getName().equals(action)
-                                    && (arguments == null || (validator != null && validator.isArgsValid(x.getParameters(), arguments)))))
-                                && (stream == null || a.getStreams().stream().anyMatch(x -> x.getName().equals(stream)))
-                        );
-    }
-
     private ApiProxy getClient(String containerId, String token) {
         var url = containerClient.getUrl(containerId);
         return new ApiProxy(url, config.getOwnBaseUrl(), token);
@@ -563,17 +597,17 @@ public class PlatformImpl implements RuntimePlatformApi {
         return RandomStringUtils.random(24, true, true);
     }
 
-
+    /**
+     * This class retains information about the matching process for container and platform clients.
+     * This information can then be queried to get information about the point of failure in the
+     * matching process, e.g. to check if a client did not match due to missing the action, or due
+     * to mismatched action arguments, etc.
+     */
     private class ClientMatch {
-        @Getter
         private boolean containerMatch = false;
-        @Getter
         private boolean agentMatch = false;
-        @Getter
         private boolean actionMatch = false;
-        @Getter
         private boolean paramsMatch = false;
-        @Getter
         private boolean streamMatch = false;
 
         private final String containerId;
@@ -595,6 +629,9 @@ public class PlatformImpl implements RuntimePlatformApi {
             this.streamName = streamName;
         }
 
+        /**
+         * Check if the given container fulfills the matching parameters.
+         */
         public ClientMatch makeContainerMatch(AgentContainer container, ApiProxy client) {
             if (client != null) {
                 this.client = client;
@@ -609,6 +646,9 @@ public class PlatformImpl implements RuntimePlatformApi {
             return this;
         }
 
+        /**
+         * Check if the given platform fulfills the matching parameters.
+         */
         public ClientMatch makePlatformMatch(RuntimePlatform runtimePlatform, ApiProxy client) {
             this.client = client;
             for (var container : runtimePlatform.getContainers()) {
@@ -633,83 +673,49 @@ public class PlatformImpl implements RuntimePlatformApi {
             for (var agent : container.getAgents()) {
                 if (agentId == null || agent.getAgentId().equals(agentId)) {
                     agentMatch = true;
-                    checkActionMatch(agent, actionName);
-                    checkStreamMatch(agent, streamName);
+                    if (checkActionMatch(agent, actionName) && checkStreamMatch(agent, streamName)) {
+                        break;
+                    }
                 }
             }
         }
 
-        private void checkActionMatch(AgentDescription agent, String actionName) {
-            System.out.printf("Checking agent %s for action %s\n", agentId, actionName);
+        private boolean checkActionMatch(AgentDescription agent, String actionName) {
             for (var action : agent.getActions()) {
                 if (actionName == null || action.getName().equals(actionName)) {
                     actionMatch = true;
-                    checkParamsMatch(action, actionArgs);
+                    if (checkParamsMatch(action, actionArgs)) {
+                        break;
+                    }
                 }
             }
+            return actionMatch;
         }
 
-        private void checkParamsMatch(Action action, Map<String, JsonNode> arguments) {
-            System.out.printf("Checking parameters match for %s\n", action.getName());
-            if (arguments != null) {
-                if (validator != null) {
-                    var isArgsValid = validator.isArgsValid(action.getParameters(), arguments);
-                    System.out.printf("paramsMatch: %s, %s, %s\n", isArgsValid, action.getParameters(), arguments);
-                }
-            }
+        private boolean checkParamsMatch(Action action, Map<String, JsonNode> arguments) {
             if (arguments == null || (validator != null && validator.isArgsValid(action.getParameters(), arguments))) {
                 paramsMatch = true;
             }
+            return paramsMatch;
         }
 
-        private void checkStreamMatch(AgentDescription agent, String streamName) {
+        private boolean checkStreamMatch(AgentDescription agent, String streamName) {
             for (var stream : agent.getStreams()) {
                 if (streamName == null || stream.getName().equals(streamName)) {
                     streamMatch = true;
                     break;
                 }
             }
+            return streamMatch;
         }
     }
 
-    private Object iterateClientMatches(
-            Stream<ClientMatch> clientMatches,
-            ThrowingFunction<ClientMatch, Object> processor,
-            String apiCallType,
-            boolean failOnNoMatch
-    ) throws NoSuchElementException, IOException {
-        ClientMatch mismatchedParamsClient = null;
-        IOException lastException = null;
-
-        for (ClientMatch match: (Iterable<? extends ClientMatch>) clientMatches::iterator) {
-            System.out.printf("Iterating client match %s\n", match.getParamsDescription());
-            if (match.isFullMatch()) {
-                try {
-                    return processor.apply(match);
-                } catch (IOException e) {
-                    log.warning(String.format("API call \"%s\" failed with parameters: %s and error: %s", apiCallType, match.getParamsDescription(), e));
-                    lastException = e;
-                }
-            } else if (match.isParamsMismatch()) {
-                mismatchedParamsClient = match;
-            }
-        }
-
-        if (lastException != null) {
-            throw lastException;
-        }
-        if (mismatchedParamsClient != null) {
-            throw new IOException(String.format("API call \"%s\" failed because of mismatched action arguments. Required: ",
-                    mismatchedParamsClient.actionArgs));
-        }
-
-        if (failOnNoMatch) {
-            throw new NoSuchElementException(String.format("API call \"%s\" failed.", apiCallType));
-        } else {
-            return null;
-        }
-    }
-
+    /**
+     * A simple interface to define a lambda function that may throw an IOException.
+     *
+     * @param <T> The type of the lambda's single argument.
+     * @param <R> The type of the lambda's return value.
+     */
     private interface ThrowingFunction<T, R> {
         R apply(T t) throws IOException;
     }
