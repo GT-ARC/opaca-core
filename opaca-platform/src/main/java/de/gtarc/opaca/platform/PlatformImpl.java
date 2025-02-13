@@ -677,7 +677,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             for (var agent : container.getAgents()) {
                 if (agentId == null || agent.getAgentId().equals(agentId)) {
                     agentMatch = true;
-                    if (checkActionMatch(agent, actionName) & checkStreamMatch(agent, streamName)) {
+                    if (checkActionMatch(agent, actionName) && checkStreamMatch(agent, streamName)) {
                         break;
                     }
                 }
@@ -688,7 +688,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             for (var action : agent.getActions()) {
                 if (actionName == null || action.getName().equals(actionName)) {
                     actionMatch = true;
-                    if (actionName != null && checkParamsMatch(action, actionArgs)) {
+                    if (checkParamsMatch(action, actionArgs)) {
                         break;
                     }
                 }
