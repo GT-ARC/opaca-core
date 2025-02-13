@@ -246,7 +246,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw lastException;
         }
         if (mismatchedParamsClient != null) {
-            throw new NoSuchElementException(String.format("API call \"%s\" failed because of mismatched arguments. Required: %s",
+            throw new NoSuchElementException(String.format("API call \"%s\" failed because of mismatched arguments. Provided: %s",
                     apiCallType, mismatchedParamsClient.actionArgs));
         }
 
@@ -669,11 +669,15 @@ public class PlatformImpl implements RuntimePlatformApi {
             return String.format("containerId=%s, agentId=%s, actionName=%s, actionArgs=%s, streamName=%s", containerId, agentId, actionName, actionArgs, streamName);
         }
 
+        public String getMatchDescription() {
+            return String.format("containerMatch=%s, agentMatch=%s, actionMatch=%s, paramsMatch=%s, streamMatch=%s", containerMatch, agentMatch, actionMatch, paramsMatch, streamMatch);
+        }
+
         private void checkAgentMatch(AgentContainer container, String agentId) {
             for (var agent : container.getAgents()) {
                 if (agentId == null || agent.getAgentId().equals(agentId)) {
                     agentMatch = true;
-                    if (checkActionMatch(agent, actionName) && checkStreamMatch(agent, streamName)) {
+                    if (checkActionMatch(agent, actionName) & checkStreamMatch(agent, streamName)) {
                         break;
                     }
                 }
@@ -684,7 +688,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             for (var action : agent.getActions()) {
                 if (actionName == null || action.getName().equals(actionName)) {
                     actionMatch = true;
-                    if (checkParamsMatch(action, actionArgs)) {
+                    if (actionName != null && checkParamsMatch(action, actionArgs)) {
                         break;
                     }
                 }
@@ -700,8 +704,12 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
 
         private boolean checkStreamMatch(AgentDescription agent, String streamName) {
+            if (streamName == null) {
+                streamMatch = true;
+                return true;
+            }
             for (var stream : agent.getStreams()) {
-                if (streamName == null || stream.getName().equals(streamName)) {
+                if (stream.getName().equals(streamName)) {
                     streamMatch = true;
                     break;
                 }
