@@ -102,7 +102,7 @@ public class DockerClient implements ContainerClient {
         var extraPorts = image.getExtraPorts();
 
         try {
-            if (! isImagePresent(imageName)) {
+            if (config.alwaysPullImages || ! isImagePresent(imageName)) {
                 pullDockerImage(imageName);
             }
 
@@ -265,6 +265,6 @@ public class DockerClient implements ContainerClient {
                 x -> new AuthConfig()
                         .withRegistryAddress(x.getRegistry())
                         .withUsername(x.getLogin())
-                        .withPassword(x.getLogin())));
+                        .withPassword(x.getPassword())));
     }
 }

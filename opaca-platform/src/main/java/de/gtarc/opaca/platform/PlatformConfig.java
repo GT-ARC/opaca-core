@@ -57,6 +57,9 @@ public class PlatformConfig {
     @Value("${event_history_size}")
     public int eventHistorySize;
 
+    @Value("${always_pull_images}")
+    public boolean alwaysPullImages;
+
     // SECURITY & AUTHENTICATION
 
     @Value("${security.enableAuth}")
@@ -139,6 +142,7 @@ public class PlatformConfig {
         res.put("containerTimeoutSec", containerTimeoutSec);
         res.put("defaultImageDirectory", defaultImageDirectory);
         res.put("eventHistorySize", eventHistorySize);
+        res.put("alwaysPullImages", alwaysPullImages);
         // auth stuff
         res.put("enableAuth", enableAuth);
         // user management stuff

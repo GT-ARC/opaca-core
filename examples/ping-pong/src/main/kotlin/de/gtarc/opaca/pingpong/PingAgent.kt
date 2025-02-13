@@ -23,8 +23,8 @@ class PingAgent: AbstractContainerizedAgent(name="ping-agent") {
 
                 // send invoke to container agent
                 log.info("Invoking action for request $lastRequest at $best")
-                val res = sendOutboundInvoke("PongAction", best.key, mapOf(
-                    Pair("request", lastRequest), Pair("offer", best.value)), String::class.java)
+                val params = mapOf("request" to lastRequest, "offer" to best.value)
+                val res = sendOutboundInvoke("PongAction", best.key, params, String::class.java)
                 log.info("Result of invoke: $res")
             }
             // send new request message to all Pong agents

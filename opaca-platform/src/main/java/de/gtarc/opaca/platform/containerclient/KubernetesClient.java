@@ -113,6 +113,7 @@ public class KubernetesClient implements ContainerClient {
                                 new V1Container()
                                         .name(containerId)
                                         .image(imageName)
+                                        .imagePullPolicy(config.alwaysPullImages ? "Always" : "IfNotPresent")
                                         .ports(List.of(
                                                 new V1ContainerPort().containerPort(image.getApiPort())
                                         ))
