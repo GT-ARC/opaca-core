@@ -60,19 +60,23 @@ class ContainerAgent(
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
 
     /** flag to determine if platform should be notified about changes */
-    private var isNotifyPlatform = false
+    private var isServerStarted = false
 
     /**
-     * Start the Web Server.
+     * Start the webserver, if:
+     * 1. it has not already been started,
+     * 2. there is at least one registered containerized agent.
      */
-    override fun preStart() {
+    private fun startServer() {
+        if (isServerStarted) return
+        if (registeredAgents.isEmpty()) return
+
         log.info("Starting Container Agent...")
-        super.preStart()
         server.start()
         if (subscribeToEvents) {
             WebSocketConnector.subscribe(runtimePlatformUrl, token, "/invoke", this::onEvent)
         }
-        isNotifyPlatform = true
+        isServerStarted = true
     }
 
     /**
@@ -176,6 +180,7 @@ class ContainerAgent(
             // TODO should Register message contain the agent's internal name, or is that always equal to the agentId?
             log.info("Registering ${it.description}")
             registeredAgents[it.description.agentId] = it.description
+            startServer()
             if (it.notify) {
                 notifyPlatform()
             }
@@ -221,12 +226,11 @@ class ContainerAgent(
     }
 
     private fun notifyPlatform() {
-        if (isNotifyPlatform) {
-            try {
-                parentProxy.notifyUpdateContainer(containerId)
-            } catch (e: RestHelper.RequestException) {
-                log.error("Failed to notify platform: ${e.message}")
-            }
+        if (! isServerStarted) return
+        try {
+            parentProxy.notifyUpdateContainer(containerId)
+        } catch (e: RestHelper.RequestException) {
+            log.error("Failed to notify parent platform: ${e.message}")
         }
     }
 
