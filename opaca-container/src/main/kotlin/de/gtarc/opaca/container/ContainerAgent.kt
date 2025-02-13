@@ -84,6 +84,8 @@ class ContainerAgent(
         super.postStop()
     }
 
+    public
+
     /**
      * Callback for the /subscribe websocket, reacting on events from the runtime platform
      */
@@ -220,7 +222,11 @@ class ContainerAgent(
 
     private fun notifyPlatform() {
         if (isNotifyPlatform) {
-            parentProxy.notifyUpdateContainer(containerId)
+            try {
+                parentProxy.notifyUpdateContainer(containerId)
+            } catch (e: RestHelper.RequestException) {
+                log.error("Failed to notify platform: ${e.message}")
+            }
         }
     }
 
