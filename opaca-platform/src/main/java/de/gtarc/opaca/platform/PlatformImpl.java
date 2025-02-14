@@ -599,17 +599,18 @@ public class PlatformImpl implements RuntimePlatformApi {
      * to mismatched action arguments, etc.
      */
     private class ClientMatch {
-        private boolean containerMatch = false;
-        private boolean agentMatch = false;
-        private boolean actionMatch = false;
-        private boolean paramsMatch = false;
-        private boolean streamMatch = false;
 
         private final String containerId;
         private final String agentId;
         private final String actionName;
         private final Map<String, JsonNode> actionArgs;
         private final String streamName;
+
+        private boolean containerMatch = false;
+        private boolean agentMatch = false;
+        private boolean actionMatch = false;
+        private boolean paramsMatch = false;
+        private boolean streamMatch = false;
 
         @Getter
         private ApiProxy client = null;
@@ -622,6 +623,12 @@ public class PlatformImpl implements RuntimePlatformApi {
             this.actionName = actionName;
             this.actionArgs = actionArgs;
             this.streamName = streamName;
+            // initialize matches to true for wildcards / irrelevant attributes
+            this.containerMatch = containerId == null;
+            this.agentMatch = agentId == null;
+            this.actionMatch = actionName == null;
+            this.paramsMatch = actionArgs == null;
+            this.streamMatch = streamName == null;
         }
 
         /**
@@ -669,7 +676,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
 
         private void checkAgentMatch(AgentContainer container) {
-            if (agentId == null) agentMatch = true;
             for (var agent : container.getAgents()) {
                 if (agentId == null || agent.getAgentId().equals(agentId)) {
                     agentMatch = true;
@@ -681,7 +687,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
 
         private boolean checkActionMatch(AgentDescription agent) {
-            if (actionName == null) actionMatch = true;
             for (var action : agent.getActions()) {
                 if (action.getName().equals(actionName)) {
                     actionMatch = true;
@@ -701,7 +706,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
 
         private boolean checkStreamMatch(AgentDescription agent) {
-            if (streamName == null) streamMatch = true;
             for (var stream : agent.getStreams()) {
                 if (stream.getName().equals(streamName)) {
                     streamMatch = true;
