@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -161,7 +160,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                     match.getClient().send(agentId, message, containerId, false);
                     return null;
                 },
-                "send", true
+                true
         );
     }
 
@@ -173,25 +172,25 @@ public class PlatformImpl implements RuntimePlatformApi {
                     match.getClient().broadcast(channel, message, containerId, false);
                     return null;
                 },
-                "broadcast", false
+                false
         );
     }
 
     @Override
     public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
-        return (JsonNode) iterateClientMatches(
+        return iterateClientMatches(
                 getClients(containerId, agentId, action, parameters, null, forward),
                 match -> match.getClient().invoke(action, parameters, agentId, timeout, containerId, false),
-                "invoke", true
+                true
         );
     }
 
     @Override
     public InputStream getStream(String stream, String agentId, String containerId, boolean forward) throws IOException {
-        return (InputStream) iterateClientMatches(
+        return iterateClientMatches(
                 getClients(containerId, agentId, null, null, stream, forward),
                 match -> match.getClient().getStream(stream, agentId, containerId, false),
-                "GET stream", true
+                true
         );
     }
 
@@ -203,7 +202,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                     match.getClient().postStream(stream, inputStream, agentId, containerId, false);
                     return null;
                 },
-                "POST stream", true
+                true
         );
     }
 
@@ -212,29 +211,27 @@ public class PlatformImpl implements RuntimePlatformApi {
      * The result of the first successful processor is returned.
      *
      * @param clientMatches The stream of ClientMatch objects.
-     * @param processor A function that is applied to all eligible matches. Is allowed to throw IOException.
-     * @param apiCallType A string indicating the type of API call that is made in the processor. Is used for logging.
+     * @param callback A function that is applied to all eligible matches. Is allowed to throw IOException.
      * @param failOnNoMatch If true, throw a NoSuchElementException in case no client matched the requirements.
      * @return The result of the first successful processor function.
-     * @throws NoSuchElementException In case no client matched the requirements, or when a client matched the requirements
-     * but had mismatched action arguments.
+     * @throws NoSuchElementException In case no client matched the requirements
+     * @throws IllegalArgumentException when a client matched the requirements but had mismatched action arguments.
      * @throws IOException In case all matching clients fail with this exception type.
      */
-    private Object iterateClientMatches(
+    private <T> T iterateClientMatches(
             Stream<ClientMatch> clientMatches,
-            ThrowingFunction<ClientMatch, Object> processor,
-            String apiCallType,
+            ThrowingFunction<ClientMatch, T> callback,
             boolean failOnNoMatch
-    ) throws NoSuchElementException, IOException {
+    ) throws NoSuchElementException, IllegalArgumentException, IOException {
         ClientMatch mismatchedParamsClient = null;
         IOException lastException = null;
 
         for (ClientMatch match: (Iterable<? extends ClientMatch>) clientMatches::iterator) {
             if (match.isFullMatch()) {
                 try {
-                    return processor.apply(match);
+                    return callback.apply(match);
                 } catch (IOException e) {
-                    log.warning(String.format("API call \"%s\" failed with parameters: %s and error: %s", apiCallType, match.getParamsDescription(), e));
+                    log.warning(String.format("Exception from container: %s", e));
                     lastException = e;
                 }
             } else if (match.isParamsMismatch()) {
@@ -246,12 +243,10 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw lastException;
         }
         if (mismatchedParamsClient != null) {
-            throw new NoSuchElementException(String.format("API call \"%s\" failed because of mismatched arguments. Provided: %s",
-                    apiCallType, mismatchedParamsClient.actionArgs));
+            throw new IllegalArgumentException(String.format("Provided arguments %s do not match action parameters.", mismatchedParamsClient.actionArgs));
         }
-
         if (failOnNoMatch) {
-            throw new NoSuchElementException(String.format("API call \"%s\" failed.", apiCallType));
+            throw new NoSuchElementException("Requested resource not found.");
         } else {
             return null;
         }
