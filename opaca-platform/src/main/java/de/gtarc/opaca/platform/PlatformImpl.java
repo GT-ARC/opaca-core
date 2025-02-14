@@ -636,7 +636,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                     : new ArgumentValidator(container.getImage());
             if (containerId == null || container.getContainerId().equals(containerId)) {
                 containerMatch = true;
-                checkAgentMatch(container, agentId);
+                checkAgentMatch(container);
             }
             return this;
         }
@@ -668,22 +668,24 @@ public class PlatformImpl implements RuntimePlatformApi {
             return String.format("containerMatch=%s, agentMatch=%s, actionMatch=%s, paramsMatch=%s, streamMatch=%s", containerMatch, agentMatch, actionMatch, paramsMatch, streamMatch);
         }
 
-        private void checkAgentMatch(AgentContainer container, String agentId) {
+        private void checkAgentMatch(AgentContainer container) {
+            if (agentId == null) agentMatch = true;
             for (var agent : container.getAgents()) {
                 if (agentId == null || agent.getAgentId().equals(agentId)) {
                     agentMatch = true;
-                    if (checkActionMatch(agent, actionName) && checkStreamMatch(agent, streamName)) {
+                    if (checkActionMatch(agent) && checkStreamMatch(agent)) {
                         break;
                     }
                 }
             }
         }
 
-        private boolean checkActionMatch(AgentDescription agent, String actionName) {
+        private boolean checkActionMatch(AgentDescription agent) {
+            if (actionName == null) actionMatch = true;
             for (var action : agent.getActions()) {
-                if (actionName == null || action.getName().equals(actionName)) {
+                if (action.getName().equals(actionName)) {
                     actionMatch = true;
-                    if (checkParamsMatch(action, actionArgs)) {
+                    if (checkParamsMatch(action)) {
                         break;
                     }
                 }
@@ -691,18 +693,15 @@ public class PlatformImpl implements RuntimePlatformApi {
             return actionMatch;
         }
 
-        private boolean checkParamsMatch(Action action, Map<String, JsonNode> arguments) {
-            if (arguments == null || (validator != null && validator.isArgsValid(action.getParameters(), arguments))) {
+        private boolean checkParamsMatch(Action action) {
+            if (actionArgs != null && (validator == null || validator.isArgsValid(action.getParameters(), actionArgs))) {
                 paramsMatch = true;
             }
             return paramsMatch;
         }
 
-        private boolean checkStreamMatch(AgentDescription agent, String streamName) {
-            if (streamName == null) {
-                streamMatch = true;
-                return true;
-            }
+        private boolean checkStreamMatch(AgentDescription agent) {
+            if (streamName == null) streamMatch = true;
             for (var stream : agent.getStreams()) {
                 if (stream.getName().equals(streamName)) {
                     streamMatch = true;
