@@ -211,14 +211,12 @@ public class ContainerTests {
 
     /**
      * invoke action with mismatched/missing parameters
-     * TODO case of missing parameter could also be handled by platform, resulting in 422 error
-     *  -> or 404, i.e. "platform cant find container/agent/action/params"
      */
     @Test
     public void testInvokeParamMismatch() throws Exception {
         var con = request(PLATFORM_URL, "POST", "/invoke/DoThis",
                 Map.of("message", "missing 'sleep_seconds' parameter!"));
-        Assert.assertEquals(404, con.getResponseCode());
+        Assert.assertEquals(400, con.getResponseCode());
     }
 
     @Test
@@ -226,45 +224,45 @@ public class ContainerTests {
 
         // missing params
         var con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of());
-        Assert.assertEquals(404, con.getResponseCode());
+        Assert.assertEquals(400, con.getResponseCode());
 
         // redundant params
         con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
                 "car", Map.of(),
                 "listOfLists", List.of(),
                 "redundantParam", "text"));
-        Assert.assertEquals(404, con.getResponseCode());
+        Assert.assertEquals(400, con.getResponseCode());
 
         // invalid object
         con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
                 "car", new Car(), // missing required attributes
                 "listOfLists", List.of(List.of(1, 2), List.of(3, 4))));
-        Assert.assertEquals(404, con.getResponseCode());
+        Assert.assertEquals(400, con.getResponseCode());
 
         // invalid arg for defined type (string instead of int)
         con = request(PLATFORM_URL, "POST", "/invoke/Add", Map.of(
                 "x", "42",
                 "y", 5));
-        Assert.assertEquals(404, con.getResponseCode());
+        Assert.assertEquals(400, con.getResponseCode());
 
         // invalid arg for defined type (string instead of bool)
         con = request(PLATFORM_URL, "POST", "/invoke/CreateAction", Map.of(
                 "name", "InvalidAction",
                 "notify", "true"));
-        Assert.assertEquals(404, con.getResponseCode());
+        Assert.assertEquals(400, con.getResponseCode());
 
         // invalid arg for defined type (number/double instead of int)
         con = request(PLATFORM_URL, "POST", "/invoke/Add", Map.of(
                 "x", 42,
                 "y", 5.5));
-        Assert.assertEquals(404, con.getResponseCode());
+        Assert.assertEquals(400, con.getResponseCode());
 
         // invalid list
         con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
                 "car", new Car("testModel", List.of("1", "b", "test"),
                         true, 1444),
                 "listOfLists", List.of(Map.of("test1", "test2"), 2, "")));
-        Assert.assertEquals(404, con.getResponseCode());
+        Assert.assertEquals(400, con.getResponseCode());
 
         // faulty desk (param x of nested object position is string instead of int)
         con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(
@@ -272,7 +270,7 @@ public class ContainerTests {
                         true, 1444),
                 "listOfLists", List.of(List.of(1, 2), List.of(3, 4)),
                 "desk", Map.of("deskId", 123, "position", Map.of("x", "5", "y", 3))));
-        Assert.assertEquals(404, con.getResponseCode());
+        Assert.assertEquals(400, con.getResponseCode());
 
         // all valid, including desk
         con = request(PLATFORM_URL, "POST", "/invoke/ValidatorTest", Map.of(

@@ -12,6 +12,7 @@ import de.gtarc.opaca.platform.session.SessionData;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.model.AgentContainer.Connectivity;
 import de.gtarc.opaca.util.ApiProxy;
+import lombok.Getter;
 import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -153,92 +154,104 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public void send(String agentId, Message message, String containerId, boolean forward) throws IOException, NoSuchElementException {
-        var clients = getClients(containerId, agentId, null, null, null, forward);
-
-        IOException lastException = null;
-        for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
-            log.info("Forwarding /send to " + client.baseUrl);
-            try {
-                client.send(agentId, message, containerId, false);
-                return;
-            } catch (IOException e) {
-                log.warning("Failed to forward /send to " + client.baseUrl + ": " + e);
-                lastException = e;
-            }
-        }
-        if (lastException != null) throw lastException;
-        throw new NoSuchElementException(String.format("Not found: agent '%s'", agentId));
+        iterateClientMatches(
+                getClients(containerId, agentId, null, null, null, forward),
+                match -> {
+                    match.getClient().send(agentId, message, containerId, false);
+                    return null;
+                },
+                true
+        );
     }
 
     @Override
-    public void broadcast(String channel, Message message, String containerId, boolean forward) {
-        var clients = getClients(containerId, null, null, null, null, forward);
-
-        for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
-            log.info("Forwarding /broadcast to " + client.baseUrl);
-            try {
-                client.broadcast(channel, message, containerId, false);
-            } catch (IOException e) {
-                log.warning("Failed to forward /broadcast to " + client.baseUrl + ": " + e);
-            }
-        }
+    public void broadcast(String channel, Message message, String containerId, boolean forward) throws IOException {
+        iterateClientMatches(
+                getClients(containerId, null, null, null, null, forward),
+                match -> {
+                    match.getClient().broadcast(channel, message, containerId, false);
+                    return null;
+                },
+                false
+        );
     }
 
     @Override
     public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
-        var clients = getClients(containerId, agentId, action, parameters, null, forward);
-
-        IOException lastException = null;
-        for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
-            try {
-                return client.invoke(action, parameters, agentId, timeout, containerId, false);
-            } catch (IOException e) {
-                log.warning(String.format("Failed to invoke action '%s' @ agent '%s' and client '%s': %s",
-                        action, agentId, client.baseUrl, e));
-                lastException = e;
-            }
-        }
-        if (lastException != null) throw lastException;
-        throw new NoSuchElementException(String.format("Not found: action '%s' @ agent '%s', or the given parameters are invalid.", action, agentId));
+        return iterateClientMatches(
+                getClients(containerId, agentId, action, parameters, null, forward),
+                match -> match.getClient().invoke(action, parameters, agentId, timeout, containerId, false),
+                true
+        );
     }
 
     @Override
     public InputStream getStream(String stream, String agentId, String containerId, boolean forward) throws IOException {
-        var clients = getClients(containerId, agentId, null, null, stream, forward);
-
-        IOException lastException = null;
-        for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
-            try {
-                return client.getStream(stream, agentId, containerId, false);
-            } catch (IOException e) {
-                log.warning(String.format("Failed to get stream '%s' @ agent '%s' and client '%s': %s",
-                        stream, agentId, client.baseUrl, e));
-                lastException = e;
-            }
-        }
-        if (lastException != null) throw lastException;
-        throw new NoSuchElementException(String.format("Not found: stream '%s' @ agent '%s'", stream, agentId));
+        return iterateClientMatches(
+                getClients(containerId, agentId, null, null, stream, forward),
+                match -> match.getClient().getStream(stream, agentId, containerId, false),
+                true
+        );
     }
 
     @Override
     public void postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException {
-        var clients = getClients(containerId, agentId, null, null, stream, forward);
-        
+        iterateClientMatches(
+                getClients(containerId, agentId, null, null, stream, forward),
+                match -> {
+                    match.getClient().postStream(stream, inputStream, agentId, containerId, false);
+                    return null;
+                },
+                true
+        );
+    }
+
+    /**
+     * Iterate over the provided ClientMatch stream, applying the given processor to all that are a full match.
+     * The result of the first successful processor is returned.
+     *
+     * @param clientMatches The stream of ClientMatch objects.
+     * @param callback A function that is applied to all eligible matches. Is allowed to throw IOException.
+     * @param failOnNoMatch If true, throw a NoSuchElementException in case no client matched the requirements.
+     * @return The result of the first successful processor function.
+     * @throws NoSuchElementException In case no client matched the requirements
+     * @throws IllegalArgumentException when a client matched the requirements but had mismatched action arguments.
+     * @throws IOException In case all matching clients fail with this exception type.
+     */
+    private <T> T iterateClientMatches(
+            Stream<ClientMatch> clientMatches,
+            ThrowingFunction<ClientMatch, T> callback,
+            boolean failOnNoMatch
+    ) throws NoSuchElementException, IllegalArgumentException, IOException {
+        ClientMatch mismatchedParamsClient = null;
         IOException lastException = null;
-        for (ApiProxy client: (Iterable<? extends ApiProxy>) clients::iterator) {
-            try {
-                client.postStream(stream, inputStream, agentId, containerId, false);
-                return;
-            } catch (IOException e) {
-                log.warning(String.format("Failed to post stream '%s' @ agent '%s' and client '%s': %s",
-                        stream, agentId, client.baseUrl, e));
-                lastException = e;
+
+        for (ClientMatch match: (Iterable<? extends ClientMatch>) clientMatches::iterator) {
+            if (match.isFullMatch()) {
+                try {
+                    return callback.apply(match);
+                } catch (IOException e) {
+                    log.warning(String.format("Exception from container: %s", e));
+                    lastException = e;
+                }
+            } else if (match.isParamsMismatch()) {
+                mismatchedParamsClient = match;
             }
         }
-        if (lastException != null) throw lastException;
-        throw new NoSuchElementException(String.format("Not found: stream '%s' @ agent '%s'", stream, agentId));
+
+        if (lastException != null) {
+            throw lastException;
+        }
+        if (mismatchedParamsClient != null) {
+            throw new IllegalArgumentException(String.format("Provided arguments %s do not match action parameters.", mismatchedParamsClient.actionArgs));
+        }
+        if (failOnNoMatch) {
+            throw new NoSuchElementException("Requested resource not found.");
+        } else {
+            return null;
+        }
     }
-    
+
     /*
      * CONTAINERS ROUTES
      */
@@ -506,20 +519,24 @@ public class PlatformImpl implements RuntimePlatformApi {
      * @param includeConnected Whether to also forward to connected Runtime Platforms
      * @return list of clients to send requests to these valid containers/platforms
      */
-    private Stream<ApiProxy> getClients(String containerId, String agentId, String action, Map<String, JsonNode> parameters, String stream, boolean includeConnected) {
-        // local containers
-        var containerClients = runningContainers.values().stream()
-                .filter(c -> matches(c, containerId, agentId, action, parameters, stream))
-                .map(c -> getClient(c.getContainerId(), tokens.get(c.getContainerId())));
+    private Stream<ClientMatch> getClients(String containerId, String agentId, String action, Map<String, JsonNode> parameters, String stream, boolean includeConnected) {
+        // var clients = new HashMap<ApiProxy, MatchResult>();
 
-        if (!includeConnected) return containerClients;
+        var localMatches = runningContainers.values().stream().map(container -> {
+            var client = getClient(container.getContainerId(), tokens.get(container.getContainerId()));
+            return new ClientMatch(containerId, agentId, action, parameters, stream)
+                    .makeContainerMatch(container, client);
+        });
 
-        // remote platforms
-        var platformClients = connectedPlatforms.entrySet().stream()
-            .filter(entry -> entry.getValue().getContainers().stream().anyMatch(c -> matches(c, containerId, agentId, action, parameters, stream)))
-            .map(entry -> getPlatformClient(entry.getKey(), tokens.get(entry.getKey())));
+        if (!includeConnected) return localMatches;
 
-        return Stream.concat(containerClients, platformClients);
+        var platformMatches = connectedPlatforms.entrySet().stream().map(entry -> {
+            var client = getPlatformClient(entry.getKey(), tokens.get(entry.getKey()));
+            return new ClientMatch(containerId, agentId, action, parameters, stream)
+                    .makePlatformMatch(entry.getValue(), client);
+        });
+
+        return Stream.concat(localMatches, platformMatches);
     }
 
     /**
@@ -531,22 +548,6 @@ public class PlatformImpl implements RuntimePlatformApi {
                 connectedPlatforms.values().stream().flatMap(rp -> rp.getContainers().stream())
             ) : runningContainers.values().stream();
         return containers.flatMap(c -> c.getAgents().stream());
-    }
-
-    /**
-     * Check if Container ID matches and has matching agent and/or action.
-     */
-    private boolean matches(AgentContainer container, String containerId, String agentId, String action, Map<String, JsonNode> arguments, String stream) {
-        var validator = validators.containsKey(container.getContainerId())
-                ? validators.get(container.getContainerId()) // own container
-                : new ArgumentValidator(container.getImage()); // connected rp container
-        return (containerId == null || container.getContainerId().equals(containerId)) &&
-                container.getAgents().stream()
-                        .anyMatch(a -> (agentId == null || a.getAgentId().equals(agentId))
-                                && (action == null || a.getActions().stream().anyMatch(x -> x.getName().equals(action)
-                                    && (arguments == null || (validator != null && validator.isArgsValid(x.getParameters(), arguments)))))
-                                && (stream == null || a.getStreams().stream().anyMatch(x -> x.getName().equals(stream)))
-                        );
     }
 
     private ApiProxy getClient(String containerId, String token) {
@@ -589,5 +590,138 @@ public class PlatformImpl implements RuntimePlatformApi {
         return RandomStringUtils.random(24, true, true);
     }
 
+    /**
+     * This class retains information about the matching process for container and platform clients.
+     * This information can then be queried to get information about the point of failure in the
+     * matching process, e.g. to check if a client did not match due to missing the action, or due
+     * to mismatched action arguments, etc.
+     */
+    private class ClientMatch {
+
+        private final String containerId;
+        private final String agentId;
+        private final String actionName;
+        private final Map<String, JsonNode> actionArgs;
+        private final String streamName;
+
+        private boolean containerMatch = false;
+        private boolean agentMatch = false;
+        private boolean actionMatch = false;
+        private boolean paramsMatch = false;
+        private boolean streamMatch = false;
+
+        @Getter
+        private ApiProxy client = null;
+
+        private ArgumentValidator validator = null;
+
+        public ClientMatch(String containerId, String agentId, String actionName, Map<String, JsonNode> actionArgs, String streamName) {
+            this.containerId = containerId;
+            this.agentId = agentId;
+            this.actionName = actionName;
+            this.actionArgs = actionArgs;
+            this.streamName = streamName;
+            // initialize matches to true for wildcards / irrelevant attributes
+            this.containerMatch = containerId == null;
+            this.agentMatch = agentId == null;
+            this.actionMatch = actionName == null;
+            this.paramsMatch = actionArgs == null;
+            this.streamMatch = streamName == null;
+        }
+
+        /**
+         * Check if the given container fulfills the matching parameters.
+         */
+        public ClientMatch makeContainerMatch(AgentContainer container, ApiProxy client) {
+            if (client != null) {
+                this.client = client;
+            }
+            this.validator = validators.containsKey(container.getContainerId())
+                    ? validators.get(container.getContainerId())
+                    : new ArgumentValidator(container.getImage());
+            if (containerId == null || container.getContainerId().equals(containerId)) {
+                containerMatch = true;
+                checkAgentMatch(container);
+            }
+            return this;
+        }
+
+        /**
+         * Check if the given platform fulfills the matching parameters.
+         */
+        public ClientMatch makePlatformMatch(RuntimePlatform runtimePlatform, ApiProxy client) {
+            this.client = client;
+            for (var container : runtimePlatform.getContainers()) {
+                makeContainerMatch(container, null);
+            }
+            return this;
+        }
+
+        public boolean isFullMatch() {
+            return containerMatch && agentMatch && actionMatch && paramsMatch && streamMatch;
+        }
+
+        public boolean isParamsMismatch() {
+            return containerMatch && agentMatch && actionMatch && !paramsMatch;
+        }
+
+        public String getParamsDescription() {
+            return String.format("containerId=%s, agentId=%s, actionName=%s, actionArgs=%s, streamName=%s", containerId, agentId, actionName, actionArgs, streamName);
+        }
+
+        public String getMatchDescription() {
+            return String.format("containerMatch=%s, agentMatch=%s, actionMatch=%s, paramsMatch=%s, streamMatch=%s", containerMatch, agentMatch, actionMatch, paramsMatch, streamMatch);
+        }
+
+        private void checkAgentMatch(AgentContainer container) {
+            for (var agent : container.getAgents()) {
+                if (agentId == null || agent.getAgentId().equals(agentId)) {
+                    agentMatch = true;
+                    if (checkActionMatch(agent) && checkStreamMatch(agent)) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        private boolean checkActionMatch(AgentDescription agent) {
+            for (var action : agent.getActions()) {
+                if (action.getName().equals(actionName)) {
+                    actionMatch = true;
+                    if (checkParamsMatch(action)) {
+                        break;
+                    }
+                }
+            }
+            return actionMatch;
+        }
+
+        private boolean checkParamsMatch(Action action) {
+            if (actionArgs != null && (validator == null || validator.isArgsValid(action.getParameters(), actionArgs))) {
+                paramsMatch = true;
+            }
+            return paramsMatch;
+        }
+
+        private boolean checkStreamMatch(AgentDescription agent) {
+            for (var stream : agent.getStreams()) {
+                if (stream.getName().equals(streamName)) {
+                    streamMatch = true;
+                    break;
+                }
+            }
+            return streamMatch;
+        }
+    }
+
+    /**
+     * A simple interface to define a lambda function that may throw an IOException.
+     *
+     * @param <T> The type of the lambda's single argument.
+     * @param <R> The type of the lambda's return value.
+     */
+    private interface ThrowingFunction<T, R> {
+        R apply(T t) throws IOException;
+    }
 
 }
