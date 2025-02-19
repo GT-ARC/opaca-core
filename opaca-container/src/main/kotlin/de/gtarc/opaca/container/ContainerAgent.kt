@@ -1,18 +1,14 @@
 package de.gtarc.opaca.container
 
 import com.fasterxml.jackson.databind.JsonNode
-import de.gtarc.opaca.util.WebSocketConnector
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.BrokerAgentRef
 import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.api.AgentContainerApi
-import de.gtarc.opaca.model.AgentContainer
-import de.gtarc.opaca.model.AgentContainerImage
-import de.gtarc.opaca.model.AgentDescription
-import de.gtarc.opaca.model.Message
-import de.gtarc.opaca.model.Event
+import de.gtarc.opaca.model.*
 import de.gtarc.opaca.util.ApiProxy
 import de.gtarc.opaca.util.RestHelper
+import de.gtarc.opaca.util.WebSocketConnector
 import java.io.InputStream
 import java.time.Duration
 import java.time.ZoneId
@@ -180,10 +176,14 @@ class ContainerAgent(
             // TODO should Register message contain the agent's internal name, or is that always equal to the agentId?
             log.info("Registering ${it.description}")
             registeredAgents[it.description.agentId] = it.description
-            startServer()
+
+            // put next actions into own message queue instead of performing the action immediately
+            val ref = system.resolve(CONTAINER_AGENT)
+            ref tell InternalMessage(MessageType.START_SERVER)
             if (it.notify) {
-                notifyPlatform()
+                ref tell InternalMessage(MessageType.NOTIFY)
             }
+
             Registered(runtimePlatformUrl, containerId, token)
         }
 
@@ -208,6 +208,13 @@ class ContainerAgent(
                 it.error = err
                 it.lock.release()
             }.timeout(Duration.ofSeconds(if (it.timeout > 0) it.timeout.toLong() else 30))
+        }
+
+        on<InternalMessage> {
+            when (it.type) {
+                MessageType.NOTIFY -> notifyPlatform()
+                MessageType.START_SERVER -> startServer()
+            }
         }
 
         // renew token every 9 hours (should be valid for 10 hours)
