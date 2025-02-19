@@ -76,7 +76,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
     * forward: (optional, default `true`) `true/false`, whether the request should be forwarded to connected platforms in case the action/agent does not exist on this platform
 * body: JSON object mapping parameter names to parameters
 * output: result of the action
-* errors: 404 for unknown action or agent
+* errors: 404 for unknown action or agent, 400 for mismatched arguments
 
 ### `POST /invoke/{action}?timeout={int}&containerId={containerId}&forward={true|false}`
 
