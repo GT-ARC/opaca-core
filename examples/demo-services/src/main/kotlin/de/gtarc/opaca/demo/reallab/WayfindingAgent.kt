@@ -1,10 +1,7 @@
 package de.gtarc.opaca.demo.reallab
 
 import de.gtarc.opaca.container.AbstractContainerizedAgent
-import de.gtarc.opaca.container.OpacaException
 import de.gtarc.opaca.model.Parameter
-import de.gtarc.opaca.util.RestHelper
-import java.io.IOException
 
 val ROOMS = mapOf(
     1 to "ExperienceHub",
@@ -31,18 +28,15 @@ val ROOMS = mapOf(
 class WayfindingAgent : AbstractContainerizedAgent(name="wayfinding-agent") {
 
 
-    override fun preStart() {
-        super.preStart()
-
-        this.addAction("FindRoomById", mapOf("roomId" to Parameter("integer")), null) {
+    override fun setupAgent() {
+        addAction("FindRoomById", mapOf("roomId" to Parameter("integer")), null) {
             val roomId = it["roomId"]!!.asInt()
-            this.startWayfinding(roomId)
+            startWayfinding(roomId)
         }
-
-        this.addAction("FindRoomByName", mapOf("roomName" to Parameter("string")), null) {
+        addAction("FindRoomByName", mapOf("roomName" to Parameter("string")), null) {
             val roomName = it["roomName"]!!.asText()
             val roomId = this.getRoomIdFromHint(roomName)
-            this.startWayfinding(roomId)
+            startWayfinding(roomId)
         }
     }
 

@@ -3,7 +3,6 @@ package de.gtarc.opaca.demo.reallab
 import de.gtarc.opaca.container.AbstractContainerizedAgent
 import de.gtarc.opaca.model.Parameter
 import kotlin.random.Random
-import kotlin.text.Regex
 
 /**
  * Dummy-version of the agent interacting with the ZEKI Home Assistant for reading various sensors.
@@ -27,9 +26,7 @@ class HomeAssistantAgent: AbstractContainerizedAgent(name="home-assistant-agent"
         "113" to "kueche|küche|kitchen"
     )
 
-    override fun preStart() {
-        super.preStart()
-
+    override fun setupAgent() {
         addAction("GetSensorsList", mapOf(), Parameter("array", true, Parameter.ArrayItems("string", null))) {
             actionGetMultisensors()
         }
@@ -38,7 +35,6 @@ class HomeAssistantAgent: AbstractContainerizedAgent(name="home-assistant-agent"
         ), Parameter("string", false)) { 
             getSensorFromRoomHint(it["room"]!!.asText())
         }
-
         addAction("GetTemperature", mapOf(
             "sensorId" to Parameter("string")
         ), Parameter("number")) { 

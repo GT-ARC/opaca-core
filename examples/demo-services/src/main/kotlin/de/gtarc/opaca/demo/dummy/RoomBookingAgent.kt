@@ -13,17 +13,14 @@ data class Booking(val roomName: String, val bookingDate: String)
  */
 class RoomBookingAgent : AbstractContainerizedAgent(name="room-booking-agent") {
 
-    override fun preStart() {
-        super.preStart()
-
-        this.addAction("GetUserBookings", mapOf(), Parameter("array", true, ArrayItems("object", null))) {
-            this.getUserBookings()
+    override fun setupAgent() {
+        addAction("GetUserBookings", mapOf(), Parameter("array", true, ArrayItems("object", null))) {
+            getUserBookings()
         }
-
-        this.addAction("GetLocationBookings", mapOf(
+        addAction("GetLocationBookings", mapOf(
             "location" to Parameter("string")
         ), Parameter("array", true, ArrayItems("object", null))) {
-            this.getLocationBookings(it["location"]!!.asText())
+            getLocationBookings(it["location"]!!.asText())
         }
     }
 

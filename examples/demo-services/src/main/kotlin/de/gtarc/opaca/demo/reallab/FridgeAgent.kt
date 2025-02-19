@@ -32,16 +32,13 @@ class FridgeAgent : AbstractContainerizedAgent(name="fridge-agent") {
         Grocery("coke", 1, "30.09.2027", "drinks")
     )
 
-    override fun preStart() {
-        super.preStart()
-
-        this.addAction("GetGroceries", mapOf(
+    override fun setupAgent() {
+        addAction("GetGroceries", mapOf(
             "category" to Parameter("string")
         ), Parameter("array", true, Parameter.ArrayItems("object", null))) {
             getGroceries(it["category"]!!.asText())
         }
-
-        this.addAction("AddGroceries", mapOf(
+        addAction("AddGroceries", mapOf(
             "name" to Parameter("string"),
             "amount" to Parameter("integer"),
             "expirationDate" to Parameter("string"),
@@ -54,8 +51,7 @@ class FridgeAgent : AbstractContainerizedAgent(name="fridge-agent") {
                 it["category"]!!.asText()
             )
         }
-
-        this.addAction("RemoveGroceries", mapOf(
+        addAction("RemoveGroceries", mapOf(
             "names" to Parameter("array", true, Parameter.ArrayItems("string", null))
         ), Parameter("string")) {
             removeGroceries(it["names"]!!.asText())
