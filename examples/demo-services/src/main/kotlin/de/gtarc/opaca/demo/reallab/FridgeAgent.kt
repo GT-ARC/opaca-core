@@ -1,7 +1,9 @@
 package de.gtarc.opaca.demo.reallab
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import de.gtarc.opaca.container.AbstractContainerizedAgent
 import de.gtarc.opaca.model.Parameter
+import de.gtarc.opaca.util.RestHelper
 
 /**
  * Dummy-version of the agent for managing the inventory list of the ZEKI fridge.
@@ -10,10 +12,14 @@ import de.gtarc.opaca.model.Parameter
 class FridgeAgent : AbstractContainerizedAgent(name="fridge-agent") {
 
     data class Grocery(
-        val name: String,
-        val amount: Int,
-        val expirationDate: String,
-        val category: String
+        @JsonProperty("name")
+        var name: String,
+        @JsonProperty("amount")
+        var amount: Int,
+        @JsonProperty("expirationDate")
+        var expirationDate: String,
+        @JsonProperty("category")
+        var category: String
     )
 
     // hardcoded values for groceries (adding/removing is ok)
@@ -36,44 +42,47 @@ class FridgeAgent : AbstractContainerizedAgent(name="fridge-agent") {
         super.preStart()
 
         this.addAction("GetGroceries", mapOf(
-            "category" to Parameter("string")
-        ), Parameter("array", true, Parameter.ArrayItems("object", null))) {
-            getGroceries(it["category"]!!.asText())
+            "category" to Parameter("string", false, null)
+        ), Parameter("array", true, Parameter.ArrayItems("Grocery", null))) {
+            getGroceries(it["category"]?.asText())
         }
 
         this.addAction("AddGroceries", mapOf(
-            "name" to Parameter("string"),
-            "amount" to Parameter("integer"),
-            "expirationDate" to Parameter("string"),
-            "category" to Parameter("string")
-        ), Parameter("string")) {
-            addGroceries(
-                it["name"]!!.asText(),
-                it["amount"]!!.asInt(),
-                it["expirationDate"]!!.asText(),
-                it["category"]!!.asText()
-            )
+            "item" to Parameter("Grocery")
+        ), null) {
+            val item = RestHelper.mapper.treeToValue<Grocery>(it["item"]!!, Grocery::class.java)
+            addGroceries(item)
         }
 
-        this.addAction("RemoveGroceries", mapOf(
-            "names" to Parameter("array", true, Parameter.ArrayItems("string", null))
-        ), Parameter("string")) {
-            removeGroceries(it["names"]!!.asText())
+        this.addAction("RemoveGrocery", mapOf(
+            "name" to Parameter("string")
+        ), Parameter("boolean")) {
+            removeGrocery(it["name"]!!.asText())
         }
     }
 
-    private fun getGroceries(category: String): List<Grocery> {
+    private fun getGroceries(category: String?): List<Grocery> {
         log.info("Getting groceries of $category category...")
-        return GROCERIES.filter { it.category == category }
+        return GROCERIES.filter { category == null || it.category == category }
     }
 
-    private fun addGroceries(name: String, amount: Int, expirationDate: String, category: String) {
-        log.info("Adding new grocery $name...")
-        GROCERIES.add(Grocery(name, amount, expirationDate, category))
+    private fun addGroceries(item: Grocery) {
+        log.info("Adding new grocery $item...")
+        GROCERIES.add(item)
     }
 
-    private fun removeGroceries(namesParam: String) {
-        // ??
+    private fun removeGrocery(name: String): Boolean {
+        val g = GROCERIES.find { it.name == name }
+        return if (g != null) {
+            if (g.amount > 1) {
+                g.amount -= 1
+            } else {
+                GROCERIES.remove(g)
+            }
+            true;
+        } else {
+            false;
+        }
     }
 
 }
