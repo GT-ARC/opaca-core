@@ -13,6 +13,10 @@ data class Registered(val parentUrl: String?, val containerId: String, val authT
 
 data class DeRegister(val agentId: String, val notify: Boolean)
 
+data class InternalMessage(val type: MessageType, val payload: Any? = null)
+
+enum class MessageType { NOTIFY, START_SERVER }
+
 // Message for Invoking a OPACA action at a containerized agent, wrapping the name of the action to call
 // and its parameters, to be handled by an invoke-ask "respond" handler.
 

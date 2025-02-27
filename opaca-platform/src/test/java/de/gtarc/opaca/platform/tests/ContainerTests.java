@@ -499,6 +499,7 @@ public class ContainerTests {
         // create new agent action
         var con = request(PLATFORM_URL, "POST", "/invoke/CreateAction/sample1", Map.of("name", "AnotherTemporaryTestAction", "notify", true));
         Assert.assertEquals(200, con.getResponseCode());
+        Thread.sleep(500);
 
         // agent container automatically notified platform of the changes
         con = request(PLATFORM_URL, "POST", "/invoke/AnotherTemporaryTestAction/sample1", Map.of());

@@ -8,11 +8,9 @@ import de.gtarc.opaca.model.Parameter.ArrayItems
  * Dummy-agent providing actions for seeing bookings of imaginary desks. Somewhat inspired by
  * a similar system at ZEKI, but much dumbed down and only returning hard-coded values.
  */
-class DeskAgent(): AbstractContainerizedAgent(name="desk-agent") {
+class DeskAgent : AbstractContainerizedAgent(name="desk-agent") {
 
-    override fun preStart() {
-        super.preStart()
-
+    override fun setupAgent() {
         addAction("GetDesks", mapOf(
             "room" to Parameter("string", true)
         ), Parameter("array", true, ArrayItems("integer", null))) {

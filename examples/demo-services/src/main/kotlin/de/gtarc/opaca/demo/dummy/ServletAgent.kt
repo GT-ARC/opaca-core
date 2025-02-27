@@ -1,12 +1,10 @@
 package de.gtarc.opaca.demo.dummy
 
-import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.behaviour.act
-
 import de.gtarc.opaca.container.AbstractContainerizedAgent
 import de.gtarc.opaca.model.Parameter
-import java.time.Duration
 import io.javalin.Javalin
+import java.time.Duration
 
 /**
  * Agent showing a simple HTTP Servlet showing a notification and some arbitrary values
@@ -14,7 +12,7 @@ import io.javalin.Javalin
  * stand-in for a proper notifications-service or for showing the state of imaginary windows,
  * lights, etc.
  */
-class ServletAgent(): AbstractContainerizedAgent(name="servlet-agent") {
+class ServletAgent : AbstractContainerizedAgent(name="servlet-agent") {
 
     // the current step (incremented each second)
     var step = 0
@@ -129,9 +127,7 @@ class ServletAgent(): AbstractContainerizedAgent(name="servlet-agent") {
                 valuesMap.clear()
             }
 
-    override fun preStart() {
-        super.preStart()
-
+    override fun setupAgent() {
         addAction("ShowMessage", mapOf(
             "message" to Parameter("string"),
             "seconds" to Parameter("integer", false)

@@ -2,8 +2,6 @@ package de.gtarc.opaca.demo.reallab
 
 import de.gtarc.opaca.container.AbstractContainerizedAgent
 import de.gtarc.opaca.model.Parameter
-import java.net.URI
-import java.net.HttpURLConnection;
 
 /**
  * Dummy version of agent controlling the shelves in the ZEKI kitchen. The agent can tell where
@@ -27,20 +25,18 @@ class ShelfAgent : AbstractContainerizedAgent(name="shelf-agent") {
         4 to "right shelf"
     )
 
-    override fun preStart() {
-        super.preStart()
-
-        this.addAction("FindInShelf", mapOf(
+    override fun setupAgent() {
+        addAction("FindInShelf", mapOf(
             "item" to Parameter("string")
         ), Parameter("integer")) {
             findInShelf(it["item"]!!.asText())
         }
-        this.addAction("OpenShelf", mapOf(
+        addAction("OpenShelf", mapOf(
             "shelf" to Parameter("integer")
         ), Parameter("boolean")) {
             openShelf(it["shelf"]!!.asInt())
         }
-        this.addAction("CloseShelf", mapOf(
+        addAction("CloseShelf", mapOf(
             "shelf" to Parameter("integer")
         ), Parameter("boolean")) {
             closeShelf(it["shelf"]!!.asInt())

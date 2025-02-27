@@ -167,6 +167,7 @@ public class AuthTests {
         // create new agent action
         var con = requestWithToken(PLATFORM_A, "POST", "/invoke/CreateAction", Map.of("name", "TestAction", "notify", true), token_A);
         Assert.assertEquals(200, con.getResponseCode());
+        Thread.sleep(500);
 
         // agent container must be able to call parent platform route to notify platform of change
         con = requestWithToken(PLATFORM_A, "POST", "/invoke/TestAction", Map.of(), token_A);
