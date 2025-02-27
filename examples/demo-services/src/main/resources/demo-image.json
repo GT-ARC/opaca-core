@@ -1,0 +1,41 @@
+{  
+  "imageName": "demo-services",
+  "name": "Demo Service",
+  "version": "0.1",
+  "provider": "GT-ARC",
+
+  "apiPort": 8082,
+  "extraPorts": {
+      "8888": {
+          "protocol": "TCP",
+          "description": "Simple Web UI for showing notifications."
+      }
+  },
+  "definitions": {
+    "Grocery": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Grocery",
+      "description": "Some amount of some grocery item.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "The name of the item",
+          "type": "string"
+        },
+        "amount": {
+          "description": "How many of that item are there.",
+          "type": "integer"
+        },
+        "expirationDate": {
+          "description": "When the item will expire.",
+          "type": "string"
+        },
+        "category": {
+          "description": "What category it belongs to.",
+          "type": "string"
+        }
+      },
+      "required": ["name", "amount", "expirationDate", "category"]
+    }
+  }
+}

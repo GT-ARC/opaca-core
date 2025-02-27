@@ -34,7 +34,7 @@ class ContainerAgent(
 
     private val broker by resolve<BrokerAgentRef>()
 
-    private val server by lazy { RestServerJavalin(impl, AgentContainerApi.DEFAULT_PORT, token) }
+    private val server by lazy { RestServerJavalin(impl, image.apiPort, token) }
 
     // information on current state of agent container
 
@@ -156,7 +156,7 @@ class ContainerAgent(
         }
 
         private fun waitForInvoke(agentId: String, request: Any, timeout: Int): Any {
-            // send pending invoke to ContainerAgent to execute asyncronously
+            // send pending invoke to ContainerAgent to execute asynchronously
             val pendInv = PendingInvoke(agentId, request, timeout, Semaphore(0), null, null)
             self tell pendInv
             pendInv.lock.acquireUninterruptibly()

@@ -7,6 +7,7 @@ import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.platform.ActionToOpenApi.ActionFormat;
 import de.gtarc.opaca.util.EventHistory;
 import de.gtarc.opaca.util.RestHelper.RequestException;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.java.Log;
@@ -20,6 +21,7 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 import jakarta.annotation.PostConstruct;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -94,6 +96,18 @@ public class PlatformRestController {
 	private ResponseEntity<ErrorResponse> makeErrorResponse(HttpStatus statusCode, Exception error, ErrorResponse nestedError) {
 		var content = new ErrorResponse(statusCode.value(), error.getMessage(), nestedError);
 		return ResponseEntity.status(statusCode).body(content);
+	}
+
+	/*
+	 * "LANDING PAGE"
+	 */
+
+	@RequestMapping(value="/", method=RequestMethod.GET)
+	@Hidden
+	public String landingPage() throws IOException {
+		try (var inputstream = PlatformRestController.class.getResourceAsStream("/static/index.html")) {
+			return new String(inputstream.readAllBytes(), StandardCharsets.UTF_8);
+		}
 	}
 
 	/*

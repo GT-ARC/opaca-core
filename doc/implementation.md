@@ -37,11 +37,11 @@ The REST routes corresponding to the OPACA API are defined in the `PlatformRestC
 
 The logic for managing agent containers is split between a generic part in the `PlatformImpl` and different backend-specific implementations in the `containerclient` package, e.g. for Docker or Kubernetes. The general procedure is as follows:
 
-* the platform generates an access token for the container
+* the platform generates a temporary user and access token for the container
 * the container client will pull the image and start the container
   * any ports the container should expose are mapped to free ports on the host machine and exposed
   * the container's own ID, the runtime platform's base URL and the access token are passed to the container as environment variables
-* the platform creates a temporary user for the container
+* the platform registers the container and returns its ID
 
 When the Agent Container is removed, the backing container is stopped and the respective token and user removed again.
 
@@ -76,11 +76,11 @@ The Agent Container provides REST routes that allow the outside world to find ou
 
 ### Implementation Details
 
-The reference implementation of the Agent Container is done in Kotlin in [JIAC VI](jiac-vi.md), but any other language or framework can be used, too, as long as the OPACA API is implemented. Depending on the purpose of the container, it does not even have to be actual "agents" but can e.g. be just a simple web app.
+The reference implementation of the Agent Container is done in Kotlin in [JIAC VI](jiac-vi.md), but any other language or framework can be used, too, as long as the OPACA API is implemented. Depending on the purpose of the container, it does not even have to be actual "agents" but can e.g. be just a simple web app. The following description is about the JIAC VI implementation; other implementations may work differently.
 
 Each Agent Container includes one `ContainerAgent`, which will run a very simple HTTP server providing the different OPACA API routes, and act as a bridge between that server and the "JIAC VI world". It keeps track of the "actual" agents running in the container and their actions and will forward any incoming requests to the appropriate agent. The Container Agent itself does not appear in the list of `agents` returned by the respective API route, but only agents that register with the Container Agent.
 
-Those agents should extend the `AbstractContainerizedAgent` which will handle much of the logic for registering and deregistering with the Container Agent (and thus the parent Runtime Platform), and also provides useful helper methods for defining and reacting to OPACA Actions and Streams, and for sending "outbound" `send`, `broadcast` and `invoke` requests to their parent Runtime Platform and thus other Agent Containers.
+Those agents should extend the `AbstractContainerizedAgent` which will handle much of the logic for registering and de-registering with the Container Agent (and thus the parent Runtime Platform), and also provides useful helper methods for defining and reacting to OPACA Actions and Streams, and for sending "outbound" `send`, `broadcast` and `invoke` requests to their parent Runtime Platform and thus other Agent Containers.
 
 Besides the Container Agent and registered Containerized Agents, the agent system in the container can also include any number of "internal" agents, that do not register with the Container Agent and thus do not show up in the container's `agents` list. The communication between those and the Containerized Agents should happen through the regular `tell`, `publish` and `invoke ask` behaviors of JIAC VI. Please refer to the last part of the [documentation on JIAC VI](jiac-vi.md) for how those relate to the respective OPACA functions.
 

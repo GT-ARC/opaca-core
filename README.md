@@ -83,7 +83,8 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 * `CONTAINER_ENVIRONMENT` (default: "docker") The environment where the Agent Containers should be running; possible values are `docker` and `kubernetes`.
 * `SESSION_POLICY` (default: "shutdown") How to behave when the platform is shut down and restarted. See [Session](doc/session.md) for details.
 * `DEFAULT_IMAGE_DIRECTORY` (default: null) The runtime platform will try to read any JSON files from this directory containing Agent Container Image descriptions and auto-deploy those to the platform when it starts.
-* `EVENT_HISTORY_SIZE`(default: 50) The maximum number of entries in the event history. Note that most events generate more than one entry.
+* `EVENT_HISTORY_SIZE` (default: 50) The maximum number of entries in the event history. Note that most events generate more than one entry.
+* `ALWAYS_PULL_IMAGES` (default: false) Whether to always pull new versions of container images, even if the image is already present. Note that this may cause problems if images are only present locally (e.g. for testing).
 
 ### Image Registry Credentials
 * `REGISTRY_SEPARATOR` (default: ";") Separator for the below attributes for registry credentials.
