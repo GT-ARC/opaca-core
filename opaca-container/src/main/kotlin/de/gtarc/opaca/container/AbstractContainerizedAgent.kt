@@ -42,7 +42,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
         register(true)
     }
 
-    /** override in subclasses to do setup stuff, e.g. adding actions */
+    /** This is intended to be overridden by subclasses and used to add actions, streams, etc. */
     open fun setupAgent() {}
 
     fun register(notify: Boolean) {

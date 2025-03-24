@@ -13,6 +13,8 @@ data class Registered(val parentUrl: String?, val containerId: String, val authT
 
 data class DeRegister(val agentId: String, val notify: Boolean)
 
+// Special message type for sending messages to the container agent that don't (necessarily) require any payload.
+
 data class InternalMessage(val type: MessageType, val payload: Any? = null)
 
 enum class MessageType { NOTIFY, START_SERVER }
