@@ -132,13 +132,15 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     // CONTAINER ROUTES
 
     @Override
-    public String addContainer(PostAgentContainer container) throws IOException {
-        return client.post("/containers", container, String.class);
+    public String addContainer(PostAgentContainer container, int timeout) throws IOException {
+        var query = buildQuery(Map.of("timeout", timeout));
+        return client.post("/containers?" + query, container, String.class);
     }
 
     @Override
-    public String updateContainer(PostAgentContainer container) throws IOException {
-        return client.put("/containers", container, String.class);
+    public String updateContainer(PostAgentContainer container, int timeout) throws IOException {
+        var query = buildQuery(Map.of("timeout", timeout));
+        return client.put("/containers?" + query, container, String.class);
     }
 
     @SuppressWarnings({"unchecked"})
