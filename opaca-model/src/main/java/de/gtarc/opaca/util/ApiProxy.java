@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 
 /**
@@ -201,12 +202,9 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     private String buildQuery(Map<String, Object> params) {
-        StringBuilder builder = new StringBuilder();
-        for (Map.Entry<String, ?> entry : params.entrySet()) {
-            if (entry.getValue() != null) {
-                builder.append(String.format("&%s=%s", entry.getKey(), entry.getValue()));
-            }
-        }
-        return builder.toString().replaceFirst("&", "");
+        return params.entrySet().stream()
+                .filter(e -> e.getValue() != null)
+                .map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
+                .collect(Collectors.joining("&"));
     }
 }
