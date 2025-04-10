@@ -153,6 +153,16 @@ public class PlatformTests {
     }
 
     /**
+     * test post with optional timeout, shorter than default, preventing successful start
+     */
+    @Test
+    public void testPostContainerTimeout() throws Exception {
+        var image = getSampleContainerImage();
+        var con = request(PLATFORM_A_URL, "POST", "/containers?timeout=1", image);
+        Assert.assertEquals(502, con.getResponseCode());
+    }
+
+    /**
      * update container
      */
     @Test

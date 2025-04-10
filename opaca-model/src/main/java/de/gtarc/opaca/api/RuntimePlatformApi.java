@@ -94,9 +94,10 @@ public interface RuntimePlatformApi extends CommonApi {
      * REST: POST /containers
      *
      * @param container The container to start
+     * @param timeout timeout for starting the container, or -1 for default timeout (as per config)
      * @return ID of the started container
      */
-    String addContainer(PostAgentContainer container) throws IOException;
+    String addContainer(PostAgentContainer container, int timeout) throws IOException;
 
     /**
      * Deploy a container to the Runtime Platform, replacing an existing container of the same image.
@@ -111,9 +112,10 @@ public interface RuntimePlatformApi extends CommonApi {
      * REST: PUT /containers
      *
      * @param container The container to start, replacing an existing container of the same image
+     * @param timeout timeout for starting the container, or -1 for default timeout (as per config)
      * @return ID of the started container
      */
-    String updateContainer(PostAgentContainer container) throws IOException;
+    String updateContainer(PostAgentContainer container, int timeout) throws IOException;
 
     /**
      * Get descriptions of all currently running Agent Containers.

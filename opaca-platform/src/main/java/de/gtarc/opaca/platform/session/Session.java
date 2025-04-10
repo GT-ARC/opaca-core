@@ -134,7 +134,7 @@ public class Session {
             log.info("Auto-deploying " + file);
             try {
                 var container = RestHelper.mapper.readValue(file, PostAgentContainer.class);
-                implementation.addContainer(container);
+                implementation.addContainer(container, -1);
             } catch (Exception e) {
                 log.severe(String.format("Failed to load image specified in file %s: %s", file, e));
             }
@@ -151,7 +151,7 @@ public class Session {
         data.reset();
         for (PostAgentContainer postContainer : startedContainers) {
             try {
-                implementation.addContainer(postContainer);
+                implementation.addContainer(postContainer, -1);
             } catch (IOException e) {
                 log.warning("Exception restarting container: " + e.getMessage());
             }
