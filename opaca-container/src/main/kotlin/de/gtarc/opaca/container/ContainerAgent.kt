@@ -18,6 +18,10 @@ import java.util.concurrent.Semaphore
 
 const val CONTAINER_AGENT = "container-agent"
 
+// Special message type for allowing the ContainerAgent to send messages to itself.
+data class InternalMessage(val type: MessageType, val payload: Any? = null)
+enum class MessageType { NOTIFY, START_SERVER }
+
 /**
  * Agent providing the REST interface of the Agent Container using a simple Jetty server.
  * The API is not quite as fancy one provided using Spring Boot or similar, but might be
@@ -60,8 +64,8 @@ class ContainerAgent(
 
     /**
      * Start the webserver, if:
-     * 1. it has not already been started,
-     * 2. there is at least one registered containerized agent.
+     * 1. It has not yet been started,
+     * 2. There is at least one registered containerized agent.
      */
     private fun startServer() {
         if (isServerStarted) return
