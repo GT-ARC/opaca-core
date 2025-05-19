@@ -55,7 +55,7 @@ class ContainerAgent(
     /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
 
-    /** flag to determine if platform should be notified about changes */
+    /** flag to determine if the platform should be notified about changes */
     private var isServerStarted = false
 
     /**
@@ -65,7 +65,6 @@ class ContainerAgent(
      */
     private fun startServer() {
         if (isServerStarted) return
-        if (registeredAgents.isEmpty()) return
 
         log.info("Starting Container Agent...")
         server.start()
@@ -83,8 +82,6 @@ class ContainerAgent(
         server.stop()
         super.postStop()
     }
-
-    public
 
     /**
      * Callback for the /subscribe websocket, reacting on events from the runtime platform
