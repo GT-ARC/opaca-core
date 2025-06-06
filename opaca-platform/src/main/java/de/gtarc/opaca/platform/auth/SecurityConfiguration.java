@@ -12,6 +12,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.SecurityFilterChain;
@@ -33,6 +34,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.stream.Stream;
 
 /**
  * The SecurityConfiguration class is a configuration class for enabling and configuring authentication for the Spring
@@ -52,31 +54,33 @@ public class SecurityConfiguration {
     @Autowired
     private PlatformConfig config;
 
-    /*
-    The security filter chain establishes the required permissions for a user to have
-    in order to access the specified routes. The swagger ui routes, along with "/login"
-    and "/error", are always permitted.
+    private final String[] noAuthRoutes = {
+            "/v2/api-docs",
+            "/swagger-resources",
+            "/swagger-resources/**",
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/login",
+            "/error",
+            "/configuration/ui",
+            "/configuration/security",
+            "/swagger-ui.html",
+            "/webjars/**"
+    };
+
+    /**
+     * The security filter chain establishes the required permissions for a user to have
+     * in order to access the specified routes. The swagger ui routes, along with "/login"
+     * and "/error", are always permitted.
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         if (config.enableAuth) {
-            JwtRequestFilter jwtRequestFilter = new JwtRequestFilter();
             http
-                    .csrf(csrf -> csrf.disable())
+                    .csrf(CsrfConfigurer::disable)
                     .authorizeHttpRequests((auth) -> auth
-                            .requestMatchers(
-                                    "/v2/api-docs",
-                                    "/swagger-resources",
-                                    "/swagger-resources/**",
-                                    "/swagger-ui/**",
-                                    "/v3/api-docs/**",
-                                    "/login",
-                                    "/error",
-                                    "/configuration/ui",
-                                    "/configuration/security",
-                                    "/swagger-ui.html",
-                                    "/webjars/**"
-                            ).permitAll()
+                            // some routes, like those related to OpenAPI and login, should work without Authentication
+                            .requestMatchers(noAuthRoutes).permitAll()
                             // The next block implements the RBAC defined in the user-management docs
                             // A rule consists of a specific or generic (/**) route, the lowest role level
                             // to access the route (see role hierarchy), and the optional REST method
@@ -93,11 +97,10 @@ public class SecurityConfiguration {
                     .sessionManagement((session) -> session
                             .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                     )
-                    .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
-        }
-        else {
+                    .addFilterBefore(new JwtRequestFilter(), UsernamePasswordAuthenticationFilter.class);
+        } else {
             http
-                    .csrf(csrf -> csrf.disable())
+                    .csrf(CsrfConfigurer::disable)
                     .authorizeHttpRequests((auth) -> auth
                             .anyRequest().permitAll()
                     );
@@ -106,7 +109,7 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
             throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
@@ -123,22 +126,13 @@ public class SecurityConfiguration {
 
     public class JwtRequestFilter extends OncePerRequestFilter {
 
-        /* Here is the filter defined that is applied to all REST routes */
         @Override
         protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
                 throws ServletException, IOException {
             String requestURI = request.getRequestURI();
+            String requestTokenHeader = request.getHeader("Authorization");
 
-            // TODO check exact match of path, not contained in URL
-
-            /* Some routes, such as /login and those related to the Swagger UI,
-             * are not included in the token authorization process.
-             * /login is used to generate a token and Swagger UI should
-             * always be accessible, to perform actions such as /login.
-             */
-            if (! isSwagger(requestURI) && ! requestURI.equals("/login")) {
-
-                final String requestTokenHeader = request.getHeader("Authorization");
+            if (Stream.of(noAuthRoutes).noneMatch(s -> requestURI.startsWith(s.replace("**", "")))) {
                 String username = null;
                 String jwtToken = null;
                 if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
@@ -167,20 +161,6 @@ public class SecurityConfiguration {
                 }
             }
             chain.doFilter(request, response);
-        }
-
-        /* Check whether endpoint is related to the Swagger UI */
-        private boolean isSwagger(String url) {
-            // TODO (almost) same list in SecurityConfiguration -> extract to some constant?
-            return url.contains("/swagger-resources")
-                    || url.contains("/v2/api-docs")
-                    || url.contains("/swagger-resources/")
-                    || url.contains("/configuration/ui")
-                    || url.contains("/configuration/security")
-                    || url.contains("/swagger-ui.html")
-                    || url.contains("/webjars/")
-                    || url.contains("/v3/api-docs/")
-                    || url.contains("/swagger-ui/");
         }
 
         private void handleException(HttpServletResponse response, HttpStatus status, String message)
