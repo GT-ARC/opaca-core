@@ -10,3 +10,4 @@ Session.json
 .attach_pid*
 *.ipr
 *.iws
+runner-log.txt
