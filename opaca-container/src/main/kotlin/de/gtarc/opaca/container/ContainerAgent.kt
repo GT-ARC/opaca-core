@@ -18,10 +18,6 @@ import java.util.concurrent.Semaphore
 
 const val CONTAINER_AGENT = "container-agent"
 
-// Special message type for allowing the ContainerAgent to send messages to itself.
-data class InternalMessage(val type: MessageType, val payload: Any? = null)
-enum class MessageType { NOTIFY, START_SERVER }
-
 /**
  * Agent providing the REST interface of the Agent Container using a simple Jetty server.
  * The API is not quite as fancy one provided using Spring Boot or similar, but might be
@@ -59,23 +55,20 @@ class ContainerAgent(
     /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
 
-    /** flag to determine if the platform should be notified about changes */
-    private var isServerStarted = false
 
     /**
-     * Start the webserver, if:
-     * 1. It has not yet been started,
-     * 2. There is at least one registered containerized agent.
+     * Start web server (with delay to allow Agents to initialize first)
      */
-    private fun startServer() {
-        if (isServerStarted) return
-
-        log.info("Starting Container Agent...")
-        server.start()
-        if (subscribeToEvents) {
-            WebSocketConnector.subscribe(runtimePlatformUrl, token, "/invoke", this::onEvent)
-        }
-        isServerStarted = true
+    override fun preStart() {
+        super.preStart()
+        Thread {
+            Thread.sleep(1000)
+            log.info("Starting Container Agent...")
+            server.start()
+            if (subscribeToEvents) {
+                WebSocketConnector.subscribe(runtimePlatformUrl, token, "/invoke", this::onEvent)
+            }
+        }.start()
     }
 
     /**
@@ -179,10 +172,8 @@ class ContainerAgent(
             registeredAgents[it.description.agentId] = it.description
 
             // put next actions into own message queue instead of performing the action immediately
-            val ref = system.resolve(CONTAINER_AGENT)
-            ref tell InternalMessage(MessageType.START_SERVER)
             if (it.notify) {
-                ref tell InternalMessage(MessageType.NOTIFY)
+                notifyPlatform()
             }
 
             Registered(runtimePlatformUrl, containerId, token)
@@ -211,13 +202,6 @@ class ContainerAgent(
             }.timeout(Duration.ofSeconds(if (it.timeout > 0) it.timeout.toLong() else 30))
         }
 
-        on<InternalMessage> {
-            when (it.type) {
-                MessageType.NOTIFY -> notifyPlatform()
-                MessageType.START_SERVER -> startServer()
-            }
-        }
-
         // renew token every 9 hours (should be valid for 10 hours)
         // (first called after one interval, not directly after startup)
         every(Duration.ofSeconds(60 * 60 * 9)) {
@@ -234,7 +218,7 @@ class ContainerAgent(
     }
 
     private fun notifyPlatform() {
-        if (! isServerStarted) return
+        if (! server.isRunning) return
         try {
             parentProxy.notifyUpdateContainer(containerId)
         } catch (e: RestHelper.RequestException) {
