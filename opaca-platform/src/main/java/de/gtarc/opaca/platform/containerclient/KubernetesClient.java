@@ -21,8 +21,6 @@ import io.kubernetes.client.custom.IntOrString;
 import io.kubernetes.client.util.Config;
 
 import java.io.IOException;
-import java.net.DatagramSocket;
-import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -32,7 +30,7 @@ import java.util.stream.Stream;
  * Container Client for running Agent Containers in Kubernetes.
  */
 @Log
-public class KubernetesClient implements ContainerClient {
+public class KubernetesClient extends AbstractContainerClient {
 
     private PlatformConfig config;
     private CoreV1Api coreApi;
@@ -45,8 +43,6 @@ public class KubernetesClient implements ContainerClient {
     /** Available Docker Auth */
     private Map<String, String> auth;
 
-    /** Set of already used ports on target Kubernetes host */
-    private Set<Integer> usedPorts;
 
     @Data
     @AllArgsConstructor
@@ -168,7 +164,7 @@ public class KubernetesClient implements ContainerClient {
             createServicesForPorts(containerId, image, portMap);
 
             var connectivity = new AgentContainer.Connectivity(
-                    config.getOwnBaseUrl().replaceAll(":\\d+$", ""),
+                    getContainerBaseUrl(),
                     portMap.get(image.getApiPort()),
                     extraPorts.keySet().stream().collect(Collectors.toMap(portMap::get, extraPorts::get))
             );
@@ -220,6 +216,11 @@ public class KubernetesClient implements ContainerClient {
         return String.format("http://%s:%s", ip, AgentContainerApi.DEFAULT_PORT);
     }
 
+    @Override
+    protected String getContainerBaseUrl() {
+        return config.getOwnBaseUrl().replaceAll(":\\d+$", "");
+    }
+
     private void createServicesForPorts(String containerId, AgentContainerImage image, Map<Integer, Integer> portMap) throws ApiException {
         for (Map.Entry<Integer, Integer> entry : portMap.entrySet()) {
             if (entry.getKey().equals(image.getApiPort())) continue; // Skip api port
@@ -254,23 +255,6 @@ public class KubernetesClient implements ContainerClient {
         return "svc-" + containerId;
     }
 
-    /**
-     * Starting from the given preferred port, get and reserve the next free port.
-     */
-    private int reserveNextFreePort(int port, Set<Integer> newPorts) {
-        while (!isPortAvailable(port, newPorts)) ++port;
-        newPorts.add(port);
-        return port;
-    }
-
-    private boolean isPortAvailable(int port, Set<Integer> newPorts) {
-        if (usedPorts.contains(port) || newPorts.contains(port)) return false;
-        try (var s1 = new ServerSocket(port); var s2 = new DatagramSocket(port)) {
-            return true;
-        } catch (IOException e) {
-            return false;
-        }
-    }
 
     private Map<String, String> loadKubernetesSecrets() {
         return config.loadDockerAuth().stream().collect(Collectors.toMap(
