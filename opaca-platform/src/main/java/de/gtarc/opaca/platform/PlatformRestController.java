@@ -94,7 +94,7 @@ public class PlatformRestController {
 	}
 
 	private ResponseEntity<ErrorResponse> makeErrorResponse(HttpStatus statusCode, Exception error, ErrorResponse nestedError) {
-		var content = new ErrorResponse(statusCode.value(), error.getMessage(), nestedError);
+		var content = new ErrorResponse(statusCode.value(), error.getMessage(), nestedError != null ? nestedError : ErrorResponse.from(error.getCause()));
 		return ResponseEntity.status(statusCode).body(content);
 	}
 

@@ -162,7 +162,7 @@ public class ContainerTests {
         Assert.assertEquals(502, con.getResponseCode());
         var response = error(con);
         Assert.assertNotEquals(null, response.cause);
-        Assert.assertEquals(500, response.cause.statusCode);
+        Assert.assertEquals(500, response.cause.statusCode.intValue());
         Assert.assertTrue(response.cause.message.contains("Action Failed (as expected)"));
 
         // invoke ErrorTest action to check for other return codes
@@ -174,28 +174,28 @@ public class ContainerTests {
         Assert.assertEquals(502, con.getResponseCode());
         response = error(con);
         Assert.assertNotEquals(null, response.cause);
-        Assert.assertEquals(500, response.cause.statusCode);
+        Assert.assertEquals(500, response.cause.statusCode.intValue());
 
         // custom: should be 666, but same problem as above
         con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "custom-error"));
         Assert.assertEquals(502, con.getResponseCode());
         response = error(con);
         Assert.assertNotEquals(null, response.cause);
-        Assert.assertEquals(500, response.cause.statusCode);
+        Assert.assertEquals(500, response.cause.statusCode.intValue());
 
         // io: 500
         con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "io-error"));
         Assert.assertEquals(502, con.getResponseCode());
         response = error(con);
         Assert.assertNotEquals(null, response.cause);
-        Assert.assertEquals(500, response.cause.statusCode);
+        Assert.assertEquals(500, response.cause.statusCode.intValue());
 
         // runtime: 500
         con = request(PLATFORM_URL, "POST", "/invoke/ErrorTest", Map.of("hint", "runtime-error"));
         Assert.assertEquals(502, con.getResponseCode());
         response = error(con);
         Assert.assertNotEquals(null, response.cause);
-        Assert.assertEquals(500, response.cause.statusCode);
+        Assert.assertEquals(500, response.cause.statusCode.intValue());
     }
 
     /**
