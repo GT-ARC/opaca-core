@@ -7,7 +7,6 @@ import de.dailab.jiacvi.platform.sleep
 import de.gtarc.opaca.container.ContainerAgent
 import de.gtarc.opaca.container.AbstractContainerizedAgent
 import de.gtarc.opaca.container.Invoke
-import de.gtarc.opaca.util.ConfigLoader
 import de.gtarc.opaca.util.RestHelper
 import de.gtarc.opaca.model.AgentContainerImage
 import de.gtarc.opaca.model.Parameter
@@ -115,7 +114,7 @@ class ServerAgent(name: String): AbstractContainerizedAgent(name=name) {
     override fun behaviour() = super.behaviour().and(act {
         every(Duration.ofMillis(TURN_DURATION)) {
             log.info("$name executing (thread ${Thread.currentThread().name})")
-            log.info("RESPONSES: ${newResponses} $responses")
+            log.info("RESPONSES: $newResponses $responses")
             newResponses = 0
         }
     })

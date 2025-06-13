@@ -1,6 +1,5 @@
 package de.gtarc.opaca.demo.dummy
 
-import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.behaviour.act
 
 import de.gtarc.opaca.container.AbstractContainerizedAgent
@@ -10,11 +9,11 @@ import io.javalin.Javalin
 
 /**
  * Agent showing a simple HTTP Servlet showing a notification and some arbitrary values
- * in a very generic fashion. The servlet auto-refreshs every second. Can be used as a
+ * in a very generic fashion. The servlet auto-refreshes every second. Can be used as a
  * stand-in for a proper notifications-service or for showing the state of imaginary windows,
  * lights, etc.
  */
-class ServletAgent(): AbstractContainerizedAgent(name="servlet-agent") {
+class ServletAgent: AbstractContainerizedAgent(name="servlet-agent") {
 
     // the current step (incremented each second)
     var step = 0
@@ -30,13 +29,12 @@ class ServletAgent(): AbstractContainerizedAgent(name="servlet-agent") {
 
     // map of arbitrary other values, e.g. state for some imaginary lamps or windows...
     val valuesMap = mutableMapOf<String, String>()
-    val table = ""
 
     // simple web server running on port 8888 (see extra-ports in container.json)
     private val server = Javalin.create()
             .get("/") {
-                val valueRows = valuesMap.entries.joinToString("\n") {
-                    "<tr><td class=\"key\">${it.key}</td><td class=\"value\">${it.value}</td></tr>"
+                val valueRows = valuesMap.entries.joinToString("\n") {x ->
+                    "<tr><td class=\"key\">${x.key}</td><td class=\"value\">${x.value}</td></tr>"
                 }
                 val html = """
                 <html>

@@ -606,11 +606,11 @@ public class PlatformImpl implements RuntimePlatformApi {
         private final Map<String, JsonNode> actionArgs;
         private final String streamName;
 
-        private boolean containerMatch = false;
-        private boolean agentMatch = false;
-        private boolean actionMatch = false;
-        private boolean paramsMatch = false;
-        private boolean streamMatch = false;
+        private boolean containerMatch;
+        private boolean agentMatch;
+        private boolean actionMatch;
+        private boolean paramsMatch;
+        private boolean streamMatch;
 
         @Getter
         private ApiProxy client = null;

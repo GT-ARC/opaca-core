@@ -1,6 +1,7 @@
 package de.gtarc.opaca.testing
 
 import de.gtarc.opaca.testing.manyonone.runManyOnOneTest
+import kotlin.system.exitProcess
 
 
 val TEST_CASES = mapOf(
@@ -19,19 +20,19 @@ fun main(args: Array<String>) {
             export CONTAINER_ID=12345
             export PLATFORM_URL="http://localhost:8082"
         """.trimIndent())
-        System.exit(1)
+        exitProcess(1)
     }
 
     val testCase = args.getOrNull(0)
     if (testCase == null) {
         println("Please specify the test case to run as a command line parameter.")
-        System.exit(1)
+        exitProcess(1)
     }
 
     val callback = TEST_CASES[testCase]
     if (callback == null) {
         println("Invalid test case. Valid test cases are: ${TEST_CASES.keys}")
-        System.exit(1)
+        exitProcess(1)
     } else {
         callback.invoke()
     }

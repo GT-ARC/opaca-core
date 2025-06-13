@@ -23,7 +23,7 @@ class FridgeAgent : AbstractContainerizedAgent(name="fridge-agent") {
     )
 
     // hardcoded values for groceries (adding/removing is ok)
-    val GROCERIES = mutableListOf<Grocery>(
+    val GROCERIES = mutableListOf(
         Grocery("cucumber", 3, "12.06.2024", "vegetables"),
         Grocery("tomato",7, "10.07.2024", "vegetables"),
         Grocery("avocado", 2, "11.06.2024", "vegetables"),
@@ -50,7 +50,7 @@ class FridgeAgent : AbstractContainerizedAgent(name="fridge-agent") {
         this.addAction("AddGroceries", mapOf(
             "item" to Parameter("Grocery")
         ), null) {
-            val item = RestHelper.mapper.treeToValue<Grocery>(it["item"]!!, Grocery::class.java)
+            val item = RestHelper.mapper.treeToValue(it["item"]!!, Grocery::class.java)
             addGroceries(item)
         }
 
@@ -79,9 +79,9 @@ class FridgeAgent : AbstractContainerizedAgent(name="fridge-agent") {
             } else {
                 GROCERIES.remove(g)
             }
-            true;
+            true
         } else {
-            false;
+            false
         }
     }
 

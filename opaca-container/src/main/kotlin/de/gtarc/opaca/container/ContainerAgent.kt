@@ -114,19 +114,19 @@ class ContainerAgent(
         }
 
         override fun send(agentId: String, message: Message, containerId: String, forward: Boolean) {
-            log.debug("SEND: $agentId $message")
+            log.debug("SEND: {} {}", agentId, message)
             val agent = findRegisteredAgent(agentId, action=null, stream=null)
             val ref = system.resolve(agent)
             ref tell message
         }
 
         override fun broadcast(channel: String, message: Message, containerId: String, forward: Boolean) {
-            log.debug("BROADCAST: $channel $message")
+            log.debug("BROADCAST: {} {}", channel, message)
             broker.publish(channel, message)
         }
 
         override fun invoke(action: String, parameters: Map<String, JsonNode>, agentId: String?, timeout: Int, containerId: String, forward: Boolean): JsonNode? {
-            log.debug("INVOKE ACTION OF AGENT: $agentId $action $parameters")
+            log.debug("INVOKE ACTION OF AGENT: {} {} {}", agentId, action, parameters)
             val agent = findRegisteredAgent(agentId, action, null)
             val res: Any = waitForInvoke(agent, Invoke(action, parameters), timeout)
             return RestHelper.mapper.valueToTree(res)

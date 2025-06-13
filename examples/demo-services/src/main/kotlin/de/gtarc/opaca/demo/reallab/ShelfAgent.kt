@@ -2,8 +2,6 @@ package de.gtarc.opaca.demo.reallab
 
 import de.gtarc.opaca.container.AbstractContainerizedAgent
 import de.gtarc.opaca.model.Parameter
-import java.net.URI
-import java.net.HttpURLConnection;
 
 /**
  * Dummy version of agent controlling the shelves in the ZEKI kitchen. The agent can tell where

@@ -27,7 +27,7 @@ public interface RuntimePlatformApi extends CommonApi {
     /**
      * Complementary to {@link CommonApi#getAgents()}: Get list of Agents running in this Runtime Platform
      * or connected platforms, i.e. the entire list of agents and their actions that can be reached by
-     * sending an send/invoke/broadcast to this Runtime Platform with query parameter forward=true.
+     * sending a send/invoke/broadcast to this Runtime Platform with query parameter forward=true.
      *
      * REST: GET /agents?includeConnected=true
      *

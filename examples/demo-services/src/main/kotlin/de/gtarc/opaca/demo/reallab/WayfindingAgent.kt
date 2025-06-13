@@ -1,10 +1,7 @@
 package de.gtarc.opaca.demo.reallab
 
 import de.gtarc.opaca.container.AbstractContainerizedAgent
-import de.gtarc.opaca.container.OpacaException
 import de.gtarc.opaca.model.Parameter
-import de.gtarc.opaca.util.RestHelper
-import java.io.IOException
 
 val ROOMS = mapOf(
     1 to "ExperienceHub",
