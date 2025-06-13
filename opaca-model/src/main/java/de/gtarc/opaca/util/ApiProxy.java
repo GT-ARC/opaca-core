@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 
 /**
@@ -132,13 +133,15 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     // CONTAINER ROUTES
 
     @Override
-    public String addContainer(PostAgentContainer container) throws IOException {
-        return client.post("/containers", container, String.class);
+    public String addContainer(PostAgentContainer container, int timeout) throws IOException {
+        var query = buildQuery(Map.of("timeout", timeout));
+        return client.post("/containers?" + query, container, String.class);
     }
 
     @Override
-    public String updateContainer(PostAgentContainer container) throws IOException {
-        return client.put("/containers", container, String.class);
+    public String updateContainer(PostAgentContainer container, int timeout) throws IOException {
+        var query = buildQuery(Map.of("timeout", timeout));
+        return client.put("/containers?" + query, container, String.class);
     }
 
     @SuppressWarnings({"unchecked"})
@@ -199,12 +202,9 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     private String buildQuery(Map<String, Object> params) {
-        StringBuilder builder = new StringBuilder();
-        for (Map.Entry<String, ?> entry : params.entrySet()) {
-            if (entry.getValue() != null) {
-                builder.append(String.format("&%s=%s", entry.getKey(), entry.getValue()));
-            }
-        }
-        return builder.toString().replaceFirst("&", "");
+        return params.entrySet().stream()
+                .filter(e -> e.getValue() != null)
+                .map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
+                .collect(Collectors.joining("&"));
     }
 }

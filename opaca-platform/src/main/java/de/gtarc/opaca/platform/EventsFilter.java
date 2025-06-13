@@ -29,11 +29,9 @@ public class EventsFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 
-        if (request instanceof HttpServletRequest &&
-                response instanceof HttpServletResponse &&
+        if (request instanceof HttpServletRequest httpRequest &&
+                response instanceof HttpServletResponse httpResponse &&
                 requestShouldCreateEvent((HttpServletRequest) request)) {
-            HttpServletRequest httpRequest = (HttpServletRequest) request;
-            HttpServletResponse httpResponse = (HttpServletResponse) response;
 
             // create call event
             String route = String.format("%s %s", httpRequest.getMethod(), httpRequest.getRequestURI());

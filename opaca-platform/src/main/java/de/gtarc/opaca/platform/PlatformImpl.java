@@ -257,7 +257,7 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     @Override
-    public String addContainer(PostAgentContainer postContainer) throws IOException {
+    public String addContainer(PostAgentContainer postContainer, int timeout) throws IOException {
         checkConfig(postContainer);
         String agentContainerId = UUID.randomUUID().toString();
         String token = "";
@@ -281,10 +281,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
 
         // wait until container is up and running...
-        var start = System.currentTimeMillis();
+        var containerTimeout = System.currentTimeMillis() + (timeout > 0 ? timeout : config.containerTimeoutSec) * 1000L;
         var client = getClient(agentContainerId, token);
         String errorMessage = "Container did not respond with /info in time.";
-        while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000L) {
+        while (System.currentTimeMillis() < containerTimeout) {
             try {
                 var container = client.getContainerInfo();
                 container.setConnectivity(connectivity);
@@ -329,7 +329,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public String updateContainer(PostAgentContainer container) throws IOException {
+    public String updateContainer(PostAgentContainer container, int timeout) throws IOException {
         var matchingContainers = runningContainers.values().stream()
                 .filter(c -> c.getImage().getImageName().equals(container.getImage().getImageName()))
                 .toList();
@@ -337,7 +337,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             case 1: {
                 var oldContainer = matchingContainers.get(0);
                 removeContainer(oldContainer.getContainerId());
-                return addContainer(container);
+                return addContainer(container, timeout);
             }
             case 0:
                 throw new IllegalArgumentException("No matching container is currently running; please use POST instead.");
@@ -604,11 +604,11 @@ public class PlatformImpl implements RuntimePlatformApi {
         private final Map<String, JsonNode> actionArgs;
         private final String streamName;
 
-        private boolean containerMatch = false;
-        private boolean agentMatch = false;
-        private boolean actionMatch = false;
-        private boolean paramsMatch = false;
-        private boolean streamMatch = false;
+        private boolean containerMatch;
+        private boolean agentMatch;
+        private boolean actionMatch;
+        private boolean paramsMatch;
+        private boolean streamMatch;
 
         @Getter
         private ApiProxy client = null;

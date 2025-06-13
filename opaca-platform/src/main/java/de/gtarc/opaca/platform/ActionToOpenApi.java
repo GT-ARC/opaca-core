@@ -41,7 +41,7 @@ public class ActionToOpenApi {
      * @param agentsContainers List of agent containers currently running on this platform
      * @param format Whether to return the spec in JSON or YAML format
      * @param enableAuth Indicates if platform has authentication enabled
-     * @return
+     * @return the OpenAPI schema as either JSON or YAML
      */
     public static String createOpenApiSchema(Collection<AgentContainer> agentsContainers, ActionFormat format,
                                              boolean enableAuth) {

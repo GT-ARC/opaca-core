@@ -30,9 +30,9 @@ import lombok.extern.java.Log;
 @Log
 public class WebSocketConfig implements WebSocketConfigurer {
 
-    private Map<WebSocketSession, String> sessionTopics = new ConcurrentHashMap<>();
+    private final Map<WebSocketSession, String> sessionTopics = new ConcurrentHashMap<>();
 
-    private ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {

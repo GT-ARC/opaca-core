@@ -19,7 +19,7 @@ fun main() {
             add(ShelfAgent())
             add(WayfindingAgent())
             // additional dummy agents
-            add(DeskAgent())
+            add(DeskBookingAgent())
             add(RoomBookingAgent())
             add(ServletAgent())
         }
