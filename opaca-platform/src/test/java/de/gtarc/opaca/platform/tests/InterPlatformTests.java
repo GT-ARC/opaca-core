@@ -39,6 +39,7 @@ public class InterPlatformTests {
                 "--server.port=" + PLATFORM_B_PORT);
         containerId = postSampleContainer(PLATFORM_A_URL);
         connectPlatforms(PLATFORM_B_URL, PLATFORM_A_URL);
+        checkInvariantStatic();
     }
 
     @AfterClass
@@ -57,6 +58,10 @@ public class InterPlatformTests {
 
     @After
     public void checkInvariant() throws Exception {
+        checkInvariantStatic();
+    }
+
+    public static void checkInvariantStatic() throws Exception {
         var con1 = request(PLATFORM_A_URL, "GET", "/info", null);
         var res1 = result(con1, RuntimePlatform.class);
         Assert.assertEquals(1, res1.getConnections().size());

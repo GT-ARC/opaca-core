@@ -49,6 +49,7 @@ public class ContainerTests {
         platform = SpringApplication.run(Application.class,
                 "--server.port=" + PLATFORM_PORT);
         containerId = postSampleContainer(PLATFORM_URL);
+        checkInvariantStatic();
     }
 
     @AfterClass
@@ -66,6 +67,10 @@ public class ContainerTests {
 
     @After
     public void checkInvariant() throws Exception {
+        checkInvariantStatic();
+    }
+
+    public static void checkInvariantStatic() throws Exception {
         var con1 = request(PLATFORM_URL, "GET", "/info", null);
         var res1 = result(con1, RuntimePlatform.class);
         Assert.assertEquals(1, res1.getContainers().size());
