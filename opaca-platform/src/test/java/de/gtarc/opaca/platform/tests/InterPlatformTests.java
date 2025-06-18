@@ -39,6 +39,7 @@ public class InterPlatformTests {
                 "--server.port=" + PLATFORM_B_PORT);
         containerId = postSampleContainer(PLATFORM_A_URL);
         connectPlatforms(PLATFORM_B_URL, PLATFORM_A_URL);
+        checkInvariantStatic();
     }
 
     @AfterClass
@@ -57,6 +58,10 @@ public class InterPlatformTests {
 
     @After
     public void checkInvariant() throws Exception {
+        checkInvariantStatic();
+    }
+
+    public static void checkInvariantStatic() throws Exception {
         var con1 = request(PLATFORM_A_URL, "GET", "/info", null);
         var res1 = result(con1, RuntimePlatform.class);
         Assert.assertEquals(1, res1.getConnections().size());
@@ -173,8 +178,11 @@ public class InterPlatformTests {
         var message = Map.of("payload", "testBroadcastNoForward", "replyTo", "doesnotmatter");
         var con = request(PLATFORM_B_URL, "POST", "/broadcast/topic?forward=false", message);
         Assert.assertEquals(200, con.getResponseCode());
+        Thread.sleep(500);
+
         // no error, but message was not forwarded
         con = request(PLATFORM_A_URL, "POST", "/invoke/GetInfo/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
         Assert.assertNotEquals("testBroadcastNoForward", res.get("lastBroadcast"));
     }

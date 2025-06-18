@@ -38,9 +38,8 @@ class FridgeAgent : AbstractContainerizedAgent(name="fridge-agent") {
         Grocery("coke", 1, "30.09.2027", "drinks")
     )
 
-    override fun preStart() {
-        super.preStart()
 
+    override fun setupAgent() {
         this.addAction("GetGroceries", mapOf(
             "category" to Parameter("string", false, null)
         ), Parameter("array", true, Parameter.ArrayItems("Grocery", null))) {

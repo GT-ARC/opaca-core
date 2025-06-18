@@ -81,12 +81,16 @@ class RestServerJavalin(val impl: AgentContainerApi, val port: Int, val token: S
                 ctx.status(code)
                 ctx.json(err)
             }
+
+    var isRunning = false
                         
     fun start() {
         server.start(port)
+        isRunning = true
     }
 
     fun stop() {
+        isRunning = false
         server.stop()
     }
 

@@ -5,7 +5,8 @@ import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.LocalAgentRef
 import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.model.*
-import de.gtarc.opaca.util.*
+import de.gtarc.opaca.util.ApiProxy
+import de.gtarc.opaca.util.RestHelper
 import java.io.InputStream
 
 /**
@@ -35,10 +36,14 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
     protected val streamGetCallbacks = mutableMapOf<String, () -> Any?>()
     protected val streamPostCallbacks = mutableMapOf<String, (ByteArray) -> Any?>()
 
-    override fun preStart() {
+    final override fun preStart() {
         super.preStart()
-        register(false)
+        setupAgent()
+        register(true)
     }
+
+    /** This is intended to be overridden by subclasses and used to add actions, streams, etc. */
+    open fun setupAgent() {}
 
     fun register(notify: Boolean) {
         log.info("REGISTERING...")

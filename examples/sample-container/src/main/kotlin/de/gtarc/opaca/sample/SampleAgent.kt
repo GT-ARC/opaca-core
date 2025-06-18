@@ -3,13 +3,13 @@ package de.gtarc.opaca.sample
 import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.container.AbstractContainerizedAgent
+import de.gtarc.opaca.container.OpacaException
 import de.gtarc.opaca.model.Message
 import de.gtarc.opaca.model.Parameter
 import de.gtarc.opaca.model.Event
 import java.io.ByteArrayInputStream
-import java.nio.charset.Charset
-import de.gtarc.opaca.container.OpacaException
 import java.io.IOException
+import java.nio.charset.Charset
 
 class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
 
@@ -18,9 +18,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     private var lastPostedStream: Any? = null
     private var lastEvent: Event? = null
 
-    override fun preStart() {
-        super.preStart()
-
+    override fun setupAgent() {
         addAction("DoThis", mapOf(
             "message" to Parameter("string", true),
             "sleep_seconds" to Parameter("integer", true)

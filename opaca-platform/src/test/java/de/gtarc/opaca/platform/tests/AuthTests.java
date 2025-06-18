@@ -167,6 +167,7 @@ public class AuthTests {
         // create new agent action
         var con = requestWithToken(PLATFORM_A, "POST", "/invoke/CreateAction", Map.of("name", "TestAction", "notify", true), token_A);
         Assert.assertEquals(200, con.getResponseCode());
+        Thread.sleep(500);
 
         // agent container must be able to call parent platform route to notify platform of change
         con = requestWithToken(PLATFORM_A, "POST", "/invoke/TestAction", Map.of(), token_A);
@@ -420,12 +421,15 @@ public class AuthTests {
         var con = requestWithToken(PLATFORM_A, "POST", "/containers", image, token_cont);
         Assert.assertEquals(200, con.getResponseCode());
         var newContainerId = result(con);
+        Thread.sleep(500);
 
         // get the container's token to "impersonate" it in the next requests
         var query = buildQuery(Map.of("containerId", newContainerId));
         con = requestWithToken(PLATFORM_A, "POST", "/invoke/GetInfo" + query, Map.of(), token_cont);
+        Assert.assertEquals(200, con.getResponseCode());
         var contContainerToken = (String) result(con, Map.class).get(AgentContainerApi.ENV_TOKEN);
         Assert.assertFalse(contContainerToken.isEmpty());
+        Thread.sleep(500);
 
         // Check if container can perform actions which require "CONTRIBUTOR" role
         con = requestWithToken(PLATFORM_A, "POST", "/containers", image, contContainerToken);
@@ -433,11 +437,13 @@ public class AuthTests {
         var newContainerId2 = result(con);
         con = requestWithToken(PLATFORM_A, "DELETE", "/containers/" + newContainerId2, image, contContainerToken);
         Assert.assertEquals(200, con.getResponseCode());
+        Thread.sleep(500);
 
         // Check if container can NOT perform actions which require "ADMIN" role
         con = requestWithToken(PLATFORM_A, "POST", "/users",
                 getUser("forbiddenUser", "forbidden", Role.GUEST, null), contContainerToken);
         Assert.assertEquals(403, con.getResponseCode());
+        Thread.sleep(500);
 
         // Container deletes itself
         con = requestWithToken(PLATFORM_A, "DELETE", "/containers/" + newContainerId, image, token_cont);

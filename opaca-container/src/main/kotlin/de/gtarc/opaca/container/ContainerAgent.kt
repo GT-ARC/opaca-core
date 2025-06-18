@@ -1,18 +1,14 @@
 package de.gtarc.opaca.container
 
 import com.fasterxml.jackson.databind.JsonNode
-import de.gtarc.opaca.util.WebSocketConnector
 import de.dailab.jiacvi.Agent
 import de.dailab.jiacvi.BrokerAgentRef
 import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.api.AgentContainerApi
-import de.gtarc.opaca.model.AgentContainer
-import de.gtarc.opaca.model.AgentContainerImage
-import de.gtarc.opaca.model.AgentDescription
-import de.gtarc.opaca.model.Message
-import de.gtarc.opaca.model.Event
+import de.gtarc.opaca.model.*
 import de.gtarc.opaca.util.ApiProxy
 import de.gtarc.opaca.util.RestHelper
+import de.gtarc.opaca.util.WebSocketConnector
 import java.io.InputStream
 import java.time.Duration
 import java.time.ZoneId
@@ -59,16 +55,20 @@ class ContainerAgent(
     /** other agents registered at the container agent (not all agents are exposed automatically) */
     private val registeredAgents = mutableMapOf<String, AgentDescription>()
 
+
     /**
-     * Start the Web Server.
+     * Start web server (with delay to allow Agents to initialize first)
      */
     override fun preStart() {
-        log.info("Starting Container Agent...")
         super.preStart()
-        server.start()
-        if (subscribeToEvents) {
-            WebSocketConnector.subscribe(runtimePlatformUrl, token, "/invoke", this::onEvent)
-        }
+        Thread {
+            Thread.sleep(1000)
+            log.info("Starting Container Agent...")
+            server.start()
+            if (subscribeToEvents) {
+                WebSocketConnector.subscribe(runtimePlatformUrl, token, "/invoke", this::onEvent)
+            }
+        }.start()
     }
 
     /**
@@ -170,9 +170,12 @@ class ContainerAgent(
             // TODO should Register message contain the agent's internal name, or is that always equal to the agentId?
             log.info("Registering ${it.description}")
             registeredAgents[it.description.agentId] = it.description
+
+            // put next actions into own message queue instead of performing the action immediately
             if (it.notify) {
                 notifyPlatform()
             }
+
             Registered(runtimePlatformUrl, containerId, token)
         }
 
@@ -215,7 +218,12 @@ class ContainerAgent(
     }
 
     private fun notifyPlatform() {
-        parentProxy.notifyUpdateContainer(containerId)
+        if (! server.isRunning) return
+        try {
+            parentProxy.notifyUpdateContainer(containerId)
+        } catch (e: RestHelper.RequestException) {
+            log.error("Failed to notify parent platform: ${e.message}")
+        }
     }
 
     private fun renewToken() {

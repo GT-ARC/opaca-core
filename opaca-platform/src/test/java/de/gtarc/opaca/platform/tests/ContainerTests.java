@@ -49,6 +49,7 @@ public class ContainerTests {
         platform = SpringApplication.run(Application.class,
                 "--server.port=" + PLATFORM_PORT);
         containerId = postSampleContainer(PLATFORM_URL);
+        checkInvariantStatic();
     }
 
     @AfterClass
@@ -66,6 +67,10 @@ public class ContainerTests {
 
     @After
     public void checkInvariant() throws Exception {
+        checkInvariantStatic();
+    }
+
+    public static void checkInvariantStatic() throws Exception {
         var con1 = request(PLATFORM_URL, "GET", "/info", null);
         var res1 = result(con1, RuntimePlatform.class);
         Assert.assertEquals(1, res1.getContainers().size());
@@ -318,6 +323,7 @@ public class ContainerTests {
     public void testWebsocketEvent() throws Exception {
         var con = request(PLATFORM_URL, "POST", "/invoke/GetInfo", Map.of());
         var lastEvent = result(con, Map.class).get("lastEvent");
+        Thread.sleep(500);
 
         // invoke DoThis (the params are wrong, but this does not matter here)
         request(PLATFORM_URL, "POST", "/invoke/DoThis", Map.of()).getResponseCode();
@@ -466,14 +472,17 @@ public class ContainerTests {
 
             // directed /invoke of GetInfo to check last messages of first container
             con = request(PLATFORM_URL, "POST", "/invoke/GetInfo/sample1?containerId=" + containerId, Map.of());
+            Assert.assertEquals(200, con.getResponseCode());
             var res1 = result(con, Map.class);
             System.out.println(res1);
             Assert.assertEquals(containerId, res1.get(AgentContainerApi.ENV_CONTAINER_ID));
             Assert.assertEquals(msg1.get("payload"), res1.get("lastBroadcast"));
             Assert.assertNotEquals(msg2.get("payload"), res1.get("lastMessage"));
+            Thread.sleep(500);
 
             // directed /invoke of GetInfo to check last messages of second container
             con = request(PLATFORM_URL, "POST", "/invoke/GetInfo/sample1?containerId=" + newContainerId, Map.of());
+            Assert.assertEquals(200, con.getResponseCode());
             var res2 = result(con, Map.class);
             System.out.println(res1);
             Assert.assertEquals(newContainerId, res2.get(AgentContainerApi.ENV_CONTAINER_ID));
@@ -495,6 +504,7 @@ public class ContainerTests {
         // create new agent action
         var con = request(PLATFORM_URL, "POST", "/invoke/CreateAction/sample1", Map.of("name", "AnotherTemporaryTestAction", "notify", true));
         Assert.assertEquals(200, con.getResponseCode());
+        Thread.sleep(500);
 
         // agent container automatically notified platform of the changes
         con = request(PLATFORM_URL, "POST", "/invoke/AnotherTemporaryTestAction/sample1", Map.of());

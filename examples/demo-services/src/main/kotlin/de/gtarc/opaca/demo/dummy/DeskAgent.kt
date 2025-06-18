@@ -15,8 +15,7 @@ class DeskBookingAgent: AbstractContainerizedAgent(name="desk-booking-agent") {
 
     val desks = mutableMapOf<String, MutableList<Int>>()
 
-    override fun preStart() {
-        super.preStart()
+    override fun setupAgent() {
 
         addAction("GetRooms", mapOf(
         ), Parameter("array", true, ArrayItems("string", null))) {
