@@ -55,6 +55,11 @@ public class RestHelper {
         return type == null ? null : mapper.readValue(stream, type);
     }
 
+    public <T> T get(String path, TypeReference<T> type) throws IOException {
+        var stream = request("GET", path, null);
+        return type == null ? null : mapper.readValue(stream, type);
+    }
+
     public <T> T post(String path, Object payload, Class<T> type) throws IOException {
         var stream = request("POST", path, payload);
         return type == null ? null : mapper.readValue(stream, type);

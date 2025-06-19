@@ -1,5 +1,6 @@
 package de.gtarc.opaca.util;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.api.RuntimePlatformApi;
@@ -44,22 +45,19 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         return client.get("/info", RuntimePlatform.class);
     }
 
-    @SuppressWarnings({"unchecked"})
     @Override
     public List<AgentDescription> getAllAgents() throws IOException {
-        return client.get("/agents?includeConnected=true", List.class);
+        return client.get("/agents?includeConnected=true", new TypeReference<>(){});
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Map<String, ?> getPlatformConfig() throws IOException {
-        return client.get("/config", Map.class);
+        return client.get("/config", new TypeReference<>(){});
     }
 
-    @SuppressWarnings({"unchecked"})
     @Override
     public List<Event> getHistory() throws IOException {
-        return client.get("/history", List.class);
+        return client.get("/history", new TypeReference<>(){});
     }
 
     @Override
@@ -82,10 +80,9 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
 
     // AGENT ROUTES
 
-    @SuppressWarnings({"unchecked"})
     @Override
     public List<AgentDescription> getAgents() throws IOException {
-        return client.get("/agents", List.class);
+        return client.get("/agents", new TypeReference<>(){});
     }
 
     @Override
@@ -144,10 +141,9 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         return client.put("/containers?" + query, container, String.class);
     }
 
-    @SuppressWarnings({"unchecked"})
     @Override
     public List<AgentContainer> getContainers() throws IOException {
-        return client.get("/containers", List.class);
+        return client.get("/containers", new TypeReference<>(){});
     }
 
     @Override
@@ -169,10 +165,9 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         return client.post("/connections", loginConnection, Boolean.class);
     }
 
-    @SuppressWarnings({"unchecked"})
     @Override
     public List<String> getConnections() throws IOException {
-        return client.get("/connections", List.class);
+        return client.get("/connections", new TypeReference<>(){});
     }
 
     @Override
