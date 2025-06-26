@@ -9,10 +9,15 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ErrorResponse {
 
-    public int statusCode;
+    public Integer statusCode;
 
     public String message;
 
     public ErrorResponse cause = null;
+
+    public static ErrorResponse from(Throwable e) {
+        if (e == null) return null;
+        return new ErrorResponse(null, e.getMessage(), ErrorResponse.from(e.getCause()));
+    }
 
 }

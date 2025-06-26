@@ -25,8 +25,6 @@ import lombok.extern.java.Log;
 import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
-import java.net.DatagramSocket;
-import java.net.ServerSocket;
 import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -40,7 +38,7 @@ import java.util.stream.Stream;
  * - https://www.baeldung.com/docker-java-api
  */
 @Log
-public class DockerClient implements ContainerClient {
+public class DockerClient extends AbstractContainerClient {
 
     private PlatformConfig config;
 
@@ -53,8 +51,6 @@ public class DockerClient implements ContainerClient {
     /** Available Docker Auth */
     private Map<String, AuthConfig> auth;
 
-    /** Set of already used ports on target Docker host */
-    private Set<Integer> usedPorts;
 
     @Data
     @AllArgsConstructor
@@ -206,7 +202,8 @@ public class DockerClient implements ContainerClient {
                 : String.format("tcp://%s:%s", config.remoteDockerHost, config.remoteDockerPort);
     }
 
-    private String getContainerBaseUrl() {
+    @Override
+    protected String getContainerBaseUrl() {
         return Strings.isNullOrEmpty(config.remoteDockerHost)
                 ? config.getOwnBaseUrl().replaceAll(":\\d+$", "")
                 : String.format("http://%s", config.remoteDockerHost);
@@ -229,24 +226,6 @@ public class DockerClient implements ContainerClient {
         } catch (InternalServerErrorException e) {
             log.severe("Pull Image failed: " + e.getMessage());
             throw new NoSuchElementException("Failed to Pull image: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Starting from the given preferred port, get and reserve the next free port.
-     */
-    private int reserveNextFreePort(int port, Set<Integer> newPorts) {
-        while (!isPortAvailable(port, newPorts)) ++port;
-        newPorts.add(port);
-        return port;
-    }
-
-    private boolean isPortAvailable(int port, Set<Integer> newPorts) {
-        if (usedPorts.contains(port) || newPorts.contains(port)) return false;
-        try (var s1 = new ServerSocket(port); var s2 = new DatagramSocket(port)) {
-            return true;
-        } catch (IOException e) {
-            return false;
         }
     }
 
