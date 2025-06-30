@@ -17,6 +17,7 @@
         <module>ping-pong</module>
         <module>testing</module>
         <module>demo-services</module>
+        <module>dummy-services</module>
     </modules>
 
     <properties>

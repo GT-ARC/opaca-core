@@ -1,4 +1,4 @@
-package de.gtarc.opaca.demo.dummy
+package de.gtarc.opaca.demo.reallab
 
 import de.gtarc.opaca.container.AbstractContainerizedAgent
 import de.gtarc.opaca.model.Parameter
