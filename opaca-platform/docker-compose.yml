@@ -6,6 +6,7 @@ services:
   # (Agent Containers can run in the same Docker or somewhere else)
   opaca-platform:
     build: .
+    image: opaca-platform
     ports:
       - "8000:8000"
     depends_on:

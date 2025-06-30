@@ -1,4 +1,4 @@
-package de.gtarc.opaca.demo.dummy
+package de.gtarc.opaca.demo
 
 import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.container.AbstractContainerizedAgent
