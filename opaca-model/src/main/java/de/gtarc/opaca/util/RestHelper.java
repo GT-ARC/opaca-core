@@ -30,6 +30,10 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class RestHelper {
 
+    public enum Encoding {
+        JSON, URLENCODED
+    }
+
     public final String baseUrl;
 
     public final String senderId;
@@ -38,12 +42,18 @@ public class RestHelper {
 
     public final Integer timeout;
 
+    public final Encoding encoding;
+
     public RestHelper(String baseUrl) {
-        this(baseUrl, null, null, null);
+        this(baseUrl, null, null, null, Encoding.JSON);
     }
 
     public RestHelper(String baseUrl, String senderId, String token) {
-        this(baseUrl, senderId, token, null);
+        this(baseUrl, senderId, token, null, Encoding.JSON);
+    }
+
+    public RestHelper(String baseUrl, String token, Integer timeout) {
+        this(baseUrl, null, token, timeout, Encoding.JSON);
     }
 
     public static final ObjectMapper mapper = JsonMapper.builder()
@@ -157,7 +167,7 @@ public class RestHelper {
     private HttpURLConnection createConnection(String method, String path, List<HttpCookie> cookies) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl + path).toURL().openConnection();
         connection.setRequestMethod(method);
-        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+        connection.setRequestProperty("Content-Type", getContentType());
 
         if (senderId != null && ! senderId.isEmpty()) {
             connection.setRequestProperty(Event.HEADER_SENDER_ID, senderId);
@@ -236,6 +246,13 @@ public class RestHelper {
             Event event = new Event(Event.EventType.FORWARD, null, null, baseUrl, null, related.get().getId());
             EventHistory.getInstance().addEvent(event);
         }
+    }
+
+    private String getContentType() {
+        return switch (this.encoding) {
+            case JSON -> "application/json; charset=UTF-8";
+            case URLENCODED -> "application/x-www-form-urlencoded; charset=UTF-8";
+        };
     }
 
     /**
