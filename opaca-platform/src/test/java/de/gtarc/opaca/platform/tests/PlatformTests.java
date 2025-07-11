@@ -232,6 +232,54 @@ public class PlatformTests {
         Assert.assertTrue(response.message.contains("does not match"));
     }
 
+    @Test
+    public void testDeployMissingRequirement() throws Exception {
+        var image = getSampleContainerImage();
+        // "sample-requirement" is defined in sample-agent-container-image, but only checked if in post-container
+        image.getImage().setRequires(List.of("sample-requirement"));
+
+        var con = request(PLATFORM_A_URL, "POST", "/containers", image);
+        Assert.assertEquals(400, con.getResponseCode());
+        var response = error(con);
+        Assert.assertTrue(response.message.contains("sample-requirement"));
+    }
+
+    @Test
+    public void testDeployFulfilledRequirement() throws Exception {
+        // deploy sample image (with "sample-provision")
+        var image = getSampleContainerImage();
+        var con = request(PLATFORM_A_URL, "POST", "/containers", image);
+        var id1 = result(con);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // deploy second sample image with "sample-provision" as requirement
+        image.getImage().setRequires(List.of("sample-provision"));
+        con = request(PLATFORM_A_URL, "POST", "/containers", image);
+        var id2 = result(con);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // cleanup
+        result(request(PLATFORM_A_URL, "DELETE", "/containers/" + id1, null));
+        result(request(PLATFORM_A_URL, "DELETE", "/containers/" + id2, null));
+    }
+
+    @Test
+    public void testPlatformProvisions() throws Exception {
+        // deploy sample container
+        var image = getSampleContainerImage();
+        var container = result(request(PLATFORM_A_URL, "POST", "/containers", image));
+
+        // check platform provisions
+        var info = result(request(PLATFORM_A_URL, "GET", "/info", null), RuntimePlatform.class);
+        Assert.assertTrue(info.getProvides().contains("sample-provision"));
+        Assert.assertTrue(info.getProvides().contains("image:sample-agent-container-image"));
+        Assert.assertTrue(info.getProvides().contains("agent:de.gtarc.opaca.sample.SampleAgent"));
+        Assert.assertTrue(info.getProvides().contains("action:GetInfo"));
+
+        // cleanup
+        result(request(PLATFORM_A_URL, "DELETE", "/containers/" + container, null));
+    }
+
     /**
      * try to deploy unknown container
      *   -> 404 (not found)
