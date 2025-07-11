@@ -1,9 +1,9 @@
-package de.gtarc.opaca.platform;
+package de.gtarc.opaca.platform.user;
 
 import de.gtarc.opaca.model.Role;
 import de.gtarc.opaca.model.User;
+import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.auth.JwtUtil;
-import de.gtarc.opaca.platform.user.TokenUserDetailsService;
 import de.gtarc.opaca.platform.user.TokenUserDetailsService.UserAlreadyExistsException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
