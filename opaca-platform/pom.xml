@@ -13,7 +13,7 @@
 	<packaging>jar</packaging>
 
 	<properties>
-		<springBoot.version>3.2.3</springBoot.version>
+		<springBoot.version>3.4.4</springBoot.version>
 		<java.version>17</java.version>
 	</properties>
 
@@ -48,25 +48,25 @@
 			<version>0.9.1</version>
 		</dependency>
 		<dependency>
-			<groupId>javax.xml.bind</groupId>
-			<artifactId>jaxb-api</artifactId>
-			<version>2.3.1</version>
+			<groupId>jakarta.xml.bind</groupId>
+			<artifactId>jakarta.xml.bind-api</artifactId>
+			<version>4.0.2</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-			<version>2.2.0</version>
+			<version>2.8.5</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.httpcomponents.client5</groupId>
 			<artifactId>httpclient5</artifactId>
-			<version>5.2.1</version>
+			<version>5.4.4</version>
 		</dependency>
 		<dependency>
 			<groupId>com.networknt</groupId>
 			<artifactId>json-schema-validator</artifactId>
-			<version>1.0.82</version>
+			<version>1.5.5</version>
 		</dependency>
 
 		<!-- User Management -->
@@ -80,24 +80,24 @@
 		<dependency>
 			<groupId>com.github.docker-java</groupId>
 			<artifactId>docker-java-core</artifactId>
-			<version>3.3.5</version>
+			<version>3.4.2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.github.docker-java</groupId>
 			<artifactId>docker-java-transport-httpclient5</artifactId>
-			<version>3.3.5</version>
+			<version>3.4.2</version>
 		</dependency>
 
 		<!-- Kubernetes API for Java -->
 		<dependency>
 			<groupId>io.kubernetes</groupId>
 			<artifactId>client-java</artifactId>
-			<version>20.0.0</version>
+			<version>22.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>io.kubernetes</groupId>
 			<artifactId>client-java-api</artifactId>
-			<version>20.0.0</version>
+			<version>22.0.0</version>
 		</dependency>
 
 		<!-- for testing -->
