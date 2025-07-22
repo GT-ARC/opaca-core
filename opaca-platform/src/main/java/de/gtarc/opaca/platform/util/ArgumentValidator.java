@@ -1,4 +1,4 @@
-package de.gtarc.opaca.platform;
+package de.gtarc.opaca.platform.util;
 
 import java.net.URI;
 import java.net.URISyntaxException;

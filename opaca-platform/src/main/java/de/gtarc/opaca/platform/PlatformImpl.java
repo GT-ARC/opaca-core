@@ -11,6 +11,8 @@ import de.gtarc.opaca.platform.containerclient.KubernetesClient;
 import de.gtarc.opaca.platform.session.SessionData;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.model.AgentContainer.Connectivity;
+import de.gtarc.opaca.platform.util.ArgumentValidator;
+import de.gtarc.opaca.platform.util.RequirementsChecker;
 import de.gtarc.opaca.util.ApiProxy;
 import lombok.Getter;
 import lombok.extern.java.Log;
@@ -54,7 +56,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     private ContainerClient containerClient;
 
-
     /** Currently running Agent Containers, mapping container ID to description */
     private Map<String, AgentContainer> runningContainers;
     private Map<String, PostAgentContainer> startedContainers;
@@ -68,6 +69,8 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     /** Map of validators for validating action argument types for each container */
     private final Map<String, ArgumentValidator> validators = new HashMap<>();
+
+    private final RequirementsChecker requirementsChecker = new RequirementsChecker(this);
 
 
     @PostConstruct
@@ -104,7 +107,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         return new RuntimePlatform(
                 config.getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),
-                List.of(), // TODO "provides" of platform? read from config? issue #42
+                requirementsChecker.getFullPlatformProvisions(),
                 List.copyOf(connectedPlatforms.keySet())
         );
     }
@@ -259,6 +262,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public String addContainer(PostAgentContainer postContainer, int timeout) throws IOException {
         checkConfig(postContainer);
+        checkRequirements(postContainer);
         String agentContainerId = UUID.randomUUID().toString();
         String token = "";
         String owner = "";
@@ -580,6 +584,14 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (request.getClientConfig() != null && request.getClientConfig().getType() != config.containerEnvironment) {
             throw new IllegalArgumentException(String.format("Client Config %s does not match Container Environment %s",
                     request.getClientConfig().getType(), config.containerEnvironment));
+        }
+    }
+
+    private void checkRequirements(PostAgentContainer request) {
+        var failedRequirements = requirementsChecker.checkFailedRequirements(request.getImage());
+        if (! failedRequirements.isEmpty()) {
+            throw new IllegalArgumentException(String.format("Container Image has unsatisfied Requirements: %s",
+                    failedRequirements));
         }
     }
 

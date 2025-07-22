@@ -142,6 +142,7 @@ New SNAPSHOT releases are deployed by CI each time a new commit is pushed to the
 * [Parameter Validation](doc/validation.md)
 * [JIAC VI Basics](doc/jiac-vi.md)
 * [Websockets](doc/websockets.md)
+* [Requirements & Provisions](doc/container-requirements.md)
 
 
 ## Publications
