@@ -27,16 +27,20 @@ val ROOMS = mapOf(
  */
 class WayfindingAgent : AbstractContainerizedAgent(name="wayfinding-agent") {
 
-
     override fun setupAgent() {
-        addAction("FindRoomById", mapOf("roomId" to Parameter("integer")), null) {
+        this.addAction("FindRoomById", "Show the way to the room with the given ID using the LED ground guidance system", mapOf(
+            "roomId" to Parameter("integer")
+        ), null) {
             val roomId = it["roomId"]!!.asInt()
-            startWayfinding(roomId)
+            this.startWayfinding(roomId)
         }
-        addAction("FindRoomByName", mapOf("roomName" to Parameter("string")), null) {
+
+        this.addAction("FindRoomByName", "Show the way to the room with the given name using the LED ground guidance system", mapOf(
+            "roomName" to Parameter("string")
+        ), null) {
             val roomName = it["roomName"]!!.asText()
             val roomId = this.getRoomIdFromHint(roomName)
-            startWayfinding(roomId)
+            this.startWayfinding(roomId)
         }
     }
 
