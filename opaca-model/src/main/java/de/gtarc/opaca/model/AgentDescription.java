@@ -33,8 +33,4 @@ public class AgentDescription {
     @NonNull
     List<Stream> streams = List.of();
 
-    public AgentDescription(String agentId, String agentType, List<Action> actions, List<Stream> streams) {
-        this(agentId, agentType, null, actions, streams);
-    }
-
 }

@@ -21,7 +21,7 @@ import java.io.InputStream
  * - one or more ContainerizedAgents, registers with the ContainerAgent, provides actions and/or reacts to messages
  * - zero or more regular agents that may interact with the ContainerizedAgents or just perform background tasks
  */
-abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name) {
+abstract class AbstractContainerizedAgent(name: String, val description: String? = null): Agent(overrideName=name) {
 
     /** proxy to parent Runtime Platform for forwarding outgoing calls */
     private var runtimePlatformUrl: String? = null
@@ -47,7 +47,7 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
 
     fun register(notify: Boolean) {
         log.info("REGISTERING...")
-        val desc = getDescription()
+        val desc = getAgentDescription()
         val ref = system.resolve(CONTAINER_AGENT)
         ref invoke ask<Registered>(Register(desc, notify)) {
             log.info("REGISTERED: Parent URL is ${it.parentUrl}")
@@ -60,16 +60,17 @@ abstract class AbstractContainerizedAgent(name: String): Agent(overrideName=name
 
     fun deregister(notify: Boolean) {
         log.info("DE-REGISTERING...")
-        val desc = getDescription()
+        val desc = getAgentDescription()
         val ref = system.resolve(CONTAINER_AGENT)
         ref tell DeRegister(desc.agentId, notify)
     }
 
-    open fun getDescription() = AgentDescription(
+    open fun getAgentDescription() = AgentDescription(
         this.name,
         this.javaClass.name,
-        actions,
-        streams
+        this.description,
+        this.actions,
+        this.streams
     )
 
     fun addAction(name: String, parameters: Map<String, Parameter>, result: Parameter?, callback: (Map<String, JsonNode>) -> Any?) =

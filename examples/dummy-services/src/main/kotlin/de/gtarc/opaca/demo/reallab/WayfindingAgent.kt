@@ -25,7 +25,10 @@ val ROOMS = mapOf(
  * Since this service would have an effect on the real world, the dummy-version does not really
  * do anything, except finding the room id for a given room name.
  */
-class WayfindingAgent : AbstractContainerizedAgent(name="wayfinding-agent") {
+class WayfindingAgent : AbstractContainerizedAgent(
+    name = "wayfinding-agent",
+    description = "Agent for interacting with the ZEKI floor-based LED wayfinding system (dummy version)"
+) {
 
     override fun setupAgent() {
         this.addAction("FindRoomById", "Show the way to the room with the given ID using the LED ground guidance system", mapOf(

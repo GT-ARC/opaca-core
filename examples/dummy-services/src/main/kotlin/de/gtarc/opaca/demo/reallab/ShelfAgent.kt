@@ -9,7 +9,10 @@ import de.gtarc.opaca.model.Parameter
  * close those shelves (which, of course, does nothing in this version). Opening and closing actually
  * do exactly the same thing, as the real shelves don't know their state and can only be toggled.
  */
-class ShelfAgent : AbstractContainerizedAgent(name="shelf-agent") {
+class ShelfAgent : AbstractContainerizedAgent(
+    name = "shelf-agent",
+    description = "This agent knows where things can be found in the ZEKI kitchen and can open and close shelves (dummy-version)."
+) {
 
     val CONTENTS = mapOf(
         1 to listOf("clean", "sponge", "towel", "tuch", "schwamm", "reinig"),

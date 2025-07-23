@@ -12,7 +12,10 @@ import java.time.Duration
  * stand-in for a proper notifications-service or for showing the state of imaginary windows,
  * lights, etc.
  */
-class ServletAgent: AbstractContainerizedAgent(name="servlet-agent") {
+class ServletAgent: AbstractContainerizedAgent(
+    name = "servlet-agent",
+    description = "Can be used to show some basic information (text, tabular data, alerts) in a very simple Web UI"
+) {
 
     // the current step (incremented each second)
     var step = 0

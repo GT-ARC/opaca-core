@@ -9,7 +9,10 @@ import kotlin.random.Random
  * In reality, there are many more sensors per room, one for each value to be measured (temperature,
  * co2, etc.), but this has been simplified here. The get-value action just returns a random number.
  */
-class HomeAssistantAgent: AbstractContainerizedAgent(name="home-assistant-agent") {
+class HomeAssistantAgent: AbstractContainerizedAgent(
+    name = "home-assistant-agent",
+    description = "Agent to interact with HomeAssistant and thus e.g. get readings on different sensors at ZEKI (dummy version)"
+) {
 
     val SENSORS = mapOf(
         "104" to "experience|xp|hub",
