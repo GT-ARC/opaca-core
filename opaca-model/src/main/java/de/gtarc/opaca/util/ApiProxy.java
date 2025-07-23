@@ -161,7 +161,7 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     // CONNECTING ROUTES
 
     @Override
-    public boolean connectPlatform(LoginConnection loginConnection) throws IOException {
+    public boolean connectPlatform(ConnectionRequest loginConnection) throws IOException {
         return client.post("/connections", loginConnection, Boolean.class);
     }
 

@@ -397,7 +397,7 @@ public class PlatformTests {
     @Test
     public void testConnectAndDisconnect() throws Exception {
         var platformABaseUrl = getBaseUrl(PLATFORM_A_URL);
-        var loginCon = new LoginConnection(null, null, platformABaseUrl);
+        var loginCon = new ConnectionRequest(null, null, platformABaseUrl);
 
         // connect platforms
         var con = request(PLATFORM_B_URL, "POST", "/connections", loginCon);
@@ -432,14 +432,14 @@ public class PlatformTests {
 
     @Test
     public void testConnectUnknown() throws Exception {
-        var loginCon = new LoginConnection(null, null, "http://flsflsfsjfkj.com");
+        var loginCon = new ConnectionRequest(null, null, "http://flsflsfsjfkj.com");
         var con = request(PLATFORM_A_URL, "POST", "/connections", loginCon);
         Assert.assertEquals(502, con.getResponseCode());
     }
 
     @Test
     public void testConnectInvalid() throws Exception {
-        var loginCon = new LoginConnection(null, null, "not a valid url");
+        var loginCon = new ConnectionRequest(null, null, "not a valid url");
         var con = request(PLATFORM_A_URL, "POST", "/connections", loginCon);
         Assert.assertEquals(400, con.getResponseCode());
     }

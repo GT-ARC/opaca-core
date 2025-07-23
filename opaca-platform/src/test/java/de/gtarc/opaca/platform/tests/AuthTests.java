@@ -500,8 +500,8 @@ public class AuthTests {
         return new Login(username, password);
     }
 
-    private LoginConnection createLoginCon(String username, String password, String url) {
-        return new LoginConnection(username, password, url);
+    private ConnectionRequest createLoginCon(String username, String password, String url) {
+        return new ConnectionRequest(username, password, url);
     }
 
     private String getUserToken(String userType) throws Exception {

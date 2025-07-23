@@ -64,9 +64,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     /** Currently connected other Runtime Platforms, mapping URL to description */
     private Map<String, RuntimePlatform> connectedPlatforms;
 
-    /** Set of remote Runtime Platform URLs with a pending connection request */
-    private final Set<String> pendingConnections = new HashSet<>();
-
     /** Map of validators for validating action argument types for each container */
     private final Map<String, ArgumentValidator> validators = new HashMap<>();
 
@@ -390,9 +387,20 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     @Override
-    public boolean connectPlatform(LoginConnection loginConnection) throws IOException {
+    public boolean connectPlatform(ConnectionRequest loginConnection) throws IOException {
         String url = normalizeString(loginConnection.getUrl());
         checkUrl(url);
+
+        /*
+        TODO
+        check if self -> false
+        try to get info (with auth if given)
+        if connect-back, forward request to other platform with own url and connect-back=false
+        generate token for self like when starting a container if using auth
+        if BOTH succeeds, add url+info to connected platforms
+        use websockets to subscribe to updates???
+         */
+
         if (url.equals(config.getOwnBaseUrl()) || connectedPlatforms.containsKey(url)) {
             return false;
         } else if (pendingConnections.contains(url)) {
@@ -411,7 +419,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                     var info = getPlatformClient(url).getPlatformInfo();
                     url = info.getBaseUrl();
                     pendingConnections.add(url);
-                    if (getPlatformClient(url).connectPlatform(new LoginConnection(null, null, config.getOwnBaseUrl()))) {
+                    if (getPlatformClient(url).connectPlatform(new ConnectionRequest(null, null, config.getOwnBaseUrl()))) {
                         connectedPlatforms.put(url, info);
                     }
                 } finally {

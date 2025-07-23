@@ -142,7 +142,7 @@ public class TestUtils {
 
     public static void connectPlatforms(String platformUrl, String connectedUrl) throws Exception {
         var connectedBaseUrl = getBaseUrl(connectedUrl);
-        var loginCon = new LoginConnection(null, null, connectedBaseUrl);
+        var loginCon = new ConnectionRequest(null, null, connectedBaseUrl);
         var con = request(platformUrl, "POST", "/connections", loginCon);
         if (con.getResponseCode() != 200) {
             var message = new String(con.getErrorStream().readAllBytes());

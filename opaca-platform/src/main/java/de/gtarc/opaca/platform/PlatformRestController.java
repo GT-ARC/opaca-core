@@ -342,7 +342,7 @@ public class PlatformRestController {
 	@Operation(summary="Establish connection to another Runtime Platform; " +
 			"return false if platform already connected", tags={"connections"})
 	public boolean connectPlatform(
-			@RequestBody LoginConnection loginConnection
+			@RequestBody ConnectionRequest loginConnection
 	) throws IOException {
 		// TODO handle IO Exception (platform not found or does not respond, could be either 404 or 502)
 		log.info(String.format("CONNECT PLATFORM: %s", loginConnection.getUrl()));

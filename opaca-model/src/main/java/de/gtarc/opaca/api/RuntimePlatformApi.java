@@ -170,7 +170,7 @@ public interface RuntimePlatformApi extends CommonApi {
      * @param loginConnection Stores the username, password, and url to connect to
      * @return Connection successful?
      */
-    boolean connectPlatform(LoginConnection loginConnection) throws IOException;
+    boolean connectPlatform(ConnectionRequest loginConnection) throws IOException;
 
     /**
      * Get list uf base-URLs of connected other Runtime Platforms
