@@ -130,7 +130,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public String login(Login loginParams) {
-        return jwtUtil.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
+        return userDetailsService.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
     }
 
     @Override
@@ -277,9 +277,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
         }
         // create user first so the container can immediately talk with the platform
-        userDetailsService.createUser(agentContainerId, generateRandomPwd(),
-                config.enableAuth ? userDetailsService.getUserRole(owner) : Role.GUEST,
-                config.enableAuth ? userDetailsService.getUserPrivileges(owner) : null);
+        userDetailsService.createTempSubUser(agentContainerId);
 
         // start container... this may raise an Exception, or returns the connectivity info
         Connectivity connectivity;
@@ -408,6 +406,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (connect.isConnectBack()) {
             var ownUrl = config.getOwnBaseUrl();
             var ownToken = config.enableAuth ? jwtUtil.generateToken(url, Duration.ofDays(7)) : null;
+            userDetailsService.createTempSubUser(url);
             client.connectPlatform(new ConnectionRequest(ownUrl, false, ownToken));
         }
         // use websocket to connect to updates
@@ -431,6 +430,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (connectedPlatforms.containsKey(url)) {
             connectedPlatforms.remove(url);
             tokens.remove(url);
+            userDetailsService.removeUser(url);
             if (connectionWebsockets.containsKey(url)) {
                 var ws = connectionWebsockets.remove(url);
                 ws.sendClose(1000, "disconnected");
@@ -587,13 +587,6 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw new IllegalArgumentException(String.format("Container Image has unsatisfied Requirements: %s",
                     failedRequirements));
         }
-    }
-
-    /**
-     * Creates a random String of length 24 containing upper and lower case characters and numbers
-     */
-    private String generateRandomPwd() {
-        return RandomStringUtils.random(24, true, true);
     }
 
     /**

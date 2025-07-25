@@ -1,14 +1,18 @@
 package de.gtarc.opaca.platform.user;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import de.gtarc.opaca.model.Role;
 import de.gtarc.opaca.model.User;
+import de.gtarc.opaca.platform.auth.JwtUtil;
 import jakarta.annotation.PostConstruct;
 
 import de.gtarc.opaca.platform.PlatformConfig;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -36,6 +40,9 @@ public class TokenUserDetailsService implements UserDetailsService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
 
     @PostConstruct
 	public void postConstruct() {
@@ -60,6 +67,15 @@ public class TokenUserDetailsService implements UserDetailsService {
         }
     }
 
+    public String generateTokenForUser(String username, String password) {
+        UserDetails userDetails = loadUserByUsername(username);
+        if (passwordEncoder.matches(password, userDetails.getPassword())) {
+            return jwtUtil.generateToken(username, Duration.ofHours(1));
+        } else {
+            throw new BadCredentialsException("Wrong password");
+        }
+    }
+
     /**
      * Adding a new user to the UserRepository. Users can be human [username, password, roles, privileges]
      * or containers [containerID, password(random), roles, privileges]
@@ -72,6 +88,25 @@ public class TokenUserDetailsService implements UserDetailsService {
             User user = new User(username, passwordEncoder.encode(password), role, privileges != null ? privileges : new ArrayList<>());
             userRepository.save(user);
         }
+    }
+
+    /**
+     * Create a temporary sub-user, derived from teh user of the current request, to be used by
+     * Containers started or other Runtime Platforms connected by that user.
+     */
+    public void createTempSubUser(String username) {
+        var owner = getUser(jwtUtil.getCurrentRequestUser()).getUsername();
+        createUser(username, generateRandomPwd(),
+                config.enableAuth ? getUserRole(owner) : Role.GUEST,
+                config.enableAuth ? getUserPrivileges(owner) : null
+        );
+    }
+
+    /**
+     * Creates a random String of length 24 containing upper and lower case characters and numbers
+     */
+    public String generateRandomPwd() {
+        return RandomStringUtils.random(24, true, true);
     }
 
     /**
