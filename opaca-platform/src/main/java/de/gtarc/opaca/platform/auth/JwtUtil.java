@@ -43,19 +43,14 @@ public class JwtUtil {
     public String generateTokenForUser(String username, String password) {
         UserDetails userDetails = tokenUserDetailsService.loadUserByUsername(username);
         if (passwordEncoder.matches(password, userDetails.getPassword())) {
-            return createToken(username, Duration.ofHours(1));
+            return generateToken(username, Duration.ofHours(1));
         } else {
             throw new BadCredentialsException("Wrong password");
         }
     }
 
-    public String generateTokenForAgentContainer(String containerId) {
-        // TODO expiration date of 10 hours does not work for agent containers, should be able to run for weeks
-        return createToken(containerId, Duration.ofHours(10));
-    }
-
-    private String createToken(String username, Duration duration) {
-        return Jwts.builder().setSubject(username)
+    public String generateToken(String subject, Duration duration) {
+        return Jwts.builder().setSubject(subject)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + duration.toMillis()))
                 .signWith(SignatureAlgorithm.HS256, config.secret).compact();

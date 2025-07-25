@@ -27,6 +27,7 @@ import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -128,7 +129,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     public String renewToken() {
         // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
         String owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
-        return jwtUtil.generateTokenForAgentContainer(owner);
+        return jwtUtil.generateToken(owner, Duration.ofHours(10));
     }
 
     /*
@@ -264,7 +265,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         String token = "";
         String owner = "";
         if (config.enableAuth) {
-            token = jwtUtil.generateTokenForAgentContainer(agentContainerId);
+            token = jwtUtil.generateToken(agentContainerId, Duration.ofHours(24));
             owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
         }
         // create user first so the container can immediately talk with the platform
@@ -387,48 +388,27 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     @Override
-    public boolean connectPlatform(ConnectionRequest loginConnection) throws IOException {
-        String url = normalizeString(loginConnection.getUrl());
+    public boolean connectPlatform(ConnectionRequest connect) throws IOException {
+        String url = normalizeString(connect.getUrl());
         checkUrl(url);
-
-        /*
-        TODO
-        check if self -> false
-        try to get info (with auth if given)
-        if connect-back, forward request to other platform with own url and connect-back=false
-        generate token for self like when starting a container if using auth
-        if BOTH succeeds, add url+info to connected platforms
-        use websockets to subscribe to updates???
-         */
-
         if (url.equals(config.getOwnBaseUrl()) || connectedPlatforms.containsKey(url)) {
             return false;
-        } else if (pendingConnections.contains(url)) {
-            // callback from remote platform following our own request for connection
-            return true;
-        } else {
-            if (loginConnection.getUsername() != null) {
-                // with auth, unidirectional
-                var token = getPlatformClient(url).login(new Login(loginConnection.getUsername(), loginConnection.getPassword()));
-                var info = getPlatformClient(url, token).getPlatformInfo();
-                connectedPlatforms.put(url, info);
-                tokens.put(url, token);
-            } else {
-                // without auth, bidirectional
-                try {
-                    var info = getPlatformClient(url).getPlatformInfo();
-                    url = info.getBaseUrl();
-                    pendingConnections.add(url);
-                    if (getPlatformClient(url).connectPlatform(new ConnectionRequest(null, null, config.getOwnBaseUrl()))) {
-                        connectedPlatforms.put(url, info);
-                    }
-                } finally {
-                    // also remove from pending in case client.post fails
-                    pendingConnections.remove(url);
-                }
-            }
-            return true;
         }
+        // try to get info (with token, if given)
+        var token = connect.getToken();
+        var client = getPlatformClient(url, token);
+        var info = client.getPlatformInfo();
+        // ask other platform to connect back to self?
+        if (connect.isConnectBack()) {
+            var ownUrl = config.getOwnBaseUrl();
+            var ownToken = config.enableAuth ? jwtUtil.generateToken(url, Duration.ofDays(7)) : null;
+            client.connectPlatform(new ConnectionRequest(ownUrl, false, ownToken));
+        }
+        // TODO use websocket to connect to updates?
+        // store connection if all the above steps succeeded
+        connectedPlatforms.put(url, info);
+        tokens.put(url, token);
+        return true;
     }
 
     @Override
@@ -440,12 +420,9 @@ public class PlatformImpl implements RuntimePlatformApi {
     public boolean disconnectPlatform(String url) throws IOException {
         url = normalizeString(url);
         checkUrl(url);
-        if (connectedPlatforms.remove(url) != null) {
-            if (tokens.containsKey(url)) {
-                tokens.remove(url);
-            } else {
-                getPlatformClient(url).disconnectPlatform(config.getOwnBaseUrl());
-            }
+        if (connectedPlatforms.containsKey(url)) {
+            connectedPlatforms.remove(url);
+            tokens.remove(url);
             log.info(String.format("Disconnected from %s", url));
             return true;
         }
@@ -505,13 +482,10 @@ public class PlatformImpl implements RuntimePlatformApi {
     /**
      * Whenever there is a change in this platform's Agent Containers (added, removed, or updated),
      * call the /notify route of all connected Runtime Platforms, so they can pull the updated /info
-     *
-     * TODO this method is called when something about the containers changes... can we make this
-     *      asynchronous (without too much fuzz) so it does not block those other calls?
      */
     private void notifyConnectedPlatforms() {
-        // TODO with connect not being bidirectional, this does not really make sense anymore
-        //  adapt to possible new /subscribe route, or change entirely?
+        // TODO chenge to use websockets
+        /*
         for (String platformUrl : connectedPlatforms.keySet()) {
             var client = getPlatformClient(platformUrl);
             try {
@@ -520,6 +494,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 log.warning("Failed to forward update to Platform " + platformUrl);
             }
         }
+        */
     }
 
     /**
