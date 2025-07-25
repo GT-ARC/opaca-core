@@ -58,7 +58,7 @@ public class EventsFilter implements Filter {
         Map<String, Set<String>> routes = Map.of(
             "GET", Set.of("/stream", "/token"),
             "POST", Set.of("/users", "/stream", "/invoke", "/send", "/broadcast", "/login", "/containers", "/connections"),
-            "PUT", Set.of("/users"),
+            "PUT", Set.of("/users", "/containers"),
             "DELETE", Set.of("/users", "/containers", "/connections")
         );
         return routes.getOrDefault(request.getMethod(), Set.of()).stream()
@@ -67,7 +67,8 @@ public class EventsFilter implements Filter {
 
     private void addEvent(Event event) {
         EventHistory.getInstance().addEvent(event);
-        if (event.getEventType() == Event.EventType.CALL) {
+        if (event.getEventType() == Event.EventType.SUCCESS) {
+
             String[] routeParts = event.getRoute().split("\\s+");
             String firstPathSegment = "/" + routeParts[1].split("/")[1];
             webSocketHandler.broadcastEvent(firstPathSegment, event);
@@ -79,11 +80,11 @@ public class EventsFilter implements Filter {
     }
 
     private Event createResultEvent(Event related) {
-        return new Event(Event.EventType.SUCCESS, null, null, null, null, related.getId());
+        return new Event(Event.EventType.SUCCESS, related.getRoute(), related.getSenderId(), null, null, related.getId());
     }
 
     private Event createErrorEvent(Event related, int status) {
-        return new Event(Event.EventType.ERROR, null, null, null, status, related.getId());
+        return new Event(Event.EventType.ERROR, related.getRoute(), related.getSenderId(), null, status, related.getId());
     }
 
 }
