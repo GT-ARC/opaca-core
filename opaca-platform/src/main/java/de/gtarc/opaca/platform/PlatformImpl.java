@@ -14,6 +14,7 @@ import de.gtarc.opaca.model.AgentContainer.Connectivity;
 import de.gtarc.opaca.platform.util.ArgumentValidator;
 import de.gtarc.opaca.platform.util.RequirementsChecker;
 import de.gtarc.opaca.util.ApiProxy;
+import de.gtarc.opaca.util.WebSocketConnector;
 import lombok.Getter;
 import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
@@ -27,8 +28,10 @@ import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.http.WebSocket;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -64,6 +67,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
     private Map<String, RuntimePlatform> connectedPlatforms;
+    private Map<String, WebSocket> connectionWebsockets;
 
     /** Map of validators for validating action argument types for each container */
     private final Map<String, ArgumentValidator> validators = new HashMap<>();
@@ -77,6 +81,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         this.startedContainers = sessionData.startContainerRequests;
         this.tokens = sessionData.tokens;
         this.connectedPlatforms = sessionData.connectedPlatforms;
+        this.connectionWebsockets = new HashMap<>();
 
         // initialize container client based on environment
         if (config.containerEnvironment == PostAgentContainer.ContainerEnvironment.DOCKER) {
@@ -97,6 +102,9 @@ public class PlatformImpl implements RuntimePlatformApi {
         for (var containerId : runningContainers.keySet()) {
             var image = runningContainers.get(containerId).getImage();
             validators.put(containerId, new ArgumentValidator(image));
+        }
+        for (var url : connectedPlatforms.keySet()) {
+            openConnectionWebsocket(url, tokens.get(url));
         }
     }
 
@@ -404,7 +412,9 @@ public class PlatformImpl implements RuntimePlatformApi {
             var ownToken = config.enableAuth ? jwtUtil.generateToken(url, Duration.ofDays(7)) : null;
             client.connectPlatform(new ConnectionRequest(ownUrl, false, ownToken));
         }
-        // TODO use websocket to connect to updates?
+        // use websocket to connect to updates
+        openConnectionWebsocket(url, token);
+
         // store connection if all the above steps succeeded
         connectedPlatforms.put(url, info);
         tokens.put(url, token);
@@ -423,6 +433,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (connectedPlatforms.containsKey(url)) {
             connectedPlatforms.remove(url);
             tokens.remove(url);
+            if (connectionWebsockets.containsKey(url)) {
+                var ws = connectionWebsockets.remove(url);
+                ws.sendClose(1000, "disconnected");
+            }
             log.info(String.format("Disconnected from %s", url));
             return true;
         }
@@ -478,6 +492,20 @@ public class PlatformImpl implements RuntimePlatformApi {
     /*
      * HELPER METHODS
      */
+
+    /**
+     * TODO docs
+     */
+    private void openConnectionWebsocket(String url, String token) {
+        try {
+            var res = WebSocketConnector.subscribe(url, token, "/containers", message -> {
+                notifyUpdatePlatform(url);
+            });
+            connectionWebsockets.put(url, res.get());
+        } catch (ExecutionException | InterruptedException e) {
+            log.warning("Failed to establish websocket connection to " + url);
+        }
+    }
 
     /**
      * Whenever there is a change in this platform's Agent Containers (added, removed, or updated),
