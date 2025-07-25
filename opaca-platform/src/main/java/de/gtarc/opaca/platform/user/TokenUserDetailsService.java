@@ -95,11 +95,12 @@ public class TokenUserDetailsService implements UserDetailsService {
      * Containers started or other Runtime Platforms connected by that user.
      */
     public void createTempSubUser(String username) {
-        var owner = getUser(jwtUtil.getCurrentRequestUser()).getUsername();
-        createUser(username, generateRandomPwd(),
-                config.enableAuth ? getUserRole(owner) : Role.GUEST,
-                config.enableAuth ? getUserPrivileges(owner) : null
-        );
+        if (config.enableAuth) {
+            var owner = getUser(jwtUtil.getCurrentRequestUser()).getUsername();
+            createUser(username, generateRandomPwd(), getUserRole(owner), getUserPrivileges(owner));
+        } else {
+            createUser(username, generateRandomPwd(), Role.GUEST, null);
+        }
     }
 
     /**
