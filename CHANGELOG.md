@@ -5,6 +5,8 @@
 * check container requirements against platform's provisions
 * fixed bug in port-checking logic when running in Docker
 * various smaller fixes
+* reworked `/connection` routes to allow for both uni- and bidirectional connections with and without auth
+* using websockets for updates on running containers of connected platforms
 
 
 ## 0.2 Release
@@ -16,6 +18,7 @@
 * added route/parameter to get agents of connected platforms, too
 * added Open-API compliant description of all agents' actions
 * various smaller fixes
+* added websocket connection to get notified about platform events
 
 
 ## 0.1 Release
