@@ -425,8 +425,8 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public boolean disconnectPlatform(String url) throws IOException {
-        url = normalizeString(url);
+    public boolean disconnectPlatform(ConnectionRequest disconnect) throws IOException {
+        var url = normalizeString(disconnect.getUrl());
         checkUrl(url);
         if (connectedPlatforms.containsKey(url)) {
             connectedPlatforms.remove(url);
@@ -434,6 +434,12 @@ public class PlatformImpl implements RuntimePlatformApi {
             if (connectionWebsockets.containsKey(url)) {
                 var ws = connectionWebsockets.remove(url);
                 ws.sendClose(1000, "disconnected");
+            }
+            // disconnect other?
+            if (disconnect.isConnectBack()) {
+                var client = getPlatformClient(url, disconnect.getToken());
+                var ownUrl = config.getOwnBaseUrl();
+                client.disconnectPlatform(new ConnectionRequest(ownUrl, false, null));
             }
             log.info(String.format("Disconnected from %s", url));
             return true;

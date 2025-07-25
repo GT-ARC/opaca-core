@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import de.gtarc.opaca.model.ConnectionRequest;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 
@@ -171,11 +172,11 @@ public class Session {
 
     private void disconnectPlatforms() throws IOException {
         log.info("Disconnecting from other Platforms...");
-        for (String connection : implementation.getConnections()) {
+        for (String url : implementation.getConnections()) {
             try {
-                implementation.disconnectPlatform(connection);
+                implementation.disconnectPlatform(new ConnectionRequest(url, false, null));
             } catch (Exception e) {
-                log.warning("Exception disconnecting from " + connection + ": " + e.getMessage());
+                log.warning("Exception disconnecting from " + url + ": " + e.getMessage());
             }
         }
     }

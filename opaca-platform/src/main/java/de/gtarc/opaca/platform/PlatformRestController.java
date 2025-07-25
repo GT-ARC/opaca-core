@@ -359,10 +359,10 @@ public class PlatformRestController {
 	@RequestMapping(value="/connections", method=RequestMethod.DELETE)
 	@Operation(summary="Remove connection to another Runtime Platform", tags={"connections"})
 	public boolean disconnectPlatform(
-			@RequestBody String url
+			@RequestBody ConnectionRequest disconnect
 	) throws IOException {
-		log.info(String.format("DISCONNECT PLATFORM: %s", url));
-		return implementation.disconnectPlatform(url);
+		log.info(String.format("DISCONNECT PLATFORM: %s", disconnect));
+		return implementation.disconnectPlatform(disconnect);
 	}
 
 	/*
