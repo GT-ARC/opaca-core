@@ -308,7 +308,6 @@ public class PlatformImpl implements RuntimePlatformApi {
                     log.warning("Agent Container ID does not match: Expected " +
                             agentContainerId + ", but found " + container.getContainerId());
                 }
-                notifyConnectedPlatforms();
                 return agentContainerId;
             } catch (JsonMappingException e) {
                 errorMessage = "Container returned malformed /info: " + e.getMessage();
@@ -387,7 +386,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         validators.remove(containerId);
         userDetailsService.removeUser(containerId);
         containerClient.stopContainer(containerId);
-        notifyConnectedPlatforms();
         return true;
     }
 
@@ -456,7 +454,6 @@ public class PlatformImpl implements RuntimePlatformApi {
             containerInfo.setConnectivity(runningContainers.get(containerId).getConnectivity());
             runningContainers.put(containerId, containerInfo);
             validators.put(containerId, new ArgumentValidator(containerInfo.getImage()));
-            notifyConnectedPlatforms();
             return true;
         } catch (IOException e) {
             log.warning(String.format("Container did not respond: %s; removing...", containerId));
@@ -494,35 +491,15 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     /**
-     * TODO docs
+     * Create Websocket connection and associate it with the connected platform's URL, to be closed when disconnected
      */
     private void openConnectionWebsocket(String url, String token) {
         try {
-            var res = WebSocketConnector.subscribe(url, token, "/containers", message -> {
-                notifyUpdatePlatform(url);
-            });
+            var res = WebSocketConnector.subscribe(url, token, "/containers", msg -> notifyUpdatePlatform(url));
             connectionWebsockets.put(url, res.get());
         } catch (ExecutionException | InterruptedException e) {
             log.warning("Failed to establish websocket connection to " + url);
         }
-    }
-
-    /**
-     * Whenever there is a change in this platform's Agent Containers (added, removed, or updated),
-     * call the /notify route of all connected Runtime Platforms, so they can pull the updated /info
-     */
-    private void notifyConnectedPlatforms() {
-        // TODO chenge to use websockets
-        /*
-        for (String platformUrl : connectedPlatforms.keySet()) {
-            var client = getPlatformClient(platformUrl);
-            try {
-                client.notifyUpdatePlatform(config.getOwnBaseUrl());
-            } catch (IOException e) {
-                log.warning("Failed to forward update to Platform " + platformUrl);
-            }
-        }
-        */
     }
 
     /**
