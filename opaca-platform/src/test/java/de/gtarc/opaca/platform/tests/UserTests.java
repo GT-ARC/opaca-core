@@ -146,19 +146,22 @@ public class UserTests {
     @Test
     public void test05DeleteUser() throws Exception {
         var con = requestWithToken(PLATFORM_A, "DELETE", "/users/newName", null, token);
+        Assert.assertTrue(result(con, Boolean.class));
         Assert.assertEquals(200, con.getResponseCode());
     }
 
     @Test
     public void test05DeleteUserDuplicate() throws Exception {
         var con = requestWithToken(PLATFORM_A, "DELETE", "/users/newName", null, token);
-        Assert.assertEquals(404, con.getResponseCode());
+        Assert.assertFalse(result(con, Boolean.class));
+        Assert.assertEquals(200, con.getResponseCode());
     }
 
     @Test
     public void test05DeleteNonExisting() throws Exception {
         var con = requestWithToken(PLATFORM_A, "DELETE", "/users/missingUser", null, token);
-        Assert.assertEquals(404, con.getResponseCode());
+        Assert.assertFalse(result(con, Boolean.class));
+        Assert.assertEquals(200, con.getResponseCode());
     }
 
 }
