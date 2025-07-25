@@ -92,19 +92,29 @@ public class PlatformTests {
     @Test
     public void testWebSocketEvents() throws Exception {
         // create web socket listener and collect messages
-        var messages = new ArrayList<String>();
-        WebSocketConnector.subscribe(PLATFORM_A_URL, null, "/invoke", messages::add);
+        var invokeMsg = new ArrayList<String>();
+        var containerMsg = new ArrayList<String>();
+        WebSocketConnector.subscribe(PLATFORM_A_URL, null, "/invoke", invokeMsg::add);
+        WebSocketConnector.subscribe(PLATFORM_A_URL, null, "/containers", containerMsg::add);
 
         // make sure connection is established first
         Thread.sleep(200);
 
-        // trigger different events
-        request(PLATFORM_A_URL, "POST", "/invoke/doesNotMatter", Map.of()).getResponseCode();
-        request(PLATFORM_A_URL, "POST", "/invoke/stillDoesNotMatter", Map.of()).getResponseCode();
-        request(PLATFORM_A_URL, "POST", "/invoke/neitherThisTime", Map.of()).getResponseCode();
+        // deploy test container
+        var containerId = result(request(PLATFORM_A_URL, "POST", "/containers", getSampleContainerImage()));
 
-        // check that correct events have been received
-        Assert.assertEquals(3, messages.size());
+        // trigger different events (events only generated on 'success' now)
+        request(PLATFORM_A_URL, "POST", "/invoke/GetInfo", Map.of()).getResponseCode();
+        request(PLATFORM_A_URL, "POST", "/invoke/GetInfo", Map.of()).getResponseCode();
+        request(PLATFORM_A_URL, "POST", "/invoke/GetInfo", Map.of()).getResponseCode();
+
+        // cleanup
+        result(request(PLATFORM_A_URL, "DELETE", "/containers/" + containerId, null));
+
+        // check that correct number of events have been received
+        Thread.sleep(200);
+        Assert.assertEquals(3, invokeMsg.size());
+        Assert.assertEquals(2, containerMsg.size());
     }
 
     /**
@@ -397,7 +407,7 @@ public class PlatformTests {
     @Test
     public void testConnectAndDisconnect() throws Exception {
         var platformABaseUrl = getBaseUrl(PLATFORM_A_URL);
-        var loginCon = new ConnectionRequest(null, null, platformABaseUrl);
+        var loginCon = new ConnectionRequest(platformABaseUrl, true, null);
 
         // connect platforms
         var con = request(PLATFORM_B_URL, "POST", "/connections", loginCon);
@@ -416,12 +426,13 @@ public class PlatformTests {
         Assert.assertEquals(platformABaseUrl, lst2.get(0));
 
         // disconnect platforms
-        con = request(PLATFORM_B_URL, "DELETE", "/connections", platformABaseUrl);
+        con = request(PLATFORM_B_URL, "DELETE", "/connections", loginCon);
         Assert.assertEquals(200, con.getResponseCode());
         res = result(con, Boolean.class);
         Assert.assertTrue(res);
 
         // check that both platforms are not registered as connected with each other anymore
+        // TODO disconnect back, too?
         con = request(PLATFORM_A_URL, "GET", "/connections", null);
         lst1 = result(con, List.class);
         Assert.assertTrue(lst1.isEmpty());
@@ -432,14 +443,14 @@ public class PlatformTests {
 
     @Test
     public void testConnectUnknown() throws Exception {
-        var loginCon = new ConnectionRequest(null, null, "http://flsflsfsjfkj.com");
+        var loginCon = new ConnectionRequest("http://flsflsfsjfkj.com", false, null);
         var con = request(PLATFORM_A_URL, "POST", "/connections", loginCon);
         Assert.assertEquals(502, con.getResponseCode());
     }
 
     @Test
     public void testConnectInvalid() throws Exception {
-        var loginCon = new ConnectionRequest(null, null, "not a valid url");
+        var loginCon = new ConnectionRequest("not a valid url", false, null);
         var con = request(PLATFORM_A_URL, "POST", "/connections", loginCon);
         Assert.assertEquals(400, con.getResponseCode());
     }
@@ -449,7 +460,7 @@ public class PlatformTests {
      */
     @Test
     public void testDisconnectUnknown() throws Exception {
-        var con = request(PLATFORM_A_URL, "DELETE", "/connections", "http://flsflsfsjfkj.com");
+        var con = request(PLATFORM_A_URL, "DELETE", "/connections", new ConnectionRequest("http://flsflsfsjfkj.com", false, null));
         Assert.assertEquals(200, con.getResponseCode());
 
         // not really an error... afterward, the platform _is_ disconnected, it just never was connected, thus false
