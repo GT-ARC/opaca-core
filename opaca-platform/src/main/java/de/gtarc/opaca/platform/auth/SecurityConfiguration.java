@@ -80,6 +80,8 @@ public class SecurityConfiguration {
                     .csrf(CsrfConfigurer::disable)
                     .authorizeHttpRequests((auth) -> auth
                             // some routes, like those related to OpenAPI and login, should work without Authentication
+                            // (except for the OpenAPI route giving insight into the agents' actions)
+                            .requestMatchers(HttpMethod.GET, "/v3/api-docs/actions").hasRole(Role.GUEST.name())
                             .requestMatchers(noAuthRoutes).permitAll()
                             // The next block implements the RBAC defined in the user-management docs
                             // A rule consists of a specific or generic (/**) route, the lowest role level
