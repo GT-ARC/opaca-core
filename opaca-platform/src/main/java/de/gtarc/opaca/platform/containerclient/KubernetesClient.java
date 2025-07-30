@@ -156,9 +156,7 @@ public class KubernetesClient extends AbstractContainerClient {
             V1Deployment createdDeployment = appsApi.createNamespacedDeployment(namespace, deployment).execute();
             log.info("Deployment created: " + createdDeployment.getMetadata().getName());
 
-            boolean isRunning = waitForContainerToRunOrFail(createdDeployment.getMetadata().getName(), namespace);
-
-            if (!isRunning) {
+            if (! waitForContainerToRunOrFail(createdDeployment.getMetadata().getName(), namespace)) {
                 throw new IOException("Pod failed to start.");
             }
 
@@ -189,7 +187,7 @@ public class KubernetesClient extends AbstractContainerClient {
         var start = System.currentTimeMillis();
         while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000L) {
             try {
-                V1Pod container = coreApi.readNamespacedPod(containerId, namespace, null, null, null);
+                V1Pod container = coreApi.readNamespacedPod(containerId, namespace).execute();
                 String phase = container.getStatus().getPhase();
                 if ("Running".equals(phase)) {
                     return true;

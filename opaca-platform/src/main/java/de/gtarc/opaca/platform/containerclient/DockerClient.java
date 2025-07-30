@@ -123,9 +123,7 @@ public class DockerClient extends AbstractContainerClient {
             log.info("Starting Container...");
             dockerClient.startContainerCmd(res.getId()).exec();
 
-            boolean isRunning = waitForContainerToRunOrFail(res.getId());
-
-            if (!isRunning) {
+            if (! waitForContainerToRunOrFail(res.getId())) {
                 throw new IOException("Container failed to start.");
             }
 
