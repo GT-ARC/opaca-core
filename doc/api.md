@@ -1,6 +1,8 @@
 # API Routes and Models
 
-This document shows a high-level, easy-to-read, language-agnostic overview of the JIAC++ API, the different routes, etc. It _should_ be kept up to date, but might not always _be_ up to date. When in doubt, please consult the Interfaces and Model classes in the `jiacpp-model` module, or just start a Runtime Platform and check the documentation in the Swagger Web UI.
+This document shows a high-level, easy-to-read, language-agnostic overview of the OPACA API, the different routes, etc. It _should_ be kept up to date, but might not always _be_ up-to-date. When in doubt, please consult the Interfaces and Model classes in the `opaca-model` module, or just start a Runtime Platform and check the documentation in the Swagger Web UI.
+
+Note that besides the REST routes described in this file, the OPACA Runtime Platform also provides a `/subscribe` endpoint to which one can subscribe via a [websocket](websockets.md) to get notifications about different events.
 
 
 ## Environment Variables (Agent Container)
@@ -9,7 +11,8 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 * `CONTAINER_ID` The Agent Container's own container ID used to identify the container at the Runtime Platform.
 * `PLATFORM_URL` The URL or IP address where the Agent Container can reach its parent Runtime Platform
-* `TOKEN` Bearer token assigned to the container needed to interact with the parent Runtime Platform if it is using authentication (see [Authentication](doc/auth.md) for details).
+* `TOKEN` Bearer token assigned to the container needed to interact with the parent Runtime Platform if it is using authentication (see [Authentication](auth.md) for details).
+* `OWNER` The username corresponding to the user who has started the Agent Container. The owner has special permissions to perform actions on his own containers.
 
 
 ## Agents API
@@ -23,10 +26,11 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * output: `AgentContainer`
 * errors: none
 
-### `GET /agents`
+### `GET /agents?includeConnected={true|false}`
 
-* get all agents running in the agent container, or in all agent containers of the platform
+* get all agents running in the agent container, or in all agent containers of the platform (or connected platforms)
 * input: none
+  * includeConnected: (optional, default `false`) `true/false`, whether to include agents of connected platforms (only for Runtime Platform!)
 * output: `[ AgentDescription ]`
 * errors: none
 
@@ -72,7 +76,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
     * forward: (optional, default `true`) `true/false`, whether the request should be forwarded to connected platforms in case the action/agent does not exist on this platform
 * body: JSON object mapping parameter names to parameters
 * output: result of the action
-* errors: 404 for unknown action or agent
+* errors: 404 for unknown action or agent, 400 for mismatched arguments
 
 ### `POST /invoke/{action}?timeout={int}&containerId={containerId}&forward={true|false}`
 
@@ -93,6 +97,22 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 * same as `GET /stream/{stream}/{agent}`, but get stream at _any_ agent that provides it
 
+### `POST /stream/{stream}/{agent}?containerId={containerId}&forward={true|false}`
+
+* post/send stream to the given agent
+* input:
+  * stream: name of the stream
+  * agent: ID of the agent to invoke the action on
+  * containerId: (optional) if the request should only go to one specific container
+  * forward: (optional, default `true`) `true/false`, whether the request should be forwarded to connected platforms in case the action/agent does not exist on this platform
+* body: the stream
+* output: none
+* errors: 404 for unknown stream or agent
+
+### `POST /stream/{stream}?containerId={containerId}&forward={true|false}`
+
+* same as `POST /stream/{stream}/{agent}`, but get stream at _any_ agent that understands it
+
 
 ## Platform API
 
@@ -105,6 +125,13 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * get information about this runtime platform
 * input: none
 * output: `RuntimePlatform`
+* errors: none
+
+### `GET /config`
+
+* get information on the configuration of this runtime platform
+* input: none
+* output: `{'key': value}`, can vary depending on implementation
 * errors: none
 
 ### `GET /history`
@@ -135,6 +162,13 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * body: `PostAgentContainer`
 * output: ID of the created AgentContainer (string)
 * errors: 404 if image not found, 502 (bad gateway) if container did not start properly
+
+### `PUT /containers`
+
+* similar to "POST", but replaces an existing container belonging to the same image (identified by image-name); only works if there is _exactly_ one matching running container, otherwise fails
+* body: `PostAgentContainer`
+* output: ID of the created AgentContainer (string)
+* errors: 404 if image not found, 502 (bad gateway) if container did not start properly, 400 if zero or more than one matching containers found
 
 ### `POST /containers/notify`
 
@@ -219,6 +253,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
     "image": AgentContainerImage,
     "arguments": {string: string}
     "agents": [ AgentDescription ],
+    "owner": string,
     "runningSince": "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
     "connectivity": {
         "publicUrl": URL,
@@ -269,11 +304,11 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 ```
 {
     "name": string,
-    "parameters": {string: string},
-    "result": string
+    "parameters": {string: Parameter},
+    "result": Parameter
 }
 ```
-Note: The `parameters` key is a map of the argument names to their expected types, e.g. `"x": "Int"`. Similarly, `result` denotes the action's return type.
+Note: The `parameters` key is a map of the argument names to their expected types. Similarly, `result` denotes the action's return type. Please refer to [Validation](validation.md) for the format and how parameter validation works.
 
 ### Message
 ```
@@ -287,4 +322,4 @@ The relations between the model classes used in the different API routes are dep
 
 ![Model Classes](img/models.png)
 
-Note that this is not a 100% accurate reproduction of the classes in `jiacpp-model`, e.g. the `port` is actually not an attribute of the PortDescription but a key in a hash map.
+Note that this is not a 100% accurate reproduction of the classes in `opaca-model`, e.g. the `port` is actually not an attribute of the PortDescription but a key in a hash map.

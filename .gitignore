@@ -8,3 +8,6 @@ Session.json
 *.log
 *.log.*
 .attach_pid*
+*.ipr
+*.iws
+runner-log.txt

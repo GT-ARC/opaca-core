@@ -1,0 +1,34 @@
+@startuml
+
+:Uninitialized;
+
+if (Added to System)
+
+:Starting;
+
+else
+
+stop
+
+endif
+
+repeat
+  :Running;
+
+  if (Exception) then(yes)
+
+  repeat
+    :Suspended;
+   repeat while(Received Restart)
+
+  else
+
+  endif
+
+repeat while (Received Terminate)
+
+:ShuttingDown;
+
+:Terminated;
+
+@enduml

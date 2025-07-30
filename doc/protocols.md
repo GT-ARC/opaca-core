@@ -22,7 +22,7 @@
 
 * **message**: using regular JIAC-VI `agent_ref tell`
 * **broadcast**: using regular JIAC-VI `broker publish`
-* **invoke**: using regular JIAC-VI `ask invoke`, either with JIAC++ `Invoke` object or any other payload
+* **invoke**: using regular JIAC-VI `ask invoke`, either with OPACA `Invoke` object or any other payload
 
 ![Internal Interactions](img/messages-internal.png)
 

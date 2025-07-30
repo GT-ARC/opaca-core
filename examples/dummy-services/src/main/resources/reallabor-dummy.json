@@ -1,0 +1,35 @@
+{  
+  "imageName": "reallabor-dummy",
+  "name": "Reallabor Dummy Service",
+  "version": "0.1",
+  "provider": "GT-ARC",
+
+  "apiPort": 8082,
+  "definitions": {
+    "Grocery": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Grocery",
+      "description": "Some amount of some grocery item.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "The name of the item",
+          "type": "string"
+        },
+        "amount": {
+          "description": "How many of that item are there.",
+          "type": "integer"
+        },
+        "expirationDate": {
+          "description": "When the item will expire.",
+          "type": "string"
+        },
+        "category": {
+          "description": "What category it belongs to.",
+          "type": "string"
+        }
+      },
+      "required": ["name", "amount", "expirationDate", "category"]
+    }
+  }
+}

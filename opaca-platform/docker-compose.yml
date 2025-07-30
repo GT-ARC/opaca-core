@@ -1,0 +1,69 @@
+version: "3.3"
+
+services:
+
+  # THE MAIN OPACA RUNTIME PLATFORM RUNNING IN DOCKER
+  # (Agent Containers can run in the same Docker or somewhere else)
+  opaca-platform:
+    build: .
+    image: opaca-platform
+    ports:
+      - "8000:8000"
+    depends_on:
+      - opaca-platform-userdb
+    # Environment variables with no value after ":" are taken from .env file
+    environment:
+      # General Settings; NOTE: PUBLIC_URL must be set for PLATFORM_ENVIRONMENT 'DOCKER'!
+      PORT:
+      PUBLIC_URL:
+      CONTAINER_ENVIRONMENT:
+      PLATFORM_ENVIRONMENT: DOCKER
+      SESSION_POLICY:
+      CONTAINER_TIMEOUT_SEC:
+      DEFAULT_IMAGE_DIRECTORY:
+      EVENT_HISTORY_SIZE:
+      ALWAYS_PULL_IMAGES:
+      # Security & Authentication
+      ENABLE_AUTH:
+      SECRET:
+      PLATFORM_ADMIN_USER:
+      PLATFORM_ADMIN_PWD:
+      # User Management DB
+      DB_EMBED: false
+      DB_URI: mongodb://user:pass@opaca-platform-userdb:27017/admin
+      DB_NAME: opaca-user-data
+      # Image Registry Credentials
+      REGISTRY_SEPARATOR:
+      REGISTRY_NAMES:
+      REGISTRY_LOGINS:
+      REGISTRY_PASSWORDS:
+      # Docker (only for CONTAINER_ENVIRONMENT: DOCKER)
+      REMOTE_DOCKER_HOST:
+      REMOTE_DOCKER_PORT:
+      # Kubernetes (only for PLATFORM_ENVIRONMENT: KUBERNETES)
+      KUBERNETES_NAMESPACE:
+      KUBERNETES_CONFIG:
+    # for running containers on the same Docker as the platform itself
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  # Defines a mongoDB container running alongside the platform container
+  opaca-platform-userdb:
+    image: mongo:7.0.4
+    ports:
+      - "27017:27017"
+    # Use "user" and "pass" as default username:password for the created database
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: user
+      MONGO_INITDB_ROOT_PASSWORD: pass
+    # Use a volume for persistent data storage
+    volumes:
+      - data:/data/db
+      - config:/data/configdb
+
+# Create a volume to persistently store data
+volumes:
+  data:
+    driver: local
+  config:
+    driver: local
