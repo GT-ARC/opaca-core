@@ -156,10 +156,6 @@ public class KubernetesClient extends AbstractContainerClient {
             V1Deployment createdDeployment = appsApi.createNamespacedDeployment(namespace, deployment).execute();
             log.info("Deployment created: " + createdDeployment.getMetadata().getName());
 
-            if (! waitForContainerToRunOrFail(createdDeployment.getMetadata().getName(), namespace)) {
-                throw new IOException("Pod failed to start.");
-            }
-
             V1Service createdService = coreApi.createNamespacedService(namespace, service).execute();
             log.info("Service created: " + createdService.getMetadata().getName());
             String serviceIP = createdService.getSpec().getClusterIP();
@@ -181,30 +177,6 @@ public class KubernetesClient extends AbstractContainerClient {
             log.severe("Error creating pod: " + e.getMessage());
             throw new IOException("Failed to create Pod: " + e.getMessage());
         }
-    }
-    
-    private boolean waitForContainerToRunOrFail(String containerId, String namespace) {
-        var start = System.currentTimeMillis();
-        while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000L) {
-            try {
-                V1Pod container = coreApi.readNamespacedPod(containerId, namespace).execute();
-                String phase = container.getStatus().getPhase();
-                if ("Running".equals(phase)) {
-                    return true;
-                } else if ("Failed".equals(phase) || "Unknown".equals(phase)) {
-                    return false;
-                }
-            } catch (ApiException e) {
-                log.severe("API exception while checking pod status: " + e.getMessage());
-                return false;
-            } 
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                log.severe(e.getMessage());
-            }
-        }
-        return false; // Consider it a failure if the container does not start within the timeout
     }
 
     private List<V1EnvVar> buildEnv(String containerId, String token, String owner, List<ImageParameter> parameters, Map<String, String> arguments) {
@@ -234,8 +206,14 @@ public class KubernetesClient extends AbstractContainerClient {
 
     @Override
     public boolean isContainerAlive(String containerId) throws IOException {
-        // TODO implement this method for Kubernetes!
-        return true;
+        try {
+            V1Pod container = coreApi.readNamespacedPod(containerId, namespace).execute();
+            String phase = container.getStatus().getPhase();
+            return List.of("Running", "Pending").contains(phase);
+        } catch (ApiException e) {
+            log.severe("Error reading pod: " + e.getMessage());
+            return false;
+        }
     }
 
     @Override

@@ -2,7 +2,6 @@ package de.gtarc.opaca.platform.containerclient;
 
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.PullImageResultCallback;
-import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.api.exception.InternalServerErrorException;
 import com.github.dockerjava.api.exception.NotFoundException;
@@ -102,6 +101,7 @@ public class DockerClient extends AbstractContainerClient {
             if (config.alwaysPullImages || ! isImagePresent(imageName)) {
                 pullDockerImage(imageName);
             }
+
             // port mappings for API- and Extra-Ports
             var newPorts = new HashSet<Integer>();
             Map<Integer, Integer> portMap = Stream.concat(Stream.of(image.getApiPort()), extraPorts.keySet().stream())
@@ -123,10 +123,6 @@ public class DockerClient extends AbstractContainerClient {
             log.info("Starting Container...");
             dockerClient.startContainerCmd(res.getId()).exec();
 
-            if (! waitForContainerToRunOrFail(res.getId())) {
-                throw new IOException("Container failed to start.");
-            }
-
             var connectivity = new AgentContainer.Connectivity(
                     getContainerBaseUrl(),
                     portMap.get(image.getApiPort()),
@@ -144,26 +140,6 @@ public class DockerClient extends AbstractContainerClient {
         } catch (DockerException e) {
             throw new IOException("Failed to start Docker container.", e);
         }
-    }
-
-    private boolean waitForContainerToRunOrFail(String containerId) {
-        var start = System.currentTimeMillis();
-        while (System.currentTimeMillis() < start + config.containerTimeoutSec * 1000L) {
-            InspectContainerResponse containerResponse = dockerClient.inspectContainerCmd(containerId).exec();
-            String state = containerResponse.getState().getStatus();
-            if ("running".equals(state)) {
-                return true;
-            } else if ("exited".equals(state) || "dead".equals(state) || "paused".equals(state) || "restarting".equals(state)) {
-                return false;
-            }
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                log.severe(e.getMessage());
-            }
- 
-        }
-        return false; // Consider it a failure if the container does not start within the max attempts
     }
 
     private String[] buildEnv(String containerId, String token, String owner, List<ImageParameter> parameters, Map<String, String> arguments) {
@@ -194,6 +170,7 @@ public class DockerClient extends AbstractContainerClient {
             var res = dockerClient.inspectContainerCmd(containerInfo.containerId).exec();
             return res.getState().getRunning();
         } catch (NotFoundException e) {
+            log.severe("Container not found: " + e.getMessage());
             return false;
         }
     }
