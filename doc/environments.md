@@ -25,6 +25,8 @@ export PUBLIC_URL="http://$IP:8000"
 docker-compose up --build
 ```
 
+Also, note that in order to run Docker container's on the system hosting the Runtime Platform itself, you have to pass the `/var/run/docker.sock` file as a volume, see the [Docker-Compose file](../opaca-platform/docker-compose.yml) as reference.
+
 ### Kubernetes
 
 For productive use, the Runtime Platform itself can be executed in Kubernetes along with its containers.

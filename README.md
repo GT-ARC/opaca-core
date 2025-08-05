@@ -116,7 +116,7 @@ You can set those properties in the run config in your IDE, via an `.env` file, 
 See the [API docs](doc/api.md) for Environment Variables passed from the Runtime Platform to the started Agent Containers.
 
 
-## Releases & Distribution
+## Maven Releases & Distribution
 
 This section is about distributing releases to the `dai-open` and `dai-open-snapshot` repositories (see `pom.xml` for details). This is necessary so that others can use the modules as libraries without having to check out the repository and build it locally.
 
@@ -125,9 +125,23 @@ New SNAPSHOT releases are deployed by CI each time a new commit is pushed to the
 * increment the version numbers in _all_ `pom.xml` files to the next release version, e.g. change `X.Y-SNAPSHOT` to `X.Y` (both the `version` and `parent.version`, and don't forget the examples)
 * rename the current `X.Y-SNAPSHOT` sections in the changelog file to `X.Y`
 * run `mvn deploy` in the repository root (for this step, you will need the appropriate credentials in your `~/.m2/settings.xml`)
-* make a Git commit and `git tag` it as `release-x.y`
+* make a Git commit and `git tag` it as `vX.Y`
 * increment the version numbers from `X.Y` to `X.Y+1-SNAPSHOT` (or, for very significant changes, `X+1.0-SNAPSHOT`)
 * create a new section for the new snapshot version in the changelog file
+
+
+## Docker Build & Distribution
+
+The OPACA Runtime Platform is best executed natively, but it can also be run in a Docker image, which is especially favourable for combining it with other tools in a Docker Compose. There are two Dockerfiles:
+
+* In the repository's root dir: A two-staged build, first building the project with Maven, then copying the build artifacts to another Image. This build takes quite long and is mainly intended for GitHub CI.
+* In `opaca-platform`: Requires the project to be built with Maven first and then only copies the final Jar to the Image, but is much faster and ideal for building locally.
+
+In addition, the different `examples` also have Dockerfiles, and building the `sample-container` is required for running the unit tests (see "Quick Testing Guide" above).
+
+The CI of the public GitHub repository will create a new Docker image each time the main branch or a tag is pushed and publish them in the https://github.com/orgs/GT-ARC/packages package registry.
+
+Note that in order to run the OPACA Runtime Platform in Docker, the container has to be [properly configured](doc/environments.md).
 
 
 ## Additional Information
