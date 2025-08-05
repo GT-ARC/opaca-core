@@ -51,9 +51,6 @@ public class PlatformConfig {
     @Value("${container_timeout_sec}")
     public int containerTimeoutSec;
 
-    @Value("${container_setup_sec}")
-    public int containerSetupSec;
-
     @Value("${default_image_directory}")
     public String defaultImageDirectory;
 
