@@ -62,9 +62,8 @@ public class UserController {
     public ResponseEntity<?> addUser(
             @RequestBody User user
     ) {
+        log.info(String.format("POST /users %s", user));
         userDetailsService.createUser(user.getUsername(), user.getPassword(), user.getRole(), user.getPrivileges());
-        log.info(String.format("ADD USER: [username='%s', role='%s', privileges=%s]",
-                user.getUsername(), user.getRole(), user.getPrivileges()));
         return new ResponseEntity<>(userDetailsService.getUser(user.getUsername()).toString(), HttpStatus.CREATED);
     }
 
@@ -81,8 +80,8 @@ public class UserController {
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
             @PathVariable String username
     ) {
+        log.info(String.format("DELETE /users/%s", username));
         if (!config.enableAuth || isAdminOrSelf(token, username)){
-            log.info(String.format("DELETE USER: %s", username));
             return new ResponseEntity<>(userDetailsService.removeUser(username), HttpStatus.OK);
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN);
@@ -101,8 +100,8 @@ public class UserController {
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
             @PathVariable String username
     ) {
+        log.info(String.format("GET /users/%s", username));
         if (!config.enableAuth || isAdminOrSelf(token, username)){
-            log.info(String.format("GET USER: %s", username));
             return new ResponseEntity<>(userDetailsService.getUser(username).toString(), HttpStatus.OK);
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN);
@@ -115,7 +114,7 @@ public class UserController {
     @RequestMapping(value="/users", method=RequestMethod.GET)
     @Operation(summary="Get all users from the connected database", tags={"users"})
     public ResponseEntity<List<String>> getUsers() {
-        log.info("GET USERS");
+        log.info("GET /users");
         return new ResponseEntity<>(List.copyOf(userDetailsService.getUsers()), HttpStatus.OK);
     }
 
@@ -131,12 +130,7 @@ public class UserController {
             @PathVariable String username,
             @RequestBody User user
     ) {
-        String logOut = String.format("UPDATE USER: %s (", username);
-        if (user.getUsername() != null) logOut += String.format("NEW USERNAME: %s ", user.getUsername());
-        if (user.getPassword() != null) logOut += "NEW PASSWORD ";
-        if (user.getRole() != null) logOut += String.format("NEW ROLE: %s ", user.getRole());
-        if (user.getPrivileges() != null && !user.getPrivileges().isEmpty()) logOut += String.format("NEW PRIVILEGES: %s ", user.getPrivileges());
-        log.info(logOut + ")");
+        log.info(String.format("PUT /users/%s %s", username, user));
         return new ResponseEntity<>(userDetailsService.updateUser(username, user.getUsername(), user.getPassword(),
                 user.getRole(), user.getPrivileges()), HttpStatus.OK);
     }
