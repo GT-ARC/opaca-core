@@ -9,7 +9,10 @@ import kotlin.random.Random
  * In reality, there are many more sensors per room, one for each value to be measured (temperature,
  * co2, etc.), but this has been simplified here. The get-value action just returns a random number.
  */
-class HomeAssistantAgent: AbstractContainerizedAgent(name="home-assistant-agent") {
+class HomeAssistantAgent: AbstractContainerizedAgent(
+    name = "home-assistant-agent",
+    description = "Agent to interact with HomeAssistant and thus e.g. get readings on different sensors at ZEKI (dummy version)"
+) {
 
     val SENSORS = mapOf(
         "104" to "experience|xp|hub",
@@ -27,25 +30,25 @@ class HomeAssistantAgent: AbstractContainerizedAgent(name="home-assistant-agent"
     )
 
     override fun setupAgent() {
-        addAction("GetSensorsList", mapOf(), Parameter("array", true, Parameter.ArrayItems("string", null))) {
+        addAction("GetSensorsList", "Get list of all devices with 'multisensor' in their name. Those include the different sub-sensors of the multisensors, each including the main sensor's ID in their name as well as what they measure.", mapOf(), Parameter("array", true, Parameter.ArrayItems("string", null))) {
             actionGetMultisensors()
         }
-        addAction("GetSensorId", mapOf(
+        addAction("GetSensorId", "Get sensor ID corresponding to a given room. Room name does not have to be a perfect match.", mapOf(
             "room" to Parameter("string")
         ), Parameter("string", false)) { 
             getSensorFromRoomHint(it["room"]!!.asText())
         }
-        addAction("GetTemperature", mapOf(
+        addAction("GetTemperature", "Get temperature value for a given sensor", mapOf(
             "sensorId" to Parameter("string")
         ), Parameter("number")) { 
             actionGetValue(it["sensorId"]!!.asText(), "temperature")
         }
-        addAction("GetCo2", mapOf(
+        addAction("GetCo2", "Get Co2 value for a given sensor", mapOf(
             "sensorId" to Parameter("string")
         ), Parameter("number")) { 
             actionGetValue(it["sensorId"]!!.asText(), "co2")
         }
-        addAction("GetValue", mapOf(
+        addAction("GetValue", "Get the value for a given sensor and property, searching in the list of sensors for a match", mapOf(
             "sensorId" to Parameter("string"),
             "key" to Parameter("string")
         ), Parameter("number")) { 

@@ -11,7 +11,10 @@ data class Booking(val roomName: String, val bookingDate: String)
  * Dummy-agent providing actions for seeing bookings of imaginary rooms. Somewhat inspired by
  * a similar system at ZEKI, but much dumbed down and only returning hard-coded values.
  */
-class RoomBookingAgent : AbstractContainerizedAgent(name="room-booking-agent") {
+class RoomBookingAgent : AbstractContainerizedAgent(
+    name = "room-booking-agent",
+    description = "Agent for using the ZEKI Room Booking system (dummy version)"
+) {
 
     override fun setupAgent() {
         addAction("GetUserBookings", mapOf(), Parameter("array", true, ArrayItems("object", null))) {

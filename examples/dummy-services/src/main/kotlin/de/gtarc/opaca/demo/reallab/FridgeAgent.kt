@@ -9,7 +9,10 @@ import de.gtarc.opaca.util.RestHelper
  * Dummy-version of the agent for managing the inventory list of the ZEKI fridge.
  * Can be used for listing, adding and removing grocery items from the inventory.
  */
-class FridgeAgent : AbstractContainerizedAgent(name="fridge-agent") {
+class FridgeAgent : AbstractContainerizedAgent(
+    name = "fridge-agent",
+    description = "Keeps track of items in the fridge, until when they can be consumed, add/remove stuff, etc. (dummy version)"
+) {
 
     data class Grocery(
         @JsonProperty("name")

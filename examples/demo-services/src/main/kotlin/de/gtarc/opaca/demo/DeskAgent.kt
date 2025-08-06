@@ -9,7 +9,10 @@ import kotlin.random.Random
  * Dummy-agent providing actions for seeing bookings of imaginary desks. Somewhat inspired by
  * a similar system at ZEKI, but much dumbed down and only returning hard-coded values.
  */
-class DeskBookingAgent: AbstractContainerizedAgent(name="desk-booking-agent") {
+class DeskBookingAgent: AbstractContainerizedAgent(
+    name = "desk-booking-agent",
+    description = "Can be used to book (virtual) desks in rooms of ZEKI; this has no real effect, just for demos"
+) {
 
     val rooms = listOf("Co-Working Space", "Robot Space", "Focus Space", "Experience Hub")
 

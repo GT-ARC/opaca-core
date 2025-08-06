@@ -9,13 +9,16 @@ import de.gtarc.opaca.model.Parameter
  * close those shelves (which, of course, does nothing in this version). Opening and closing actually
  * do exactly the same thing, as the real shelves don't know their state and can only be toggled.
  */
-class ShelfAgent : AbstractContainerizedAgent(name="shelf-agent") {
+class ShelfAgent : AbstractContainerizedAgent(
+    name = "shelf-agent",
+    description = "This agent knows where things can be found in the ZEKI kitchen and can open and close shelves (dummy-version)."
+) {
 
     val CONTENTS = mapOf(
-        1 to listOf("clean", "sponge", "towel"),
-        2 to listOf("glass", "cup", "pot"),
-        3 to listOf("plate", "bowl", "saucer"),
-        4 to listOf("coffee", "tea", "beans")
+        1 to listOf("clean", "sponge", "towel", "tuch", "schwamm", "reinig"),
+        2 to listOf("glas", "cup", "pot", "tasse"),
+        3 to listOf("plate", "bowl", "saucer", "teller", "schüssel"),
+        4 to listOf("coffee", "tea", "beans", "tee", "bohnen", "kaffee")
     )
 
     val SHELF_NAME = mapOf(
@@ -26,17 +29,17 @@ class ShelfAgent : AbstractContainerizedAgent(name="shelf-agent") {
     )
 
     override fun setupAgent() {
-        addAction("FindInShelf", mapOf(
+        this.addAction("FindInShelf", "Find the ID of the shelf that should contain the given item, or -1 if no such shelf exists.", mapOf(
             "item" to Parameter("string")
         ), Parameter("integer")) {
             findInShelf(it["item"]!!.asText())
         }
-        addAction("OpenShelf", mapOf(
+        this.addAction("OpenShelf", "Open the shelf with the given ID. Only use this action when you can see the shelf!", mapOf(
             "shelf" to Parameter("integer")
         ), Parameter("boolean")) {
             openShelf(it["shelf"]!!.asInt())
         }
-        addAction("CloseShelf", mapOf(
+        this.addAction("CloseShelf", "Close the shelf with the given ID. Only use this action when you can see the shelf!", mapOf(
             "shelf" to Parameter("integer")
         ), Parameter("boolean")) {
             closeShelf(it["shelf"]!!.asInt())

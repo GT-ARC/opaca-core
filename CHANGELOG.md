@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 0.3 Snapshot
+
+* check container requirements against platform's provisions
+* fixed bug in port-checking logic when running in Docker
+* various smaller fixes
+
+
 ## 0.2 Release
 
 * renamed to 'OPACA' and released on GitHub
