@@ -2,7 +2,6 @@ package de.gtarc.opaca.platform;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.platform.util.ActionToOpenApi;
 import de.gtarc.opaca.platform.util.ActionToOpenApi.ActionFormat;
@@ -12,7 +11,10 @@ import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.java.Log;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -37,10 +39,10 @@ import java.util.NoSuchElementException;
 @SecurityRequirement(name = "bearerAuth")
 @CrossOrigin(origins = "*", allowedHeaders = "*",
 		methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS } )
-public class PlatformRestController {
+public class PlatformRestController implements ApplicationListener<ApplicationReadyEvent> {
 
 	@Autowired
-	private RuntimePlatformApi implementation;
+	private PlatformImpl implementation;
 
 	@Autowired
 	private PlatformConfig config;
@@ -53,6 +55,16 @@ public class PlatformRestController {
 	@PostConstruct
 	public void postConstruct() {
 		EventHistory.maxSize = config.eventHistorySize;
+	}
+
+	@Override
+	public void onApplicationEvent(@NotNull ApplicationReadyEvent event) {
+		try {
+			implementation.testSelfConnection();
+		} catch (Exception e) {
+			log.severe(String.format("Test-Connection to self at %s failed: %s", config.getOwnBaseUrl(), e.getMessage()));
+			System.exit(1);
+		}
 	}
 
 	/*

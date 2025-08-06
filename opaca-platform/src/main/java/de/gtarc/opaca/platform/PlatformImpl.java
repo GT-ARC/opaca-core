@@ -84,6 +84,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @PostConstruct
     public void initialize() {
+        // restore session data
         this.runningContainers = sessionData.runningContainers;
         this.startedContainers = sessionData.startContainerRequests;
         this.tokens = sessionData.tokens;
@@ -603,6 +604,15 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (! failedRequirements.isEmpty()) {
             throw new IllegalArgumentException(String.format("Container Image has unsatisfied Requirements: %s",
                     failedRequirements));
+        }
+    }
+
+    protected void testSelfConnection() throws Exception {
+        var token = config.enableAuth ?
+                jwtUtil.generateTokenForUser(config.platformAdminUser, config.platformAdminPwd) : null;
+        var info = new ApiProxy(config.getOwnBaseUrl(), null, token, 5000).getPlatformInfo();
+        if (! Objects.equals(platformId, info.getPlatformId())) {
+            throw new IllegalArgumentException("Mismatched Platform ID");
         }
     }
 
