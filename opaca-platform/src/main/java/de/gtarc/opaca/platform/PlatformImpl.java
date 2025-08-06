@@ -27,6 +27,8 @@ import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -53,6 +55,13 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Autowired
     private TokenUserDetailsService userDetailsService;
+
+
+    /** platform's own UUID */
+    private final String platformId = UUID.randomUUID().toString();;
+
+    /** when the platform was started */
+    private final ZonedDateTime startedAt = ZonedDateTime.now(ZoneId.of("Z"));
 
     private ContainerClient containerClient;
 
@@ -105,10 +114,12 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public RuntimePlatform getPlatformInfo() {
         return new RuntimePlatform(
+                platformId,
                 config.getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),
                 requirementsChecker.getFullPlatformProvisions(),
-                List.copyOf(connectedPlatforms.keySet())
+                List.copyOf(connectedPlatforms.keySet()),
+                startedAt
         );
     }
 
