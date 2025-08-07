@@ -9,6 +9,7 @@ import de.gtarc.opaca.util.EventHistory;
 import de.gtarc.opaca.util.RestHelper.RequestException;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.java.Log;
 import org.jetbrains.annotations.NotNull;
@@ -138,9 +139,11 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 
 	@RequestMapping(value="/token", method=RequestMethod.GET)
 	@Operation(summary="Renew token for logged in user.", tags={"authentication"})
-	public String renewToken() throws IOException {
+	public String renewToken(
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = true) String token
+	) throws IOException {
 		log.info("GET /token");
-		return implementation.renewToken();
+		return implementation.renewToken(token);
 	}
 
 	/*
@@ -173,6 +176,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	public String getOpenApiActions(
 			@RequestParam(required = false, defaultValue = "JSON") ActionFormat format
 	) throws IOException {
+		// TODO check token here, too?
 		return ActionToOpenApi.createOpenApiSchema(implementation.getContainers(), format, config.enableAuth);
 	}
 
@@ -304,21 +308,23 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@RequestMapping(value="/containers", method=RequestMethod.POST)
 	@Operation(summary="Start a new Agent Container on this platform", tags={"containers"})
 	public String addContainer(
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@RequestBody PostAgentContainer container,
 			@RequestParam(required = false, defaultValue = "-1") int timeout
 	) throws IOException {
 		log.info(String.format("POST /containers %s", container));
-		return implementation.addContainer(container, timeout);
+		return implementation.addContainer(container, timeout, token);
 	}
 
 	@RequestMapping(value="/containers", method=RequestMethod.PUT)
 	@Operation(summary="Start a new Agent Container on this platform, replacing an existing container of the same image", tags={"containers"})
 	public String updateContainer(
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@RequestBody PostAgentContainer container,
 			@RequestParam(required = false, defaultValue = "-1") int timeout
 	) throws IOException {
 		log.info(String.format("PUT /containers %s", container));
-		return implementation.updateContainer(container, timeout);
+		return implementation.updateContainer(container, timeout, token);
 	}
 
 	@RequestMapping(value="/containers", method=RequestMethod.GET)
@@ -341,10 +347,11 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@Operation(summary="Stop and remove Agent Container running on this platform; " +
 			"return false if container not found or already stopped", tags={"containers"})
 	public boolean removeContainer(
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@PathVariable String containerId
 	) throws IOException {
 		log.info(String.format("DELETE /containers/%s", containerId));
-		return implementation.removeContainer(containerId);
+		return implementation.removeContainer(containerId, token);
 	}
 
 	/*

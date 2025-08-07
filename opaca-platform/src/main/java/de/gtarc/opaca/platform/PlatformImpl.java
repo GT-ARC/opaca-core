@@ -144,9 +144,9 @@ public class PlatformImpl {
         return jwtUtil.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
     }
 
-    public String renewToken() {
+    public String renewToken(String token) {
         // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
-        String owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
+        String owner = userDetailsService.getUser(jwtUtil.getUsernameFromToken(token)).getUsername();
         return jwtUtil.generateTokenForAgentContainer(owner);
     }
 
@@ -221,7 +221,7 @@ public class PlatformImpl {
      * CONTAINERS ROUTES
      */
 
-    public String addContainer(PostAgentContainer postContainer, int timeout) throws IOException {
+    public String addContainer(PostAgentContainer postContainer, int timeout, String userToken) throws IOException {
         checkConfig(postContainer);
         checkRequirements(postContainer);
         String agentContainerId = UUID.randomUUID().toString();
@@ -229,7 +229,7 @@ public class PlatformImpl {
         String owner = "";
         if (config.enableAuth) {
             token = jwtUtil.generateTokenForAgentContainer(agentContainerId);
-            owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
+            owner = jwtUtil.getUsernameFromToken(userToken);
         }
         // create user first so the container can immediately talk with the platform
         userDetailsService.createUser(agentContainerId, generateRandomPwd(),
@@ -296,15 +296,15 @@ public class PlatformImpl {
         throw new IOException(errorMessage);
     }
 
-    public String updateContainer(PostAgentContainer container, int timeout) throws IOException {
+    public String updateContainer(PostAgentContainer container, int timeout, String userToken) throws IOException {
         var matchingContainers = runningContainers.values().stream()
                 .filter(c -> c.getImage().getImageName().equals(container.getImage().getImageName()))
                 .toList();
         switch (matchingContainers.size()) {
             case 1: {
                 var oldContainer = matchingContainers.get(0);
-                removeContainer(oldContainer.getContainerId());
-                return addContainer(container, timeout);
+                removeContainer(oldContainer.getContainerId(), userToken);
+                return addContainer(container, timeout, userToken);
             }
             case 0:
                 throw new IllegalArgumentException("No matching container is currently running; please use POST instead.");
@@ -321,11 +321,12 @@ public class PlatformImpl {
         return runningContainers.get(containerId);
     }
 
-    public boolean removeContainer(String containerId) throws IOException {
+    public boolean removeContainer(String containerId, String userToken) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
         if (config.enableAuth) {
+            // TODO IGNORE TOKEN IF TOKEN IS NULL! FOR STOP ALL ON SHUTDOWN
             // If request user does not have user profile, throw FORBIDDEN exception
-            UserDetails details = userDetailsService.loadUserByUsername(jwtUtil.getCurrentRequestUser());
+            UserDetails details = userDetailsService.loadUserByUsername(jwtUtil.getUsernameFromToken(userToken));
             if (details == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
             // TODO Not sure if this is the right place to handle custom Http responses
             //  Might need to implement more custom error handling

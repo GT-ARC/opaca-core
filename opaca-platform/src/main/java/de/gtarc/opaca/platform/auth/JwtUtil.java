@@ -35,11 +35,6 @@ public class JwtUtil {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    // TODO This is a very ugly workaround to access the current user making a request
-    //  and could lead to a race condition. The user should be extracted directly in the controller
-    @Getter @Setter
-    private String currentRequestUser;
-
     public String generateTokenForUser(String username, String password) {
         UserDetails userDetails = tokenUserDetailsService.loadUserByUsername(username);
         if (passwordEncoder.matches(password, userDetails.getPassword())) {
