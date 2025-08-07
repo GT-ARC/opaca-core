@@ -69,6 +69,10 @@ public class TokenUserDetailsService implements UserDetailsService {
         if (userRepository.findByUsername(username) != null) {
             throw new UserAlreadyExistsException(username);
         } else {
+            // checked here and not via @NotNull since they can be null for PUT
+            if (username == null || password == null || role == null) {
+                throw new IllegalArgumentException("Username, Password and Role must be provided.");
+            }
             User user = new User(username, passwordEncoder.encode(password), role, privileges != null ? privileges : new ArrayList<>());
             userRepository.save(user);
         }
