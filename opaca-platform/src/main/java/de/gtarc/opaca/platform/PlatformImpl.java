@@ -289,19 +289,26 @@ public class PlatformImpl implements RuntimePlatformApi {
         var client = getClient(agentContainerId, token);
         String errorMessage = "Container did not respond with /info in time.";
         while (System.currentTimeMillis() < containerTimeout) {
+            // check whether container is still starting or alive at all
+            if (! containerClient.isContainerAlive(agentContainerId)) {
+                errorMessage = "Container failed to start.";
+                break;
+            }
             try {
+                // get container /info and add derived attributes
                 var container = client.getContainerInfo();
                 container.setConnectivity(connectivity);
-                runningContainers.put(agentContainerId, container);
-                startedContainers.put(agentContainerId, postContainer);
-                tokens.put(agentContainerId, token);
-                validators.put(agentContainerId, new ArgumentValidator(container.getImage()));
                 container.setOwner(owner);
-                log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
                     log.warning("Agent Container ID does not match: Expected " +
                             agentContainerId + ", but found " + container.getContainerId());
                 }
+                // register container in different collections
+                runningContainers.put(agentContainerId, container);
+                startedContainers.put(agentContainerId, postContainer);
+                tokens.put(agentContainerId, token);
+                validators.put(agentContainerId, new ArgumentValidator(container.getImage()));
+                log.info("Container started: " + agentContainerId);
                 notifyConnectedPlatforms();
                 return agentContainerId;
             } catch (JsonMappingException e) {
@@ -314,10 +321,6 @@ public class PlatformImpl implements RuntimePlatformApi {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 log.severe(e.getMessage());
-            }
-            if (! containerClient.isContainerAlive(agentContainerId)) {
-                errorMessage = "Container failed to start.";
-                break;
             }
         }
 

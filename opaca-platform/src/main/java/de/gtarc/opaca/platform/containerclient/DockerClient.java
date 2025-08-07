@@ -170,6 +170,7 @@ public class DockerClient extends AbstractContainerClient {
             var res = dockerClient.inspectContainerCmd(containerInfo.containerId).exec();
             return res.getState().getRunning();
         } catch (NotFoundException e) {
+            log.severe("Container not found: " + e.getMessage());
             return false;
         }
     }
