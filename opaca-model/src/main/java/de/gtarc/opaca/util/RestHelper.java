@@ -216,7 +216,7 @@ public class RestHelper {
         try {
             var nestedError = mapper.readValue(response, ErrorResponse.class);
             return new RequestException(message, nestedError);
-        } catch (JsonProcessingException e) {
+        } catch (IllegalArgumentException | JsonProcessingException e) {
             var nestedError = new ErrorResponse(connection.getResponseCode(), response, null);
             return new RequestException(message, nestedError);
         }
