@@ -38,19 +38,19 @@ public class UserController {
 
     @ExceptionHandler({IllegalArgumentException.class})
     public ResponseEntity<String> handleBadRequestException(Exception e) {
-        log.warning(e.getMessage());
+        log.warning(e.toString());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
 
     @ExceptionHandler({UserAlreadyExistsException.class})
     public ResponseEntity<String> handleAlreadyExistsException(Exception e) {
-        log.warning(e.getMessage());
+        log.warning(e.toString());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     }
 
     @ExceptionHandler({UsernameNotFoundException.class})
     public ResponseEntity<String> handleResourceNotFoundException(Exception e) {
-        log.warning(e.getMessage());
+        log.warning(e.toString());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
     }
 
