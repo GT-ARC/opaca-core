@@ -22,10 +22,10 @@ import java.util.List;
 public class UserTests {
 
     private static final int PLATFORM_A_PORT = 8006;
-    private final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
+    private static final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
     private static ConfigurableApplicationContext platformA = null;
 
-    private String token = "";
+    private static String adminToken = null;
 
     @BeforeClass
     public static void setupPlatform() {
@@ -348,9 +348,12 @@ public class UserTests {
     }
 
     private String loginAdmin() throws Exception {
-        var con = request(PLATFORM_A, "POST", "/login", new Login("admin", "12345"));
-        Assert.assertEquals(200, con.getResponseCode());
-        return result(con);
+        if (adminToken == null) {
+            var con = request(PLATFORM_A, "POST", "/login", new Login("admin", "12345"));
+            Assert.assertEquals(200, con.getResponseCode());
+            adminToken = result(con);
+        }
+        return adminToken;
     }
 
     @SuppressWarnings({"unchecked"})
