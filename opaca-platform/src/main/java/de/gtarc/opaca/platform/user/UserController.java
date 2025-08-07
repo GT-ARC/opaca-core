@@ -36,10 +36,16 @@ public class UserController {
      * EXCEPTION HANDLERS
      */
 
-    @ExceptionHandler({IllegalArgumentException.class, UserAlreadyExistsException.class})
+    @ExceptionHandler({IllegalArgumentException.class})
     public ResponseEntity<String> handleBadRequestException(Exception e) {
         log.warning(e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
+    @ExceptionHandler({UserAlreadyExistsException.class})
+    public ResponseEntity<String> handleAlreadyExistsException(Exception e) {
+        log.warning(e.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     }
 
     @ExceptionHandler({UsernameNotFoundException.class})
@@ -80,6 +86,7 @@ public class UserController {
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
             @PathVariable String username
     ) {
+        // TODO this route is actually only usable as admin, the header-check is not used
         log.info(String.format("DELETE /users/%s", username));
         if (!config.enableAuth || isAdminOrSelf(token, username)){
             return new ResponseEntity<>(userDetailsService.removeUser(username), HttpStatus.OK);
