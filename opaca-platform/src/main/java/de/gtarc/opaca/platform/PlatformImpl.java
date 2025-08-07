@@ -112,6 +112,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
     }
 
+    /*
+     * PLATFORM INFO AND CONFIG
+     */
+
     @Override
     public RuntimePlatform getPlatformInfo() {
         return new RuntimePlatform(
@@ -219,52 +223,6 @@ public class PlatformImpl implements RuntimePlatformApi {
                 },
                 true
         );
-    }
-
-    /**
-     * Iterate over the provided ClientMatch stream, applying the given processor to all that are a full match.
-     * The result of the first successful processor is returned.
-     *
-     * @param clientMatches The stream of ClientMatch objects.
-     * @param callback A function that is applied to all eligible matches. Is allowed to throw IOException.
-     * @param failOnNoMatch If true, throw a NoSuchElementException in case no client matched the requirements.
-     * @return The result of the first successful processor function.
-     * @throws NoSuchElementException In case no client matched the requirements
-     * @throws IllegalArgumentException when a client matched the requirements but had mismatched action arguments.
-     * @throws IOException In case all matching clients fail with this exception type.
-     */
-    private <T> T iterateClientMatches(
-            Stream<ClientMatch> clientMatches,
-            ThrowingFunction<ClientMatch, T> callback,
-            boolean failOnNoMatch
-    ) throws NoSuchElementException, IllegalArgumentException, IOException {
-        ClientMatch mismatchedParamsClient = null;
-        IOException lastException = null;
-
-        for (ClientMatch match: (Iterable<? extends ClientMatch>) clientMatches::iterator) {
-            if (match.isFullMatch()) {
-                try {
-                    return callback.apply(match);
-                } catch (IOException e) {
-                    log.warning(String.format("Exception from container: %s", e));
-                    lastException = e;
-                }
-            } else if (match.isParamsMismatch()) {
-                mismatchedParamsClient = match;
-            }
-        }
-
-        if (lastException != null) {
-            throw lastException;
-        }
-        if (mismatchedParamsClient != null) {
-            throw new IllegalArgumentException(String.format("Provided arguments %s do not match action parameters.", mismatchedParamsClient.actionArgs));
-        }
-        if (failOnNoMatch) {
-            throw new NoSuchElementException("Requested resource not found.");
-        } else {
-            return null;
-        }
     }
 
     /*
@@ -526,6 +484,52 @@ public class PlatformImpl implements RuntimePlatformApi {
             } catch (IOException e) {
                 log.warning("Failed to forward update to Platform " + platformUrl);
             }
+        }
+    }
+
+    /**
+     * Iterate over the provided ClientMatch stream, applying the given processor to all that are a full match.
+     * The result of the first successful processor is returned.
+     *
+     * @param clientMatches The stream of ClientMatch objects.
+     * @param callback A function that is applied to all eligible matches. Is allowed to throw IOException.
+     * @param failOnNoMatch If true, throw a NoSuchElementException in case no client matched the requirements.
+     * @return The result of the first successful processor function.
+     * @throws NoSuchElementException In case no client matched the requirements
+     * @throws IllegalArgumentException when a client matched the requirements but had mismatched action arguments.
+     * @throws IOException In case all matching clients fail with this exception type.
+     */
+    private <T> T iterateClientMatches(
+            Stream<ClientMatch> clientMatches,
+            ThrowingFunction<ClientMatch, T> callback,
+            boolean failOnNoMatch
+    ) throws NoSuchElementException, IllegalArgumentException, IOException {
+        ClientMatch mismatchedParamsClient = null;
+        IOException lastException = null;
+
+        for (ClientMatch match: (Iterable<? extends ClientMatch>) clientMatches::iterator) {
+            if (match.isFullMatch()) {
+                try {
+                    return callback.apply(match);
+                } catch (IOException e) {
+                    log.warning(String.format("Exception from container: %s", e));
+                    lastException = e;
+                }
+            } else if (match.isParamsMismatch()) {
+                mismatchedParamsClient = match;
+            }
+        }
+
+        if (lastException != null) {
+            throw lastException;
+        }
+        if (mismatchedParamsClient != null) {
+            throw new IllegalArgumentException(String.format("Provided arguments %s do not match action parameters.", mismatchedParamsClient.actionArgs));
+        }
+        if (failOnNoMatch) {
+            throw new NoSuchElementException("Requested resource not found.");
+        } else {
+            return null;
         }
     }
 
