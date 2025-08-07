@@ -39,10 +39,15 @@ import org.springframework.web.server.ResponseStatusException;
 /**
  * This class provides the actual implementation of the API routes. Might also be split up
  * further, e.g. for agent-forwarding, container-management, and linking to other platforms.
+ *
+ * Note that this class is closely related to the {@link RuntimePlatformApi} interface, without
+ * actually implementing it. This is due to the access-token being passed as an explicit parameter
+ * from the Rest-Controller for some routes where the current user is relevant, whereas for e.g.
+ * the {@link ApiProxy} the access-token should always be handled "behind the scenes".
  */
 @Log
 @Component
-public class PlatformImpl implements RuntimePlatformApi {
+public class PlatformImpl {
 
     @Autowired
     private SessionData sessionData;
@@ -116,7 +121,6 @@ public class PlatformImpl implements RuntimePlatformApi {
      * PLATFORM INFO AND CONFIG
      */
 
-    @Override
     public RuntimePlatform getPlatformInfo() {
         return new RuntimePlatform(
                 platformId,
@@ -128,22 +132,18 @@ public class PlatformImpl implements RuntimePlatformApi {
         );
     }
 
-    @Override
     public Map<String, ?> getPlatformConfig() throws IOException {
         return config.toMap();
     }
 
-    @Override
     public List<Event> getHistory() {
         return EventHistory.getInstance().getEvents();
     }
 
-    @Override
     public String login(Login loginParams) {
         return jwtUtil.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
     }
 
-    @Override
     public String renewToken() {
         // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
         String owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
@@ -154,24 +154,20 @@ public class PlatformImpl implements RuntimePlatformApi {
      * AGENTS ROUTES
      */
 
-    @Override
     public List<AgentDescription> getAgents() {
         return streamAgents(false).collect(Collectors.toList());
     }
 
-    @Override
     public List<AgentDescription> getAllAgents() throws IOException {
         return streamAgents(true).collect(Collectors.toList());
     }
 
-    @Override
     public AgentDescription getAgent(String agentId) {
         return streamAgents(true)
                 .filter(a -> a.getAgentId().equals(agentId))
                 .findAny().orElse(null);
     }
 
-    @Override
     public void send(String agentId, Message message, String containerId, boolean forward) throws IOException, NoSuchElementException {
         iterateClientMatches(
                 getClients(containerId, agentId, null, null, null, forward),
@@ -183,7 +179,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         );
     }
 
-    @Override
     public void broadcast(String channel, Message message, String containerId, boolean forward) throws IOException {
         iterateClientMatches(
                 getClients(containerId, null, null, null, null, forward),
@@ -195,7 +190,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         );
     }
 
-    @Override
     public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
         return iterateClientMatches(
                 getClients(containerId, agentId, action, parameters, null, forward),
@@ -204,7 +198,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         );
     }
 
-    @Override
     public InputStream getStream(String stream, String agentId, String containerId, boolean forward) throws IOException {
         return iterateClientMatches(
                 getClients(containerId, agentId, null, null, stream, forward),
@@ -213,7 +206,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         );
     }
 
-    @Override
     public void postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException {
         iterateClientMatches(
                 getClients(containerId, agentId, null, null, stream, forward),
@@ -229,7 +221,6 @@ public class PlatformImpl implements RuntimePlatformApi {
      * CONTAINERS ROUTES
      */
 
-    @Override
     public String addContainer(PostAgentContainer postContainer, int timeout) throws IOException {
         checkConfig(postContainer);
         checkRequirements(postContainer);
@@ -305,7 +296,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         throw new IOException(errorMessage);
     }
 
-    @Override
     public String updateContainer(PostAgentContainer container, int timeout) throws IOException {
         var matchingContainers = runningContainers.values().stream()
                 .filter(c -> c.getImage().getImageName().equals(container.getImage().getImageName()))
@@ -323,17 +313,14 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
     }
 
-    @Override
     public List<AgentContainer> getContainers() {
         return List.copyOf(runningContainers.values());
     }
 
-    @Override
     public AgentContainer getContainer(String containerId) {
         return runningContainers.get(containerId);
     }
 
-    @Override
     public boolean removeContainer(String containerId) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
         if (config.enableAuth) {
@@ -362,7 +349,6 @@ public class PlatformImpl implements RuntimePlatformApi {
      * CONNECTIONS ROUTES
      */
 
-    @Override
     public boolean connectPlatform(LoginConnection loginConnection) throws IOException {
         String url = normalizeString(loginConnection.getUrl());
         checkUrl(url);
@@ -396,12 +382,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
     }
 
-    @Override
     public List<String> getConnections() {
         return List.copyOf(connectedPlatforms.keySet());
     }
 
-    @Override
     public boolean disconnectPlatform(String url) throws IOException {
         url = normalizeString(url);
         checkUrl(url);
@@ -417,7 +401,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         return false;
     }
 
-    @Override
     public boolean notifyUpdateContainer(String containerId) {
         containerId = normalizeString(containerId);
         if (! runningContainers.containsKey(containerId)) {
@@ -439,7 +422,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
     }
 
-    @Override
     public boolean notifyUpdatePlatform(String platformUrl) {
         platformUrl = normalizeString(platformUrl);
         checkUrl(platformUrl);

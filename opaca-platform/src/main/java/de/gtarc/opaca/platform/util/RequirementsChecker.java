@@ -1,7 +1,7 @@
 package de.gtarc.opaca.platform.util;
 
-import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.model.*;
+import de.gtarc.opaca.platform.PlatformImpl;
 import lombok.extern.java.Log;
 
 import java.io.IOException;
@@ -17,9 +17,9 @@ import java.util.stream.Collectors;
 @Log
 public class RequirementsChecker {
 
-    private final RuntimePlatformApi platform;
+    private final PlatformImpl platform;
 
-    public RequirementsChecker(RuntimePlatformApi platform) {
+    public RequirementsChecker(PlatformImpl platform) {
         this.platform = platform;
     }
 
