@@ -32,7 +32,6 @@ import java.util.stream.Stream;
 @Log
 public class KubernetesClient extends AbstractContainerClient {
 
-    private PlatformConfig config;
     private CoreV1Api coreApi;
     private AppsV1Api appsApi;
     private String namespace;
@@ -54,6 +53,8 @@ public class KubernetesClient extends AbstractContainerClient {
 
     @Override
     public void initialize(PlatformConfig config, SessionData sessionData) {
+        super.initialize(config, sessionData);
+
         // Initialize the Kubernetes API client
         try {
             ApiClient client;
@@ -76,10 +77,8 @@ public class KubernetesClient extends AbstractContainerClient {
         }
 
         this.namespace = config.kubernetesNamespace;
-        this.config = config;
         this.auth = loadKubernetesSecrets();
         this.pods = sessionData.pods;
-        this.usedPorts = sessionData.usedPorts;
     }
 
     @Override

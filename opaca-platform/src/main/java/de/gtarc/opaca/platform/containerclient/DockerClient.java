@@ -40,8 +40,6 @@ import java.util.stream.Stream;
 @Log
 public class DockerClient extends AbstractContainerClient {
 
-    private PlatformConfig config;
-
     /** Client for accessing (remote) Docker runtime */
     private com.github.dockerjava.api.DockerClient dockerClient;
 
@@ -61,7 +59,7 @@ public class DockerClient extends AbstractContainerClient {
 
     @Override
     public void initialize(PlatformConfig config, SessionData sessionData) {
-        this.config = config;
+        super.initialize(config, sessionData);
 
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
                 .withDockerHost(getDockerHost())
@@ -78,7 +76,6 @@ public class DockerClient extends AbstractContainerClient {
         this.auth = loadDockerAuth();
         this.dockerClient = DockerClientImpl.getInstance(dockerConfig, dockerHttpClient);
         this.dockerContainers = sessionData.dockerContainers;
-        this.usedPorts = sessionData.usedPorts;
     }
 
     @Override

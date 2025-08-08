@@ -20,7 +20,7 @@ public interface ContainerClient {
      * Initialize the client using properties in the given configuration file. Different clients may
      * require different attributes.
      */
-    void initialize(PlatformConfig config, SessionData SessionData);
+    void initialize(PlatformConfig config, SessionData sessionData);
 
     /**
      * Test connection to the Backend, e.g. Docker or Kubernetes. This is called right after initialize,

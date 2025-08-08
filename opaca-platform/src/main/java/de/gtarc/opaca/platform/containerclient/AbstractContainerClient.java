@@ -9,11 +9,19 @@ import java.util.Set;
 /**
  * Common superclass for different Container Clients implementing some common functions
  */
+@Log
 abstract public class AbstractContainerClient implements ContainerClient {
+
+    protected PlatformConfig config;
 
     /** Set of already used ports on target host */
     protected Set<Integer> usedPorts;
 
+    @Override
+    public void initialize(PlatformConfig config, SessionData sessionData) {
+        this.config = config;
+        this.usedPorts = sessionData.usedPorts;
+    }
 
     /**
      * Starting from the given preferred port, get and reserve the next free port.
