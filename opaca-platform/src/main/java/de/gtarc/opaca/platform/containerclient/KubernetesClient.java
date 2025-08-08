@@ -179,7 +179,7 @@ public class KubernetesClient extends AbstractContainerClient {
     }
 
     private List<V1EnvVar> buildEnv(String containerId, String token, String owner, List<ImageParameter> parameters, Map<String, String> arguments, Map<Integer, Integer> portMap) {
-        return config.buildContainerEnv(containerId, token, owner, parameters, arguments, portMap).entrySet().stream()
+        return buildContainerEnv(containerId, token, owner, parameters, arguments, portMap).entrySet().stream()
                 .map(e -> new V1EnvVar().name(e.getKey()).value(e.getValue()))
                 .collect(Collectors.toList());
     }
@@ -262,8 +262,8 @@ public class KubernetesClient extends AbstractContainerClient {
 
 
     private Map<String, String> loadKubernetesSecrets() {
-        return config.loadDockerAuth().stream().collect(Collectors.toMap(
-                PlatformConfig.ImageRegistryAuth::getRegistry,
+        return getImageRegistryAuth().stream().collect(Collectors.toMap(
+                ImageRegistryAuth::getRegistry,
                 x -> createKubernetesSecret(x.getRegistry(), x.getLogin(), x.getPassword())));
     }
 
