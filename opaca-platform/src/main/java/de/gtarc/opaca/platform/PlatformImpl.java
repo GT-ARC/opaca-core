@@ -323,18 +323,9 @@ public class PlatformImpl {
 
     public boolean removeContainer(String containerId, String userToken) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
-        if (config.enableAuth) {
-            // TODO IGNORE TOKEN IF TOKEN IS NULL! FOR STOP ALL ON SHUTDOWN
-            // If request user does not have user profile, throw FORBIDDEN exception
-            UserDetails details = userDetailsService.loadUserByUsername(jwtUtil.getUsernameFromToken(userToken));
-            if (details == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-            // TODO Not sure if this is the right place to handle custom Http responses
-            //  Might need to implement more custom error handling
-            // If user is neither admin nor owner of container, throw FORBIDDEN exception
-            if (details.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals(Role.ADMIN.role())) &&
-                    !details.getUsername().equals(container.getOwner())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-            }
+        if (config.enableAuth && userToken != null && ! jwtUtil.isAdminOrSelf(userToken, container.getOwner())) {
+            // ignore if userToken == null; this is only the case iff the platform is about to shut down
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
         if (container == null) return false;
         runningContainers.remove(containerId);

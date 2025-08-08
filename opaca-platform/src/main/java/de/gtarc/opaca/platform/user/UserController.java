@@ -81,7 +81,7 @@ public class UserController {
             @PathVariable String username
     ) {
         log.info(String.format("DELETE /users/%s", username));
-        if (!config.enableAuth || isAdminOrSelf(token, username)){
+        if (!config.enableAuth || jwtUtil.isAdminOrSelf(extractToken(token), username)){
             return new ResponseEntity<>(userDetailsService.removeUser(username), HttpStatus.OK);
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN);
@@ -101,7 +101,7 @@ public class UserController {
             @PathVariable String username
     ) {
         log.info(String.format("GET /users/%s", username));
-        if (!config.enableAuth || isAdminOrSelf(token, username)){
+        if (!config.enableAuth || jwtUtil.isAdminOrSelf(extractToken(token), username)){
             return new ResponseEntity<>(userDetailsService.getUser(username).toString(), HttpStatus.OK);
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN);
@@ -137,17 +137,7 @@ public class UserController {
 
     // Helper methods
 
-    /**
-     * Checks if the current request user is either an admin (has full control over user management)
-     * or the request user is performing request on its own data
-     * @param token: The token belonging to a user in the database for whom to check their authorities
-     * @param username: Name of user which will get affected by request (NOT THE CURRENT REQUEST USER)
-     */
-    private boolean isAdminOrSelf(String token, String username) {
-        final String userToken = token.substring(7);
-        UserDetails details = userDetailsService.loadUserByUsername(jwtUtil.getUsernameFromToken(userToken));
-        if (details == null) return false;
-        return details.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals(Role.ADMIN.role())) ||
-                details.getUsername().equals(username);
+    private String extractToken(String bearerToken) {
+        return bearerToken.substring(7);
     }
 }

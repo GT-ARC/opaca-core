@@ -1,5 +1,6 @@
 package de.gtarc.opaca.platform.auth;
 
+import de.gtarc.opaca.model.Role;
 import de.gtarc.opaca.platform.user.TokenUserDetailsService;
 import de.gtarc.opaca.platform.PlatformConfig;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -67,6 +68,19 @@ public class JwtUtil {
 
     private Date getExpirationDateFromToken(String token) {
         return Jwts.parser().setSigningKey(config.secret).parseClaimsJws(token).getBody().getExpiration();
+    }
+
+    /**
+     * Checks if the current request user is either an admin (has full control over user management)
+     * or the request user is performing request on its own data
+     * @param token: The token belonging to a user in the database for whom to check their authorities
+     * @param username: Name of user which will get affected by request (NOT THE CURRENT REQUEST USER)
+     */
+    public boolean isAdminOrSelf(String token, String username) {
+        UserDetails details = tokenUserDetailsService.loadUserByUsername(getUsernameFromToken(token));
+        if (details == null) return false;
+        return details.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals(Role.ADMIN.role())) ||
+                details.getUsername().equals(username);
     }
 
 }
