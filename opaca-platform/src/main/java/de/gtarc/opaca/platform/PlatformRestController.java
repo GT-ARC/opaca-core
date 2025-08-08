@@ -143,7 +143,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = true) String token
 	) throws IOException {
 		log.info("GET /token");
-		return implementation.renewToken(token);
+		return implementation.renewToken(extractToken(token));
 	}
 
 	/*
@@ -313,7 +313,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "-1") int timeout
 	) throws IOException {
 		log.info(String.format("POST /containers %s", container));
-		return implementation.addContainer(container, timeout, token);
+		return implementation.addContainer(container, timeout, extractToken(token));
 	}
 
 	@RequestMapping(value="/containers", method=RequestMethod.PUT)
@@ -324,7 +324,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "-1") int timeout
 	) throws IOException {
 		log.info(String.format("PUT /containers %s", container));
-		return implementation.updateContainer(container, timeout, token);
+		return implementation.updateContainer(container, timeout, extractToken(token));
 	}
 
 	@RequestMapping(value="/containers", method=RequestMethod.GET)
@@ -351,7 +351,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@PathVariable String containerId
 	) throws IOException {
 		log.info(String.format("DELETE /containers/%s", containerId));
-		return implementation.removeContainer(containerId, token);
+		return implementation.removeContainer(containerId, extractToken(token));
 	}
 
 	/*
@@ -410,6 +410,13 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	private ResponseEntity<StreamingResponseBody> wrapStream(InputStream stream) {
 		StreamingResponseBody responseBody = stream::transferTo;
 		return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM).body(responseBody);
+	}
+
+	/**
+	 * Get the actual "token" part from "Bearer token" if not null.
+	 */
+	private String extractToken(String maybeToken) {
+		return maybeToken != null ? maybeToken.substring(7) : null;
 	}
 
 }
