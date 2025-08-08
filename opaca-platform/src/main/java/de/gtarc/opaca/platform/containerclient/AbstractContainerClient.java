@@ -1,7 +1,5 @@
 package de.gtarc.opaca.platform.containerclient;
 
-import lombok.extern.java.Log;
-
 import java.io.IOException;
 import java.net.*;
 import java.util.Set;
