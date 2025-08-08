@@ -57,6 +57,10 @@ public class DockerClient extends AbstractContainerClient {
         AgentContainer.Connectivity connectivity;
     }
 
+    /*
+     * CONTAINER CLIENT API
+     */
+
     @Override
     public void initialize(PlatformConfig config, SessionData sessionData) {
         super.initialize(config, sessionData);
@@ -110,7 +114,7 @@ public class DockerClient extends AbstractContainerClient {
 
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
-                    .withEnv(buildEnv(containerId, token, owner, image.getParameters(), container.getArguments(), portMap))
+                    .withEnv(toDockerEnv(buildContainerEnv(containerId, token, owner, image.getParameters(), container.getArguments(), portMap)))
                     .withHostConfig(HostConfig.newHostConfig().withPortBindings(portBindings))
                     .withExposedPorts(portBindings.stream().map(PortBinding::getExposedPort).collect(Collectors.toList()))
                     .exec();
@@ -137,12 +141,6 @@ public class DockerClient extends AbstractContainerClient {
         } catch (DockerException e) {
             throw new IOException("Failed to start Docker container.", e);
         }
-    }
-
-    private String[] buildEnv(String containerId, String token, String owner, List<ImageParameter> parameters, Map<String, String> arguments, Map<Integer, Integer> portMap) {
-        return buildContainerEnv(containerId, token, owner, parameters, arguments, portMap).entrySet().stream()
-                .map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
-                .toArray(String[]::new);
     }
 
     @Override
@@ -178,34 +176,16 @@ public class DockerClient extends AbstractContainerClient {
         return conn.getPublicUrl() + ":" + conn.getApiPortMapping();
     }
 
-    private String getProtocol(int port, AgentContainerImage image) {
-        if (image.getExtraPorts().containsKey(port)) {
-            String protocol = image.getExtraPorts().get(port).getProtocol();
-            return "udp".equalsIgnoreCase(protocol) ? "udp" : "tcp";
-        } else {
-            return "tcp";
-        }
-    }
-
-    private String getLocalDockerHost() {
-        // Just differentiates between Windows and others for now
-        return SystemUtils.IS_OS_WINDOWS
-                ? "npipe:////./pipe/docker_engine"
-                : "unix:///var/run/docker.sock";
-    }
-
-    private String getDockerHost() {
-        return Strings.isNullOrEmpty(config.remoteDockerHost)
-                ? getLocalDockerHost()
-                : String.format("tcp://%s:%s", config.remoteDockerHost, config.remoteDockerPort);
-    }
-
     @Override
     protected String getContainerBaseUrl() {
         return Strings.isNullOrEmpty(config.remoteDockerHost)
                 ? config.getOwnBaseUrl().replaceAll(":\\d+$", "")
                 : String.format("http://%s", config.remoteDockerHost);
     }
+
+    /*
+     * HELPER METHODS
+     */
 
     /**
      * Try to pull the Docker image from registry where it can be found (according to image name).
@@ -234,6 +214,34 @@ public class DockerClient extends AbstractContainerClient {
         } catch (NotFoundException e) {
             return false;
         }
+    }
+
+    private String getProtocol(int port, AgentContainerImage image) {
+        if (image.getExtraPorts().containsKey(port)) {
+            String protocol = image.getExtraPorts().get(port).getProtocol();
+            return "udp".equalsIgnoreCase(protocol) ? "udp" : "tcp";
+        } else {
+            return "tcp";
+        }
+    }
+
+    private String getLocalDockerHost() {
+        // Just differentiates between Windows and others for now
+        return SystemUtils.IS_OS_WINDOWS
+                ? "npipe:////./pipe/docker_engine"
+                : "unix:///var/run/docker.sock";
+    }
+
+    private String getDockerHost() {
+        return Strings.isNullOrEmpty(config.remoteDockerHost)
+                ? getLocalDockerHost()
+                : String.format("tcp://%s:%s", config.remoteDockerHost, config.remoteDockerPort);
+    }
+
+    private String[] toDockerEnv(Map<String, String> containerEnv) {
+        return containerEnv.entrySet().stream()
+                .map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
+                .toArray(String[]::new);
     }
     
     private Map<String, AuthConfig> loadDockerAuth() {
