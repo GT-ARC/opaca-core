@@ -76,22 +76,16 @@ public class UserController {
     /**
      * Deletes a user from the database
      * If security is disabled, do not perform secondary role check
-     * @param token JWT to check the requesters authority
      * @param username User which will be deleted from the database
      * @return True if deletion was successful, False if not
      */
     @RequestMapping(value="/users/{username}", method=RequestMethod.DELETE)
     @Operation(summary="Delete an existing user from the connected database", tags={"users"})
     public ResponseEntity<?> deleteUser(
-            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
             @PathVariable String username
     ) {
-        // TODO this route is actually only usable as admin, the header-check is not used
         log.info(String.format("DELETE /users/%s", username));
-        if (!config.enableAuth || isAdminOrSelf(token, username)){
-            return new ResponseEntity<>(userDetailsService.removeUser(username), HttpStatus.OK);
-        }
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        return new ResponseEntity<>(userDetailsService.removeUser(username), HttpStatus.OK);
     }
 
     /**
