@@ -1,5 +1,6 @@
 package de.gtarc.opaca.platform;
 
+import org.jetbrains.annotations.NotNull;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
@@ -45,20 +46,20 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public class WebSocketHandler extends TextWebSocketHandler {
 
         @Override
-        public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+        public void afterConnectionEstablished(@NotNull WebSocketSession session) {
             executorService.scheduleAtFixedRate(() -> send(session, new PingMessage()), 0, 10, TimeUnit.SECONDS);
             log.info("New WebSocket Connection established");
         }
 
         @Override
-        protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        protected void handleTextMessage(@NotNull WebSocketSession session, TextMessage message) {
             String topic = message.getPayload();
             sessionTopics.put(session, topic);
             log.info("New subscription for topic " + topic);
         }
 
         @Override
-        public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        public void afterConnectionClosed(@NotNull WebSocketSession session, @NotNull CloseStatus status) {
             sessionTopics.remove(session);
             log.info("Websocket connection closed");
         }

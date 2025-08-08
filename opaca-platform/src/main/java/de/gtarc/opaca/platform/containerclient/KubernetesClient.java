@@ -3,7 +3,6 @@ package de.gtarc.opaca.platform.containerclient;
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.AgentContainerImage;
-import de.gtarc.opaca.model.AgentContainerImage.ImageParameter;
 import de.gtarc.opaca.model.PostAgentContainer;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.session.SessionData;
@@ -183,7 +182,7 @@ public class KubernetesClient extends AbstractContainerClient {
     }
 
     @Override
-    public void stopContainer(String containerId) throws IOException {
+    public void stopContainer(String containerId) {
         try {
             // remove container info, stop container
             var containerInfo = pods.remove(containerId);
@@ -202,7 +201,7 @@ public class KubernetesClient extends AbstractContainerClient {
     }
 
     @Override
-    public boolean isContainerAlive(String containerId) throws IOException {
+    public boolean isContainerAlive(String containerId) {
         try {
             V1Pod container = coreApi.readNamespacedPod(containerId, namespace).execute();
             String phase = container.getStatus().getPhase();

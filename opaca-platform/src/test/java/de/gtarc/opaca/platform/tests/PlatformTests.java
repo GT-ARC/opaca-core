@@ -1,6 +1,5 @@
 package de.gtarc.opaca.platform.tests;
 
-import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.platform.Application;
 import static de.gtarc.opaca.platform.tests.TestUtils.*;

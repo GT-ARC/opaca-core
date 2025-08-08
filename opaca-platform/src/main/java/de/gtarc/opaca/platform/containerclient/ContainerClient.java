@@ -40,12 +40,12 @@ public interface ContainerClient {
     /**
      * Stop the agent container with the given ID.
      */
-    void stopContainer(String containerId) throws IOException;
+    void stopContainer(String containerId);
 
     /**
      * Check if the container is still alive.
      */
-    boolean isContainerAlive(String containerId) throws IOException;
+    boolean isContainerAlive(String containerId);
 
     /**
      * Get the URL where the container can be reached for forwarding requests.

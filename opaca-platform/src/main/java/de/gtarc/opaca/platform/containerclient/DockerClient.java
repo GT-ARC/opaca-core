@@ -15,7 +15,6 @@ import com.github.dockerjava.transport.DockerHttpClient;
 import com.google.common.base.Strings;
 import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.AgentContainerImage;
-import de.gtarc.opaca.model.AgentContainerImage.ImageParameter;
 import de.gtarc.opaca.model.PostAgentContainer;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.session.SessionData;
@@ -144,7 +143,7 @@ public class DockerClient extends AbstractContainerClient {
     }
 
     @Override
-    public void stopContainer(String containerId) throws IOException {
+    public void stopContainer(String containerId) {
         try {
             var containerInfo = dockerContainers.remove(containerId);
             usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
@@ -159,11 +158,11 @@ public class DockerClient extends AbstractContainerClient {
     }
 
     @Override
-    public boolean isContainerAlive(String containerId) throws IOException {
+    public boolean isContainerAlive(String containerId) {
         try {
             var containerInfo = dockerContainers.get(containerId);
             var res = dockerClient.inspectContainerCmd(containerInfo.containerId).exec();
-            return res.getState().getRunning();
+            return Boolean.TRUE.equals(res.getState().getRunning());
         } catch (NotFoundException e) {
             log.severe("Container not found: " + e.getMessage());
             return false;
