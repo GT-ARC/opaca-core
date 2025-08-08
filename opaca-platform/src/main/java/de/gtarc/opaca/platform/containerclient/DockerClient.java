@@ -113,7 +113,7 @@ public class DockerClient extends AbstractContainerClient {
 
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
-                    .withEnv(buildEnv(containerId, token, owner, image.getParameters(), container.getArguments()))
+                    .withEnv(buildEnv(containerId, token, owner, image.getParameters(), container.getArguments(), portMap))
                     .withHostConfig(HostConfig.newHostConfig().withPortBindings(portBindings))
                     .withExposedPorts(portBindings.stream().map(PortBinding::getExposedPort).collect(Collectors.toList()))
                     .exec();
@@ -142,8 +142,8 @@ public class DockerClient extends AbstractContainerClient {
         }
     }
 
-    private String[] buildEnv(String containerId, String token, String owner, List<ImageParameter> parameters, Map<String, String> arguments) {
-        return config.buildContainerEnv(containerId, token, owner, parameters, arguments).entrySet().stream()
+    private String[] buildEnv(String containerId, String token, String owner, List<ImageParameter> parameters, Map<String, String> arguments, Map<Integer, Integer> portMap) {
+        return config.buildContainerEnv(containerId, token, owner, parameters, arguments, portMap).entrySet().stream()
                 .map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
                 .toArray(String[]::new);
     }
