@@ -9,21 +9,27 @@ import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
 import org.junit.*;
 import org.junit.rules.TestName;
-import org.junit.runners.MethodSorters;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.util.List;
 
 /**
- * Tests basic DB queries to the connected DB (default: embedded)
- * TODO update and fix docstring
+ * Test User Management Routes. By default, the routes are tested agains the "embedded" DB,
+ * i.e. a simple Hash-Map. This is sufficient for testing the behavior of the REST routes,
+ * but for testing the interaction with the actual DB, you have to first start a Mongo-DB
+ * instance (see the defaults in application.properties). The easiest way to do this is to
+ * run the Docker-Compose; you can start the platform, too (it's using a different port than
+ * the one started in the tests), but make sure that the DB is empty or not connected to the
+ * volume. Then set the USE_EMBEDDED_DB flag to "false".
+ * However, for use in the Gitlab CI, the flag should be set to "true".
  */
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class UserTests {
 
+    private static final boolean USE_EMBEDDED_DB = true;
     private static final int PLATFORM_A_PORT = 8006;
     private static final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
+
     private static ConfigurableApplicationContext platformA = null;
     private static String adminToken = null;
 
@@ -33,7 +39,7 @@ public class UserTests {
                 "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
                 "--platform_admin_user=admin", "--platform_admin_pwd=12345",
-                "--db_embed=true");
+                "--db_embed=" + USE_EMBEDDED_DB);
 
         adminToken = login("admin", "12345");
     }
