@@ -71,7 +71,7 @@ public class KubernetesClient extends AbstractContainerClient {
             this.coreApi = new CoreV1Api();
             this.appsApi = new AppsV1Api();
         } catch (IOException e) {
-            log.error("Could not initialize Kubernetes Client: " + e.getMessage());
+            log.error("Could not initialize Kubernetes Client: {}", e.getMessage());
             throw new RuntimeException(e);
         }
 
@@ -87,7 +87,7 @@ public class KubernetesClient extends AbstractContainerClient {
         try {
             this.coreApi.listNamespacedPod(this.namespace).execute();
         } catch (ApiException e) {
-            log.error("Could not initialize Kubernetes Client: " + e.getMessage());
+            log.error("Could not connect to Kubernetes: {}", e.getMessage());
             throw new RuntimeException("Could not initialize Kubernetes Client", e);
         }
     }
@@ -154,12 +154,12 @@ public class KubernetesClient extends AbstractContainerClient {
 
         try {
             V1Deployment createdDeployment = appsApi.createNamespacedDeployment(namespace, deployment).execute();
-            log.info("Deployment created: " + createdDeployment.getMetadata().getName());
+            log.info("Deployment created: {}", createdDeployment.getMetadata().getName());
 
             V1Service createdService = coreApi.createNamespacedService(namespace, service).execute();
-            log.info("Service created: " + createdService.getMetadata().getName());
+            log.info("Service created: {}", createdService.getMetadata().getName());
             String serviceIP = createdService.getSpec().getClusterIP();
-            log.info("Deployment IP: " + serviceIP);
+            log.info("Deployment IP: {}", serviceIP);
 
             createServicesForPorts(containerId, image, portMap);
 
@@ -174,7 +174,7 @@ public class KubernetesClient extends AbstractContainerClient {
 
             return connectivity;
         } catch (ApiException e) {
-            log.error("Error creating pod: " + e.getMessage());
+            log.error("Error creating pod: {}", e.getMessage());
             throw new IOException("Failed to create Pod: " + e.getMessage());
         }
     }
@@ -211,7 +211,7 @@ public class KubernetesClient extends AbstractContainerClient {
             String phase = container.getStatus().getPhase();
             return List.of("Running", "Pending").contains(phase);
         } catch (ApiException e) {
-            log.error("Error reading pod: " + e.getMessage());
+            log.error("Error reading pod: {}", e.getMessage());
             return false;
         }
     }
@@ -282,7 +282,7 @@ public class KubernetesClient extends AbstractContainerClient {
         try {
             this.coreApi.createNamespacedSecret(namespace, secret).execute();
         } catch (ApiException e) {
-            log.error("Exception when creating secret: " + e.getResponseBody());
+            log.error("Exception when creating secret: {}", e.getResponseBody());
         }
 
         return secretName;

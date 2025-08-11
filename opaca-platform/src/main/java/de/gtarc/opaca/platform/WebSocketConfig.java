@@ -54,7 +54,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
         protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
             String topic = message.getPayload();
             sessionTopics.put(session, topic);
-            log.info("New subscription for topic " + topic);
+            log.info("New subscription for topic {}", topic);
         }
 
         @Override
@@ -68,14 +68,14 @@ public class WebSocketConfig implements WebSocketConfigurer {
      * Broadcast event to all clients subscribed to the given topic.
      */
     public void broadcastEvent(String topic, Event event) {
-        log.debug("Broadcasting event to topic " + topic);
+        log.debug("Broadcasting event to topic {}", topic);
         for (WebSocketSession session : sessionTopics.keySet()) {
             if (topic.equals(sessionTopics.get(session))) {
                 try {
                     log.debug("Sending new message...");
                     send(session, new TextMessage(RestHelper.writeJson(event)));
                 } catch (Exception e) {
-                    log.warn("Error sending message: " + e.getMessage());
+                    log.warn("Error broadcasting message: {}", e.getMessage());
                 }
             }
         }
@@ -85,7 +85,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
         try {
             session.sendMessage(message);
         } catch (IOException e) {
-            log.warn("Error sending message: " + e.getMessage());
+            log.warn("Error sending message: {}", e.getMessage());
         }
     }
 

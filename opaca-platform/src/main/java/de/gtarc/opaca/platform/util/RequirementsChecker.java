@@ -54,7 +54,7 @@ public class RequirementsChecker {
             }
             return provisions.stream().distinct().toList();
         } catch (IOException e) {
-            log.warn("Failed to collect Platform Provisions: " + e.getMessage());
+            log.warn("Failed to collect Platform Provisions: {}", e.getMessage());
             return Collections.emptyList();
         }
     }

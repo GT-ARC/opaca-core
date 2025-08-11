@@ -62,7 +62,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 		try {
 			implementation.testSelfConnection();
 		} catch (Exception e) {
-			log.error(String.format("Test-Connection to self at %s failed: %s", config.getOwnBaseUrl(), e.getMessage()));
+			log.error("Test-Connection to self at {} failed: {}", config.getOwnBaseUrl(), e.getMessage());
 			System.exit(1);
 		}
 	}
@@ -132,7 +132,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	public String login(
 			@RequestBody Login loginParams
 	) throws IOException {
-		log.info(String.format("POST /login %s", loginParams));
+		log.info("POST /login {}", loginParams);
 		return implementation.login(loginParams);
 	}
 
@@ -194,7 +194,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	public AgentDescription getAgent(
 			@PathVariable String agentId
 	) throws IOException {
-		log.info(String.format("GET /agents/%s", agentId));
+		log.info("GET /agents/{}", agentId);
 		return implementation.getAgent(agentId);
 	}
 
@@ -206,7 +206,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("POST /send/%s %s", agentId, message));
+		log.info("POST /send/{} {}", agentId, message);
 		implementation.send(agentId, message, containerId, forward);
 	}
 
@@ -218,7 +218,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("POST /broadcast/%s %s", channel, message));
+		log.info("POST /broadcast/{} {}", channel, message);
 		implementation.broadcast(channel, message, containerId, forward);
 	}
 
@@ -231,7 +231,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("POST /invoke/%s %s", action, parameters));
+		log.info("POST /invoke/{} {}", action, parameters);
 		return implementation.invoke(action, parameters, null, timeout, containerId, forward);
 	}
 
@@ -245,7 +245,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("POST /invoke/%s/%s, %s", action, agentId, parameters));
+		log.info("POST /invoke/{}/{} {}", action, agentId, parameters);
 		return implementation.invoke(action, parameters, agentId, timeout, containerId, forward);
 	}
 
@@ -256,7 +256,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("GET /stream/%s ", stream));
+		log.info("GET /stream/{} ", stream);
 		return wrapStream(implementation.getStream(stream, null, containerId, forward));
 	}
 
@@ -268,7 +268,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("GET /stream/%s/%s", stream, agentId));
+		log.info("GET /stream/{}/{}", stream, agentId);
 		return wrapStream(implementation.getStream(stream, agentId, containerId, forward));
 	}
 
@@ -280,7 +280,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
             @RequestParam(required = false) String containerId,
             @RequestParam(required = false, defaultValue = "true") boolean forward
     ) throws IOException {
-        log.info(String.format("POST /stream/%s ", stream));
+        log.info("POST /stream/{} ", stream);
         implementation.postStream(stream, inputStream, null, containerId, forward);
     }
 
@@ -293,7 +293,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
             @RequestParam(required = false) String containerId,
             @RequestParam(required = false, defaultValue = "true") boolean forward
     ) throws IOException {
-        log.info(String.format("POST /stream/%s/%s", stream, agentId));
+        log.info("POST /stream/{}/{}", stream, agentId);
         implementation.postStream(stream, inputStream, agentId, containerId, forward);
     }
 
@@ -307,7 +307,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestBody PostAgentContainer container,
 			@RequestParam(required = false, defaultValue = "-1") int timeout
 	) throws IOException {
-		log.info(String.format("POST /containers %s", container));
+		log.info("POST /containers {}", container);
 		return implementation.addContainer(container, timeout);
 	}
 
@@ -317,7 +317,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestBody PostAgentContainer container,
 			@RequestParam(required = false, defaultValue = "-1") int timeout
 	) throws IOException {
-		log.info(String.format("PUT /containers %s", container));
+		log.info("PUT /containers {}", container);
 		return implementation.updateContainer(container, timeout);
 	}
 
@@ -333,7 +333,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	public AgentContainer getContainer(
 			@PathVariable String containerId
 	) throws IOException {
-		log.info(String.format("GET /containers/%s", containerId));
+		log.info("GET /containers/{}", containerId);
 		return implementation.getContainer(containerId);
 	}
 
@@ -343,7 +343,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	public boolean removeContainer(
 			@PathVariable String containerId
 	) throws IOException {
-		log.info(String.format("DELETE /containers/%s", containerId));
+		log.info("DELETE /containers/{}", containerId);
 		return implementation.removeContainer(containerId);
 	}
 
@@ -358,7 +358,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestBody LoginConnection loginConnection
 	) throws IOException {
 		// TODO handle IO Exception (platform not found or does not respond, could be either 404 or 502)
-		log.info(String.format("POST /connections %s", loginConnection.getUrl()));
+		log.info("POST /connections {}", loginConnection.getUrl());
 		return implementation.connectPlatform(loginConnection);
 	}
 
@@ -374,7 +374,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	public boolean disconnectPlatform(
 			@RequestBody String url
 	) throws IOException {
-		log.info(String.format("DELETE /connections %s", url));
+		log.info("DELETE /connections {}", url);
 		return implementation.disconnectPlatform(url);
 	}
 
@@ -385,14 +385,14 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@RequestMapping(value="/containers/notify", method=RequestMethod.POST)
 	@Operation(summary="Notify Platform about updates", tags={"containers"})
 	public boolean notifyUpdateContainer(@RequestBody String containerId) throws IOException {
-		log.info(String.format("POST /containers/notify %s", containerId));
+		log.info("POST /containers/notify {}", containerId);
 		return implementation.notifyUpdateContainer(containerId);
 	}
 
 	@RequestMapping(value="/connections/notify", method=RequestMethod.POST)
 	@Operation(summary="Notify Platform about updates", tags={"connections"})
 	public boolean notifyUpdatePlatform(@RequestBody String platformUrl) throws IOException {
-		log.info(String.format("POST /connections/notify %s", platformUrl));
+		log.info("POST /connections/notify {}", platformUrl);
 		return implementation.notifyUpdatePlatform(platformUrl);
 	}
 

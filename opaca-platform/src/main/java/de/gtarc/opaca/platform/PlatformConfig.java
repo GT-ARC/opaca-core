@@ -121,7 +121,7 @@ public class PlatformConfig {
 
     @PostConstruct
     private void initialize() {
-        log.info("Started with Config: " + this);
+        log.info("Started with Config: {}", this);
     }
 
     public enum PlatformEnvironment {

@@ -101,7 +101,7 @@ public class Session {
                 this.data.users.putAll(lastdata.users);
     
             } catch (IOException e) {
-                log.error("Could not load Session data: " + e);
+                log.error("Could not load Session data: {}", e);
             }
         }
     }
@@ -111,7 +111,7 @@ public class Session {
             String content = RestHelper.writeJson(this.data);
             Files.writeString(filePath, content);
         } catch (IOException e) {
-            log.error("Could not save Session data: " + e);
+            log.error("Could not save Session data: {}", e);
         }
     }
 
@@ -127,7 +127,7 @@ public class Session {
                     .filter(f -> f.isFile() && f.getName().toLowerCase().endsWith(".json"))
                     .collect(Collectors.toList());
         } catch (IOException e) {
-            log.error("Failed to read default images: " + e);
+            log.error("Failed to read default images: {}", e.getMessage());
             return List.of();
         }
     }
@@ -135,12 +135,12 @@ public class Session {
     private void startDefaultImages() {
         log.info("Loading Default Images (if any)...");
         for (File file: readDefaultImages()) {
-            log.info("Auto-deploying " + file);
+            log.info("Auto-deploying {}", file);
             try {
                 var container = RestHelper.mapper.readValue(file, PostAgentContainer.class);
                 implementation.addContainer(container, -1);
             } catch (Exception e) {
-                log.error(String.format("Failed to load image specified in file %s: %s", file, e));
+                log.error("Failed to load image specified in file {}: {}", file, e);
             }
         }
     }
@@ -157,7 +157,7 @@ public class Session {
             try {
                 implementation.addContainer(postContainer, -1);
             } catch (IOException e) {
-                log.warn("Exception restarting container: " + e.getMessage());
+                log.warn("Exception restarting container: {}", e.getMessage());
             }
         }
     }
@@ -168,7 +168,7 @@ public class Session {
             try {
                 implementation.removeContainer(container.getContainerId());
             } catch (Exception e) {
-                log.warn("Exception stopping container " + container.getContainerId() + ": " + e.getMessage());
+                log.warn("Exception stopping container {}: {}", container.getContainerId(), e.getMessage());
             }
         }
     }
@@ -179,7 +179,7 @@ public class Session {
             try {
                 implementation.disconnectPlatform(connection);
             } catch (Exception e) {
-                log.warn("Exception disconnecting from " + connection + ": " + e.getMessage());
+                log.warn("Exception disconnecting from {}: {}", connection, e.getMessage());
             }
         }
     }

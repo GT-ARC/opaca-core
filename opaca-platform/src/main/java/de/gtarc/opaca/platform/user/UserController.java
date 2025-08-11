@@ -62,7 +62,7 @@ public class UserController {
     public ResponseEntity<?> addUser(
             @RequestBody User user
     ) {
-        log.info(String.format("POST /users %s", user));
+        log.info("POST /users {}", user);
         userDetailsService.createUser(user.getUsername(), user.getPassword(), user.getRole(), user.getPrivileges());
         return new ResponseEntity<>(userDetailsService.getUser(user.getUsername()).toString(), HttpStatus.CREATED);
     }
@@ -80,7 +80,7 @@ public class UserController {
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
             @PathVariable String username
     ) {
-        log.info(String.format("DELETE /users/%s", username));
+        log.info("DELETE /users/{}", username);
         if (!config.enableAuth || isAdminOrSelf(token, username)){
             return new ResponseEntity<>(userDetailsService.removeUser(username), HttpStatus.OK);
         }
@@ -100,7 +100,7 @@ public class UserController {
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
             @PathVariable String username
     ) {
-        log.info(String.format("GET /users/%s", username));
+        log.info("GET /users/{}", username);
         if (!config.enableAuth || isAdminOrSelf(token, username)){
             return new ResponseEntity<>(userDetailsService.getUser(username).toString(), HttpStatus.OK);
         }
@@ -130,7 +130,7 @@ public class UserController {
             @PathVariable String username,
             @RequestBody User user
     ) {
-        log.info(String.format("PUT /users/%s %s", username, user));
+        log.info("PUT /users/{} {}", username, user);
         return new ResponseEntity<>(userDetailsService.updateUser(username, user.getUsername(), user.getPassword(),
                 user.getRole(), user.getPrivileges()), HttpStatus.OK);
     }

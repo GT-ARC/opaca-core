@@ -82,7 +82,7 @@ public class ArgumentValidator {
     private boolean isValidObject(JsonNode node, String type) {
         var definition = getSchema(type);
         if (definition == null) {
-            log.warn("No definition found for type " + type + ", skipping type-checking.");
+            log.warn("No definition found for type {}, skipping type-checking.", type);
             return true;
         }
         var errors = definition.validate(node);
@@ -99,11 +99,11 @@ public class ArgumentValidator {
         var url = definitionsByUrl.get(type);
         try {
             var schema = factory.getSchema(new URI(url));
-            log.info("Created schema for " + type + " from " + url);
+            log.info("Created schema for {} from {}", type, url);
             definitions.put(type, schema);
             return schema;
         } catch (URISyntaxException e) {
-            log.error("Could not load schema for " + type + " from " + url + ": " + e.getMessage());
+            log.error("Could not load schema for {} from {}: {}", type, url, e.getMessage());
             return null;
         }
     }
