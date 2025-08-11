@@ -2,7 +2,7 @@ package de.gtarc.opaca.platform.util;
 
 import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.model.*;
-import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 
 import java.io.IOException;
 import java.util.*;
@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
  * explicitly specified in an environment variable when the platform starts, or inferred from parts
  * of the platform's configuration, deployed containers, etc.
  */
-@Log
+@Log4j2
 public class RequirementsChecker {
 
     private final RuntimePlatformApi platform;
@@ -54,7 +54,7 @@ public class RequirementsChecker {
             }
             return provisions.stream().distinct().toList();
         } catch (IOException e) {
-            log.warning("Failed to collect Platform Provisions: " + e.getMessage());
+            log.warn("Failed to collect Platform Provisions: " + e.getMessage());
             return Collections.emptyList();
         }
     }

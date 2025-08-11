@@ -1,5 +1,6 @@
 package de.gtarc.opaca.platform;
 
+import lombok.extern.log4j.Log4j2;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
@@ -18,7 +19,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
 import de.gtarc.opaca.model.Event;
 import de.gtarc.opaca.util.RestHelper;
-import lombok.extern.java.Log;
 
 /**
  * Configuration and handler for the Websocket listening on "/subscribe". This websocket
@@ -27,7 +27,7 @@ import lombok.extern.java.Log;
  */
 @Configuration
 @EnableWebSocket
-@Log
+@Log4j2
 public class WebSocketConfig implements WebSocketConfigurer {
 
     private final Map<WebSocketSession, String> sessionTopics = new ConcurrentHashMap<>();
@@ -68,14 +68,14 @@ public class WebSocketConfig implements WebSocketConfigurer {
      * Broadcast event to all clients subscribed to the given topic.
      */
     public void broadcastEvent(String topic, Event event) {
-        log.fine("Broadcasting event to topic " + topic);
+        log.debug("Broadcasting event to topic " + topic);
         for (WebSocketSession session : sessionTopics.keySet()) {
             if (topic.equals(sessionTopics.get(session))) {
                 try {
-                    log.fine("Sending new message...");
+                    log.debug("Sending new message...");
                     send(session, new TextMessage(RestHelper.writeJson(event)));
                 } catch (Exception e) {
-                    log.warning("Error sending message: " + e.getMessage());
+                    log.warn("Error sending message: " + e.getMessage());
                 }
             }
         }
@@ -85,7 +85,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
         try {
             session.sendMessage(message);
         } catch (IOException e) {
-            log.warning("Error sending message: " + e.getMessage());
+            log.warn("Error sending message: " + e.getMessage());
         }
     }
 

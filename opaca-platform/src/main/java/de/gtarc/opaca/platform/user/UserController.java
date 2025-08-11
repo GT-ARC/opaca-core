@@ -8,7 +8,7 @@ import de.gtarc.opaca.platform.user.TokenUserDetailsService.UserAlreadyExistsExc
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
-@Log
+@Log4j2
 @RestController
 @SecurityRequirement(name = "bearerAuth")
 @CrossOrigin(origins = "*", methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE } )
@@ -38,13 +38,13 @@ public class UserController {
 
     @ExceptionHandler({IllegalArgumentException.class, UserAlreadyExistsException.class})
     public ResponseEntity<String> handleBadRequestException(Exception e) {
-        log.warning(e.getMessage());
+        log.warn(e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
 
     @ExceptionHandler({UsernameNotFoundException.class})
     public ResponseEntity<String> handleResourceNotFoundException(Exception e) {
-        log.warning(e.getMessage());
+        log.warn(e.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
     }
 

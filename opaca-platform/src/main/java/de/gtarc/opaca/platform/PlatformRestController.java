@@ -10,7 +10,7 @@ import de.gtarc.opaca.util.RestHelper.RequestException;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -34,7 +34,7 @@ import java.util.NoSuchElementException;
  * REST controller for the OPACA Runtime Platform API. This class only defines the REST endpoints,
  * handles security etc. (once that's implemented); the actual logic is implemented elsewhere.
  */
-@Log
+@Log4j2
 @RestController
 @SecurityRequirement(name = "bearerAuth")
 @CrossOrigin(origins = "*", allowedHeaders = "*",
@@ -62,7 +62,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 		try {
 			implementation.testSelfConnection();
 		} catch (Exception e) {
-			log.severe(String.format("Test-Connection to self at %s failed: %s", config.getOwnBaseUrl(), e.getMessage()));
+			log.error(String.format("Test-Connection to self at %s failed: %s", config.getOwnBaseUrl(), e.getMessage()));
 			System.exit(1);
 		}
 	}
@@ -74,35 +74,35 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@ExceptionHandler(value=NoSuchElementException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public ResponseEntity<ErrorResponse> handleNotFound(NoSuchElementException e) {
-		log.warning(e.getMessage());  // probably a user error
+		log.warn(e.getMessage());  // probably a user error
 		return makeErrorResponse(HttpStatus.NOT_FOUND, e, null);
 	}
 
 	@ExceptionHandler(value=JsonProcessingException.class)
 	@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
 	public ResponseEntity<ErrorResponse> handleJsonException(JsonProcessingException e) {
-		log.warning(e.getMessage());  // user error
+		log.warn(e.getMessage());  // user error
 		return makeErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, e, null);
 	}
 
 	@ExceptionHandler(value=RequestException.class)
 	@ResponseStatus(HttpStatus.BAD_GATEWAY)
 	public ResponseEntity<ErrorResponse> handleRequestException(RequestException e) {
-		log.severe(e.getMessage());
+		log.error(e.getMessage());
 		return makeErrorResponse(HttpStatus.BAD_GATEWAY, e, e.getNestedError());
 	}
 
 	@ExceptionHandler(value=IOException.class)
 	@ResponseStatus(HttpStatus.BAD_GATEWAY)
 	public ResponseEntity<ErrorResponse> handleIoException(IOException e) {
-		log.severe(e.getMessage());  // should not happen (but can also be user error)
+		log.error(e.getMessage());  // should not happen (but can also be user error)
 		return makeErrorResponse(HttpStatus.BAD_GATEWAY, e, null);
 	}
 
 	@ExceptionHandler(value=IllegalArgumentException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException e) {
-		log.warning(e.getMessage());  // probably user error
+		log.warn(e.getMessage());  // probably user error
 		return makeErrorResponse(HttpStatus.BAD_REQUEST, e, null);
 	}
 

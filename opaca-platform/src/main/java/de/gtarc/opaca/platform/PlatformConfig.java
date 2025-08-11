@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.ToString;
 import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
@@ -26,7 +27,7 @@ import java.util.stream.IntStream;
  * most of these settings are platform specific and might be different for different
  * implementations of the Runtime Platform, e.g. using Docker vs. Kubernetes.
  */
-@Log
+@Log4j2
 @Configuration
 @ToString(exclude = {"registryPasswords", "platformAdminPwd", "secret"})
 public class PlatformConfig {
@@ -206,7 +207,7 @@ public class PlatformConfig {
         var passwords = registryPasswords.split(sep);
 
         if (registries.length != logins.length || registries.length != passwords.length) {
-            log.warning("Number of Registry Names does not match Login Usernames and Passwords");
+            log.warn("Number of Registry Names does not match Login Usernames and Passwords");
             return List.of();
         } else {
             return IntStream.range(0, registries.length)
