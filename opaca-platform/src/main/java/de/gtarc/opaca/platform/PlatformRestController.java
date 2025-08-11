@@ -62,7 +62,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 		try {
 			implementation.testSelfConnection();
 		} catch (Exception e) {
-			log.error("Test-Connection to self at {} failed: {}", config.getOwnBaseUrl(), e.getMessage());
+			log.fatal("Test-Connection to self at {} failed: {}", config.getOwnBaseUrl(), e.getMessage());
 			System.exit(1);
 		}
 	}

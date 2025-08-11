@@ -85,6 +85,7 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 * `DEFAULT_IMAGE_DIRECTORY` (default: null) The runtime platform will try to read any JSON files from this directory containing Agent Container Image descriptions and auto-deploy those to the platform when it starts.
 * `EVENT_HISTORY_SIZE` (default: 50) The maximum number of entries in the event history. Note that most events generate more than one entry.
 * `ALWAYS_PULL_IMAGES` (default: false) Whether to always pull new versions of container images, even if the image is already present. Note that this may cause problems if images are only present locally (e.g. for testing).
+* `LOG_LEVEL` (default: info) Log level to use for all OPACA-Logs (Spring Boot logs are handled differently to reduce noise). Logs go to console and file `opaca-platform.log`.
 
 ### Image Registry Credentials
 * `REGISTRY_SEPARATOR` (default: ";") Separator for the below attributes for registry credentials.
