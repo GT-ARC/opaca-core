@@ -134,7 +134,8 @@ public class SecurityConfiguration {
             String requestURI = request.getRequestURI();
             String requestTokenHeader = request.getHeader("Authorization");
 
-            if (Stream.of(noAuthRoutes).noneMatch(s -> requestURI.startsWith(s.replace("**", "")))) {
+            if (Stream.of(noAuthRoutes).noneMatch(s -> requestURI.startsWith(s.replace("**", "")))
+                    || requestURI.startsWith("/v3/api-docs/actions")) { // exception from the exceptions...
                 String username = null;
                 String jwtToken = null;
                 if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
