@@ -126,7 +126,7 @@ public class RestHelper {
     }
 
     public InputStream request(String method, String path, List<HttpCookie> cookies, Object payload) throws IOException {
-        log.info(String.format("%s %s%s (%s)", method, baseUrl, path, payload));
+        log.fine(String.format("%s %s%s (%s)", method, baseUrl, path, payload));
         var connection = createConnection(method, path, cookies);
 
         try {
@@ -216,7 +216,7 @@ public class RestHelper {
         try {
             var nestedError = mapper.readValue(response, ErrorResponse.class);
             return new RequestException(message, nestedError);
-        } catch (JsonProcessingException e) {
+        } catch (IllegalArgumentException | JsonProcessingException e) {
             var nestedError = new ErrorResponse(connection.getResponseCode(), response, null);
             return new RequestException(message, nestedError);
         }

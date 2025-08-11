@@ -27,6 +27,8 @@ import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -54,6 +56,13 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Autowired
     private TokenUserDetailsService userDetailsService;
 
+
+    /** platform's own UUID */
+    private final String platformId = UUID.randomUUID().toString();;
+
+    /** when the platform was started */
+    private final ZonedDateTime startedAt = ZonedDateTime.now(ZoneId.of("Z"));
+
     private ContainerClient containerClient;
 
     /** Currently running Agent Containers, mapping container ID to description */
@@ -75,6 +84,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @PostConstruct
     public void initialize() {
+        // restore session data
         this.runningContainers = sessionData.runningContainers;
         this.startedContainers = sessionData.startContainerRequests;
         this.tokens = sessionData.tokens;
@@ -105,10 +115,12 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public RuntimePlatform getPlatformInfo() {
         return new RuntimePlatform(
+                platformId,
                 config.getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),
                 requirementsChecker.getFullPlatformProvisions(),
-                List.copyOf(connectedPlatforms.keySet())
+                List.copyOf(connectedPlatforms.keySet()),
+                startedAt
         );
     }
 
@@ -289,19 +301,26 @@ public class PlatformImpl implements RuntimePlatformApi {
         var client = getClient(agentContainerId, token);
         String errorMessage = "Container did not respond with /info in time.";
         while (System.currentTimeMillis() < containerTimeout) {
+            // check whether container is still starting or alive at all
+            if (! containerClient.isContainerAlive(agentContainerId)) {
+                errorMessage = "Container failed to start.";
+                break;
+            }
             try {
+                // get container /info and add derived attributes
                 var container = client.getContainerInfo();
                 container.setConnectivity(connectivity);
-                runningContainers.put(agentContainerId, container);
-                startedContainers.put(agentContainerId, postContainer);
-                tokens.put(agentContainerId, token);
-                validators.put(agentContainerId, new ArgumentValidator(container.getImage()));
                 container.setOwner(owner);
-                log.info("Container started: " + agentContainerId);
                 if (! container.getContainerId().equals(agentContainerId)) {
                     log.warning("Agent Container ID does not match: Expected " +
                             agentContainerId + ", but found " + container.getContainerId());
                 }
+                // register container in different collections
+                runningContainers.put(agentContainerId, container);
+                startedContainers.put(agentContainerId, postContainer);
+                tokens.put(agentContainerId, token);
+                validators.put(agentContainerId, new ArgumentValidator(container.getImage()));
+                log.info("Container started: " + agentContainerId);
                 notifyConnectedPlatforms();
                 return agentContainerId;
             } catch (JsonMappingException e) {
@@ -314,10 +333,6 @@ public class PlatformImpl implements RuntimePlatformApi {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 log.severe(e.getMessage());
-            }
-            if (! containerClient.isContainerAlive(agentContainerId)) {
-                errorMessage = "Container failed to start.";
-                break;
             }
         }
 
@@ -592,6 +607,15 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (! failedRequirements.isEmpty()) {
             throw new IllegalArgumentException(String.format("Container Image has unsatisfied Requirements: %s",
                     failedRequirements));
+        }
+    }
+
+    protected void testSelfConnection() throws Exception {
+        var token = config.enableAuth ?
+                jwtUtil.generateTokenForUser(config.platformAdminUser, config.platformAdminPwd) : null;
+        var info = new ApiProxy(config.getOwnBaseUrl(), null, token, 5000).getPlatformInfo();
+        if (! Objects.equals(platformId, info.getPlatformId())) {
+            throw new IllegalArgumentException("Mismatched Platform ID");
         }
     }
 
