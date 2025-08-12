@@ -15,8 +15,8 @@ import de.gtarc.opaca.platform.util.ArgumentValidator;
 import de.gtarc.opaca.platform.util.RequirementsChecker;
 import de.gtarc.opaca.util.ApiProxy;
 import lombok.Getter;
-import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
+import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -40,7 +40,7 @@ import org.springframework.web.server.ResponseStatusException;
  * This class provides the actual implementation of the API routes. Might also be split up
  * further, e.g. for agent-forwarding, container-management, and linking to other platforms.
  */
-@Log
+@Log4j2
 @Component
 public class PlatformImpl implements RuntimePlatformApi {
 
@@ -92,16 +92,16 @@ public class PlatformImpl implements RuntimePlatformApi {
 
         // initialize container client based on environment
         if (config.containerEnvironment == PostAgentContainer.ContainerEnvironment.DOCKER) {
-            log.info("Using Docker on host " + config.remoteDockerHost);
+            log.info("Using Docker on host {}", config.remoteDockerHost);
             this.containerClient = new DockerClient();
         } else if (config.containerEnvironment == PostAgentContainer.ContainerEnvironment.KUBERNETES) {
-            log.info("Using Kubernetes with namespace " + config.kubernetesNamespace);
+            log.info("Using Kubernetes with namespace {}", config.kubernetesNamespace);
             this.containerClient = new KubernetesClient();
         } else {
             throw new IllegalArgumentException("Invalid environment specified");
         }
         // test resolving own base URL and print result
-        log.info("Own Base URL: " + config.getOwnBaseUrl());
+        log.info("Own Base URL: {}", config.getOwnBaseUrl());
 
         this.containerClient.initialize(config, sessionData);
         this.containerClient.testConnectivity();
@@ -246,7 +246,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 try {
                     return callback.apply(match);
                 } catch (IOException e) {
-                    log.warning(String.format("Exception from container: %s", e));
+                    log.warn("Exception from container: {}", e);
                     lastException = e;
                 }
             } else if (match.isParamsMismatch()) {
@@ -312,15 +312,15 @@ public class PlatformImpl implements RuntimePlatformApi {
                 container.setConnectivity(connectivity);
                 container.setOwner(owner);
                 if (! container.getContainerId().equals(agentContainerId)) {
-                    log.warning("Agent Container ID does not match: Expected " +
-                            agentContainerId + ", but found " + container.getContainerId());
+                    log.warn("Agent Container ID does not match: Expected {}, but found {}",
+                            agentContainerId, container.getContainerId());
                 }
                 // register container in different collections
                 runningContainers.put(agentContainerId, container);
                 startedContainers.put(agentContainerId, postContainer);
                 tokens.put(agentContainerId, token);
                 validators.put(agentContainerId, new ArgumentValidator(container.getImage()));
-                log.info("Container started: " + agentContainerId);
+                log.info("Container started: {}", agentContainerId);
                 notifyConnectedPlatforms();
                 return agentContainerId;
             } catch (JsonMappingException e) {
@@ -332,17 +332,17 @@ public class PlatformImpl implements RuntimePlatformApi {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
-                log.severe(e.getMessage());
+                log.error(e.getMessage());
             }
         }
 
         // if we reach this point, container did not start in time or does not provide /info route
-        log.warning("Stopping Container. " + errorMessage);
+        log.warn("Stopping Container. {}", errorMessage);
         try {
             containerClient.stopContainer(agentContainerId);
             userDetailsService.removeUser(agentContainerId);
         } catch (Exception e) {
-            log.warning("Failed to stop container: " + e.getMessage());
+            log.warn("Failed to stop container: {}", e.getMessage());
         }
         throw new IOException(errorMessage);
     }
@@ -453,7 +453,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             } else {
                 getPlatformClient(url).disconnectPlatform(config.getOwnBaseUrl());
             }
-            log.info(String.format("Disconnected from %s", url));
+            log.info("Disconnected from {}", url);
             return true;
         }
         return false;
@@ -475,7 +475,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             notifyConnectedPlatforms();
             return true;
         } catch (IOException e) {
-            log.warning(String.format("Container did not respond: %s; removing...", containerId));
+            log.warn("Container did not respond: {}; removing...", containerId);
             runningContainers.remove(containerId);
             return false;
         }
@@ -486,7 +486,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         platformUrl = normalizeString(platformUrl);
         checkUrl(platformUrl);
         if (platformUrl.equals(config.getOwnBaseUrl())) {
-            log.warning("Cannot request update for self.");
+            log.warn("Cannot request update for self.");
             return false;
         }
         if (!connectedPlatforms.containsKey(platformUrl)) {
@@ -499,7 +499,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             connectedPlatforms.put(platformUrl, platformInfo);
             return true;
         } catch (IOException e) {
-            log.warning(String.format("Platform did not respond: %s; removing...", platformUrl));
+            log.warn("Platform did not respond: {}; removing...", platformUrl);
             connectedPlatforms.remove(platformUrl);
             return false;
         }
@@ -524,7 +524,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             try {
                 client.notifyUpdatePlatform(config.getOwnBaseUrl());
             } catch (IOException e) {
-                log.warning("Failed to forward update to Platform " + platformUrl);
+                log.warn("Failed to forward update to Platform {}", platformUrl);
             }
         }
     }

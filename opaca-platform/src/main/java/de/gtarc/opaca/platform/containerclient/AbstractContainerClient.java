@@ -7,7 +7,7 @@ import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.session.SessionData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 
 import java.io.IOException;
 import java.net.*;
@@ -21,7 +21,7 @@ import java.util.stream.IntStream;
 /**
  * Common superclass for different Container Clients implementing some common functions
  */
-@Log
+@Log4j2
 abstract public class AbstractContainerClient implements ContainerClient {
 
     protected PlatformConfig config;
@@ -86,7 +86,7 @@ abstract public class AbstractContainerClient implements ContainerClient {
         var passwords = config.registryPasswords.split(sep);
 
         if (registries.length != logins.length || registries.length != passwords.length) {
-            log.warning("Number of Registry Names does not match Login Usernames and Passwords");
+            log.warn("Number of Registry Names does not match Login Usernames and Passwords");
             return List.of();
         } else {
             return IntStream.range(0, registries.length)

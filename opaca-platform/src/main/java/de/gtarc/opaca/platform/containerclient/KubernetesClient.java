@@ -8,7 +8,6 @@ import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.session.SessionData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.extern.java.Log;
 
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.Configuration;
@@ -18,6 +17,7 @@ import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.*;
 import io.kubernetes.client.custom.IntOrString;
 import io.kubernetes.client.util.Config;
+import lombok.extern.log4j.Log4j2;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -28,7 +28,7 @@ import java.util.stream.Stream;
 /**
  * Container Client for running Agent Containers in Kubernetes.
  */
-@Log
+@Log4j2
 public class KubernetesClient extends AbstractContainerClient {
 
     private CoreV1Api coreApi;
@@ -75,7 +75,7 @@ public class KubernetesClient extends AbstractContainerClient {
             this.coreApi = new CoreV1Api();
             this.appsApi = new AppsV1Api();
         } catch (IOException e) {
-            log.severe("Could not initialize Kubernetes Client: " + e.getMessage());
+            log.error("Could not initialize Kubernetes Client: {}", e.getMessage());
             throw new RuntimeException(e);
         }
 
@@ -89,7 +89,7 @@ public class KubernetesClient extends AbstractContainerClient {
         try {
             this.coreApi.listNamespacedPod(this.namespace).execute();
         } catch (ApiException e) {
-            log.severe("Could not initialize Kubernetes Client: " + e.getMessage());
+            log.error("Could not connect to Kubernetes: {}", e.getMessage());
             throw new RuntimeException("Could not initialize Kubernetes Client", e);
         }
     }
@@ -156,12 +156,12 @@ public class KubernetesClient extends AbstractContainerClient {
 
         try {
             V1Deployment createdDeployment = appsApi.createNamespacedDeployment(namespace, deployment).execute();
-            log.info("Deployment created: " + createdDeployment.getMetadata().getName());
+            log.info("Deployment created: {}", createdDeployment.getMetadata().getName());
 
             V1Service createdService = coreApi.createNamespacedService(namespace, service).execute();
-            log.info("Service created: " + createdService.getMetadata().getName());
+            log.info("Service created: {}", createdService.getMetadata().getName());
             String serviceIP = createdService.getSpec().getClusterIP();
-            log.info("Deployment IP: " + serviceIP);
+            log.info("Deployment IP: {}", serviceIP);
 
             createServicesForPorts(containerId, image, portMap);
 
@@ -176,7 +176,7 @@ public class KubernetesClient extends AbstractContainerClient {
 
             return connectivity;
         } catch (ApiException e) {
-            log.severe("Error creating pod: " + e.getMessage());
+            log.error("Error creating pod: {}", e.getMessage());
             throw new IOException("Failed to create Pod: " + e.getMessage());
         }
     }
@@ -195,7 +195,7 @@ public class KubernetesClient extends AbstractContainerClient {
             usedPorts.removeAll(containerInfo.connectivity.getExtraPortMappings().keySet());
         } catch (ApiException e) {
             var msg = "Could not stop Container " + containerId + "; already stopped?";
-            log.warning(msg);
+            log.warn(msg);
             throw new NoSuchElementException(msg);
         }
     }
@@ -207,7 +207,7 @@ public class KubernetesClient extends AbstractContainerClient {
             String phase = container.getStatus().getPhase();
             return List.of("Running", "Pending").contains(phase);
         } catch (ApiException e) {
-            log.severe("Error reading pod: " + e.getMessage());
+            log.error("Error reading pod: {}", e.getMessage());
             return false;
         }
     }
@@ -287,7 +287,7 @@ public class KubernetesClient extends AbstractContainerClient {
         try {
             this.coreApi.createNamespacedSecret(namespace, secret).execute();
         } catch (ApiException e) {
-            log.severe("Exception when creating secret: " + e.getResponseBody());
+            log.error("Exception when creating secret: {}", e.getResponseBody());
         }
         return secretName;
     }

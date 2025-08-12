@@ -3,6 +3,7 @@ package de.gtarc.opaca.platform;
 import de.gtarc.opaca.model.PostAgentContainer;
 import lombok.ToString;
 import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
@@ -17,7 +18,7 @@ import java.util.Map;
  * most of these settings are platform specific and might be different for different
  * implementations of the Runtime Platform, e.g. using Docker vs. Kubernetes.
  */
-@Log
+@Log4j2
 @Configuration
 @ToString(exclude = {"registryPasswords", "platformAdminPwd", "secret"})
 public class PlatformConfig {
@@ -111,7 +112,7 @@ public class PlatformConfig {
 
     @PostConstruct
     private void initialize() {
-        log.info("Started with Config: " + this);
+        log.info("Started with Config: {}", this);
     }
 
     public enum PlatformEnvironment {
@@ -182,4 +183,5 @@ public class PlatformConfig {
         ownBaseUrl = "http://" + host + ":" + serverPort;
         return ownBaseUrl;
     }
+
 }

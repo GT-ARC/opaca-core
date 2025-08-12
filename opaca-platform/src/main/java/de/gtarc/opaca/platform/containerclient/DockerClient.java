@@ -20,7 +20,7 @@ import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.session.SessionData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
@@ -36,7 +36,7 @@ import java.util.stream.Stream;
  * - https://github.com/docker-java/docker-java/blob/master/docs/getting_started.md
  * - https://www.baeldung.com/docker-java-api
  */
-@Log
+@Log4j2
 public class DockerClient extends AbstractContainerClient {
 
     /** Client for accessing (remote) Docker runtime */
@@ -86,7 +86,7 @@ public class DockerClient extends AbstractContainerClient {
         try {
             this.dockerClient.listContainersCmd().exec();
         } catch (Exception e) {
-            log.severe("Could not initialize Docker Client: " + e.getMessage());
+            log.error("Could not initialize Docker Client: {}", e.getMessage());
             throw new RuntimeException("Could not initialize Docker Client", e);
         }
     }
@@ -118,7 +118,7 @@ public class DockerClient extends AbstractContainerClient {
                     .withExposedPorts(portBindings.stream().map(PortBinding::getExposedPort).collect(Collectors.toList()))
                     .exec();
 
-            log.info(String.format("Result: %s", res));
+            log.info("Result: {}", res);
 
             log.info("Starting Container...");
             dockerClient.startContainerCmd(res.getId()).exec();
@@ -135,7 +135,7 @@ public class DockerClient extends AbstractContainerClient {
 
         } catch (NotFoundException e) {
             // might theoretically happen if image is deleted between pull and run...
-            log.warning("Image not found: " + imageName);
+            log.warn("Image not found: {}", imageName);
             throw new NoSuchElementException("Image not found: " + imageName);
         } catch (DockerException e) {
             throw new IOException("Failed to start Docker container.", e);
@@ -151,7 +151,7 @@ public class DockerClient extends AbstractContainerClient {
             dockerClient.stopContainerCmd(containerInfo.containerId).exec();
         } catch (NotModifiedException e) {
             var msg = "Could not stop Container " + containerId + "; already stopped?";
-            log.warning(msg);
+            log.warn(msg);
             throw new NoSuchElementException(msg);
         }
         // TODO possibly that the container refuses being stopped? call "kill" instead? how to test this?
@@ -164,7 +164,7 @@ public class DockerClient extends AbstractContainerClient {
             var res = dockerClient.inspectContainerCmd(containerInfo.containerId).exec();
             return Boolean.TRUE.equals(res.getState().getRunning());
         } catch (NotFoundException e) {
-            log.severe("Container not found: " + e.getMessage());
+            log.error("Container not found: {}", e.getMessage());
             return false;
         }
     }
@@ -191,7 +191,7 @@ public class DockerClient extends AbstractContainerClient {
      * Raise NoSuchElementException if image can not be pulled for whatever reason.
      */
     private void pullDockerImage(String imageName) {
-        log.info("Pulling Image... " + imageName);
+        log.info("Pulling Image... {}", imageName);
         try {
             var registry = imageName.split("/")[0];
             dockerClient.pullImageCmd(imageName)
@@ -199,9 +199,9 @@ public class DockerClient extends AbstractContainerClient {
                     .exec(new PullImageResultCallback())
                     .awaitCompletion();
         } catch (InterruptedException e) {
-            log.warning(e.getMessage());
+            log.warn(e.getMessage());
         } catch (InternalServerErrorException e) {
-            log.severe("Pull Image failed: " + e.getMessage());
+            log.error("Pull Image failed: {}", e.getMessage());
             throw new NoSuchElementException("Failed to Pull image: " + e.getMessage());
         }
     }
