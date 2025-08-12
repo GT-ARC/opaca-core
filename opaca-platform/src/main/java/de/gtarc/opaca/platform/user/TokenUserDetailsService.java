@@ -69,6 +69,10 @@ public class TokenUserDetailsService implements UserDetailsService {
         if (userRepository.findByUsername(username) != null) {
             throw new UserAlreadyExistsException(username);
         } else {
+            // checked here and not via @NotNull since they can be null for PUT
+            if (username == null || password == null || role == null) {
+                throw new IllegalArgumentException("Username, Password and Role must be provided.");
+            }
             User user = new User(username, passwordEncoder.encode(password), role, privileges != null ? privileges : new ArrayList<>());
             userRepository.save(user);
         }
@@ -109,22 +113,25 @@ public class TokenUserDetailsService implements UserDetailsService {
      * If privileges are set, ALL privileges of the user will be replaced with the new list.
      * Return the updated user.
      */
-    public String updateUser(String username, String newUsername, String password, Role role,
-                             List<String> privileges) {
+    public String updateUser(String username, String newUsername, String password, Role role, List<String> privileges) {
+        // get user to be updated
         User user = userRepository.findByUsername(username);
-        if (user == null) throw new UsernameNotFoundException(username);
-        if (userRepository.findByUsername(newUsername) != null &&
-                !Objects.equals(username, newUsername)) throw new UserAlreadyExistsException(newUsername);
+        if (user == null) {
+            throw new UsernameNotFoundException(username);
+        }
+        // update user name? check for conflict
+        if (newUsername != null && ! Objects.equals(username, newUsername)) {
+            if (userRepository.existsByUsername(newUsername)) {
+                throw new UserAlreadyExistsException(newUsername);
+            }
+            user.setUsername(newUsername);
+        }
+        // update remaining attributes
         if (password != null) user.setPassword(passwordEncoder.encode(password));
         if (role != null) user.setRole(role);
         if (privileges != null) user.setPrivileges(privileges);
-        if (newUsername != null) {
-            user.setUsername(newUsername);
-            // If a new username (mongo ID) is given, the old entity should be deleted
-            userRepository.deleteByUsername(username);
-            // TODO what happens if the deletion or creation fails?
-            //  Updating should be atomic
-        }
+        // delete the old and save and get updated user
+        userRepository.deleteByUsername(username);
         userRepository.save(user);
         return getUser(user.getUsername()).toString();
     }

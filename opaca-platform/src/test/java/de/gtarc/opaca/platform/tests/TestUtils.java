@@ -149,13 +149,4 @@ public class TestUtils {
             throw new IOException("Failed to connect platforms: " + message);
         }
     }
-
-    public static User getUser(String username, String password, Role role, List<String> privileges) {
-        User user = new User();
-        user.setUsername(username);
-        user.setPassword(password);
-        user.setRole(role);
-        user.setPrivileges(privileges);
-        return user;
-    }
 }
