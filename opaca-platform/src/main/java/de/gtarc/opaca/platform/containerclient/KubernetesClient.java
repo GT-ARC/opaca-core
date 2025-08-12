@@ -3,7 +3,6 @@ package de.gtarc.opaca.platform.containerclient;
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.AgentContainerImage;
-import de.gtarc.opaca.model.AgentContainerImage.ImageParameter;
 import de.gtarc.opaca.model.PostAgentContainer;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.session.SessionData;
@@ -32,7 +31,6 @@ import java.util.stream.Stream;
 @Log4j2
 public class KubernetesClient extends AbstractContainerClient {
 
-    private PlatformConfig config;
     private CoreV1Api coreApi;
     private AppsV1Api appsApi;
     private String namespace;
@@ -52,8 +50,14 @@ public class KubernetesClient extends AbstractContainerClient {
         AgentContainer.Connectivity connectivity;
     }
 
+    /*
+     * CONTAINER CLIENT API
+     */
+
     @Override
     public void initialize(PlatformConfig config, SessionData sessionData) {
+        super.initialize(config, sessionData);
+
         // Initialize the Kubernetes API client
         try {
             ApiClient client;
@@ -76,10 +80,8 @@ public class KubernetesClient extends AbstractContainerClient {
         }
 
         this.namespace = config.kubernetesNamespace;
-        this.config = config;
         this.auth = loadKubernetesSecrets();
         this.pods = sessionData.pods;
-        this.usedPorts = sessionData.usedPorts;
     }
 
     @Override
@@ -113,7 +115,7 @@ public class KubernetesClient extends AbstractContainerClient {
                                         .ports(List.of(
                                                 new V1ContainerPort().containerPort(image.getApiPort())
                                         ))
-                                        .env(buildEnv(containerId, token, owner, image.getParameters(), container.getArguments()))
+                                        .env(toK8sEnv(buildContainerEnv(containerId, token, owner, image.getParameters(), container.getArguments(), portMap)))
                         ))
                         .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)))
                 ;
@@ -179,14 +181,8 @@ public class KubernetesClient extends AbstractContainerClient {
         }
     }
 
-    private List<V1EnvVar> buildEnv(String containerId, String token, String owner, List<ImageParameter> parameters, Map<String, String> arguments) {
-        return config.buildContainerEnv(containerId, token, owner, parameters, arguments).entrySet().stream()
-                .map(e -> new V1EnvVar().name(e.getKey()).value(e.getValue()))
-                .collect(Collectors.toList());
-    }
-
     @Override
-    public void stopContainer(String containerId) throws IOException {
+    public void stopContainer(String containerId) {
         try {
             // remove container info, stop container
             var containerInfo = pods.remove(containerId);
@@ -205,7 +201,7 @@ public class KubernetesClient extends AbstractContainerClient {
     }
 
     @Override
-    public boolean isContainerAlive(String containerId) throws IOException {
+    public boolean isContainerAlive(String containerId) {
         try {
             V1Pod container = coreApi.readNamespacedPod(containerId, namespace).execute();
             String phase = container.getStatus().getPhase();
@@ -226,6 +222,10 @@ public class KubernetesClient extends AbstractContainerClient {
     protected String getContainerBaseUrl() {
         return config.getOwnBaseUrl().replaceAll(":\\d+$", "");
     }
+
+    /*
+     * HELPER METHODS
+     */
 
     private void createServicesForPorts(String containerId, AgentContainerImage image, Map<Integer, Integer> portMap) throws ApiException {
         for (Map.Entry<Integer, Integer> entry : portMap.entrySet()) {
@@ -261,10 +261,15 @@ public class KubernetesClient extends AbstractContainerClient {
         return "svc-" + containerId;
     }
 
+    private List<V1EnvVar> toK8sEnv(Map<String, String> containerEnv) {
+        return containerEnv.entrySet().stream()
+                .map(e -> new V1EnvVar().name(e.getKey()).value(e.getValue()))
+                .collect(Collectors.toList());
+    }
 
     private Map<String, String> loadKubernetesSecrets() {
-        return config.loadDockerAuth().stream().collect(Collectors.toMap(
-                PlatformConfig.ImageRegistryAuth::getRegistry,
+        return getImageRegistryAuth().stream().collect(Collectors.toMap(
+                ImageRegistryAuth::getRegistry,
                 x -> createKubernetesSecret(x.getRegistry(), x.getLogin(), x.getPassword())));
     }
 
@@ -284,7 +289,6 @@ public class KubernetesClient extends AbstractContainerClient {
         } catch (ApiException e) {
             log.error("Exception when creating secret: {}", e.getResponseBody());
         }
-
         return secretName;
     }
 

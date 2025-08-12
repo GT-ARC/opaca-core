@@ -1,11 +1,6 @@
 package de.gtarc.opaca.platform;
 
-import com.google.common.base.Strings;
-import de.gtarc.opaca.api.AgentContainerApi;
-import de.gtarc.opaca.model.AgentContainerImage;
 import de.gtarc.opaca.model.PostAgentContainer;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.ToString;
 import lombok.extern.java.Log;
 import lombok.extern.log4j.Log4j2;
@@ -15,12 +10,8 @@ import org.springframework.context.annotation.Configuration;
 import jakarta.annotation.PostConstruct;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * Settings for the Runtime Platform. This is not a part of the OPACA model since
@@ -193,57 +184,4 @@ public class PlatformConfig {
         return ownBaseUrl;
     }
 
-    /**
-     * Get Dict mapping Docker registries to auth credentials from settings.
-     * Adapted from EMPAIA Job Execution Service
-     */
-    public List<ImageRegistryAuth> loadDockerAuth() {
-        if (Strings.isNullOrEmpty(registryNames)) {
-            return List.of();
-        }
-        var sep = registrySeparator;
-        var registries = registryNames.split(sep);
-        var logins = registryLogins.split(sep);
-        var passwords = registryPasswords.split(sep);
-
-        if (registries.length != logins.length || registries.length != passwords.length) {
-            log.warn("Number of Registry Names does not match Login Usernames and Passwords");
-            return List.of();
-        } else {
-            return IntStream.range(0, registries.length)
-                    .mapToObj(i -> new ImageRegistryAuth(registries[i], logins[i], passwords[i]))
-                    .collect(Collectors.toList());
-        }
-    }
-
-    /**
-     * Get Environment for AgentContainers, including both the standard parameters defined by the Runtime Platform,
-     * and any user-defined image-specific parameters.
-     */
-    public Map<String, String> buildContainerEnv(String containerId, String token, String owner, List<AgentContainerImage.ImageParameter> parameters, Map<String, String> arguments) {
-        Map<String, String> env = new HashMap<>();
-        // standard env vars passed from Runtime Platform to Agent Container
-        env.put(AgentContainerApi.ENV_CONTAINER_ID, containerId);
-        env.put(AgentContainerApi.ENV_TOKEN, token);
-        env.put(AgentContainerApi.ENV_OWNER, owner);
-        env.put(AgentContainerApi.ENV_PLATFORM_URL, getOwnBaseUrl());
-        // additional user-defined parameters
-        for (AgentContainerImage.ImageParameter param : parameters) {
-            if (arguments.containsKey(param.getName())) {
-                env.put(param.getName(), arguments.get(param.getName()));
-            } else if (! param.isRequired()) {
-                env.put(param.getName(), param.getDefaultValue());
-            } else {
-                throw new IllegalArgumentException("Missing required parameter: " + param.getName());
-            }
-        }
-        return env;
-    }
-
-    @Data @AllArgsConstructor
-    public static class ImageRegistryAuth {
-        String registry;
-        String login;
-        String password;
-    }
 }

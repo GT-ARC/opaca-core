@@ -36,15 +36,21 @@ public class UserController {
      * EXCEPTION HANDLERS
      */
 
-    @ExceptionHandler({IllegalArgumentException.class, UserAlreadyExistsException.class})
+    @ExceptionHandler({IllegalArgumentException.class})
     public ResponseEntity<String> handleBadRequestException(Exception e) {
-        log.warn(e.getMessage());
+        log.warn(e.toString());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
+    @ExceptionHandler({UserAlreadyExistsException.class})
+    public ResponseEntity<String> handleAlreadyExistsException(Exception e) {
+        log.warn(e.toString());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     }
 
     @ExceptionHandler({UsernameNotFoundException.class})
     public ResponseEntity<String> handleResourceNotFoundException(Exception e) {
-        log.warn(e.getMessage());
+        log.warn(e.toString());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
     }
 
@@ -70,21 +76,16 @@ public class UserController {
     /**
      * Deletes a user from the database
      * If security is disabled, do not perform secondary role check
-     * @param token JWT to check the requesters authority
      * @param username User which will be deleted from the database
      * @return True if deletion was successful, False if not
      */
     @RequestMapping(value="/users/{username}", method=RequestMethod.DELETE)
     @Operation(summary="Delete an existing user from the connected database", tags={"users"})
     public ResponseEntity<?> deleteUser(
-            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
             @PathVariable String username
     ) {
         log.info("DELETE /users/{}", username);
-        if (!config.enableAuth || isAdminOrSelf(token, username)){
-            return new ResponseEntity<>(userDetailsService.removeUser(username), HttpStatus.OK);
-        }
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        return new ResponseEntity<>(userDetailsService.removeUser(username), HttpStatus.OK);
     }
 
     /**

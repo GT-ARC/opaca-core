@@ -212,6 +212,10 @@ public class PlatformTests {
         var container = result(con, AgentContainer.class);
         Assert.assertTrue(container.getConnectivity().getApiPortMapping() != image.getImage().getApiPort());
 
+        // check that port mapping has been communicated correctly to container
+        con = request(PLATFORM_B_URL, "POST", "/invoke/GetInfo?containerId=" + containerBId, Map.of());
+        Assert.assertEquals("8082:8083,8888:8890,8889:8891", result(con, Map.class).get("PORT_MAPPING"));
+
         // undeploy both container again
         con = request(PLATFORM_A_URL, "DELETE", "/containers/" + containerAId, null);
         Assert.assertEquals(200, con.getResponseCode());
