@@ -58,7 +58,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
 
     /** platform's own UUID */
-    private final String platformId = UUID.randomUUID().toString();;
+    private final String platformId = UUID.randomUUID().toString();
 
     /** when the platform was started */
     private final ZonedDateTime startedAt = ZonedDateTime.now(ZoneId.of("Z"));
@@ -125,7 +125,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public Map<String, ?> getPlatformConfig() throws IOException {
+    public Map<String, ?> getPlatformConfig() {
         return config.toMap();
     }
 
@@ -156,7 +156,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public List<AgentDescription> getAllAgents() throws IOException {
+    public List<AgentDescription> getAllAgents() {
         return streamAgents(true).collect(Collectors.toList());
     }
 

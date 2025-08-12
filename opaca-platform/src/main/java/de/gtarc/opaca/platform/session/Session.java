@@ -158,7 +158,7 @@ public class Session {
         }
     }
 
-    private void stopRunningContainers() throws IOException {
+    private void stopRunningContainers() {
         log.info("Stopping Running Containers...");
         for (AgentContainer container : implementation.getContainers()) {
             try {
@@ -169,7 +169,7 @@ public class Session {
         }
     }
 
-    private void disconnectPlatforms() throws IOException {
+    private void disconnectPlatforms() {
         log.info("Disconnecting from other Platforms...");
         for (String connection : implementation.getConnections()) {
             try {

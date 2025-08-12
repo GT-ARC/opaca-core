@@ -130,7 +130,8 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         Pair(AgentContainerApi.ENV_CONTAINER_ID, System.getenv(AgentContainerApi.ENV_CONTAINER_ID)),
         Pair(AgentContainerApi.ENV_PLATFORM_URL, System.getenv(AgentContainerApi.ENV_PLATFORM_URL)),
         Pair(AgentContainerApi.ENV_OWNER, System.getenv(AgentContainerApi.ENV_OWNER)),
-        Pair(AgentContainerApi.ENV_TOKEN, System.getenv(AgentContainerApi.ENV_TOKEN))
+        Pair(AgentContainerApi.ENV_TOKEN, System.getenv(AgentContainerApi.ENV_TOKEN)),
+        Pair(AgentContainerApi.ENV_PORT_MAPPING, System.getenv(AgentContainerApi.ENV_PORT_MAPPING))
     )
 
     private fun actionGetEnv() = System.getenv()

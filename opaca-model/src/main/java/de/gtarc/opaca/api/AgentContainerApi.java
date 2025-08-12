@@ -11,13 +11,20 @@ import java.io.IOException;
  */
 public interface AgentContainerApi extends CommonApi{
 
+    /** name of env var holding the container ID */
     String ENV_CONTAINER_ID = "CONTAINER_ID";
 
+    /** name of env var holding the parent platform's URL */
     String ENV_PLATFORM_URL = "PLATFORM_URL";
 
+    /** name of env var holding the container's own access token (if auth is enabled, else null/empty) */
     String ENV_TOKEN = "TOKEN";
 
+    /** name of the user who started the container (if auth is enabled, else null/empty) */
     String ENV_OWNER = "OWNER";
+
+    /** which ports on the host the container's ports are mapped to, in the format "containerPort1:hostPort1,..." */
+    String ENV_PORT_MAPPING = "PORT_MAPPING";
 
     int DEFAULT_PORT = 8082;
 
