@@ -23,6 +23,7 @@ services:
       DEFAULT_IMAGE_DIRECTORY:
       EVENT_HISTORY_SIZE:
       ALWAYS_PULL_IMAGES:
+      LOG_LEVEL:
       # Security & Authentication
       ENABLE_AUTH:
       SECRET:

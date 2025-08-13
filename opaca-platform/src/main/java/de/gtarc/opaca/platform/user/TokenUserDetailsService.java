@@ -1,14 +1,18 @@
 package de.gtarc.opaca.platform.user;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import de.gtarc.opaca.model.Role;
 import de.gtarc.opaca.model.User;
+import de.gtarc.opaca.platform.auth.JwtUtil;
 import jakarta.annotation.PostConstruct;
 
 import de.gtarc.opaca.platform.PlatformConfig;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -36,6 +40,9 @@ public class TokenUserDetailsService implements UserDetailsService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
 
     @PostConstruct
 	public void postConstruct() {
@@ -60,6 +67,15 @@ public class TokenUserDetailsService implements UserDetailsService {
         }
     }
 
+    public String generateTokenForUser(String username, String password) {
+        UserDetails userDetails = loadUserByUsername(username);
+        if (passwordEncoder.matches(password, userDetails.getPassword())) {
+            return jwtUtil.generateToken(username, Duration.ofHours(1));
+        } else {
+            throw new BadCredentialsException("Wrong password");
+        }
+    }
+
     /**
      * Adding a new user to the UserRepository. Users can be human [username, password, roles, privileges]
      * or containers [containerID, password(random), roles, privileges]
@@ -69,9 +85,36 @@ public class TokenUserDetailsService implements UserDetailsService {
         if (userRepository.findByUsername(username) != null) {
             throw new UserAlreadyExistsException(username);
         } else {
+            // checked here and not via @NotNull since they can be null for PUT
+            if (username == null || password == null || role == null) {
+                throw new IllegalArgumentException("Username, Password and Role must be provided.");
+            }
             User user = new User(username, passwordEncoder.encode(password), role, privileges != null ? privileges : new ArrayList<>());
             userRepository.save(user);
         }
+    }
+
+    /**
+     * Create a temporary sub-user, derived from teh user of the current request, to be used by
+     * Containers started or other Runtime Platforms connected by that user.
+     *
+     * @param username the name of the new user to be created
+     * @param owner the name of the user creating the new user (ignored if no auth)
+     * @param role the role for the new user; if null, same role as owner; if no auth, always "guest"
+     */
+    public void createTempSubUser(String username, String owner, Role role) {
+        if (config.enableAuth) {
+            createUser(username, generateRandomPwd(), role != null ? role : getUserRole(owner), getUserPrivileges(owner));
+        } else {
+            createUser(username, generateRandomPwd(), Role.GUEST, null);
+        }
+    }
+
+    /**
+     * Creates a random String of length 24 containing upper and lower case characters and numbers
+     */
+    public String generateRandomPwd() {
+        return RandomStringUtils.random(24, true, true);
     }
 
     /**
@@ -97,9 +140,6 @@ public class TokenUserDetailsService implements UserDetailsService {
      * If the user does not exist, throw exception.
      */
     public Boolean removeUser(String username) {
-        if (! userRepository.existsByUsername(username)) {
-            throw new UsernameNotFoundException(username);
-        }
         return userRepository.deleteByUsername(username);
     }
 
@@ -109,22 +149,25 @@ public class TokenUserDetailsService implements UserDetailsService {
      * If privileges are set, ALL privileges of the user will be replaced with the new list.
      * Return the updated user.
      */
-    public String updateUser(String username, String newUsername, String password, Role role,
-                             List<String> privileges) {
+    public String updateUser(String username, String newUsername, String password, Role role, List<String> privileges) {
+        // get user to be updated
         User user = userRepository.findByUsername(username);
-        if (user == null) throw new UsernameNotFoundException(username);
-        if (userRepository.findByUsername(newUsername) != null &&
-                !Objects.equals(username, newUsername)) throw new UserAlreadyExistsException(newUsername);
+        if (user == null) {
+            throw new UsernameNotFoundException(username);
+        }
+        // update user name? check for conflict
+        if (newUsername != null && ! Objects.equals(username, newUsername)) {
+            if (userRepository.existsByUsername(newUsername)) {
+                throw new UserAlreadyExistsException(newUsername);
+            }
+            user.setUsername(newUsername);
+        }
+        // update remaining attributes
         if (password != null) user.setPassword(passwordEncoder.encode(password));
         if (role != null) user.setRole(role);
         if (privileges != null) user.setPrivileges(privileges);
-        if (newUsername != null) {
-            user.setUsername(newUsername);
-            // If a new username (mongo ID) is given, the old entity should be deleted
-            userRepository.deleteByUsername(username);
-            // TODO what happens if the deletion or creation fails?
-            //  Updating should be atomic
-        }
+        // delete the old and save and get updated user
+        userRepository.deleteByUsername(username);
         userRepository.save(user);
         return getUser(user.getUsername()).toString();
     }
@@ -165,5 +208,18 @@ public class TokenUserDetailsService implements UserDetailsService {
         public UserAlreadyExistsException(String username) {
             super("User with username '" + username + "' already exists!");
         }
+    }
+
+    /**
+     * Checks if the current request user is either an admin (has full control over user management)
+     * or the request user is performing request on its own data
+     * @param token: The token belonging to a user in the database for whom to check their authorities
+     * @param username: Name of user which will get affected by request (NOT THE CURRENT REQUEST USER)
+     */
+    public boolean isAdminOrSelf(String token, String username) {
+        UserDetails details = loadUserByUsername(jwtUtil.getUsernameFromToken(token));
+        if (details == null) return false;
+        return details.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals(Role.ADMIN.role())) ||
+                details.getUsername().equals(username);
     }
 }

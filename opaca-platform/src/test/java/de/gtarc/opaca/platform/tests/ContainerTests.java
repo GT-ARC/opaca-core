@@ -325,8 +325,8 @@ public class ContainerTests {
         var lastEvent = result(con, Map.class).get("lastEvent");
         Thread.sleep(500);
 
-        // invoke DoThis (the params are wrong, but this does not matter here)
-        request(PLATFORM_URL, "POST", "/invoke/DoThis", Map.of()).getResponseCode();
+        // invoke DoThis to generate a new event
+        request(PLATFORM_URL, "POST", "/invoke/DoThis", Map.of("message", "foo", "sleep_seconds", 0)).getResponseCode();
 
         con = request(PLATFORM_URL, "POST", "/invoke/GetInfo", Map.of());
         var newEvent = result(con, Map.class).get("lastEvent");

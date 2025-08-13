@@ -3,13 +3,11 @@ package de.gtarc.opaca.platform.containerclient;
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.AgentContainerImage;
-import de.gtarc.opaca.model.AgentContainerImage.ImageParameter;
 import de.gtarc.opaca.model.PostAgentContainer;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.session.SessionData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.extern.java.Log;
 
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.Configuration;
@@ -19,6 +17,7 @@ import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.*;
 import io.kubernetes.client.custom.IntOrString;
 import io.kubernetes.client.util.Config;
+import lombok.extern.log4j.Log4j2;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -29,10 +28,9 @@ import java.util.stream.Stream;
 /**
  * Container Client for running Agent Containers in Kubernetes.
  */
-@Log
+@Log4j2
 public class KubernetesClient extends AbstractContainerClient {
 
-    private PlatformConfig config;
     private CoreV1Api coreApi;
     private AppsV1Api appsApi;
     private String namespace;
@@ -52,8 +50,14 @@ public class KubernetesClient extends AbstractContainerClient {
         AgentContainer.Connectivity connectivity;
     }
 
+    /*
+     * CONTAINER CLIENT API
+     */
+
     @Override
     public void initialize(PlatformConfig config, SessionData sessionData) {
+        super.initialize(config, sessionData);
+
         // Initialize the Kubernetes API client
         try {
             ApiClient client;
@@ -71,15 +75,13 @@ public class KubernetesClient extends AbstractContainerClient {
             this.coreApi = new CoreV1Api();
             this.appsApi = new AppsV1Api();
         } catch (IOException e) {
-            log.severe("Could not initialize Kubernetes Client: " + e.getMessage());
+            log.error("Could not initialize Kubernetes Client: {}", e.getMessage());
             throw new RuntimeException(e);
         }
 
         this.namespace = config.kubernetesNamespace;
-        this.config = config;
         this.auth = loadKubernetesSecrets();
         this.pods = sessionData.pods;
-        this.usedPorts = sessionData.usedPorts;
     }
 
     @Override
@@ -87,7 +89,7 @@ public class KubernetesClient extends AbstractContainerClient {
         try {
             this.coreApi.listNamespacedPod(this.namespace).execute();
         } catch (ApiException e) {
-            log.severe("Could not initialize Kubernetes Client: " + e.getMessage());
+            log.error("Could not connect to Kubernetes: {}", e.getMessage());
             throw new RuntimeException("Could not initialize Kubernetes Client", e);
         }
     }
@@ -113,7 +115,7 @@ public class KubernetesClient extends AbstractContainerClient {
                                         .ports(List.of(
                                                 new V1ContainerPort().containerPort(image.getApiPort())
                                         ))
-                                        .env(buildEnv(containerId, token, owner, image.getParameters(), container.getArguments()))
+                                        .env(toK8sEnv(buildContainerEnv(containerId, token, owner, image.getParameters(), container.getArguments(), portMap)))
                         ))
                         .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)))
                 ;
@@ -154,12 +156,12 @@ public class KubernetesClient extends AbstractContainerClient {
 
         try {
             V1Deployment createdDeployment = appsApi.createNamespacedDeployment(namespace, deployment).execute();
-            log.info("Deployment created: " + createdDeployment.getMetadata().getName());
+            log.info("Deployment created: {}", createdDeployment.getMetadata().getName());
 
             V1Service createdService = coreApi.createNamespacedService(namespace, service).execute();
-            log.info("Service created: " + createdService.getMetadata().getName());
+            log.info("Service created: {}", createdService.getMetadata().getName());
             String serviceIP = createdService.getSpec().getClusterIP();
-            log.info("Deployment IP: " + serviceIP);
+            log.info("Deployment IP: {}", serviceIP);
 
             createServicesForPorts(containerId, image, portMap);
 
@@ -174,19 +176,13 @@ public class KubernetesClient extends AbstractContainerClient {
 
             return connectivity;
         } catch (ApiException e) {
-            log.severe("Error creating pod: " + e.getMessage());
+            log.error("Error creating pod: {}", e.getMessage());
             throw new IOException("Failed to create Pod: " + e.getMessage());
         }
     }
 
-    private List<V1EnvVar> buildEnv(String containerId, String token, String owner, List<ImageParameter> parameters, Map<String, String> arguments) {
-        return config.buildContainerEnv(containerId, token, owner, parameters, arguments).entrySet().stream()
-                .map(e -> new V1EnvVar().name(e.getKey()).value(e.getValue()))
-                .collect(Collectors.toList());
-    }
-
     @Override
-    public void stopContainer(String containerId) throws IOException {
+    public void stopContainer(String containerId) {
         try {
             // remove container info, stop container
             var containerInfo = pods.remove(containerId);
@@ -199,19 +195,19 @@ public class KubernetesClient extends AbstractContainerClient {
             usedPorts.removeAll(containerInfo.connectivity.getExtraPortMappings().keySet());
         } catch (ApiException e) {
             var msg = "Could not stop Container " + containerId + "; already stopped?";
-            log.warning(msg);
+            log.warn(msg);
             throw new NoSuchElementException(msg);
         }
     }
 
     @Override
-    public boolean isContainerAlive(String containerId) throws IOException {
+    public boolean isContainerAlive(String containerId) {
         try {
             V1Pod container = coreApi.readNamespacedPod(containerId, namespace).execute();
             String phase = container.getStatus().getPhase();
             return List.of("Running", "Pending").contains(phase);
         } catch (ApiException e) {
-            log.severe("Error reading pod: " + e.getMessage());
+            log.error("Error reading pod: {}", e.getMessage());
             return false;
         }
     }
@@ -226,6 +222,10 @@ public class KubernetesClient extends AbstractContainerClient {
     protected String getContainerBaseUrl() {
         return config.getOwnBaseUrl().replaceAll(":\\d+$", "");
     }
+
+    /*
+     * HELPER METHODS
+     */
 
     private void createServicesForPorts(String containerId, AgentContainerImage image, Map<Integer, Integer> portMap) throws ApiException {
         for (Map.Entry<Integer, Integer> entry : portMap.entrySet()) {
@@ -261,10 +261,15 @@ public class KubernetesClient extends AbstractContainerClient {
         return "svc-" + containerId;
     }
 
+    private List<V1EnvVar> toK8sEnv(Map<String, String> containerEnv) {
+        return containerEnv.entrySet().stream()
+                .map(e -> new V1EnvVar().name(e.getKey()).value(e.getValue()))
+                .collect(Collectors.toList());
+    }
 
     private Map<String, String> loadKubernetesSecrets() {
-        return config.loadDockerAuth().stream().collect(Collectors.toMap(
-                PlatformConfig.ImageRegistryAuth::getRegistry,
+        return getImageRegistryAuth().stream().collect(Collectors.toMap(
+                ImageRegistryAuth::getRegistry,
                 x -> createKubernetesSecret(x.getRegistry(), x.getLogin(), x.getPassword())));
     }
 
@@ -282,9 +287,8 @@ public class KubernetesClient extends AbstractContainerClient {
         try {
             this.coreApi.createNamespacedSecret(namespace, secret).execute();
         } catch (ApiException e) {
-            log.severe("Exception when creating secret: " + e.getResponseBody());
+            log.error("Exception when creating secret: {}", e.getResponseBody());
         }
-
         return secretName;
     }
 

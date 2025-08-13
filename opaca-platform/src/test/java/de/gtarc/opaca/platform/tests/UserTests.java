@@ -3,35 +3,45 @@ package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.model.Login;
 import de.gtarc.opaca.model.Role;
+import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.Application;
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
 import org.junit.*;
 import org.junit.rules.TestName;
-import org.junit.runners.MethodSorters;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.util.List;
 
 /**
- * Tests basic DB queries to the connected DB (default: embedded)
+ * Test User Management Routes. By default, the routes are tested agains the "embedded" DB,
+ * i.e. a simple Hash-Map. This is sufficient for testing the behavior of the REST routes,
+ * but for testing the interaction with the actual DB, you have to first start a Mongo-DB
+ * instance (see the defaults in application.properties). The easiest way to do this is to
+ * run the Docker-Compose; you can start the platform, too (it's using a different port than
+ * the one started in the tests), but make sure that the DB is empty or not connected to the
+ * volume. Then set the USE_EMBEDDED_DB flag to "false".
+ * However, for use in the Gitlab CI, the flag should be set to "true".
  */
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class UserTests {
 
+    private static final boolean USE_EMBEDDED_DB = true;
     private static final int PLATFORM_A_PORT = 8006;
-    private final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
+    private static final String PLATFORM_A = "http://localhost:" + PLATFORM_A_PORT;
+
     private static ConfigurableApplicationContext platformA = null;
-    private static String token = null;
+    private static String adminToken = null;
 
     @BeforeClass
-    public static void setupPlatform() {
+    public static void setupPlatform() throws Exception {
         platformA = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT,
-                "--default_image_directory=./default-test-images", "--security.enableAuth=true",
+                "--security.enableAuth=true",
                 "--security.secret=top-secret-key-for-unit-testing",
-                "--platform_admin_user=testUser", "--platform_admin_pwd=testPwd",
-                "--db_embed=true");
+                "--platform_admin_user=admin", "--platform_admin_pwd=12345",
+                "--db_embed=" + USE_EMBEDDED_DB);
+
+        adminToken = login("admin", "12345");
     }
 
     @AfterClass
@@ -47,118 +57,294 @@ public class UserTests {
         System.out.println(">>> RUNNING TEST UserTests." + testName.getMethodName());
     }
 
-    @Test
-    public void test01GetToken() throws Exception {
-        var con = request(PLATFORM_A, "POST", "/login", new Login("testUser", "testPwd"));
+    @After
+    public void checkInvariant() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "GET", "/users", null, adminToken);
         Assert.assertEquals(200, con.getResponseCode());
-        token = result(con);
-        Assert.assertNotNull(token);
+        var users = result(con, List.class);
+        Assert.assertEquals(1, users.size()); // only admin
     }
 
     // POST /users
 
     @Test
-    public void test02CreateUser() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("username", "pwd", Role.ADMIN, null), token);
+    public void testCreateGetDelete() throws Exception {
+        // create user
+        var user = new User("name", "pwd", Role.USER, null);
+        var con = requestWithToken(PLATFORM_A, "POST", "/users", user, adminToken);
         Assert.assertEquals(201, con.getResponseCode());
+
+        // get user
+        con = requestWithToken(PLATFORM_A, "GET", "/users/name", null, adminToken);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertTrue(result(con).contains("username=name"));
+
+        // delete user
+        con = requestWithToken(PLATFORM_A, "DELETE", "/users/name", null, adminToken);
+        Assert.assertEquals(200, con.getResponseCode());
     }
 
     @Test
-    public void test02CreateUserAgain() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("username", "otherPwd", Role.USER, null), token);
+    public void testCreateLogin() throws Exception {
+        createUser(adminToken, "test1", "pwd", Role.USER, null);
+
+        // new user can login and do stuff
+        var con = request(PLATFORM_A, "POST", "/login", new Login("test1", "pwd"));
+        Assert.assertEquals(200, con.getResponseCode());
+        var userToken = result(con);
+        con = requestWithToken(PLATFORM_A, "GET", "/info", null, userToken);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        deleteUser(adminToken, "test1");
+    }
+
+    @Test
+    public void testCreateUserAgain() throws Exception {
+        createUser(adminToken, "test", "pwd", Role.USER, null);
+
+        var user = new User("test", "otherPwd", Role.USER, null);
+        var con = requestWithToken(PLATFORM_A, "POST", "/users", user, adminToken);
+        Assert.assertEquals(409, con.getResponseCode());
+
+        deleteUser(adminToken, "test");
+    }
+
+    @Test
+    public void testCreateUserMissingRole() throws Exception {
+        // create user with missing attributes
+        var user = new User("differentUsername", "pwd", null, null);
+        var con = requestWithToken(PLATFORM_A, "POST", "/users", user, adminToken);
         Assert.assertEquals(400, con.getResponseCode());
     }
 
     @Test
-    public void test02CreateUserMissingRole() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("username", "pwd", null, null), token);
-        Assert.assertEquals(400, con.getResponseCode());
+    public void testUserCreateUser() throws Exception {
+        createUser(adminToken, "name", "pwd", Role.USER, null);
+        var userToken = login("name", "pwd");
+
+        // regular users can not create new users
+        var user = new User("testUser2", "otherPwd", Role.USER, null);
+        var con = requestWithToken(PLATFORM_A, "POST", "/users", user, userToken);
+        Assert.assertEquals(403, con.getResponseCode());
+
+        deleteUser(adminToken, "name");
     }
 
     // GET /users
 
     @Test
-    public void test03GetAllUsers() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "GET", "/users", null, token);
+    public void testGetAllUsers() throws Exception {
+        createUser(adminToken, "test1", "pwd", Role.USER, null);
+        createUser(adminToken, "test2", "pwd", Role.USER, null);
+
+        // admin can get all users
+        var con = requestWithToken(PLATFORM_A, "GET", "/users", null, adminToken);
         Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, List.class);
+        Assert.assertEquals(3, res.size());
+
+        deleteUser(adminToken, "test1");
+        deleteUser(adminToken, "test2");
     }
 
     @Test
-    public void test03GetOneUser() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "GET", "/users/testUser", null, token);
+    public void testGetOneUser() throws Exception {
+        createUser(adminToken, "test1", "pwd", Role.USER, null);
+        var userToken = login("test1", "pwd");
+
+        // user can get self
+        var con = requestWithToken(PLATFORM_A, "GET", "/users/test1", null, userToken);
         Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con); // result is user.toString (without pwd), not user itself
+        Assert.assertTrue(res.contains("username=test1"));
+
+        deleteUser(adminToken, "test1");
     }
 
     @Test
-    public void test03GetNonExistingUser() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "GET", "/users/missingUser", null, token);
+    public void testGetOtherUser() throws Exception {
+        createUser(adminToken, "test1", "pwd", Role.USER, null);
+        createUser(adminToken, "test2", "pwd", Role.USER, null);
+        var userToken = login("test1", "pwd");
+
+        // user can not get other user
+        var con = requestWithToken(PLATFORM_A, "GET", "/users/test2", null, userToken);
+        Assert.assertEquals(403, con.getResponseCode());
+
+        deleteUser(adminToken, "test1");
+        deleteUser(adminToken, "test2");
+    }
+
+    @Test
+    public void testGetNonExistingUser() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "GET", "/users/missingUser", null, adminToken);
         Assert.assertEquals(404, con.getResponseCode());
-    }
-
-    @Test
-    public void test03GetWithPayload() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "GET", "/users/testUser",
-                getUser("user", "password", Role.GUEST, null), token);
-        Assert.assertEquals(405, con.getResponseCode());
     }
 
     // PUT /users
 
     @Test
-    public void test04EditSuccess() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "PUT", "/users/testUser",
-                getUser(null, "newPwd", null, null), token);
-        Assert.assertEquals(200, con.getResponseCode());
-    }
+    public void testEditCredentials() throws Exception {
+        createUser(adminToken, "test1", "pwd", Role.USER, null);
 
-    @Test
-    public void test04EditEverything() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "PUT", "/users/username",
-                getUser("newName", "newPwd", Role.USER, List.of("Some_privilege")), token);
+        // admin edits user
+        var edit = new User("test2", "newPwd", null, null);
+        var con = requestWithToken(PLATFORM_A, "PUT", "/users/test1", edit, adminToken);
         Assert.assertEquals(200, con.getResponseCode());
-        // Check if login possible with new credentials
-        con = request(PLATFORM_A, "POST", "/login", new Login("newName", "newPwd"));
-        Assert.assertEquals(200, con.getResponseCode());
-        // Check if login with old credentials is not possible anymore
-        con = request(PLATFORM_A, "POST", "/login", new Login("username", "pwd"));
+
+        // try to login with old and new credentials
+        con = request(PLATFORM_A, "POST", "/login", new Login("test1", "pwd"));
         Assert.assertEquals(403, con.getResponseCode());
-    }
-
-    @Test
-    public void test04EditNothing() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "PUT", "/users/testUser",
-                getUser(null, null, null, null), token);
+        con = request(PLATFORM_A, "POST", "/login", new Login("test2", "newPwd"));
         Assert.assertEquals(200, con.getResponseCode());
+
+        deleteUser(adminToken, "test2");
     }
 
     @Test
-    public void test04EditNonExisting() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "PUT", "/users/missingUser",
-                getUser("newUsername", null, null, null), token);
+    public void testEditConflict() throws Exception {
+        createUser(adminToken, "test1", "pwd", Role.USER, null);
+        createUser(adminToken, "test2", "pwd", Role.USER, null);
+
+        // try to edit user to get same username as other used
+        var edit = new User("test2", null, null, null);
+        var con = requestWithToken(PLATFORM_A, "PUT", "/users/test1", edit, adminToken);
+        Assert.assertEquals(409, con.getResponseCode());
+
+        deleteUser(adminToken, "test1");
+        deleteUser(adminToken, "test2");
+    }
+
+    @Test
+    public void testEditUnprivileged() throws Exception {
+        createUser(adminToken, "test1", "pwd", Role.USER, null);
+        var userToken = login("test1", "pwd");
+
+        // user tries to edit itself (the actual edit does not matter, just to show why it's not allowed)
+        var edit = new User(null, null, Role.ADMIN, null);
+        var con = requestWithToken(PLATFORM_A, "PUT", "/users/test1", edit, userToken);
+        Assert.assertEquals(403, con.getResponseCode());
+
+        deleteUser(adminToken, "test1");
+    }
+
+    @Test
+    public void testEditEverything() throws Exception {
+        createUser(adminToken, "test1", "pwd", Role.USER, null);
+
+        // alter all attributes
+        var edit = new User("newName", "newPwd", Role.CONTRIBUTOR, List.of("Some_privilege"));
+        var con = requestWithToken(PLATFORM_A, "PUT", "/users/test1", edit, adminToken);
+        Assert.assertEquals(200, con.getResponseCode());
+        // old user no longer exists
+        con = requestWithToken(PLATFORM_A, "GET", "/users/test1", null, adminToken);
+        Assert.assertEquals(404, con.getResponseCode());
+        // new user exists and conforms to edit
+        con = requestWithToken(PLATFORM_A, "GET", "/users/newName", null, adminToken);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con); // result is user.toString (without pwd), not user itself
+        Assert.assertTrue(res.contains("newName"));
+        Assert.assertTrue(res.contains("Some_privilege"));
+
+        deleteUser(adminToken, "newName");
+    }
+
+    @Test
+    public void testEditNothing() throws Exception {
+        createUser(adminToken, "test1", "pwd", Role.USER, null);
+
+        // get current user
+        var con = requestWithToken(PLATFORM_A, "GET", "/users/test1", null, adminToken);
+        var oldUser = result(con);
+
+        // make pseudo edit-request without any changes
+        var edit = new User(null, null, null, null);
+        con = requestWithToken(PLATFORM_A, "PUT", "/users/test1", edit, adminToken);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals(oldUser, result(con));
+
+        deleteUser(adminToken, "test1");
+    }
+
+    @Test
+    public void testEditNonExisting() throws Exception {
+        // try to edit non-existing user
+        var edit = new User("newUsername", null, null, null);
+        var con = requestWithToken(PLATFORM_A, "PUT", "/users/missingUser", edit, adminToken);
         Assert.assertEquals(404, con.getResponseCode());
     }
 
     // DELETE /users
 
-    @Test
-    public void test05DeleteUser() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "DELETE", "/users/newName", null, token);
+    public void testDeleteUser() throws Exception {
+        createUser(adminToken, "test1", "pwd", Role.USER, null);
+
+        // this is actually already tested in every single test, just for completeness...
+        var con = requestWithToken(PLATFORM_A, "DELETE", "/users/test1", null, adminToken);
         Assert.assertEquals(200, con.getResponseCode());
-    }
+        Assert.assertTrue(result(con, Boolean.class));
 
-    @Test
-    public void test05DeleteUserDuplicate() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "DELETE", "/users/newName", null, token);
+        // user is no longer present
+        con = requestWithToken(PLATFORM_A, "GET", "/users/test1", null, adminToken);
         Assert.assertEquals(404, con.getResponseCode());
     }
 
     @Test
-    public void test05DeleteNonExisting() throws Exception {
-        var con = requestWithToken(PLATFORM_A, "DELETE", "/users/missingUser", null, token);
-        Assert.assertEquals(404, con.getResponseCode());
+    public void testDeleteUnprivileged() throws Exception {
+        createUser(adminToken, "test1", "pwd", Role.USER, null);
+        var userToken = login("test1", "pwd");
+
+        // regular user can not delete, not even itself
+        var con = requestWithToken(PLATFORM_A, "DELETE", "/users/admin", null, userToken);
+        Assert.assertEquals(403, con.getResponseCode());
+
+        deleteUser(adminToken, "test1");
+    }
+
+    @Test
+    public void testDeleteThenLogin() throws Exception {
+        createUser(adminToken, "test1", "pwd", Role.USER, null); // admin, so it can call other routes
+        var userToken = login("test1", "pwd");
+        deleteUser(adminToken, "test1");
+
+        // after delete, user is no longer able to login...
+        var con = request(PLATFORM_A, "POST", "/login", new Login("test1", "pwd"));
+        Assert.assertEquals(403, con.getResponseCode());
+
+        // ... or use a previously acquired token
+        con = requestWithToken(PLATFORM_A, "GET", "/info", null, userToken);
+        Assert.assertEquals(403, con.getResponseCode());
+    }
+
+    @Test
+    public void testDeleteNonExisting() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "DELETE", "/users/missingUser", null, adminToken);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertFalse(result(con, Boolean.class));
+    }
+
+    /*
+     * Short-hands for setup and cleanup of tests; just assume it works and return the result.
+     * Generally, the setup and cleanup part of the above unit tests is done using these methods,
+     * while the things under test are done by calling "request" directly (even if there is a
+     * corresponding method for that call), in order to differentiate what the test is about.
+     */
+
+    private static String login(String user, String pwd) throws Exception {
+        var con = request(PLATFORM_A, "POST", "/login", new Login(user, pwd));
+        Assert.assertEquals(200, con.getResponseCode());
+        return result(con);
+    }
+
+    private static void createUser(String token, String name, String pwd, Role role, List<String> privileges) throws Exception {
+        var user = new User(name, pwd, role, privileges);
+        var con = requestWithToken(PLATFORM_A, "POST", "/users", user, token);
+        Assert.assertEquals(201, con.getResponseCode());
+    }
+
+    private static void deleteUser(String token, String name) throws Exception {
+        var con = requestWithToken(PLATFORM_A, "DELETE", "/users/" + name, null, token);
+        Assert.assertEquals(200, con.getResponseCode());
     }
 
 }

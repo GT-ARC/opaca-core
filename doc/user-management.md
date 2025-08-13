@@ -111,7 +111,7 @@ Retrieve a list of all users (including containers) that are registered with the
 
 ### `GET /users/{username}`
 
-Get information of a specific user when specifying a username. This can only be used by the **ADMIN** or the **USER** which information are being requested. (**NOTE** that confidential information like the password are obviously not returned)
+Get information of a specific user when specifying a username. This can only be used by the **ADMIN** or the **USER** which information are being requested. (**NOTE** that the result is not a User object but a string representation of the same with confidential information like the password being redacted.)
 
 ### `POST /users`
 
@@ -123,4 +123,4 @@ Edit user information for a specific user. Since this includes roles/privileges 
 
 ### `DELETE /users/{username}`
 
-Delete a specific user by the username from the database. This is only allowed by **ADMIN** and the **USER** belonging to the username.
+Delete a specific user by the username from the database. This is only allowed for the **ADMIN** role.

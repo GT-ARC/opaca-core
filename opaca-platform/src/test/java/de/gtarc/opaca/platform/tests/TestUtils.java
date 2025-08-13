@@ -142,20 +142,11 @@ public class TestUtils {
 
     public static void connectPlatforms(String platformUrl, String connectedUrl) throws Exception {
         var connectedBaseUrl = getBaseUrl(connectedUrl);
-        var loginCon = new LoginConnection(null, null, connectedBaseUrl);
+        var loginCon = new ConnectionRequest(connectedBaseUrl, true, null);
         var con = request(platformUrl, "POST", "/connections", loginCon);
         if (con.getResponseCode() != 200) {
             var message = new String(con.getErrorStream().readAllBytes());
             throw new IOException("Failed to connect platforms: " + message);
         }
-    }
-
-    public static User getUser(String username, String password, Role role, List<String> privileges) {
-        User user = new User();
-        user.setUsername(username);
-        user.setPassword(password);
-        user.setRole(role);
-        user.setPrivileges(privileges);
-        return user;
     }
 }

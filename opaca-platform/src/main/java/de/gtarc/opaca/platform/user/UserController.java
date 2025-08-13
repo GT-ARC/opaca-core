@@ -7,7 +7,7 @@ import de.gtarc.opaca.platform.user.TokenUserDetailsService.UserAlreadyExistsExc
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
-@Log
+@Log4j2
 @RestController
 @SecurityRequirement(name = "bearerAuth")
 @CrossOrigin(origins = "*", methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE } )
@@ -34,15 +34,21 @@ public class UserController {
      * EXCEPTION HANDLERS
      */
 
-    @ExceptionHandler({IllegalArgumentException.class, UserAlreadyExistsException.class})
+    @ExceptionHandler({IllegalArgumentException.class})
     public ResponseEntity<String> handleBadRequestException(Exception e) {
-        log.warning(e.getMessage());
+        log.warn(e.toString());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
+    @ExceptionHandler({UserAlreadyExistsException.class})
+    public ResponseEntity<String> handleAlreadyExistsException(Exception e) {
+        log.warn(e.toString());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     }
 
     @ExceptionHandler({UsernameNotFoundException.class})
     public ResponseEntity<String> handleResourceNotFoundException(Exception e) {
-        log.warning(e.getMessage());
+        log.warn(e.toString());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
     }
 
@@ -60,7 +66,7 @@ public class UserController {
     public ResponseEntity<?> addUser(
             @RequestBody User user
     ) {
-        log.info(String.format("POST /users %s", user));
+        log.info("POST /users {}", user);
         userDetailsService.createUser(user.getUsername(), user.getPassword(), user.getRole(), user.getPrivileges());
         return new ResponseEntity<>(userDetailsService.getUser(user.getUsername()).toString(), HttpStatus.CREATED);
     }
@@ -68,21 +74,16 @@ public class UserController {
     /**
      * Deletes a user from the database
      * If security is disabled, do not perform secondary role check
-     * @param token JWT to check the requesters authority
      * @param username User which will be deleted from the database
      * @return True if deletion was successful, False if not
      */
     @RequestMapping(value="/users/{username}", method=RequestMethod.DELETE)
     @Operation(summary="Delete an existing user from the connected database", tags={"users"})
     public ResponseEntity<?> deleteUser(
-            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
             @PathVariable String username
     ) {
-        log.info(String.format("DELETE /users/%s", username));
-        if (!config.enableAuth || jwtUtil.isAdminOrSelf(extractToken(token), username)){
-            return new ResponseEntity<>(userDetailsService.removeUser(username), HttpStatus.OK);
-        }
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        log.info("DELETE /users/{}", username);
+        return new ResponseEntity<>(userDetailsService.removeUser(username), HttpStatus.OK);
     }
 
     /**
@@ -98,8 +99,8 @@ public class UserController {
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
             @PathVariable String username
     ) {
-        log.info(String.format("GET /users/%s", username));
-        if (!config.enableAuth || jwtUtil.isAdminOrSelf(extractToken(token), username)){
+        log.info("GET /users/{}", username);
+        if (!config.enableAuth || userDetailsService.isAdminOrSelf(extractToken(token), username)){
             return new ResponseEntity<>(userDetailsService.getUser(username).toString(), HttpStatus.OK);
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN);
@@ -128,7 +129,7 @@ public class UserController {
             @PathVariable String username,
             @RequestBody User user
     ) {
-        log.info(String.format("PUT /users/%s %s", username, user));
+        log.info("PUT /users/{} {}", username, user);
         return new ResponseEntity<>(userDetailsService.updateUser(username, user.getUsername(), user.getPassword(),
                 user.getRole(), user.getPrivileges()), HttpStatus.OK);
     }

@@ -14,10 +14,10 @@ import de.gtarc.opaca.model.AgentContainer.Connectivity;
 import de.gtarc.opaca.platform.util.ArgumentValidator;
 import de.gtarc.opaca.platform.util.RequirementsChecker;
 import de.gtarc.opaca.util.ApiProxy;
+import de.gtarc.opaca.util.WebSocketConnector;
 import lombok.Getter;
-import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
-import org.apache.commons.lang3.RandomStringUtils;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -26,9 +26,12 @@ import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.http.WebSocket;
+import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -44,7 +47,7 @@ import org.springframework.web.server.ResponseStatusException;
  * from the Rest-Controller for some routes where the current user is relevant, whereas for e.g.
  * the {@link ApiProxy} the access-token should always be handled "behind the scenes".
  */
-@Log
+@Log4j2
 @Component
 public class PlatformImpl {
 
@@ -62,7 +65,7 @@ public class PlatformImpl {
 
 
     /** platform's own UUID */
-    private final String platformId = UUID.randomUUID().toString();;
+    private final String platformId = UUID.randomUUID().toString();
 
     /** when the platform was started */
     private final ZonedDateTime startedAt = ZonedDateTime.now(ZoneId.of("Z"));
@@ -76,9 +79,7 @@ public class PlatformImpl {
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
     private Map<String, RuntimePlatform> connectedPlatforms;
-
-    /** Set of remote Runtime Platform URLs with a pending connection request */
-    private final Set<String> pendingConnections = new HashSet<>();
+    private Map<String, WebSocket> connectionWebsockets;
 
     /** Map of validators for validating action argument types for each container */
     private final Map<String, ArgumentValidator> validators = new HashMap<>();
@@ -93,19 +94,20 @@ public class PlatformImpl {
         this.startedContainers = sessionData.startContainerRequests;
         this.tokens = sessionData.tokens;
         this.connectedPlatforms = sessionData.connectedPlatforms;
+        this.connectionWebsockets = new HashMap<>();
 
         // initialize container client based on environment
         if (config.containerEnvironment == PostAgentContainer.ContainerEnvironment.DOCKER) {
-            log.info("Using Docker on host " + config.remoteDockerHost);
+            log.info("Using Docker on host {}", config.remoteDockerHost);
             this.containerClient = new DockerClient();
         } else if (config.containerEnvironment == PostAgentContainer.ContainerEnvironment.KUBERNETES) {
-            log.info("Using Kubernetes with namespace " + config.kubernetesNamespace);
+            log.info("Using Kubernetes with namespace {}", config.kubernetesNamespace);
             this.containerClient = new KubernetesClient();
         } else {
             throw new IllegalArgumentException("Invalid environment specified");
         }
         // test resolving own base URL and print result
-        log.info("Own Base URL: " + config.getOwnBaseUrl());
+        log.info("Own Base URL: {}", config.getOwnBaseUrl());
 
         this.containerClient.initialize(config, sessionData);
         this.containerClient.testConnectivity();
@@ -113,6 +115,9 @@ public class PlatformImpl {
         for (var containerId : runningContainers.keySet()) {
             var image = runningContainers.get(containerId).getImage();
             validators.put(containerId, new ArgumentValidator(image));
+        }
+        for (var url : connectedPlatforms.keySet()) {
+            openConnectionWebsocket(url, tokens.get(url));
         }
     }
 
@@ -131,7 +136,7 @@ public class PlatformImpl {
         );
     }
 
-    public Map<String, ?> getPlatformConfig() throws IOException {
+    public Map<String, ?> getPlatformConfig() {
         return config.toMap();
     }
 
@@ -140,13 +145,13 @@ public class PlatformImpl {
     }
 
     public String login(Login loginParams) {
-        return jwtUtil.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
+        return userDetailsService.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
     }
 
     public String renewToken(String token) {
         // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
         String owner = userDetailsService.getUser(jwtUtil.getUsernameFromToken(token)).getUsername();
-        return jwtUtil.generateTokenForAgentContainer(owner);
+        return jwtUtil.generateToken(owner, Duration.ofHours(10));
     }
 
     /*
@@ -157,7 +162,7 @@ public class PlatformImpl {
         return streamAgents(false).collect(Collectors.toList());
     }
 
-    public List<AgentDescription> getAllAgents() throws IOException {
+    public List<AgentDescription> getAllAgents() {
         return streamAgents(true).collect(Collectors.toList());
     }
 
@@ -227,13 +232,11 @@ public class PlatformImpl {
         String token = "";
         String owner = "";
         if (config.enableAuth) {
-            token = jwtUtil.generateTokenForAgentContainer(agentContainerId);
+            token = jwtUtil.generateToken(agentContainerId, Duration.ofHours(24));
             owner = jwtUtil.getUsernameFromToken(userToken);
         }
         // create user first so the container can immediately talk with the platform
-        userDetailsService.createUser(agentContainerId, generateRandomPwd(),
-                config.enableAuth ? userDetailsService.getUserRole(owner) : Role.GUEST,
-                config.enableAuth ? userDetailsService.getUserPrivileges(owner) : null);
+        userDetailsService.createTempSubUser(agentContainerId, owner, null);
 
         // start container... this may raise an Exception, or returns the connectivity info
         Connectivity connectivity;
@@ -260,8 +263,8 @@ public class PlatformImpl {
                 container.setConnectivity(connectivity);
                 container.setOwner(owner);
                 if (! container.getContainerId().equals(agentContainerId)) {
-                    log.warning("Agent Container ID does not match: Expected " +
-                            agentContainerId + ", but found " + container.getContainerId());
+                    log.warn("Agent Container ID does not match: Expected {}, but found {}",
+                            agentContainerId, container.getContainerId());
                 }
                 // register container in different collections
                 runningContainers.put(agentContainerId, container);
@@ -269,7 +272,6 @@ public class PlatformImpl {
                 tokens.put(agentContainerId, token);
                 validators.put(agentContainerId, new ArgumentValidator(container.getImage()));
                 log.info("Container started: " + agentContainerId);
-                notifyConnectedPlatforms();
                 return agentContainerId;
             } catch (JsonMappingException e) {
                 errorMessage = "Container returned malformed /info: " + e.getMessage();
@@ -280,17 +282,17 @@ public class PlatformImpl {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
-                log.severe(e.getMessage());
+                log.error(e.getMessage());
             }
         }
 
         // if we reach this point, container did not start in time or does not provide /info route
-        log.warning("Stopping Container. " + errorMessage);
+        log.warn("Stopping Container. {}", errorMessage);
         try {
             containerClient.stopContainer(agentContainerId);
             userDetailsService.removeUser(agentContainerId);
         } catch (Exception e) {
-            log.warning("Failed to stop container: " + e.getMessage());
+            log.warn("Failed to stop container: {}", e.getMessage());
         }
         throw new IOException(errorMessage);
     }
@@ -322,7 +324,7 @@ public class PlatformImpl {
 
     public boolean removeContainer(String containerId, String userToken) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
-        if (config.enableAuth && userToken != null && ! jwtUtil.isAdminOrSelf(userToken, container.getOwner())) {
+        if (config.enableAuth && userToken != null && ! userDetailsService.isAdminOrSelf(userToken, container.getOwner())) {
             // ignore if userToken == null; this is only the case iff the platform is about to shut down
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
@@ -332,7 +334,6 @@ public class PlatformImpl {
         validators.remove(containerId);
         userDetailsService.removeUser(containerId);
         containerClient.stopContainer(containerId);
-        notifyConnectedPlatforms();
         return true;
     }
 
@@ -340,53 +341,55 @@ public class PlatformImpl {
      * CONNECTIONS ROUTES
      */
 
-    public boolean connectPlatform(LoginConnection loginConnection) throws IOException {
-        String url = normalizeString(loginConnection.getUrl());
+    public boolean connectPlatform(ConnectionRequest connect, String userToken) throws IOException {
+        String url = normalizeString(connect.getUrl());
         checkUrl(url);
         if (url.equals(config.getOwnBaseUrl()) || connectedPlatforms.containsKey(url)) {
             return false;
-        } else if (pendingConnections.contains(url)) {
-            // callback from remote platform following our own request for connection
-            return true;
-        } else {
-            if (loginConnection.getUsername() != null) {
-                // with auth, unidirectional
-                var token = getPlatformClient(url).login(new Login(loginConnection.getUsername(), loginConnection.getPassword()));
-                var info = getPlatformClient(url, token).getPlatformInfo();
-                connectedPlatforms.put(url, info);
-                tokens.put(url, token);
-            } else {
-                // without auth, bidirectional
-                try {
-                    var info = getPlatformClient(url).getPlatformInfo();
-                    url = info.getBaseUrl();
-                    pendingConnections.add(url);
-                    if (getPlatformClient(url).connectPlatform(new LoginConnection(null, null, config.getOwnBaseUrl()))) {
-                        connectedPlatforms.put(url, info);
-                    }
-                } finally {
-                    // also remove from pending in case client.post fails
-                    pendingConnections.remove(url);
-                }
-            }
-            return true;
         }
+        // try to get info (with token, if given)
+        var token = connect.getToken();
+        var client = getPlatformClient(url, token);
+        var info = client.getPlatformInfo();
+        // ask other platform to connect back to self?
+        if (connect.isConnectBack()) {
+            var ownUrl = config.getOwnBaseUrl();
+            var ownToken = config.enableAuth ? jwtUtil.generateToken(url, Duration.ofDays(7)) : null;
+            var owner = jwtUtil.getUsernameFromToken(userToken);
+            userDetailsService.createTempSubUser(url, owner, Role.USER);
+            client.connectPlatform(new ConnectionRequest(ownUrl, false, ownToken));
+        }
+        // use websocket to connect to updates
+        openConnectionWebsocket(url, token);
+
+        // store connection if all the above steps succeeded
+        connectedPlatforms.put(url, info);
+        tokens.put(url, token);
+        return true;
     }
 
     public List<String> getConnections() {
         return List.copyOf(connectedPlatforms.keySet());
     }
 
-    public boolean disconnectPlatform(String url) throws IOException {
-        url = normalizeString(url);
+    public boolean disconnectPlatform(ConnectionRequest disconnect) throws IOException {
+        var url = normalizeString(disconnect.getUrl());
         checkUrl(url);
-        if (connectedPlatforms.remove(url) != null) {
-            if (tokens.containsKey(url)) {
-                tokens.remove(url);
-            } else {
-                getPlatformClient(url).disconnectPlatform(config.getOwnBaseUrl());
+        if (connectedPlatforms.containsKey(url)) {
+            connectedPlatforms.remove(url);
+            tokens.remove(url);
+            userDetailsService.removeUser(url);
+            if (connectionWebsockets.containsKey(url)) {
+                var ws = connectionWebsockets.remove(url);
+                ws.sendClose(1000, "disconnected");
             }
-            log.info(String.format("Disconnected from %s", url));
+            // disconnect other?
+            if (disconnect.isConnectBack()) {
+                var client = getPlatformClient(url, disconnect.getToken());
+                var ownUrl = config.getOwnBaseUrl();
+                client.disconnectPlatform(new ConnectionRequest(ownUrl, false, null));
+            }
+            log.info("Disconnected from {}", url);
             return true;
         }
         return false;
@@ -404,10 +407,9 @@ public class PlatformImpl {
             containerInfo.setConnectivity(runningContainers.get(containerId).getConnectivity());
             runningContainers.put(containerId, containerInfo);
             validators.put(containerId, new ArgumentValidator(containerInfo.getImage()));
-            notifyConnectedPlatforms();
             return true;
         } catch (IOException e) {
-            log.warning(String.format("Container did not respond: %s; removing...", containerId));
+            log.warn("Container did not respond: {}; removing...", containerId);
             runningContainers.remove(containerId);
             return false;
         }
@@ -417,7 +419,7 @@ public class PlatformImpl {
         platformUrl = normalizeString(platformUrl);
         checkUrl(platformUrl);
         if (platformUrl.equals(config.getOwnBaseUrl())) {
-            log.warning("Cannot request update for self.");
+            log.warn("Cannot request update for self.");
             return false;
         }
         if (!connectedPlatforms.containsKey(platformUrl)) {
@@ -430,7 +432,7 @@ public class PlatformImpl {
             connectedPlatforms.put(platformUrl, platformInfo);
             return true;
         } catch (IOException e) {
-            log.warning(String.format("Platform did not respond: %s; removing...", platformUrl));
+            log.warn("Platform did not respond: {}; removing...", platformUrl);
             connectedPlatforms.remove(platformUrl);
             return false;
         }
@@ -441,22 +443,14 @@ public class PlatformImpl {
      */
 
     /**
-     * Whenever there is a change in this platform's Agent Containers (added, removed, or updated),
-     * call the /notify route of all connected Runtime Platforms, so they can pull the updated /info
-     *
-     * TODO this method is called when something about the containers changes... can we make this
-     *      asynchronous (without too much fuzz) so it does not block those other calls?
+     * Create Websocket connection and associate it with the connected platform's URL, to be closed when disconnected
      */
-    private void notifyConnectedPlatforms() {
-        // TODO with connect not being bidirectional, this does not really make sense anymore
-        //  adapt to possible new /subscribe route, or change entirely?
-        for (String platformUrl : connectedPlatforms.keySet()) {
-            var client = getPlatformClient(platformUrl);
-            try {
-                client.notifyUpdatePlatform(config.getOwnBaseUrl());
-            } catch (IOException e) {
-                log.warning("Failed to forward update to Platform " + platformUrl);
-            }
+    private void openConnectionWebsocket(String url, String token) {
+        try {
+            var res = WebSocketConnector.subscribe(url, token, "/containers", msg -> notifyUpdatePlatform(url));
+            connectionWebsockets.put(url, res.get());
+        } catch (ExecutionException | InterruptedException e) {
+            log.warn("Failed to establish websocket connection to {}", url);
         }
     }
 
@@ -485,7 +479,7 @@ public class PlatformImpl {
                 try {
                     return callback.apply(match);
                 } catch (IOException e) {
-                    log.warning(String.format("Exception from container: %s", e));
+                    log.warn("Exception from container: {}", e);
                     lastException = e;
                 }
             } else if (match.isParamsMismatch()) {
@@ -589,18 +583,11 @@ public class PlatformImpl {
 
     protected void testSelfConnection() throws Exception {
         var token = config.enableAuth ?
-                jwtUtil.generateTokenForUser(config.platformAdminUser, config.platformAdminPwd) : null;
+                userDetailsService.generateTokenForUser(config.platformAdminUser, config.platformAdminPwd) : null;
         var info = new ApiProxy(config.getOwnBaseUrl(), null, token, 5000).getPlatformInfo();
         if (! Objects.equals(platformId, info.getPlatformId())) {
             throw new IllegalArgumentException("Mismatched Platform ID");
         }
-    }
-
-    /**
-     * Creates a random String of length 24 containing upper and lower case characters and numbers
-     */
-    private String generateRandomPwd() {
-        return RandomStringUtils.random(24, true, true);
     }
 
     /**

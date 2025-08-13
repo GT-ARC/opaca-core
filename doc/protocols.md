@@ -39,10 +39,21 @@
 ## Protocol for connecting two Runtime Platforms
 
 * platform A receives request to connect to platform B
-* sends request to connect to platform A (itself) to platform B, adds B to "pending"
-* platform B does the same, sending another request back to A and adding A to "pending"
-* platform A recognizes the new request as already being processed and replies immediately
-* platform B replies to original request, both platforms call "info" on each other
+* platform A fetches `/info` from platform B
+* if requested to connect back, platform A sends request to connect to itself to platform B
+  * note: if platform A requires auth, this request to platform B will include a newly generated access token for platform A!
+* platform A opens a websocket connection to `/subscribe` on `/containers` events on platform B
+* when disconnecting, the websocket is closed, and platform B may also be asked to disconnect from platform A
+
+If authentication is enabled, the process will require access tokens to login at platform A and B, as well as a token for platform B to connect back to A. The process can be summarized as follows:
+
+* user logs in at platform A, gets token `tAU` (for user)
+* user logs in at platform B, gets token `tBU`
+* user calls `/connect` at platform A with header `tAU` and payload `{url=B, back=true, token=tBU}`
+* platform A stores `tBU` for communicating with platform B and gets B's `/info`
+* platform A creates a token to be used by platform B, `tAB`
+* platform A calls `/connect` at platform B with header `tBU` and payload `{url=A, back=false, token=tAB}`
+* platform B stores `tAB` for communicating with platform A and gets A's `/info`
 
 ![Platform Connection Protocol](img/connect-platform.png)
 

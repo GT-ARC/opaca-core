@@ -186,7 +186,9 @@ public class AuthTests {
         Thread.sleep(1000);
 
         // trigger different events
-        requestWithToken(PLATFORM_A, "POST", "/invoke/doesNotMatter", Map.of(), token_A).getResponseCode();
+        var res = requestWithToken(PLATFORM_A, "POST", "/invoke/GetInfo", Map.of(), token_A).getResponseCode();
+        Assert.assertEquals(200, res);
+        Thread.sleep(200);
 
         // check that correct events have been received
         Assert.assertEquals(0, without_auth.size());
@@ -219,22 +221,15 @@ public class AuthTests {
      // Authentication against the connected platforms
 
     @Test
-    public void test05ConnectPlatformWrongPwd() throws Exception {
-        var loginCon = createLoginCon("testUser", "wrongPwd", PLATFORM_A);
-        var con = requestWithToken(PLATFORM_B, "POST", "/connections", loginCon, token_B);
-        Assert.assertEquals(502, con.getResponseCode());
-    }
-
-    @Test
-    public void test05ConnectPlatformWrongUser() throws Exception {
-        var loginCon = createLoginCon("wrongUser", "testPwd", PLATFORM_A);
+    public void test05ConnectPlatformWrongToken() throws Exception {
+        var loginCon = new ConnectionRequest(PLATFORM_A, false, "wrong-token");
         var con = requestWithToken(PLATFORM_B, "POST", "/connections", loginCon, token_B);
         Assert.assertEquals(502, con.getResponseCode());
     }
 
     @Test
     public void test06ConnectPlatform() throws Exception {
-        var loginCon = createLoginCon("testUser", "testPwd", PLATFORM_A);
+        var loginCon = new ConnectionRequest(PLATFORM_A, true, token_A);
         var con = requestWithToken(PLATFORM_B, "POST", "/connections", loginCon, token_B);
         Assert.assertEquals(200, con.getResponseCode());
         Assert.assertTrue(result(con, Boolean.class));
@@ -264,32 +259,32 @@ public class AuthTests {
     public void test08AddUser() throws Exception {
         // GUEST USER
         var con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("guest", "guestPwd", Role.GUEST, null), token_A);
+                new User("guest", "guestPwd", Role.GUEST, null), token_A);
         Assert.assertEquals(201, con.getResponseCode());
 
         // (NORMAL) USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("user", "userPwd", Role.USER, null), token_A);
+                new User("user", "userPwd", Role.USER, null), token_A);
         Assert.assertEquals(201, con.getResponseCode());
 
         // CONTRIBUTOR USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("contributor", "contributorPwd", Role.CONTRIBUTOR, null), token_A);
+                new User("contributor", "contributorPwd", Role.CONTRIBUTOR, null), token_A);
         Assert.assertEquals(201, con.getResponseCode());
 
         // ADMIN USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("admin", "adminPwd", Role.ADMIN, null), token_A);
+                new User("admin", "adminPwd", Role.ADMIN, null), token_A);
         Assert.assertEquals(201, con.getResponseCode());
 
         // TEST USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("test", "testPwd", Role.GUEST, null), token_A);
+                new User("test", "testPwd", Role.GUEST, null), token_A);
         Assert.assertEquals(201, con.getResponseCode());
 
         // SECOND CONTRIBUTOR USER FOR SPECIFIC AUTHORITY TEST
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("contributor2", "contributor2Pwd", Role.CONTRIBUTOR, null), token_A);
+                new User("contributor2", "contributor2Pwd", Role.CONTRIBUTOR, null), token_A);
         Assert.assertEquals(201, con.getResponseCode());
     }
 
@@ -441,7 +436,7 @@ public class AuthTests {
 
         // Check if container can NOT perform actions which require "ADMIN" role
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("forbiddenUser", "forbidden", Role.GUEST, null), contContainerToken);
+                new User("forbiddenUser", "forbidden", Role.GUEST, null), contContainerToken);
         Assert.assertEquals(403, con.getResponseCode());
         Thread.sleep(500);
 
@@ -498,10 +493,6 @@ public class AuthTests {
 
     private Login createLogin(String username, String password) {
         return new Login(username, password);
-    }
-
-    private LoginConnection createLoginCon(String username, String password, String url) {
-        return new LoginConnection(username, password, url);
     }
 
     private String getUserToken(String userType) throws Exception {

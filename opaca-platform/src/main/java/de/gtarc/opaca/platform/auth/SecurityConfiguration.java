@@ -15,6 +15,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -149,13 +150,17 @@ public class SecurityConfiguration {
                 }
 
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    UserDetails userDetails = myUserDetailsService.loadUserByUsername(username);
-                    if (jwtUtil.validateToken(jwtToken, userDetails)) {
-                        var authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(authToken);
-                    } else {
-                        handleException(response, HttpStatus.UNAUTHORIZED, "Invalid Token.");
+                    try {
+                        UserDetails userDetails = myUserDetailsService.loadUserByUsername(username);
+                        if (jwtUtil.validateToken(jwtToken, userDetails)) {
+                            var authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                            SecurityContextHolder.getContext().setAuthentication(authToken);
+                        } else {
+                            handleException(response, HttpStatus.UNAUTHORIZED, "Invalid Token.");
+                        }
+                    } catch (UsernameNotFoundException e) {
+                        handleException(response, HttpStatus.UNAUTHORIZED, "Username not found.");
                     }
                 }
             }
