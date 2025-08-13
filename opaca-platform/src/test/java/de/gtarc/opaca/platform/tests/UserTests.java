@@ -276,13 +276,13 @@ public class UserTests {
 
     // DELETE /users
 
-    @Test
     public void testDeleteUser() throws Exception {
         createUser(adminToken, "test1", "pwd", Role.USER, null);
 
         // this is actually already tested in every single test, just for completeness...
         var con = requestWithToken(PLATFORM_A, "DELETE", "/users/test1", null, adminToken);
         Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertTrue(result(con, Boolean.class));
 
         // user is no longer present
         con = requestWithToken(PLATFORM_A, "GET", "/users/test1", null, adminToken);
@@ -319,7 +319,8 @@ public class UserTests {
     @Test
     public void testDeleteNonExisting() throws Exception {
         var con = requestWithToken(PLATFORM_A, "DELETE", "/users/missingUser", null, adminToken);
-        Assert.assertEquals(404, con.getResponseCode());
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertFalse(result(con, Boolean.class));
     }
 
     /*

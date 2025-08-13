@@ -167,10 +167,10 @@ public interface RuntimePlatformApi extends CommonApi {
      *
      * REST: POST /connections
      *
-     * @param loginConnection Stores the username, password, and url to connect to
+     * @param connect Wrapper for the Platform URL along with token and whether to connect back
      * @return Connection successful?
      */
-    boolean connectPlatform(LoginConnection loginConnection) throws IOException;
+    boolean connectPlatform(ConnectionRequest connect) throws IOException;
 
     /**
      * Get list uf base-URLs of connected other Runtime Platforms
@@ -186,10 +186,10 @@ public interface RuntimePlatformApi extends CommonApi {
      *
      * REST: DELETE /connections
      *
-     * @param url The base-URL of the platform to disconnect.
+     * @param disconnect Wrapper for the Platform URL along with token and whether to disconnect back
      * @return Disconnect successful?
      */
-    boolean disconnectPlatform(String url) throws IOException;
+    boolean disconnectPlatform(ConnectionRequest disconnect) throws IOException;
 
     /**
      * Notify Platform of changes in a connected Platform, triggering an update by calling the /info route.

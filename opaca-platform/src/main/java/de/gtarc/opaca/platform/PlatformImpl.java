@@ -14,10 +14,10 @@ import de.gtarc.opaca.model.AgentContainer.Connectivity;
 import de.gtarc.opaca.platform.util.ArgumentValidator;
 import de.gtarc.opaca.platform.util.RequirementsChecker;
 import de.gtarc.opaca.util.ApiProxy;
+import de.gtarc.opaca.util.WebSocketConnector;
 import lombok.Getter;
 import de.gtarc.opaca.util.EventHistory;
 import lombok.extern.log4j.Log4j2;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -27,9 +27,12 @@ import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.http.WebSocket;
+import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -72,9 +75,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
     private Map<String, RuntimePlatform> connectedPlatforms;
-
-    /** Set of remote Runtime Platform URLs with a pending connection request */
-    private final Set<String> pendingConnections = new HashSet<>();
+    private Map<String, WebSocket> connectionWebsockets;
 
     /** Map of validators for validating action argument types for each container */
     private final Map<String, ArgumentValidator> validators = new HashMap<>();
@@ -89,6 +90,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         this.startedContainers = sessionData.startContainerRequests;
         this.tokens = sessionData.tokens;
         this.connectedPlatforms = sessionData.connectedPlatforms;
+        this.connectionWebsockets = new HashMap<>();
 
         // initialize container client based on environment
         if (config.containerEnvironment == PostAgentContainer.ContainerEnvironment.DOCKER) {
@@ -109,6 +111,9 @@ public class PlatformImpl implements RuntimePlatformApi {
         for (var containerId : runningContainers.keySet()) {
             var image = runningContainers.get(containerId).getImage();
             validators.put(containerId, new ArgumentValidator(image));
+        }
+        for (var url : connectedPlatforms.keySet()) {
+            openConnectionWebsocket(url, tokens.get(url));
         }
     }
 
@@ -136,14 +141,14 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public String login(Login loginParams) {
-        return jwtUtil.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
+        return userDetailsService.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
     }
 
     @Override
     public String renewToken() {
         // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
         String owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
-        return jwtUtil.generateTokenForAgentContainer(owner);
+        return jwtUtil.generateToken(owner, Duration.ofHours(10));
     }
 
     /*
@@ -279,13 +284,11 @@ public class PlatformImpl implements RuntimePlatformApi {
         String token = "";
         String owner = "";
         if (config.enableAuth) {
-            token = jwtUtil.generateTokenForAgentContainer(agentContainerId);
+            token = jwtUtil.generateToken(agentContainerId, Duration.ofHours(24));
             owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
         }
         // create user first so the container can immediately talk with the platform
-        userDetailsService.createUser(agentContainerId, generateRandomPwd(),
-                config.enableAuth ? userDetailsService.getUserRole(owner) : Role.GUEST,
-                config.enableAuth ? userDetailsService.getUserPrivileges(owner) : null);
+        userDetailsService.createTempSubUser(agentContainerId);
 
         // start container... this may raise an Exception, or returns the connectivity info
         Connectivity connectivity;
@@ -320,8 +323,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 startedContainers.put(agentContainerId, postContainer);
                 tokens.put(agentContainerId, token);
                 validators.put(agentContainerId, new ArgumentValidator(container.getImage()));
-                log.info("Container started: {}", agentContainerId);
-                notifyConnectedPlatforms();
+                log.info("Container started: " + agentContainerId);
                 return agentContainerId;
             } catch (JsonMappingException e) {
                 errorMessage = "Container returned malformed /info: " + e.getMessage();
@@ -396,7 +398,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         validators.remove(containerId);
         userDetailsService.removeUser(containerId);
         containerClient.stopContainer(containerId);
-        notifyConnectedPlatforms();
         return true;
     }
 
@@ -405,37 +406,30 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     @Override
-    public boolean connectPlatform(LoginConnection loginConnection) throws IOException {
-        String url = normalizeString(loginConnection.getUrl());
+    public boolean connectPlatform(ConnectionRequest connect) throws IOException {
+        String url = normalizeString(connect.getUrl());
         checkUrl(url);
         if (url.equals(config.getOwnBaseUrl()) || connectedPlatforms.containsKey(url)) {
             return false;
-        } else if (pendingConnections.contains(url)) {
-            // callback from remote platform following our own request for connection
-            return true;
-        } else {
-            if (loginConnection.getUsername() != null) {
-                // with auth, unidirectional
-                var token = getPlatformClient(url).login(new Login(loginConnection.getUsername(), loginConnection.getPassword()));
-                var info = getPlatformClient(url, token).getPlatformInfo();
-                connectedPlatforms.put(url, info);
-                tokens.put(url, token);
-            } else {
-                // without auth, bidirectional
-                try {
-                    var info = getPlatformClient(url).getPlatformInfo();
-                    url = info.getBaseUrl();
-                    pendingConnections.add(url);
-                    if (getPlatformClient(url).connectPlatform(new LoginConnection(null, null, config.getOwnBaseUrl()))) {
-                        connectedPlatforms.put(url, info);
-                    }
-                } finally {
-                    // also remove from pending in case client.post fails
-                    pendingConnections.remove(url);
-                }
-            }
-            return true;
         }
+        // try to get info (with token, if given)
+        var token = connect.getToken();
+        var client = getPlatformClient(url, token);
+        var info = client.getPlatformInfo();
+        // ask other platform to connect back to self?
+        if (connect.isConnectBack()) {
+            var ownUrl = config.getOwnBaseUrl();
+            var ownToken = config.enableAuth ? jwtUtil.generateToken(url, Duration.ofDays(7)) : null;
+            userDetailsService.createTempSubUser(url);
+            client.connectPlatform(new ConnectionRequest(ownUrl, false, ownToken));
+        }
+        // use websocket to connect to updates
+        openConnectionWebsocket(url, token);
+
+        // store connection if all the above steps succeeded
+        connectedPlatforms.put(url, info);
+        tokens.put(url, token);
+        return true;
     }
 
     @Override
@@ -444,14 +438,22 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public boolean disconnectPlatform(String url) throws IOException {
-        url = normalizeString(url);
+    public boolean disconnectPlatform(ConnectionRequest disconnect) throws IOException {
+        var url = normalizeString(disconnect.getUrl());
         checkUrl(url);
-        if (connectedPlatforms.remove(url) != null) {
-            if (tokens.containsKey(url)) {
-                tokens.remove(url);
-            } else {
-                getPlatformClient(url).disconnectPlatform(config.getOwnBaseUrl());
+        if (connectedPlatforms.containsKey(url)) {
+            connectedPlatforms.remove(url);
+            tokens.remove(url);
+            userDetailsService.removeUser(url);
+            if (connectionWebsockets.containsKey(url)) {
+                var ws = connectionWebsockets.remove(url);
+                ws.sendClose(1000, "disconnected");
+            }
+            // disconnect other?
+            if (disconnect.isConnectBack()) {
+                var client = getPlatformClient(url, disconnect.getToken());
+                var ownUrl = config.getOwnBaseUrl();
+                client.disconnectPlatform(new ConnectionRequest(ownUrl, false, null));
             }
             log.info("Disconnected from {}", url);
             return true;
@@ -472,7 +474,6 @@ public class PlatformImpl implements RuntimePlatformApi {
             containerInfo.setConnectivity(runningContainers.get(containerId).getConnectivity());
             runningContainers.put(containerId, containerInfo);
             validators.put(containerId, new ArgumentValidator(containerInfo.getImage()));
-            notifyConnectedPlatforms();
             return true;
         } catch (IOException e) {
             log.warn("Container did not respond: {}; removing...", containerId);
@@ -510,22 +511,14 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     /**
-     * Whenever there is a change in this platform's Agent Containers (added, removed, or updated),
-     * call the /notify route of all connected Runtime Platforms, so they can pull the updated /info
-     *
-     * TODO this method is called when something about the containers changes... can we make this
-     *      asynchronous (without too much fuzz) so it does not block those other calls?
+     * Create Websocket connection and associate it with the connected platform's URL, to be closed when disconnected
      */
-    private void notifyConnectedPlatforms() {
-        // TODO with connect not being bidirectional, this does not really make sense anymore
-        //  adapt to possible new /subscribe route, or change entirely?
-        for (String platformUrl : connectedPlatforms.keySet()) {
-            var client = getPlatformClient(platformUrl);
-            try {
-                client.notifyUpdatePlatform(config.getOwnBaseUrl());
-            } catch (IOException e) {
-                log.warn("Failed to forward update to Platform {}", platformUrl);
-            }
+    private void openConnectionWebsocket(String url, String token) {
+        try {
+            var res = WebSocketConnector.subscribe(url, token, "/containers", msg -> notifyUpdatePlatform(url));
+            connectionWebsockets.put(url, res.get());
+        } catch (ExecutionException | InterruptedException e) {
+            log.warn("Failed to establish websocket connection to {}", url);
         }
     }
 
@@ -612,18 +605,11 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     protected void testSelfConnection() throws Exception {
         var token = config.enableAuth ?
-                jwtUtil.generateTokenForUser(config.platformAdminUser, config.platformAdminPwd) : null;
+                userDetailsService.generateTokenForUser(config.platformAdminUser, config.platformAdminPwd) : null;
         var info = new ApiProxy(config.getOwnBaseUrl(), null, token, 5000).getPlatformInfo();
         if (! Objects.equals(platformId, info.getPlatformId())) {
             throw new IllegalArgumentException("Mismatched Platform ID");
         }
-    }
-
-    /**
-     * Creates a random String of length 24 containing upper and lower case characters and numbers
-     */
-    private String generateRandomPwd() {
-        return RandomStringUtils.random(24, true, true);
     }
 
     /**

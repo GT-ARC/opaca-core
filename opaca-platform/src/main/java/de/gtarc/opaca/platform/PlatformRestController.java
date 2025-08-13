@@ -355,7 +355,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@Operation(summary="Establish connection to another Runtime Platform; " +
 			"return false if platform already connected", tags={"connections"})
 	public boolean connectPlatform(
-			@RequestBody LoginConnection loginConnection
+			@RequestBody ConnectionRequest loginConnection
 	) throws IOException {
 		// TODO handle IO Exception (platform not found or does not respond, could be either 404 or 502)
 		log.info("POST /connections {}", loginConnection.getUrl());
@@ -372,10 +372,10 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@RequestMapping(value="/connections", method=RequestMethod.DELETE)
 	@Operation(summary="Remove connection to another Runtime Platform", tags={"connections"})
 	public boolean disconnectPlatform(
-			@RequestBody String url
+			@RequestBody ConnectionRequest disconnect
 	) throws IOException {
-		log.info("DELETE /connections {}", url);
-		return implementation.disconnectPlatform(url);
+		log.info("DELETE /connections {}", disconnect);
+		return implementation.disconnectPlatform(disconnect);
 	}
 
 	/*
