@@ -45,6 +45,16 @@
 * platform A opens a websocket connection to `/subscribe` on `/containers` events on platform B
 * when disconnecting, the websocket is closed, and platform B may also be asked to disconnect from platform A
 
+If authentication is enabled, the process will require access tokens to login at platform A and B, as well as a token for platform B to connect back to A. The process can be summarized as follows:
+
+* user logs in at platform A, gets token `tAU` (for user)
+* user logs in at platform B, gets token `tBU`
+* user calls `/connect` at platform A with header `tAU` and payload `{url=B, back=true, token=tBU}`
+* platform A stores `tBU` for communicating with platform B and gets B's `/info`
+* platform A creates a token to be used by platform B, `tAB`
+* platform A calls `/connect` at platform B with header `tBU` and payload `{url=A, back=false, token=tAB}`
+* platform B stores `tAB` for communicating with platform A and gets A's `/info`
+
 ![Platform Connection Protocol](img/connect-platform.png)
 
 ## Protocol for notifying about updated Containers or connected Platforms
