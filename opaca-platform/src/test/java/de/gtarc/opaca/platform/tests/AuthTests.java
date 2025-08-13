@@ -259,32 +259,32 @@ public class AuthTests {
     public void test08AddUser() throws Exception {
         // GUEST USER
         var con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("guest", "guestPwd", Role.GUEST, null), token_A);
+                new User("guest", "guestPwd", Role.GUEST, null), token_A);
         Assert.assertEquals(201, con.getResponseCode());
 
         // (NORMAL) USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("user", "userPwd", Role.USER, null), token_A);
+                new User("user", "userPwd", Role.USER, null), token_A);
         Assert.assertEquals(201, con.getResponseCode());
 
         // CONTRIBUTOR USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("contributor", "contributorPwd", Role.CONTRIBUTOR, null), token_A);
+                new User("contributor", "contributorPwd", Role.CONTRIBUTOR, null), token_A);
         Assert.assertEquals(201, con.getResponseCode());
 
         // ADMIN USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("admin", "adminPwd", Role.ADMIN, null), token_A);
+                new User("admin", "adminPwd", Role.ADMIN, null), token_A);
         Assert.assertEquals(201, con.getResponseCode());
 
         // TEST USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("test", "testPwd", Role.GUEST, null), token_A);
+                new User("test", "testPwd", Role.GUEST, null), token_A);
         Assert.assertEquals(201, con.getResponseCode());
 
         // SECOND CONTRIBUTOR USER FOR SPECIFIC AUTHORITY TEST
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("contributor2", "contributor2Pwd", Role.CONTRIBUTOR, null), token_A);
+                new User("contributor2", "contributor2Pwd", Role.CONTRIBUTOR, null), token_A);
         Assert.assertEquals(201, con.getResponseCode());
     }
 
@@ -436,7 +436,7 @@ public class AuthTests {
 
         // Check if container can NOT perform actions which require "ADMIN" role
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                getUser("forbiddenUser", "forbidden", Role.GUEST, null), contContainerToken);
+                new User("forbiddenUser", "forbidden", Role.GUEST, null), contContainerToken);
         Assert.assertEquals(403, con.getResponseCode());
         Thread.sleep(500);
 

@@ -21,7 +21,9 @@ import com.google.common.base.Strings;
 import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.PostAgentContainer;
 import de.gtarc.opaca.platform.PlatformImpl;
-import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -34,8 +36,10 @@ import de.gtarc.opaca.platform.PlatformConfig.SessionPolicy;
  * started, and save it to that file when it is stopped (depending on policy).
  */
 @Component
-@Log
+@Log4j2
 public class Session {
+
+    Logger logger = LoggerFactory.getLogger(Session.class);
 
 	@Autowired
 	private PlatformConfig config;
@@ -98,7 +102,7 @@ public class Session {
                 this.data.users.putAll(lastdata.users);
     
             } catch (IOException e) {
-                log.severe("Could not load Session data: " + e);
+                log.error("Could not load Session data: {}", e);
             }
         }
     }
@@ -108,7 +112,7 @@ public class Session {
             String content = RestHelper.writeJson(this.data);
             Files.writeString(filePath, content);
         } catch (IOException e) {
-            log.severe("Could not save Session data: " + e);
+            log.error("Could not save Session data: {}", e);
         }
     }
 
@@ -124,7 +128,7 @@ public class Session {
                     .filter(f -> f.isFile() && f.getName().toLowerCase().endsWith(".json"))
                     .collect(Collectors.toList());
         } catch (IOException e) {
-            log.severe("Failed to read default images: " + e);
+            log.error("Failed to read default images: {}", e.getMessage());
             return List.of();
         }
     }
@@ -132,12 +136,12 @@ public class Session {
     private void startDefaultImages() {
         log.info("Loading Default Images (if any)...");
         for (File file: readDefaultImages()) {
-            log.info("Auto-deploying " + file);
+            log.info("Auto-deploying {}", file);
             try {
                 var container = RestHelper.mapper.readValue(file, PostAgentContainer.class);
                 implementation.addContainer(container, -1);
             } catch (Exception e) {
-                log.severe(String.format("Failed to load image specified in file %s: %s", file, e));
+                log.error("Failed to load image specified in file {}: {}", file, e);
             }
         }
     }
@@ -154,29 +158,29 @@ public class Session {
             try {
                 implementation.addContainer(postContainer, -1);
             } catch (IOException e) {
-                log.warning("Exception restarting container: " + e.getMessage());
+                log.warn("Exception restarting container: {}", e.getMessage());
             }
         }
     }
 
-    private void stopRunningContainers() throws IOException {
+    private void stopRunningContainers() {
         log.info("Stopping Running Containers...");
         for (AgentContainer container : implementation.getContainers()) {
             try {
                 implementation.removeContainer(container.getContainerId());
             } catch (Exception e) {
-                log.warning("Exception stopping container " + container.getContainerId() + ": " + e.getMessage());
+                log.warn("Exception stopping container {}: {}", container.getContainerId(), e.getMessage());
             }
         }
     }
 
-    private void disconnectPlatforms() throws IOException {
+    private void disconnectPlatforms() {
         log.info("Disconnecting from other Platforms...");
         for (String url : implementation.getConnections()) {
             try {
                 implementation.disconnectPlatform(new ConnectionRequest(url, false, null));
             } catch (Exception e) {
-                log.warning("Exception disconnecting from " + url + ": " + e.getMessage());
+                log.warn("Exception disconnecting from {}: {}", url, e.getMessage());
             }
         }
     }

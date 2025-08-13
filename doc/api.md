@@ -13,6 +13,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * `PLATFORM_URL` The URL or IP address where the Agent Container can reach its parent Runtime Platform
 * `TOKEN` Bearer token assigned to the container needed to interact with the parent Runtime Platform if it is using authentication (see [Authentication](auth.md) for details).
 * `OWNER` The username corresponding to the user who has started the Agent Container. The owner has special permissions to perform actions on his own containers.
+* `PORT_MAPPING` Which ports on the host the container's ports are mapped to, in the format `containerPort1:hostPort1,...`
 
 
 ## Agents API

@@ -15,13 +15,12 @@ import com.github.dockerjava.transport.DockerHttpClient;
 import com.google.common.base.Strings;
 import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.AgentContainerImage;
-import de.gtarc.opaca.model.AgentContainerImage.ImageParameter;
 import de.gtarc.opaca.model.PostAgentContainer;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.session.SessionData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
@@ -37,10 +36,8 @@ import java.util.stream.Stream;
  * - https://github.com/docker-java/docker-java/blob/master/docs/getting_started.md
  * - https://www.baeldung.com/docker-java-api
  */
-@Log
+@Log4j2
 public class DockerClient extends AbstractContainerClient {
-
-    private PlatformConfig config;
 
     /** Client for accessing (remote) Docker runtime */
     private com.github.dockerjava.api.DockerClient dockerClient;
@@ -59,9 +56,13 @@ public class DockerClient extends AbstractContainerClient {
         AgentContainer.Connectivity connectivity;
     }
 
+    /*
+     * CONTAINER CLIENT API
+     */
+
     @Override
     public void initialize(PlatformConfig config, SessionData sessionData) {
-        this.config = config;
+        super.initialize(config, sessionData);
 
         DockerClientConfig dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
                 .withDockerHost(getDockerHost())
@@ -78,7 +79,6 @@ public class DockerClient extends AbstractContainerClient {
         this.auth = loadDockerAuth();
         this.dockerClient = DockerClientImpl.getInstance(dockerConfig, dockerHttpClient);
         this.dockerContainers = sessionData.dockerContainers;
-        this.usedPorts = sessionData.usedPorts;
     }
 
     @Override
@@ -86,7 +86,7 @@ public class DockerClient extends AbstractContainerClient {
         try {
             this.dockerClient.listContainersCmd().exec();
         } catch (Exception e) {
-            log.severe("Could not initialize Docker Client: " + e.getMessage());
+            log.error("Could not initialize Docker Client: {}", e.getMessage());
             throw new RuntimeException("Could not initialize Docker Client", e);
         }
     }
@@ -113,12 +113,12 @@ public class DockerClient extends AbstractContainerClient {
 
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
-                    .withEnv(buildEnv(containerId, token, owner, image.getParameters(), container.getArguments()))
+                    .withEnv(toDockerEnv(buildContainerEnv(containerId, token, owner, image.getParameters(), container.getArguments(), portMap)))
                     .withHostConfig(HostConfig.newHostConfig().withPortBindings(portBindings))
                     .withExposedPorts(portBindings.stream().map(PortBinding::getExposedPort).collect(Collectors.toList()))
                     .exec();
 
-            log.info(String.format("Result: %s", res));
+            log.info("Result: {}", res);
 
             log.info("Starting Container...");
             dockerClient.startContainerCmd(res.getId()).exec();
@@ -135,21 +135,15 @@ public class DockerClient extends AbstractContainerClient {
 
         } catch (NotFoundException e) {
             // might theoretically happen if image is deleted between pull and run...
-            log.warning("Image not found: " + imageName);
+            log.warn("Image not found: {}", imageName);
             throw new NoSuchElementException("Image not found: " + imageName);
         } catch (DockerException e) {
             throw new IOException("Failed to start Docker container.", e);
         }
     }
 
-    private String[] buildEnv(String containerId, String token, String owner, List<ImageParameter> parameters, Map<String, String> arguments) {
-        return config.buildContainerEnv(containerId, token, owner, parameters, arguments).entrySet().stream()
-                .map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
-                .toArray(String[]::new);
-    }
-
     @Override
-    public void stopContainer(String containerId) throws IOException {
+    public void stopContainer(String containerId) {
         try {
             var containerInfo = dockerContainers.remove(containerId);
             usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
@@ -157,20 +151,20 @@ public class DockerClient extends AbstractContainerClient {
             dockerClient.stopContainerCmd(containerInfo.containerId).exec();
         } catch (NotModifiedException e) {
             var msg = "Could not stop Container " + containerId + "; already stopped?";
-            log.warning(msg);
+            log.warn(msg);
             throw new NoSuchElementException(msg);
         }
         // TODO possibly that the container refuses being stopped? call "kill" instead? how to test this?
     }
 
     @Override
-    public boolean isContainerAlive(String containerId) throws IOException {
+    public boolean isContainerAlive(String containerId) {
         try {
             var containerInfo = dockerContainers.get(containerId);
             var res = dockerClient.inspectContainerCmd(containerInfo.containerId).exec();
-            return res.getState().getRunning();
+            return Boolean.TRUE.equals(res.getState().getRunning());
         } catch (NotFoundException e) {
-            log.severe("Container not found: " + e.getMessage());
+            log.error("Container not found: {}", e.getMessage());
             return false;
         }
     }
@@ -179,6 +173,46 @@ public class DockerClient extends AbstractContainerClient {
     public String getUrl(String containerId) {
         var conn = dockerContainers.get(containerId).connectivity;
         return conn.getPublicUrl() + ":" + conn.getApiPortMapping();
+    }
+
+    @Override
+    protected String getContainerBaseUrl() {
+        return Strings.isNullOrEmpty(config.remoteDockerHost)
+                ? config.getOwnBaseUrl().replaceAll(":\\d+$", "")
+                : String.format("http://%s", config.remoteDockerHost);
+    }
+
+    /*
+     * HELPER METHODS
+     */
+
+    /**
+     * Try to pull the Docker image from registry where it can be found (according to image name).
+     * Raise NoSuchElementException if image can not be pulled for whatever reason.
+     */
+    private void pullDockerImage(String imageName) {
+        log.info("Pulling Image... {}", imageName);
+        try {
+            var registry = imageName.split("/")[0];
+            dockerClient.pullImageCmd(imageName)
+                    .withAuthConfig(this.auth.get(registry))
+                    .exec(new PullImageResultCallback())
+                    .awaitCompletion();
+        } catch (InterruptedException e) {
+            log.warn(e.getMessage());
+        } catch (InternalServerErrorException e) {
+            log.error("Pull Image failed: {}", e.getMessage());
+            throw new NoSuchElementException("Failed to Pull image: " + e.getMessage());
+        }
+    }
+
+    private boolean isImagePresent(String imageName) {
+        try {
+            this.dockerClient.inspectImageCmd(imageName).exec();
+            return true;
+        } catch (NotFoundException e) {
+            return false;
+        }
     }
 
     private String getProtocol(int port, AgentContainerImage image) {
@@ -203,45 +237,15 @@ public class DockerClient extends AbstractContainerClient {
                 : String.format("tcp://%s:%s", config.remoteDockerHost, config.remoteDockerPort);
     }
 
-    @Override
-    protected String getContainerBaseUrl() {
-        return Strings.isNullOrEmpty(config.remoteDockerHost)
-                ? config.getOwnBaseUrl().replaceAll(":\\d+$", "")
-                : String.format("http://%s", config.remoteDockerHost);
-    }
-
-    /**
-     * Try to pull the Docker image from registry where it can be found (according to image name).
-     * Raise NoSuchElementException if image can not be pulled for whatever reason.
-     */
-    private void pullDockerImage(String imageName) {
-        log.info("Pulling Image... " + imageName);
-        try {
-            var registry = imageName.split("/")[0];
-            dockerClient.pullImageCmd(imageName)
-                    .withAuthConfig(this.auth.get(registry))
-                    .exec(new PullImageResultCallback())
-                    .awaitCompletion();
-        } catch (InterruptedException e) {
-            log.warning(e.getMessage());
-        } catch (InternalServerErrorException e) {
-            log.severe("Pull Image failed: " + e.getMessage());
-            throw new NoSuchElementException("Failed to Pull image: " + e.getMessage());
-        }
-    }
-
-    private boolean isImagePresent(String imageName) {
-        try {
-            this.dockerClient.inspectImageCmd(imageName).exec();
-            return true;
-        } catch (NotFoundException e) {
-            return false;
-        }
+    private String[] toDockerEnv(Map<String, String> containerEnv) {
+        return containerEnv.entrySet().stream()
+                .map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
+                .toArray(String[]::new);
     }
     
     private Map<String, AuthConfig> loadDockerAuth() {
-        return config.loadDockerAuth().stream().collect(Collectors.toMap(
-                PlatformConfig.ImageRegistryAuth::getRegistry,
+        return getImageRegistryAuth().stream().collect(Collectors.toMap(
+                ImageRegistryAuth::getRegistry,
                 x -> new AuthConfig()
                         .withRegistryAddress(x.getRegistry())
                         .withUsername(x.getLogin())
