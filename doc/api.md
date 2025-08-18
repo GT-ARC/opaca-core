@@ -228,7 +228,12 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * errors: 403 if user is not registered
 
 
-### Common Themes of different Routes
+## Open API
+
+The OPACA Platform uses Spring Boot, which provides an Open-API compliant description of the different OPACA REST routes at `/v3/api-docs/All`. Complementary to the general OPACA API docs, an open-API compliant documentation for the currently available action can be found at `/v3/api-docs/actions` (or `/v3/api-docs/actions?format=YAML` for YAML). Note that this route may require authorization, since it gives insight into the running agents.
+
+
+## Common Themes of different Routes
 
 * the `/send`, `/broadcast` and `/invoke` routes of the Agents API each have two optional query-parameters: `containerId` telling which specific container to address (default: any), and `forward` telling whether the call can be forwarded to another platform, if the agent or action is not found in a container on this one (default: true); these parameters are only relevant for the Runtime Platform version of those routes and can be ignored for the Agent Containers themselves
 * typically, the API will return HTTP Status codes 502 if the call could not be forwarded to the target container or platform, and 404 if the agent or action is question has not been found (an exception being the `DELETE` routes, since here the effect is the same whether the container/platform was found; those will just return `false` in this case)
