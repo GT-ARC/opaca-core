@@ -142,8 +142,16 @@ In addition, the different `examples` also have Dockerfiles, and building the `s
 
 The CI of the public GitHub repository will create a new Docker image each time the main branch or a tag is pushed and publish them in the https://github.com/orgs/GT-ARC/packages package registry.
 
-Note that in order to run the OPACA Runtime Platform in Docker, the container has to be [properly configured](doc/environments.md).
+Note that in order to run the OPACA Runtime Platform in Docker, the container has to be [properly configured](doc/environments.md). We suggest using Docker Compose to run the platform with all required parameters (see compose file in the `opaca-platform` directory). Alternatively, use this template to fire up an OPACA platform in Docker:
 
+```
+docker container run \
+  -p 8000:8000 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e PUBLIC_URL=http://<YOUR_IP>:8000 \
+  -e PLATFORM_ENVIRONMENT=DOCKER \
+  ghcr.io/gt-arc/opaca/opaca-platform:<VERSION>
+```
 
 ## Additional Information
 
