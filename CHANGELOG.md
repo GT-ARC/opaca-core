@@ -7,6 +7,7 @@
 * various smaller fixes
 * reworked `/connection` routes to allow for both uni- and bidirectional connections with and without auth
 * using websockets for updates on running containers of connected platforms
+* improved/fixed how the current user is checked to avoid possible concurrency issues
 
 
 ## 0.2 Release

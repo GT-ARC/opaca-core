@@ -154,7 +154,6 @@ public class DockerClient extends AbstractContainerClient {
             log.warn(msg);
             throw new NoSuchElementException(msg);
         }
-        // TODO possibly that the container refuses being stopped? call "kill" instead? how to test this?
     }
 
     @Override

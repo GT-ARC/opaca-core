@@ -9,8 +9,6 @@ import org.springframework.stereotype.Component;
  * This class is just exposing the password encoder, since creating
  * it in the security configuration lead to a circular dependency
  * between the tokenUserDetailService and JwtUtil
- * TODO Remove potential circular import in affected classes
- * (TokenUserDetailsService, JwtUtil, SecurityConfiguration)
  */
 @Component
 public class SecurityUtil {

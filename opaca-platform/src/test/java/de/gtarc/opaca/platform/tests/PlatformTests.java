@@ -436,7 +436,6 @@ public class PlatformTests {
         Assert.assertTrue(res);
 
         // check that both platforms are not registered as connected with each other anymore
-        // TODO disconnect back, too?
         con = request(PLATFORM_A_URL, "GET", "/connections", null);
         lst1 = result(con, List.class);
         Assert.assertTrue(lst1.isEmpty());
@@ -459,9 +458,6 @@ public class PlatformTests {
         Assert.assertEquals(400, con.getResponseCode());
     }
 
-    /**
-     * TODO case is different if the platform _is_ connected, but does not respond to disconnect -> 502?
-     */
     @Test
     public void testDisconnectUnknown() throws Exception {
         var con = request(PLATFORM_A_URL, "DELETE", "/connections", new ConnectionRequest("http://flsflsfsjfkj.com", false, null));

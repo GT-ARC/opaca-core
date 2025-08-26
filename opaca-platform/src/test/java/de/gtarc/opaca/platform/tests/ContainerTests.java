@@ -205,7 +205,6 @@ public class ContainerTests {
 
     /**
      * test that action invocation fails if it does not respond within the specified time
-     * TODO this is not ideal yet... the original error may contain a descriptive message that is lost
      */
     @Test
     public void testInvokeTimeout() throws Exception {

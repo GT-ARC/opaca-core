@@ -365,7 +365,6 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@RequestBody ConnectionRequest loginConnection
 	) throws IOException {
-		// TODO handle IO Exception (platform not found or does not respond, could be either 404 or 502)
 		log.info("POST /connections {}", loginConnection.getUrl());
 		return implementation.connectPlatform(loginConnection, extractToken(token));
 	}

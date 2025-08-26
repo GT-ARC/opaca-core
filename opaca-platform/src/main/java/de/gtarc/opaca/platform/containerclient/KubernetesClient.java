@@ -184,15 +184,11 @@ public class KubernetesClient extends AbstractContainerClient {
     @Override
     public void stopContainer(String containerId) {
         try {
-            // remove container info, stop container
             var containerInfo = pods.remove(containerId);
-            appsApi.deleteNamespacedDeployment(containerId, namespace).execute();
-            coreApi.deleteNamespacedService(serviceId(containerId), namespace).execute();
-            
-            // free up ports used by this container
-            // TODO do this first, or in finally?
             usedPorts.remove(containerInfo.connectivity.getApiPortMapping());
             usedPorts.removeAll(containerInfo.connectivity.getExtraPortMappings().keySet());
+            appsApi.deleteNamespacedDeployment(containerId, namespace).execute();
+            coreApi.deleteNamespacedService(serviceId(containerId), namespace).execute();
         } catch (ApiException e) {
             var msg = "Could not stop Container " + containerId + "; already stopped?";
             log.warn(msg);

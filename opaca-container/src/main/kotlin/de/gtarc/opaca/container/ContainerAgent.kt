@@ -167,7 +167,6 @@ class ContainerAgent(
 
         // agents may register with the container agent, publishing their ID and actions
         respond<Register, Registered> {
-            // TODO should Register message contain the agent's internal name, or is that always equal to the agentId?
             log.info("Registering ${it.description}")
             registeredAgents[it.description.agentId] = it.description
 
@@ -244,7 +243,6 @@ class ContainerAgent(
             .filter { agt -> agentId == null || agt.agentId == agentId }
             .filter { agt -> action == null || agt.actions.any { act -> act.name == action } }
             .filter { agt -> stream == null || agt.streams.any { str -> str.name == stream } }
-            // TODO also check action parameters?
             .map { it.agentId }
             .ifEmpty { 
                 throw NoSuchElementException(when {

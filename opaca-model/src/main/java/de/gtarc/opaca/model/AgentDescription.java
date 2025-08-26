@@ -13,8 +13,6 @@ import java.util.List;
 @Data @AllArgsConstructor @NoArgsConstructor
 public class AgentDescription {
 
-    // TODO also list messages this agent understands and would react to
-
     /** ID of the agent, should be globally unique, e.g. a UUID */
     @NonNull
     String agentId;

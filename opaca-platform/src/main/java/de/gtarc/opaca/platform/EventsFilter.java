@@ -14,8 +14,6 @@ import java.util.Set;
 /**
  * Filter for pre- and postprocessing requests. Can be used for generating Events for the
  * History, for uniform logging, or for outright rejecting certain requests.
- *
- * TODO check how this interacts with Auth, and if it's called before or after the Auth Filter
  */
 @Service @NoArgsConstructor
 public class EventsFilter implements Filter {
