@@ -355,7 +355,7 @@ public class PlatformImpl {
         if (connect.isConnectBack()) {
             var ownUrl = config.getOwnBaseUrl();
             var ownToken = config.enableAuth ? jwtUtil.generateToken(url, Duration.ofDays(7)) : null;
-            var owner = jwtUtil.getUsernameFromToken(userToken);
+            var owner = config.enableAuth ? jwtUtil.getUsernameFromToken(userToken) : null;
             userDetailsService.createTempSubUser(url, owner, Role.USER);
             client.connectPlatform(new ConnectionRequest(ownUrl, false, ownToken));
         }
