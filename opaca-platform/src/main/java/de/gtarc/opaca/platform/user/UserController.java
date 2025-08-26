@@ -1,6 +1,5 @@
 package de.gtarc.opaca.platform.user;
 
-import de.gtarc.opaca.model.Role;
 import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.auth.JwtUtil;
@@ -12,7 +11,6 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -102,7 +100,7 @@ public class UserController {
             @PathVariable String username
     ) {
         log.info("GET /users/{}", username);
-        if (!config.enableAuth || isAdminOrSelf(token, username)){
+        if (!config.enableAuth || userDetailsService.isAdminOrSelf(extractToken(token), username)){
             return new ResponseEntity<>(userDetailsService.getUser(username).toString(), HttpStatus.OK);
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN);
@@ -138,17 +136,7 @@ public class UserController {
 
     // Helper methods
 
-    /**
-     * Checks if the current request user is either an admin (has full control over user management)
-     * or the request user is performing request on its own data
-     * @param token: The token belonging to a user in the database for whom to check their authorities
-     * @param username: Name of user which will get affected by request (NOT THE CURRENT REQUEST USER)
-     */
-    private boolean isAdminOrSelf(String token, String username) {
-        final String userToken = token.substring(7);
-        UserDetails details = userDetailsService.loadUserByUsername(jwtUtil.getUsernameFromToken(userToken));
-        if (details == null) return false;
-        return details.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals(Role.ADMIN.role())) ||
-                details.getUsername().equals(username);
+    private String extractToken(String bearerToken) {
+        return bearerToken.substring(7);
     }
 }

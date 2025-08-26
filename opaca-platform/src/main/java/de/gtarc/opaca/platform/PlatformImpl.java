@@ -20,7 +20,6 @@ import de.gtarc.opaca.util.EventHistory;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
@@ -42,10 +41,15 @@ import org.springframework.web.server.ResponseStatusException;
 /**
  * This class provides the actual implementation of the API routes. Might also be split up
  * further, e.g. for agent-forwarding, container-management, and linking to other platforms.
+ *
+ * Note that this class is closely related to the {@link RuntimePlatformApi} interface, without
+ * actually implementing it. This is due to the access-token being passed as an explicit parameter
+ * from the Rest-Controller for some routes where the current user is relevant, whereas for e.g.
+ * the {@link ApiProxy} the access-token should always be handled "behind the scenes".
  */
 @Log4j2
 @Component
-public class PlatformImpl implements RuntimePlatformApi {
+public class PlatformImpl {
 
     @Autowired
     private SessionData sessionData;
@@ -117,7 +121,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
     }
 
-    @Override
+    /*
+     * PLATFORM INFO AND CONFIG
+     */
+
     public RuntimePlatform getPlatformInfo() {
         return new RuntimePlatform(
                 platformId,
@@ -129,25 +136,21 @@ public class PlatformImpl implements RuntimePlatformApi {
         );
     }
 
-    @Override
     public Map<String, ?> getPlatformConfig() {
         return config.toMap();
     }
 
-    @Override
     public List<Event> getHistory() {
         return EventHistory.getInstance().getEvents();
     }
 
-    @Override
     public String login(Login loginParams) {
         return userDetailsService.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
     }
 
-    @Override
-    public String renewToken() {
+    public String renewToken(String token) {
         // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
-        String owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
+        String owner = userDetailsService.getUser(jwtUtil.getUsernameFromToken(token)).getUsername();
         return jwtUtil.generateToken(owner, Duration.ofHours(10));
     }
 
@@ -155,24 +158,20 @@ public class PlatformImpl implements RuntimePlatformApi {
      * AGENTS ROUTES
      */
 
-    @Override
     public List<AgentDescription> getAgents() {
         return streamAgents(false).collect(Collectors.toList());
     }
 
-    @Override
     public List<AgentDescription> getAllAgents() {
         return streamAgents(true).collect(Collectors.toList());
     }
 
-    @Override
     public AgentDescription getAgent(String agentId) {
         return streamAgents(true)
                 .filter(a -> a.getAgentId().equals(agentId))
                 .findAny().orElse(null);
     }
 
-    @Override
     public void send(String agentId, Message message, String containerId, boolean forward) throws IOException, NoSuchElementException {
         iterateClientMatches(
                 getClients(containerId, agentId, null, null, null, forward),
@@ -184,7 +183,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         );
     }
 
-    @Override
     public void broadcast(String channel, Message message, String containerId, boolean forward) throws IOException {
         iterateClientMatches(
                 getClients(containerId, null, null, null, null, forward),
@@ -196,7 +194,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         );
     }
 
-    @Override
     public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
         return iterateClientMatches(
                 getClients(containerId, agentId, action, parameters, null, forward),
@@ -205,7 +202,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         );
     }
 
-    @Override
     public InputStream getStream(String stream, String agentId, String containerId, boolean forward) throws IOException {
         return iterateClientMatches(
                 getClients(containerId, agentId, null, null, stream, forward),
@@ -214,7 +210,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         );
     }
 
-    @Override
     public void postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException {
         iterateClientMatches(
                 getClients(containerId, agentId, null, null, stream, forward),
@@ -226,58 +221,11 @@ public class PlatformImpl implements RuntimePlatformApi {
         );
     }
 
-    /**
-     * Iterate over the provided ClientMatch stream, applying the given processor to all that are a full match.
-     * The result of the first successful processor is returned.
-     *
-     * @param clientMatches The stream of ClientMatch objects.
-     * @param callback A function that is applied to all eligible matches. Is allowed to throw IOException.
-     * @param failOnNoMatch If true, throw a NoSuchElementException in case no client matched the requirements.
-     * @return The result of the first successful processor function.
-     * @throws NoSuchElementException In case no client matched the requirements
-     * @throws IllegalArgumentException when a client matched the requirements but had mismatched action arguments.
-     * @throws IOException In case all matching clients fail with this exception type.
-     */
-    private <T> T iterateClientMatches(
-            Stream<ClientMatch> clientMatches,
-            ThrowingFunction<ClientMatch, T> callback,
-            boolean failOnNoMatch
-    ) throws NoSuchElementException, IllegalArgumentException, IOException {
-        ClientMatch mismatchedParamsClient = null;
-        IOException lastException = null;
-
-        for (ClientMatch match: (Iterable<? extends ClientMatch>) clientMatches::iterator) {
-            if (match.isFullMatch()) {
-                try {
-                    return callback.apply(match);
-                } catch (IOException e) {
-                    log.warn("Exception from container: {}", e);
-                    lastException = e;
-                }
-            } else if (match.isParamsMismatch()) {
-                mismatchedParamsClient = match;
-            }
-        }
-
-        if (lastException != null) {
-            throw lastException;
-        }
-        if (mismatchedParamsClient != null) {
-            throw new IllegalArgumentException(String.format("Provided arguments %s do not match action parameters.", mismatchedParamsClient.actionArgs));
-        }
-        if (failOnNoMatch) {
-            throw new NoSuchElementException("Requested resource not found.");
-        } else {
-            return null;
-        }
-    }
-
     /*
      * CONTAINERS ROUTES
      */
 
-    @Override
-    public String addContainer(PostAgentContainer postContainer, int timeout) throws IOException {
+    public String addContainer(PostAgentContainer postContainer, int timeout, String userToken) throws IOException {
         checkConfig(postContainer);
         checkRequirements(postContainer);
         String agentContainerId = UUID.randomUUID().toString();
@@ -285,10 +233,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         String owner = "";
         if (config.enableAuth) {
             token = jwtUtil.generateToken(agentContainerId, Duration.ofHours(24));
-            owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
+            owner = jwtUtil.getUsernameFromToken(userToken);
         }
         // create user first so the container can immediately talk with the platform
-        userDetailsService.createTempSubUser(agentContainerId);
+        userDetailsService.createTempSubUser(agentContainerId, owner);
 
         // start container... this may raise an Exception, or returns the connectivity info
         Connectivity connectivity;
@@ -349,16 +297,15 @@ public class PlatformImpl implements RuntimePlatformApi {
         throw new IOException(errorMessage);
     }
 
-    @Override
-    public String updateContainer(PostAgentContainer container, int timeout) throws IOException {
+    public String updateContainer(PostAgentContainer container, int timeout, String userToken) throws IOException {
         var matchingContainers = runningContainers.values().stream()
                 .filter(c -> c.getImage().getImageName().equals(container.getImage().getImageName()))
                 .toList();
         switch (matchingContainers.size()) {
             case 1: {
                 var oldContainer = matchingContainers.get(0);
-                removeContainer(oldContainer.getContainerId());
-                return addContainer(container, timeout);
+                removeContainer(oldContainer.getContainerId(), userToken);
+                return addContainer(container, timeout, userToken);
             }
             case 0:
                 throw new IllegalArgumentException("No matching container is currently running; please use POST instead.");
@@ -367,30 +314,19 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
     }
 
-    @Override
     public List<AgentContainer> getContainers() {
         return List.copyOf(runningContainers.values());
     }
 
-    @Override
     public AgentContainer getContainer(String containerId) {
         return runningContainers.get(containerId);
     }
 
-    @Override
-    public boolean removeContainer(String containerId) throws IOException {
+    public boolean removeContainer(String containerId, String userToken) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
-        if (config.enableAuth) {
-            // If request user does not have user profile, throw FORBIDDEN exception
-            UserDetails details = userDetailsService.loadUserByUsername(jwtUtil.getCurrentRequestUser());
-            if (details == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-            // TODO Not sure if this is the right place to handle custom Http responses
-            //  Might need to implement more custom error handling
-            // If user is neither admin nor owner of container, throw FORBIDDEN exception
-            if (details.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals(Role.ADMIN.role())) &&
-                    !details.getUsername().equals(container.getOwner())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-            }
+        if (config.enableAuth && userToken != null && ! userDetailsService.isAdminOrSelf(userToken, container.getOwner())) {
+            // ignore if userToken == null; this is only the case iff the platform is about to shut down
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
         if (container == null) return false;
         runningContainers.remove(containerId);
@@ -405,8 +341,7 @@ public class PlatformImpl implements RuntimePlatformApi {
      * CONNECTIONS ROUTES
      */
 
-    @Override
-    public boolean connectPlatform(ConnectionRequest connect) throws IOException {
+    public boolean connectPlatform(ConnectionRequest connect, String userToken) throws IOException {
         String url = normalizeString(connect.getUrl());
         checkUrl(url);
         if (url.equals(config.getOwnBaseUrl()) || connectedPlatforms.containsKey(url)) {
@@ -420,7 +355,8 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (connect.isConnectBack()) {
             var ownUrl = config.getOwnBaseUrl();
             var ownToken = config.enableAuth ? jwtUtil.generateToken(url, Duration.ofDays(7)) : null;
-            userDetailsService.createTempSubUser(url);
+            var owner = config.enableAuth ? jwtUtil.getUsernameFromToken(userToken) : null;
+            userDetailsService.createTempSubUser(url, owner);
             client.connectPlatform(new ConnectionRequest(ownUrl, false, ownToken));
         }
         // use websocket to connect to updates
@@ -432,12 +368,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         return true;
     }
 
-    @Override
     public List<String> getConnections() {
         return List.copyOf(connectedPlatforms.keySet());
     }
 
-    @Override
     public boolean disconnectPlatform(ConnectionRequest disconnect) throws IOException {
         var url = normalizeString(disconnect.getUrl());
         checkUrl(url);
@@ -461,7 +395,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         return false;
     }
 
-    @Override
     public boolean notifyUpdateContainer(String containerId) {
         containerId = normalizeString(containerId);
         if (! runningContainers.containsKey(containerId)) {
@@ -482,7 +415,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
     }
 
-    @Override
     public boolean notifyUpdatePlatform(String platformUrl) {
         platformUrl = normalizeString(platformUrl);
         checkUrl(platformUrl);
@@ -519,6 +451,52 @@ public class PlatformImpl implements RuntimePlatformApi {
             connectionWebsockets.put(url, res.get());
         } catch (ExecutionException | InterruptedException e) {
             log.warn("Failed to establish websocket connection to {}", url);
+        }
+    }
+
+    /**
+     * Iterate over the provided ClientMatch stream, applying the given processor to all that are a full match.
+     * The result of the first successful processor is returned.
+     *
+     * @param clientMatches The stream of ClientMatch objects.
+     * @param callback A function that is applied to all eligible matches. Is allowed to throw IOException.
+     * @param failOnNoMatch If true, throw a NoSuchElementException in case no client matched the requirements.
+     * @return The result of the first successful processor function.
+     * @throws NoSuchElementException In case no client matched the requirements
+     * @throws IllegalArgumentException when a client matched the requirements but had mismatched action arguments.
+     * @throws IOException In case all matching clients fail with this exception type.
+     */
+    private <T> T iterateClientMatches(
+            Stream<ClientMatch> clientMatches,
+            ThrowingFunction<ClientMatch, T> callback,
+            boolean failOnNoMatch
+    ) throws NoSuchElementException, IllegalArgumentException, IOException {
+        ClientMatch mismatchedParamsClient = null;
+        IOException lastException = null;
+
+        for (ClientMatch match: (Iterable<? extends ClientMatch>) clientMatches::iterator) {
+            if (match.isFullMatch()) {
+                try {
+                    return callback.apply(match);
+                } catch (IOException e) {
+                    log.warn("Exception from container: {}", e);
+                    lastException = e;
+                }
+            } else if (match.isParamsMismatch()) {
+                mismatchedParamsClient = match;
+            }
+        }
+
+        if (lastException != null) {
+            throw lastException;
+        }
+        if (mismatchedParamsClient != null) {
+            throw new IllegalArgumentException(String.format("Provided arguments %s do not match action parameters.", mismatchedParamsClient.actionArgs));
+        }
+        if (failOnNoMatch) {
+            throw new NoSuchElementException("Requested resource not found.");
+        } else {
+            return null;
         }
     }
 

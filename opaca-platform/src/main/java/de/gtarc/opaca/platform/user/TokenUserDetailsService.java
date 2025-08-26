@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Strings;
 import de.gtarc.opaca.model.Role;
 import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.auth.JwtUtil;
@@ -95,15 +96,17 @@ public class TokenUserDetailsService implements UserDetailsService {
     }
 
     /**
-     * Create a temporary sub-user, derived from teh user of the current request, to be used by
+     * Create a temporary sub-user, derived from the user of the current request, to be used by
      * Containers started or other Runtime Platforms connected by that user.
+     *
+     * @param username the name of the new user to be created
+     * @param owner the name of the user creating the new user (ignored if no auth)
      */
-    public void createTempSubUser(String username) {
-        if (config.enableAuth) {
-            var owner = getUser(jwtUtil.getCurrentRequestUser()).getUsername();
+    public void createTempSubUser(String username, String owner) {
+        if (config.enableAuth && ! Strings.isNullOrEmpty(owner)) {
             createUser(username, generateRandomPwd(), getUserRole(owner), getUserPrivileges(owner));
         } else {
-            createUser(username, generateRandomPwd(), Role.GUEST, null);
+            createUser(username, generateRandomPwd(), Role.USER, null);
         }
     }
 
@@ -205,5 +208,18 @@ public class TokenUserDetailsService implements UserDetailsService {
         public UserAlreadyExistsException(String username) {
             super("User with username '" + username + "' already exists!");
         }
+    }
+
+    /**
+     * Checks if the current request user is either an admin (has full control over user management)
+     * or the request user is performing request on its own data
+     * @param token: The token belonging to a user in the database for whom to check their authorities
+     * @param username: Name of user which will get affected by request (NOT THE CURRENT REQUEST USER)
+     */
+    public boolean isAdminOrSelf(String token, String username) {
+        UserDetails details = loadUserByUsername(jwtUtil.getUsernameFromToken(token));
+        if (details == null) return false;
+        return details.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals(Role.ADMIN.role())) ||
+                details.getUsername().equals(username);
     }
 }

@@ -9,6 +9,7 @@ import de.gtarc.opaca.util.EventHistory;
 import de.gtarc.opaca.util.RestHelper.RequestException;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.NotNull;
@@ -138,9 +139,11 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 
 	@RequestMapping(value="/token", method=RequestMethod.GET)
 	@Operation(summary="Renew token for logged in user.", tags={"authentication"})
-	public String renewToken() throws IOException {
+	public String renewToken(
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = true) String token
+	) throws IOException {
 		log.info("GET /token");
-		return implementation.renewToken();
+		return implementation.renewToken(extractToken(token));
 	}
 
 	/*
@@ -304,21 +307,24 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@RequestMapping(value="/containers", method=RequestMethod.POST)
 	@Operation(summary="Start a new Agent Container on this platform", tags={"containers"})
 	public String addContainer(
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@RequestBody PostAgentContainer container,
 			@RequestParam(required = false, defaultValue = "-1") int timeout
 	) throws IOException {
 		log.info("POST /containers {}", container);
-		return implementation.addContainer(container, timeout);
+		log.info(String.format("POST /containers %s", container));
+		return implementation.addContainer(container, timeout, extractToken(token));
 	}
 
 	@RequestMapping(value="/containers", method=RequestMethod.PUT)
 	@Operation(summary="Start a new Agent Container on this platform, replacing an existing container of the same image", tags={"containers"})
 	public String updateContainer(
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@RequestBody PostAgentContainer container,
 			@RequestParam(required = false, defaultValue = "-1") int timeout
 	) throws IOException {
 		log.info("PUT /containers {}", container);
-		return implementation.updateContainer(container, timeout);
+		return implementation.updateContainer(container, timeout, extractToken(token));
 	}
 
 	@RequestMapping(value="/containers", method=RequestMethod.GET)
@@ -341,10 +347,11 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@Operation(summary="Stop and remove Agent Container running on this platform; " +
 			"return false if container not found or already stopped", tags={"containers"})
 	public boolean removeContainer(
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@PathVariable String containerId
 	) throws IOException {
 		log.info("DELETE /containers/{}", containerId);
-		return implementation.removeContainer(containerId);
+		return implementation.removeContainer(containerId, extractToken(token));
 	}
 
 	/*
@@ -355,11 +362,12 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@Operation(summary="Establish connection to another Runtime Platform; " +
 			"return false if platform already connected", tags={"connections"})
 	public boolean connectPlatform(
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@RequestBody ConnectionRequest loginConnection
 	) throws IOException {
 		// TODO handle IO Exception (platform not found or does not respond, could be either 404 or 502)
 		log.info("POST /connections {}", loginConnection.getUrl());
-		return implementation.connectPlatform(loginConnection);
+		return implementation.connectPlatform(loginConnection, extractToken(token));
 	}
 
 	@RequestMapping(value="/connections", method=RequestMethod.GET)
@@ -403,6 +411,13 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	private ResponseEntity<StreamingResponseBody> wrapStream(InputStream stream) {
 		StreamingResponseBody responseBody = stream::transferTo;
 		return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM).body(responseBody);
+	}
+
+	/**
+	 * Get the actual "token" part from "Bearer token" if not null.
+	 */
+	private String extractToken(String maybeToken) {
+		return maybeToken != null ? maybeToken.substring(7) : null;
 	}
 
 }

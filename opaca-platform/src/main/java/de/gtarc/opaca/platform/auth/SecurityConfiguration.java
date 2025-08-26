@@ -159,7 +159,6 @@ public class SecurityConfiguration {
                             var authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                             SecurityContextHolder.getContext().setAuthentication(authToken);
-                            jwtUtil.setCurrentRequestUser(username);
                         } else {
                             handleException(response, HttpStatus.UNAUTHORIZED, "Invalid Token.");
                         }

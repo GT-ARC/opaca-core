@@ -1,7 +1,7 @@
 package de.gtarc.opaca.platform.util;
 
-import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.model.*;
+import de.gtarc.opaca.platform.PlatformImpl;
 import lombok.extern.log4j.Log4j2;
 
 import java.io.IOException;
@@ -17,9 +17,9 @@ import java.util.stream.Collectors;
 @Log4j2
 public class RequirementsChecker {
 
-    private final RuntimePlatformApi platform;
+    private final PlatformImpl platform;
 
-    public RequirementsChecker(RuntimePlatformApi platform) {
+    public RequirementsChecker(PlatformImpl platform) {
         this.platform = platform;
     }
 
@@ -30,33 +30,28 @@ public class RequirementsChecker {
      * @return List of distinct provisions of the Runtime Platform
      */
     public List<String> getFullPlatformProvisions() {
-        try {
-            List<String> provisions = new ArrayList<>();
-            // TODO explicitly set in some env var?
+        List<String> provisions = new ArrayList<>();
+        // TODO explicitly set in some env var?
 
-            // from config, e.g. container environment
-            Map<String, ?> config = this.platform.getPlatformConfig();
-            provisions.add("config:container-env=" + config.get("containerEnvironment"));
-            provisions.add("config:platform-env=" + config.get("platformEnvironment"));
-            provisions.add("config:session-policy=" + config.get("sessionPolicy"));
-            provisions.add("config:enable-auth=" + config.get("enableAuth"));
+        // from config, e.g. container environment
+        Map<String, ?> config = this.platform.getPlatformConfig();
+        provisions.add("config:container-env=" + config.get("containerEnvironment"));
+        provisions.add("config:platform-env=" + config.get("platformEnvironment"));
+        provisions.add("config:session-policy=" + config.get("sessionPolicy"));
+        provisions.add("config:enable-auth=" + config.get("enableAuth"));
 
-            // from containers, agents, actions
-            for (AgentContainer container : this.platform.getContainers()) {
-                provisions.add("image:" + container.getImage().getImageName());
-                provisions.addAll(container.getImage().getProvides());
-                for (AgentDescription agent : container.getAgents()) {
-                    provisions.add("agent:" + agent.getAgentType());
-                    for (Action action : agent.getActions()) {
-                        provisions.add("action:" + action.getName());
-                    }
+        // from containers, agents, actions
+        for (AgentContainer container : this.platform.getContainers()) {
+            provisions.add("image:" + container.getImage().getImageName());
+            provisions.addAll(container.getImage().getProvides());
+            for (AgentDescription agent : container.getAgents()) {
+                provisions.add("agent:" + agent.getAgentType());
+                for (Action action : agent.getActions()) {
+                    provisions.add("action:" + action.getName());
                 }
             }
-            return provisions.stream().distinct().toList();
-        } catch (IOException e) {
-            log.warn("Failed to collect Platform Provisions: {}", e.getMessage());
-            return Collections.emptyList();
         }
+        return provisions.stream().distinct().toList();
     }
 
     /**
