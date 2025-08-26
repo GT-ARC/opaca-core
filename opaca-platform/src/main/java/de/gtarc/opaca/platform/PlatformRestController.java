@@ -176,7 +176,6 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	public String getOpenApiActions(
 			@RequestParam(required = false, defaultValue = "JSON") ActionFormat format
 	) throws IOException {
-		// TODO check token here, too?
 		return ActionToOpenApi.createOpenApiSchema(implementation.getContainers(), format, config.enableAuth);
 	}
 
