@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Strings;
 import de.gtarc.opaca.model.Role;
 import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.auth.JwtUtil;
@@ -95,18 +96,17 @@ public class TokenUserDetailsService implements UserDetailsService {
     }
 
     /**
-     * Create a temporary sub-user, derived from teh user of the current request, to be used by
+     * Create a temporary sub-user, derived from the user of the current request, to be used by
      * Containers started or other Runtime Platforms connected by that user.
      *
      * @param username the name of the new user to be created
      * @param owner the name of the user creating the new user (ignored if no auth)
-     * @param role the role for the new user; if null, same role as owner; if no auth, always "guest"
      */
-    public void createTempSubUser(String username, String owner, Role role) {
-        if (config.enableAuth) {
-            createUser(username, generateRandomPwd(), role != null ? role : getUserRole(owner), getUserPrivileges(owner));
+    public void createTempSubUser(String username, String owner) {
+        if (config.enableAuth && ! Strings.isNullOrEmpty(owner)) {
+            createUser(username, generateRandomPwd(), getUserRole(owner), getUserPrivileges(owner));
         } else {
-            createUser(username, generateRandomPwd(), Role.GUEST, null);
+            createUser(username, generateRandomPwd(), Role.USER, null);
         }
     }
 

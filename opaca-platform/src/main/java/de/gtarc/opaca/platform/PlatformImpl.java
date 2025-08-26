@@ -236,7 +236,7 @@ public class PlatformImpl {
             owner = jwtUtil.getUsernameFromToken(userToken);
         }
         // create user first so the container can immediately talk with the platform
-        userDetailsService.createTempSubUser(agentContainerId, owner, null);
+        userDetailsService.createTempSubUser(agentContainerId, owner);
 
         // start container... this may raise an Exception, or returns the connectivity info
         Connectivity connectivity;
@@ -356,7 +356,7 @@ public class PlatformImpl {
             var ownUrl = config.getOwnBaseUrl();
             var ownToken = config.enableAuth ? jwtUtil.generateToken(url, Duration.ofDays(7)) : null;
             var owner = config.enableAuth ? jwtUtil.getUsernameFromToken(userToken) : null;
-            userDetailsService.createTempSubUser(url, owner, Role.USER);
+            userDetailsService.createTempSubUser(url, owner);
             client.connectPlatform(new ConnectionRequest(ownUrl, false, ownToken));
         }
         // use websocket to connect to updates
