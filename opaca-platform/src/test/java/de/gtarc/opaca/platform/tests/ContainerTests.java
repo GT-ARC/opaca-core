@@ -421,7 +421,8 @@ public class ContainerTests {
     }
 
     /**
-     * TODO check somehow that notify worked
+     * this really only checks that the action return the expected return code; the actual effect is
+     * implicitly tested in {@link #testAddNewActionAutoNotify()}.
      */
     @Test
     public void testContainerNotify() throws Exception {
@@ -495,18 +496,41 @@ public class ContainerTests {
     }
 
     /**
-     * TODO keep testing this? notify param in createAction might be obsolete.
-     *  we could of course still keep it specifically for the purpose of this test.
+     * call action that adds a new action, then test that this action is known to the platform
      */
     @Test
     public void testAddNewActionAutoNotify() throws Exception {
         // create new agent action
-        var con = request(PLATFORM_URL, "POST", "/invoke/CreateAction/sample1", Map.of("name", "AnotherTemporaryTestAction", "notify", true));
+        var con = request(PLATFORM_URL, "POST", "/invoke/CreateAction/sample1",
+                Map.of("name", "AnotherTemporaryTestAction", "notify", true));
         Assert.assertEquals(200, con.getResponseCode());
         Thread.sleep(500);
 
         // agent container automatically notified platform of the changes
         con = request(PLATFORM_URL, "POST", "/invoke/AnotherTemporaryTestAction/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertTrue(result(con).contains("AnotherTemporaryTestAction"));
+    }
+
+    /**
+     * call action that adds a new action, then test that this action is known to the platform after manual notify
+     */
+    @Test
+    public void testAddNewActionManualNotify() throws Exception {
+        // create new agent action
+        var con = request(PLATFORM_URL, "POST", "/invoke/CreateAction/sample1", 
+                Map.of("name", "YetAnotherTemporaryTestAction", "notify", false));
+        Assert.assertEquals(200, con.getResponseCode());
+        Thread.sleep(500);
+
+        // parent platform has not yet been notified
+        con = request(PLATFORM_URL, "POST", "/invoke/YetAnotherTemporaryTestAction/sample1", Map.of());
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // manually call notify and check again
+        var con1 = request(PLATFORM_URL, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con1.getResponseCode());
+        con = request(PLATFORM_URL, "POST", "/invoke/YetAnotherTemporaryTestAction/sample1", Map.of());
         Assert.assertEquals(200, con.getResponseCode());
         Assert.assertTrue(result(con).contains("AnotherTemporaryTestAction"));
     }

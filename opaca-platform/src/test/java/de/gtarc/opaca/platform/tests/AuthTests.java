@@ -315,10 +315,6 @@ public class AuthTests {
 
         con = requestWithToken(PLATFORM_A, "DELETE", "/containers/" + containerId, image, token_A);
         Assert.assertEquals(200, con.getResponseCode());
-
-        // TODO figure out connection request with security enabled
-        // con = requestWithToken(PLATFORM_A, "POST", "/connections", platformBBaseUrl, token_A);
-        // Assert.assertEquals(200, con.getResponseCode());
     }
 
     @Test
