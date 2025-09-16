@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.3 Snapshot
+## 0.3 Release
 
 * check container requirements against platform's provisions
 * fixed bug in port-checking logic when running in Docker

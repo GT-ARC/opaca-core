@@ -1,6 +1,6 @@
 # Contributing Guidelines
 
-Copyright 2022-2024 GT-ARC & DAI-Labor, TU Berlin
+Copyright 2022-2025 GT-ARC & DAI-Labor, TU Berlin
 
 * Main Contributors: Tobias Küster and Benjamin Acar
 * Further contributions by: Oskar Kupke, Robert Strehlow

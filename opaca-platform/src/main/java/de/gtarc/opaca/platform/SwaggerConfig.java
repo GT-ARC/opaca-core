@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @OpenAPIDefinition(info=@Info(
         title = "OPACA Runtime Platform",
-        version = "0.2",
+        version = "0.3",
         description = """
                 Use this Web API to interact with the OPACA Runtime Platform and its Agent Containers. Here's a short
                 description of the different groups of API routes:

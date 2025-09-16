@@ -11,6 +11,6 @@ FROM ibm-semeru-runtimes:open-21-jdk
 WORKDIR /app
 
 # copy and run compiled all-in-one Jar
-COPY --from=builder /build/opaca-platform/target/opaca-platform-0.3-SNAPSHOT-with-dependencies.jar /app/app.jar
+COPY --from=builder /build/opaca-platform/target/opaca-platform-0.3-with-dependencies.jar /app/app.jar
 EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]
