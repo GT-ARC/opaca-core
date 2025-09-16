@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 0.4 Snapshot
+
+* ...
+
+
 ## 0.3 Release
 
 * check container requirements against platform's provisions
