@@ -137,6 +137,17 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 		return implementation.login(loginParams);
 	}
 
+	@RequestMapping(value="/login/container/{containerId}", method=RequestMethod.POST)
+	@Operation(summary="Login with username and password at given container", tags={"authentication"})
+	public String loginContainer(
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = true) String token,
+			@PathVariable String containerId,
+			@RequestBody Login loginParams
+	) throws IOException {
+		log.info("POST /login/container/{} {}", containerId, loginParams);
+		return implementation.loginContainer(containerId, loginParams, extractToken((token)));
+	}
+
 	@RequestMapping(value="/token", method=RequestMethod.GET)
 	@Operation(summary="Renew token for logged in user.", tags={"authentication"})
 	public String renewToken(

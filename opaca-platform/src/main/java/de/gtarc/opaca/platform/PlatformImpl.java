@@ -2,6 +2,7 @@ package de.gtarc.opaca.platform;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.platform.auth.JwtUtil;
 import de.gtarc.opaca.platform.user.TokenUserDetailsService;
@@ -146,6 +147,21 @@ public class PlatformImpl {
 
     public String login(Login loginParams) {
         return userDetailsService.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
+    }
+
+    public String loginContainer(String containerId, Login loginParams, String userToken) throws IOException {
+        if (config.enableAuth) {
+            // find matching user and container
+            // TODO handle unknown user, unknown container
+            var user = jwtUtil.getUsernameFromToken(userToken);
+            var client = getClient(containerId, tokens.get(containerId));
+            // get container-login-token, associate with user
+            String token = client.login(loginParams);
+            userDetailsService.addContainerToken(user, containerId, token);
+            return token;
+        } else {
+            throw new IllegalArgumentException("Container Login is only supported if Authentication is enabled.");
+        }
     }
 
     public String renewToken(String token) {
@@ -334,6 +350,9 @@ public class PlatformImpl {
         validators.remove(containerId);
         userDetailsService.removeUser(containerId);
         containerClient.stopContainer(containerId);
+        if (userToken != null) {
+            userDetailsService.removeContainerToken(jwtUtil.getUsernameFromToken(userToken), containerId);
+        }
         return true;
     }
 

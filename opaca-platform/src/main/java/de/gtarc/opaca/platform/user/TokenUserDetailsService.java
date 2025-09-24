@@ -222,4 +222,42 @@ public class TokenUserDetailsService implements UserDetailsService {
         return details.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals(Role.ADMIN.role())) ||
                 details.getUsername().equals(username);
     }
+
+    /**
+     * Returns Access Token associated with container, or null
+     */
+    public String getContainerToken(String username, String containerId) {
+        User user = userRepository.findByUsername(username);
+        if (user == null) throw new UsernameNotFoundException(username);
+        return user.getContainerLoginTokens().get(containerId);
+    }
+
+    /**
+     * Associate Access Token with container, overwrite existing if any
+     */
+    public void addContainerToken(String username, String containerId, String token) {
+        User user = userRepository.findByUsername(username);
+        if (user == null) throw new UsernameNotFoundException(username);
+
+        user.getContainerLoginTokens().put(containerId, token);
+        userRepository.deleteByUsername(username);
+        userRepository.save(user);
+    }
+
+    /**
+     * Deleted Access Token associated with container, return true if existed, otherwise false
+     */
+    public boolean removeContainerToken(String username, String containerId) {
+        User user = userRepository.findByUsername(username);
+        if (user == null) throw new UsernameNotFoundException(username);
+        if (user.getContainerLoginTokens().containsKey(containerId)) {
+            user.getContainerLoginTokens().remove(containerId);
+            userRepository.deleteByUsername(username);
+            userRepository.save(user);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
 }
