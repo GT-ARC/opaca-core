@@ -13,6 +13,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Test User Management Routes. By default, the routes are tested agains the "embedded" DB,
@@ -70,7 +71,7 @@ public class UserTests {
     @Test
     public void testCreateGetDelete() throws Exception {
         // create user
-        var user = new User("name", "pwd", Role.USER, null);
+        var user = user("name", "pwd", Role.USER);
         var con = requestWithToken(PLATFORM_A, "POST", "/users", user, adminToken);
         Assert.assertEquals(201, con.getResponseCode());
 
@@ -102,7 +103,7 @@ public class UserTests {
     public void testCreateUserAgain() throws Exception {
         createUser(adminToken, "test", "pwd", Role.USER, null);
 
-        var user = new User("test", "otherPwd", Role.USER, null);
+        var user = user("test", "otherPwd", Role.USER);
         var con = requestWithToken(PLATFORM_A, "POST", "/users", user, adminToken);
         Assert.assertEquals(409, con.getResponseCode());
 
@@ -112,7 +113,7 @@ public class UserTests {
     @Test
     public void testCreateUserMissingRole() throws Exception {
         // create user with missing attributes
-        var user = new User("differentUsername", "pwd", null, null);
+        var user = user("differentUsername", "pwd", null);
         var con = requestWithToken(PLATFORM_A, "POST", "/users", user, adminToken);
         Assert.assertEquals(400, con.getResponseCode());
     }
@@ -123,7 +124,7 @@ public class UserTests {
         var userToken = login("name", "pwd");
 
         // regular users can not create new users
-        var user = new User("testUser2", "otherPwd", Role.USER, null);
+        var user = user("testUser2", "otherPwd", Role.USER);
         var con = requestWithToken(PLATFORM_A, "POST", "/users", user, userToken);
         Assert.assertEquals(403, con.getResponseCode());
 
@@ -188,7 +189,7 @@ public class UserTests {
         createUser(adminToken, "test1", "pwd", Role.USER, null);
 
         // admin edits user
-        var edit = new User("test2", "newPwd", null, null);
+        var edit = user("test2", "newPwd", null);
         var con = requestWithToken(PLATFORM_A, "PUT", "/users/test1", edit, adminToken);
         Assert.assertEquals(200, con.getResponseCode());
 
@@ -207,7 +208,7 @@ public class UserTests {
         createUser(adminToken, "test2", "pwd", Role.USER, null);
 
         // try to edit user to get same username as other used
-        var edit = new User("test2", null, null, null);
+        var edit = user("test2", null, null);
         var con = requestWithToken(PLATFORM_A, "PUT", "/users/test1", edit, adminToken);
         Assert.assertEquals(409, con.getResponseCode());
 
@@ -221,7 +222,7 @@ public class UserTests {
         var userToken = login("test1", "pwd");
 
         // user tries to edit itself (the actual edit does not matter, just to show why it's not allowed)
-        var edit = new User(null, null, Role.ADMIN, null);
+        var edit = user(null, null, Role.ADMIN);
         var con = requestWithToken(PLATFORM_A, "PUT", "/users/test1", edit, userToken);
         Assert.assertEquals(403, con.getResponseCode());
 
@@ -233,7 +234,7 @@ public class UserTests {
         createUser(adminToken, "test1", "pwd", Role.USER, null);
 
         // alter all attributes
-        var edit = new User("newName", "newPwd", Role.CONTRIBUTOR, List.of("Some_privilege"));
+        var edit = new User("newName", "newPwd", Role.CONTRIBUTOR, List.of("Some_privilege"), Map.of());
         var con = requestWithToken(PLATFORM_A, "PUT", "/users/test1", edit, adminToken);
         Assert.assertEquals(200, con.getResponseCode());
         // old user no longer exists
@@ -258,7 +259,7 @@ public class UserTests {
         var oldUser = result(con);
 
         // make pseudo edit-request without any changes
-        var edit = new User(null, null, null, null);
+        var edit = user(null, null, null);
         con = requestWithToken(PLATFORM_A, "PUT", "/users/test1", edit, adminToken);
         Assert.assertEquals(200, con.getResponseCode());
         Assert.assertEquals(oldUser, result(con));
@@ -269,7 +270,7 @@ public class UserTests {
     @Test
     public void testEditNonExisting() throws Exception {
         // try to edit non-existing user
-        var edit = new User("newUsername", null, null, null);
+        var edit = user("newUsername", null, null);
         var con = requestWithToken(PLATFORM_A, "PUT", "/users/missingUser", edit, adminToken);
         Assert.assertEquals(404, con.getResponseCode());
     }
@@ -337,7 +338,7 @@ public class UserTests {
     }
 
     private static void createUser(String token, String name, String pwd, Role role, List<String> privileges) throws Exception {
-        var user = new User(name, pwd, role, privileges);
+        var user = user(name, pwd, role);
         var con = requestWithToken(PLATFORM_A, "POST", "/users", user, token);
         Assert.assertEquals(201, con.getResponseCode());
     }

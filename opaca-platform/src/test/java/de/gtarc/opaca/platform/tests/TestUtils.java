@@ -148,4 +148,8 @@ public class TestUtils {
             throw new IOException("Failed to connect platforms: " + message);
         }
     }
+
+    public static User user(String name, String pwd, Role role) {
+        return new User(name, pwd, role, null, Map.of());
+    }
 }
