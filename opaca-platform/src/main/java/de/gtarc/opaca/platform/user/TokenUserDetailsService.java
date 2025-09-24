@@ -90,7 +90,7 @@ public class TokenUserDetailsService implements UserDetailsService {
             if (username == null || password == null || role == null) {
                 throw new IllegalArgumentException("Username, Password and Role must be provided.");
             }
-            User user = new User(username, passwordEncoder.encode(password), role, privileges != null ? privileges : new ArrayList<>());
+            User user = new User(username, passwordEncoder.encode(password), role, privileges != null ? privileges : new ArrayList<>(), new HashMap<>());
             userRepository.save(user);
         }
     }

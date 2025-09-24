@@ -103,6 +103,10 @@ class ContainerAgent(
             return AgentContainer(containerId, image, getParameters(), agents, owner, startedAt, null)
         }
 
+        override fun login(loginParams: Login): String {
+            TODO("Not yet implemented")
+        }
+
         override fun getAgents(): List<AgentDescription> {
             log.debug("GET AGENTS")
             return registeredAgents.values.toList()

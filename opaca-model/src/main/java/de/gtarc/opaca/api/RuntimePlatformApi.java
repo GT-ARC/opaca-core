@@ -61,12 +61,25 @@ public interface RuntimePlatformApi extends CommonApi {
     /**
      * Retrieve Access Token for given user to be passed as header for secured routes.
      *
-     * REST: GET /login
+     * REST: POST /login
      *
      * @param loginParams Bundles the username and password in the request body
      * @return JWT access token
      */
     String login(Login loginParams) throws IOException;
+
+    /**
+     * Login to given Agent Container (e.g. so that the container can itself login at some upstream service),
+     * retrieving an access token (if the container provides one) and associating it with the currently logged
+     * in user and  that container.
+     *
+     * REST: POST /login/container/{containerId}
+     *
+     * @param containerId ID of the container where to login
+     * @param loginParams username and password for that container to use to login at upstream services
+     * @return JWT access token for that container
+     */
+    String loginContainer(String containerId, Login loginParams) throws IOException;
 
     /**
      * Retrieve new Access Token for already logged in user.

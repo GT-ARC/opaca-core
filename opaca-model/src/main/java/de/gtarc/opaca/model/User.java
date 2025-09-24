@@ -5,7 +5,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Description for a User, later converted to a TokenUser.
@@ -16,8 +18,20 @@ import java.util.List;
 @AllArgsConstructor @NoArgsConstructor
 @ToString(exclude = {"password"})
 public class User {
+
+    /** name of the user */
     String username;
+
+    /** password used to create a JWT */
     String password;
+
+    /** role of the user, used to determine which routes are allowed */
     Role role;
+
+    /** list of privileges (currently not really used...) */
     List<String> privileges;
+
+    /** map of container-logins stored for this user, mapping container-ids to access-tokens */
+    Map<String, String> containerLoginTokens = new HashMap<>();
+
 }
