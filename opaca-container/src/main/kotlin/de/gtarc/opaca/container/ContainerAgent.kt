@@ -104,7 +104,13 @@ class ContainerAgent(
         }
 
         override fun login(loginParams: Login): String {
-            TODO("Not yet implemented")
+            log.debug("LOGIN: {}", loginParams)
+            val token = "12345" // TODO get better token...
+            for (agent in registeredAgents.values) {
+                val ref = system.resolve(agent.agentId)
+                ref tell LoginMsg(token,  loginParams.username, loginParams.password)
+            }
+            return token
         }
 
         override fun getAgents(): List<AgentDescription> {

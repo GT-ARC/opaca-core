@@ -2,6 +2,7 @@ package de.gtarc.opaca.container
 
 import de.gtarc.opaca.model.ErrorResponse
 import de.gtarc.opaca.api.AgentContainerApi
+import de.gtarc.opaca.model.Login
 import de.gtarc.opaca.model.Message
 import de.gtarc.opaca.util.RestHelper
 import io.javalin.Javalin
@@ -28,6 +29,10 @@ class RestServerJavalin(val impl: AgentContainerApi, val port: Int, val token: S
             }
             .get("/info") {
                 it.json(impl.containerInfo)
+            }
+            .post("/login") {
+                val login = RestHelper.readObject(it.body(), Login::class.java)
+                impl.login(login)
             }
             .get("/agents") {
                 it.json(impl.agents)
