@@ -210,10 +210,10 @@ public class PlatformImpl {
         );
     }
 
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward, String userToken) throws IOException, NoSuchElementException {
         return iterateClientMatches(
                 getClients(containerId, agentId, action, parameters, null, forward),
-                match -> match.getClient().invoke(action, parameters, agentId, timeout, containerId, false),
+                match -> match.getClientFor(userToken).invoke(action, parameters, agentId, timeout, containerId, false),
                 true
         );
     }
@@ -603,7 +603,7 @@ public class PlatformImpl {
     protected void testSelfConnection() throws Exception {
         var token = config.enableAuth ?
                 userDetailsService.generateTokenForUser(config.platformAdminUser, config.platformAdminPwd) : null;
-        var info = new ApiProxy(config.getOwnBaseUrl(), null, token, 5000).getPlatformInfo();
+        var info = new ApiProxy(config.getOwnBaseUrl(), null, token).withTimeout(5000).getPlatformInfo();
         if (! Objects.equals(platformId, info.getPlatformId())) {
             throw new IllegalArgumentException("Mismatched Platform ID");
         }
@@ -617,17 +617,23 @@ public class PlatformImpl {
      */
     private class ClientMatch {
 
+        // the values that have to match (null being "any")
         private final String containerId;
         private final String agentId;
         private final String actionName;
         private final Map<String, JsonNode> actionArgs;
         private final String streamName;
 
+        // whether the above values match
         private boolean containerMatch;
         private boolean agentMatch;
         private boolean actionMatch;
         private boolean paramsMatch;
         private boolean streamMatch;
+
+        // the actual containerId this client is using, or null for platform client
+        @Getter
+        private String actualContainerId = null;
 
         @Getter
         private ApiProxy client = null;
@@ -652,6 +658,7 @@ public class PlatformImpl {
          * Check if the given container fulfills the matching parameters.
          */
         public ClientMatch makeContainerMatch(AgentContainer container, ApiProxy client) {
+            this.actualContainerId = container.getContainerId();
             if (client != null) {
                 this.client = client;
             }
@@ -730,6 +737,21 @@ public class PlatformImpl {
                 }
             }
             return streamMatch;
+        }
+
+        public ApiProxy getClientFor(String userToken) {
+            // not logged in or redirect to another platform
+            if (userToken == null || actualContainerId == null) {
+                return client;
+            }
+            var username = jwtUtil.getUsernameFromToken(userToken);
+            var containerLoginToken = userDetailsService.getContainerToken(username, actualContainerId);
+            // not logged in to container
+            if (containerLoginToken == null) {
+                return client;
+            }
+            // get ApiProxy with additional container login token header
+            return client.withExtraHeaders(Map.of(AgentContainerApi.HEADER_TOKEN, containerLoginToken));
         }
     }
 

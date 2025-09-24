@@ -239,6 +239,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@RequestMapping(value="/invoke/{action}", method=RequestMethod.POST)
 	@Operation(summary="Invoke action at any agent that provides it", tags={"agents"})
 	public JsonNode invoke(
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters,
 			@RequestParam(required = false, defaultValue = "-1") int timeout,
@@ -246,12 +247,13 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info("POST /invoke/{} {}", action, parameters);
-		return implementation.invoke(action, parameters, null, timeout, containerId, forward);
+		return implementation.invoke(action, parameters, null, timeout, containerId, forward, extractToken((token)));
 	}
 
 	@RequestMapping(value="/invoke/{action}/{agentId}", method=RequestMethod.POST)
 	@Operation(summary="Invoke action at that specific agent", tags={"agents"})
 	public JsonNode invoke(
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters,
 			@PathVariable String agentId,
@@ -260,7 +262,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info("POST /invoke/{}/{} {}", action, agentId, parameters);
-		return implementation.invoke(action, parameters, agentId, timeout, containerId, forward);
+		return implementation.invoke(action, parameters, agentId, timeout, containerId, forward, extractToken((token)));
 	}
 
 	@RequestMapping(value="/stream/{stream}", method=RequestMethod.GET)
