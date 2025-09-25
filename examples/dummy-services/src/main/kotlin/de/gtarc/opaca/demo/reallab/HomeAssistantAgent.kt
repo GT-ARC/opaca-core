@@ -36,23 +36,23 @@ class HomeAssistantAgent: AbstractContainerizedAgent(
         addAction("GetSensorId", "Get sensor ID corresponding to a given room. Room name does not have to be a perfect match.", mapOf(
             "room" to Parameter("string")
         ), Parameter("string", false)) { 
-            getSensorFromRoomHint(it["room"]!!.asText())
+            getSensorFromRoomHint(it.parameters["room"]!!.asText())
         }
         addAction("GetTemperature", "Get temperature value for a given sensor", mapOf(
             "sensorId" to Parameter("string")
         ), Parameter("number")) { 
-            actionGetValue(it["sensorId"]!!.asText(), "temperature")
+            actionGetValue(it.parameters["sensorId"]!!.asText(), "temperature")
         }
         addAction("GetCo2", "Get Co2 value for a given sensor", mapOf(
             "sensorId" to Parameter("string")
         ), Parameter("number")) { 
-            actionGetValue(it["sensorId"]!!.asText(), "co2")
+            actionGetValue(it.parameters["sensorId"]!!.asText(), "co2")
         }
         addAction("GetValue", "Get the value for a given sensor and property, searching in the list of sensors for a match", mapOf(
             "sensorId" to Parameter("string"),
             "key" to Parameter("string")
         ), Parameter("number")) { 
-            actionGetValue(it["sensorId"]!!.asText(), it["key"]!!.asText())
+            actionGetValue(it.parameters["sensorId"]!!.asText(), it.parameters["key"]!!.asText())
         }
     }
 
@@ -62,7 +62,7 @@ class HomeAssistantAgent: AbstractContainerizedAgent(
 
     private fun actionGetValue(sensor: String, key: String): Double {
         log.info("Getting the $key value of the sensor $sensor...")
-        return when (key.lowercase()) {
+        return when (key.toLowerCase()) {
             "temperature" -> Random.nextDouble(20.0, 30.0)
             "co2" -> Random.nextDouble(400.0, 1500.0)
             "noise" -> Random.nextDouble(40.0, 80.0)

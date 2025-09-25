@@ -32,17 +32,17 @@ class ShelfAgent : AbstractContainerizedAgent(
         this.addAction("FindInShelf", "Find the ID of the shelf that should contain the given item, or -1 if no such shelf exists.", mapOf(
             "item" to Parameter("string")
         ), Parameter("integer")) {
-            findInShelf(it["item"]!!.asText())
+            findInShelf(it.parameters["item"]!!.asText())
         }
         this.addAction("OpenShelf", "Open the shelf with the given ID. Only use this action when you can see the shelf!", mapOf(
             "shelf" to Parameter("integer")
         ), Parameter("boolean")) {
-            openShelf(it["shelf"]!!.asInt())
+            openShelf(it.parameters["shelf"]!!.asInt())
         }
         this.addAction("CloseShelf", "Close the shelf with the given ID. Only use this action when you can see the shelf!", mapOf(
             "shelf" to Parameter("integer")
         ), Parameter("boolean")) {
-            closeShelf(it["shelf"]!!.asInt())
+            closeShelf(it.parameters["shelf"]!!.asInt())
         }
     }
 

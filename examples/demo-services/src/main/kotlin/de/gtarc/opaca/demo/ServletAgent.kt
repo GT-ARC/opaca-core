@@ -134,23 +134,23 @@ class ServletAgent: AbstractContainerizedAgent(
             "message" to Parameter("string"),
             "seconds" to Parameter("integer", false)
         ), null) {
-            actionShowMessage(it["message"]!!.asText(), (it["seconds"]?.asInt() ?: -1))
+            actionShowMessage(it.parameters["message"]!!.asText(), (it.parameters["seconds"]?.asInt() ?: -1))
         }
         addAction("GetValue", mapOf(
             "key" to Parameter("string")
         ), Parameter("string")) { 
-            actionGetValue(it["key"]!!.asText())
+            actionGetValue(it.parameters["key"]!!.asText())
         }
         addAction("SetTitle", mapOf(
             "title" to Parameter("string")
         ), null) {
-            actionSetTitle(it["title"]!!.asText())
+            actionSetTitle(it.parameters["title"]!!.asText())
         }
         addAction("SetValue", mapOf(
             "key" to Parameter("string"),
             "value" to Parameter("string")
         ), null) { 
-            actionSetValue(it["key"]!!.asText(), it["value"]!!.asText())
+            actionSetValue(it.parameters["key"]!!.asText(), it.parameters["value"]!!.asText())
         }
 
         server.start(8888)

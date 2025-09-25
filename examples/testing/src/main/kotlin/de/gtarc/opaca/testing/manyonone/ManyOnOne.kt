@@ -101,8 +101,8 @@ class ServerAgent(name: String): AbstractContainerizedAgent(name=name) {
     override fun setupAgent() {
         addAction("SendTurn", mapOf("id" to Parameter("string"), "turn" to Parameter("int")), Parameter("String")) {
             log.info("server got $it (thread ${Thread.currentThread().name})")
-            val id = it["id"]!!.asText()
-            val turn = it["turn"]!!.asInt()
+            val id = it.parameters["id"]!!.asText()
+            val turn = it.parameters["turn"]!!.asInt()
             responses[id] = turn
             newResponses++
             sleep(ACTION_SLEEP)
