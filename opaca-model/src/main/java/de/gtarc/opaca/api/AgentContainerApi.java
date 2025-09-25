@@ -43,14 +43,14 @@ public interface AgentContainerApi extends CommonApi{
 
     /**
      * Supply login credentials for the Agent Container to use in later requests. The container generates and returns
-     * a JWT and associates that with the login credentials (or a cached client object or similar). In subsequent
-     * requests (e.g. to /invoke), the same JWT will automatically be passed as a header by the Runtime Platform so
+     * a token and associates that with the login credentials (or a cached client object or similar). In subsequent
+     * requests (e.g. to /invoke), the same token will automatically be passed as a header by the Runtime Platform so
      * the container can use the appropriate credentials/client.
      *
      * REST: GET /login
      *
      * @param loginParams Bundles the username and password in the request body
-     * @return JWT access token
+     * @return container- and user-specific access token
      */
     String login(Login loginParams) throws IOException;
 

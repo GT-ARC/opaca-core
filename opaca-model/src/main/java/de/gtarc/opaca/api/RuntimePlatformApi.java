@@ -73,13 +73,13 @@ public interface RuntimePlatformApi extends CommonApi {
      * retrieving an access token (if the container provides one) and associating it with the currently logged
      * in user and  that container.
      *
-     * REST: POST /login/container/{containerId}
+     * REST: POST /containers/login/{containerId}
      *
      * @param containerId ID of the container where to login
      * @param loginParams username and password for that container to use to login at upstream services
-     * @return JWT access token for that container
+     * @return access token for that container
      */
-    String loginContainer(String containerId, Login loginParams) throws IOException;
+    String containerLogin(String containerId, Login loginParams) throws IOException;
 
     /**
      * Retrieve new Access Token for already logged in user.

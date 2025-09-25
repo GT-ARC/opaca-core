@@ -149,10 +149,12 @@ public class PlatformImpl {
         return userDetailsService.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
     }
 
-    public String loginContainer(String containerId, Login loginParams, String userToken) throws IOException {
+    public String containerLogin(String containerId, Login loginParams, String userToken) throws IOException {
+        if (! runningContainers.containsKey(containerId)) {
+            throw new NoSuchElementException("Container not found: " + containerId);
+        }
         if (config.enableAuth) {
             // find matching user and container
-            // TODO handle unknown user, unknown container
             var user = jwtUtil.getUsernameFromToken(userToken);
             var client = getClient(containerId, tokens.get(containerId));
             // get container-login-token, associate with user
@@ -632,7 +634,6 @@ public class PlatformImpl {
         private boolean streamMatch;
 
         // the actual containerId this client is using, or null for platform client
-        @Getter
         private String actualContainerId = null;
 
         @Getter

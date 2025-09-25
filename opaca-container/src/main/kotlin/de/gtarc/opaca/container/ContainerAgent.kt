@@ -127,7 +127,6 @@ class ContainerAgent(
         }
 
         override fun send(agentId: String, message: Message, containerId: String, forward: Boolean) {
-            // TODO pass login token header
             log.debug("SEND: {} {}", agentId, message)
             val agent = findRegisteredAgent(agentId, action=null, stream=null)
             val ref = system.resolve(agent)
@@ -135,13 +134,11 @@ class ContainerAgent(
         }
 
         override fun broadcast(channel: String, message: Message, containerId: String, forward: Boolean) {
-            // TODO pass login token header
             log.debug("BROADCAST: {} {}", channel, message)
             broker.publish(channel, message)
         }
 
         override fun invoke(action: String, parameters: Map<String, JsonNode>, agentId: String?, timeout: Int, containerId: String, forward: Boolean): JsonNode? {
-            // TODO pass login token header
             log.debug("INVOKE ACTION OF AGENT: {} {} {}", agentId, action, parameters)
             val agent = findRegisteredAgent(agentId, action, null)
             val res: Any = waitForInvoke(agent, Invoke(action, parameters, loginToken), timeout)
@@ -149,14 +146,12 @@ class ContainerAgent(
         }
 
         override fun postStream(stream: String, data: ByteArray, agentId: String?, containerId: String, forward: Boolean) {
-            // TODO pass login token header
             log.debug("POST STREAM TO AGENT: $agentId $stream")
             val agent = findRegisteredAgent(agentId, null, stream)
             waitForInvoke(agent, StreamPost(stream, data), -1)
         }
 
         override fun getStream(stream: String, agentId: String?, containerId: String, forward: Boolean): InputStream? {
-            // TODO pass login token header
             log.debug("GET STREAM OF AGENT: $agentId $stream")
             val agent = findRegisteredAgent(agentId, null, stream)
             val inputStream: InputStream = waitForInvoke(agent, StreamGet(stream), -1) as InputStream
