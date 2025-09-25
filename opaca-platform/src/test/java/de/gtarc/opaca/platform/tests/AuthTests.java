@@ -399,6 +399,31 @@ public class AuthTests {
         Assert.assertEquals(403, con.getResponseCode());
     }
 
+    @Test
+    public void test09ContainerLogin() throws Exception {
+        // create two users for testing
+        result(requestWithToken(PLATFORM_A, "POST", "/users", user("user1", "12345", Role.USER), token_A));
+        result(requestWithToken(PLATFORM_A, "POST", "/users", user("user2", "12345", Role.USER), token_A));
+        var token1 = result(request(PLATFORM_A, "POST", "/login", new Login("user1", "12345")));
+        var token2 = result(request(PLATFORM_A, "POST", "/login", new Login("user2", "12345")));
+
+        // login to container as both users
+        result(requestWithToken(PLATFORM_A, "POST", "/containers/login/" + containerId, new Login("container user 1", ""), token1));
+        result(requestWithToken(PLATFORM_A, "POST", "/containers/login/" + containerId, new Login("container user 2", ""), token2));
+
+        // call test-login route with different users --> container should recognize the calling user, if logged in
+        var con = requestWithToken(PLATFORM_A, "POST", "/invoke/LoginTest", Map.of(), token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("Not logged in", result(con));
+
+        con = requestWithToken(PLATFORM_A, "POST", "/invoke/LoginTest", Map.of(), token1);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertTrue(result(con).contains("user1"));
+
+        con = requestWithToken(PLATFORM_A, "POST", "/invoke/LoginTest", Map.of(), token2);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertTrue(result(con).contains("user2"));
+    }
 
     // Container authorities started by users.
 
