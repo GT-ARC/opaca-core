@@ -78,7 +78,7 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
 
     @Override
     public String loginContainer(String containerId, Login loginParams) throws IOException {
-        var path = String.format("/login/container/%s", containerId);
+        var path = String.format("/containers/login/%s", containerId);
         return client.readStream(client.request("POST", path, loginParams));
     }
 

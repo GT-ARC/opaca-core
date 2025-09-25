@@ -91,7 +91,7 @@ public class SecurityConfiguration {
                             .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
                             .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**", "/users/**").hasRole(Role.GUEST.name())
                             .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole(Role.USER.name())
-                            .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**", "/stream/**").hasRole(Role.USER.name())
+                            .requestMatchers(HttpMethod.POST, "/containers/login/**", "/send/**", "/invoke/**", "/broadcast/**", "/stream/**").hasRole(Role.USER.name())
                             .requestMatchers(HttpMethod.POST, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
                             .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
                             .requestMatchers("/connections/**", "/users/**").hasRole(Role.ADMIN.name())
