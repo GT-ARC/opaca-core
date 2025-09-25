@@ -79,8 +79,8 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             val token = it.loginToken
             when {
                 token == null -> "Not logged in"
-                logins.containsKey(token) -> logins[token]
-                else -> "Unknown token"
+                logins.containsKey(token) -> "Logged in as ${logins[token]}"
+                else -> "Unknown token: ${token}"
             }
         }
 
@@ -89,7 +89,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     }
 
     override fun handleLogin(loginMsg: LoginMsg) {
-        logins[loginMsg.loginToken] = loginMsg.username
+        logins[loginMsg.loginToken] = loginMsg.login.username
     }
 
     override fun behaviour() = super.behaviour().and(act {

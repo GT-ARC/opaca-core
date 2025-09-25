@@ -33,7 +33,7 @@ class RestServerJavalin(val impl: ContainerAgent, val port: Int, val token: Stri
             }
             .post("/login") {
                 val login = RestHelper.readObject(it.body(), Login::class.java)
-                withToken(it).login(login)
+                it.json(withToken(it).login(login))
             }
             .get("/agents") {
                 it.json(withToken(it).agents)

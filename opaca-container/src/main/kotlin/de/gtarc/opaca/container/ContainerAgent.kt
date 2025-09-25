@@ -13,7 +13,9 @@ import java.io.InputStream
 import java.time.Duration
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.util.*
 import java.util.concurrent.Semaphore
+import kotlin.NoSuchElementException
 
 
 const val CONTAINER_AGENT = "container-agent"
@@ -106,10 +108,10 @@ class ContainerAgent(
 
         override fun login(loginParams: Login): String {
             log.debug("LOGIN: {}", loginParams)
-            val token = "12345" // TODO get better token...
+            val token = UUID.randomUUID().toString()
             for (agent in registeredAgents.values) {
                 val ref = system.resolve(agent.agentId)
-                ref tell LoginMsg(token,  loginParams.username, loginParams.password)
+                ref tell LoginMsg(token,  loginParams)
             }
             return token
         }
