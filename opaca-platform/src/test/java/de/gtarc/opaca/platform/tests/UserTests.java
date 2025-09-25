@@ -277,6 +277,7 @@ public class UserTests {
 
     // DELETE /users
 
+    @Test
     public void testDeleteUser() throws Exception {
         createUser(adminToken, "test1", "pwd", Role.USER, null);
 
