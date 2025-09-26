@@ -106,7 +106,7 @@ class ContainerAgent(
             return AgentContainer(containerId, image, getParameters(), agents, owner, startedAt, null)
         }
 
-        override fun login(loginParams: Login): String {
+        override fun containerLogin(loginParams: Login): String {
             log.debug("LOGIN: {}", loginParams)
             val token = UUID.randomUUID().toString()
             for (agent in registeredAgents.values) {

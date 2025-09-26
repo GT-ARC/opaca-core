@@ -158,7 +158,7 @@ public class PlatformImpl {
             var user = jwtUtil.getUsernameFromToken(userToken);
             var client = getClient(containerId, tokens.get(containerId));
             // get container-login-token, associate with user
-            String token = client.login(loginParams);
+            String token = client.containerLogin(loginParams);
             userDetailsService.addContainerToken(user, containerId, token);
             return token;
         } else {

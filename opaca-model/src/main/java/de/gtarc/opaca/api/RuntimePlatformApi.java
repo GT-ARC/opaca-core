@@ -66,7 +66,7 @@ public interface RuntimePlatformApi extends CommonApi {
      * @param loginParams Bundles the username and password in the request body
      * @return JWT access token
      */
-    String login(Login loginParams) throws IOException;
+    String platformLogin(Login loginParams) throws IOException;
 
     /**
      * Login to given Agent Container (e.g. so that the container can itself login at some upstream service),

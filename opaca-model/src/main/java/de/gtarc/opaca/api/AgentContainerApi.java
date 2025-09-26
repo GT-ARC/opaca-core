@@ -27,7 +27,7 @@ public interface AgentContainerApi extends CommonApi{
     /** which ports on the host the container's ports are mapped to, in the format "containerPort1:hostPort1,..." */
     String ENV_PORT_MAPPING = "PORT_MAPPING";
 
-    /** HTTP header in which the container login token is stored (see {@link #login(Login)}) */
+    /** HTTP header in which the container login token is stored (see {@link #containerLogin(Login)}) */
     String HEADER_TOKEN = "ContainerLoginToken";
 
     int DEFAULT_PORT = 8082;
@@ -47,11 +47,11 @@ public interface AgentContainerApi extends CommonApi{
      * requests (e.g. to /invoke), the same token will automatically be passed as a header by the Runtime Platform so
      * the container can use the appropriate credentials/client.
      *
-     * REST: GET /login
+     * REST: POST /login
      *
      * @param loginParams Bundles the username and password in the request body
      * @return container- and user-specific access token
      */
-    String login(Login loginParams) throws IOException;
+    String containerLogin(Login loginParams) throws IOException;
 
 }
