@@ -42,3 +42,10 @@ In addition to the Runtime Platform as a whole, individual Agent Containers can 
 Using the `/containers/login/{containerId}` route (introduced in version 0.4), users can login to individual containers, using credentials that are specific to those containers. The credentials are forwarded to the container, which then associates them with a randomly generated token and returns that to the runtime platform. This token is then included as a special HTTP header, `ContainerLoginToken` in all subsequent requests to that container by the same user, currently logged in to the OPACA Runtime Platform. (If Platform-Authentication is not enabled, the tokens are associated with the platform default admin-user instead.) To log out from the container, use the  `/containers/login/{containerId}` route while logged in as the same user.
 
 **Note** that the actual handling of the user credentials is done by the implementing Agent Container and not part of the OPACA API. It is advised to e.g. instantiate and cache a user-specific client for the upstream service the credentials are needed for and not to store them in the container itself. Similarly, the container-credentials are received in plain-text by the runtime platform and passed on to the agent-container, but are at no point stored or logged by the platform.
+
+
+## Visualization
+
+The following sequence diagram shows, slightly simplified, how the interaction between user, runtime platform, and agent container takes place. In the arrow labels, `{...}` denotes a path parameter, `(...)` the request body, and `[...]` an HTTP header.
+
+![Platform- and Container-Authentication](img/container-login.png)
