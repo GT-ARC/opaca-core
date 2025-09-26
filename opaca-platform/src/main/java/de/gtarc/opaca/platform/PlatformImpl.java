@@ -476,7 +476,7 @@ public class PlatformImpl {
      * to associate the container logins with
      */
     private String getUser(String userToken) {
-        return userToken != null ? jwtUtil.getUsernameFromToken(userToken) : config.platformAdminUser;
+        return config.enableAuth ? jwtUtil.getUsernameFromToken(userToken) : config.platformAdminUser;
     }
 
     /**

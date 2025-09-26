@@ -13,6 +13,8 @@ import java.util.Map;
  * Description for a User, later converted to a TokenUser.
  * This class stores the name, password, role, and multiple
  * privileges as strings.
+ *
+ * NOTE: When changing attributes in this class, make sure to adapt UserRepository accordingly!
  */
 @Data
 @AllArgsConstructor @NoArgsConstructor
