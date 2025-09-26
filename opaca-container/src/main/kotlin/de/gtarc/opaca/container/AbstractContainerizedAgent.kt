@@ -78,6 +78,10 @@ abstract class AbstractContainerizedAgent(name: String, val description: String?
         // API using the given username and password and associating it with the given loginToken.
     }
 
+    open fun handleLogout(logoutMsg: LogoutMsg) {
+        // implement this method if your agent needs to handle Logouts, e.g. forget client for given token
+    }
+
     fun addAction(name: String, parameters: Map<String, Parameter>, result: Parameter?, callback: (Invoke) -> Any?) =
             addAction(Action(name, parameters, result), callback)
     
@@ -118,6 +122,11 @@ abstract class AbstractContainerizedAgent(name: String, val description: String?
         on<LoginMsg> {
             log.info("LOGIN $it")
             handleLogin(it)
+        }
+
+        on<LogoutMsg> {
+            log.info("LOGOUT $it")
+            handleLogout(it)
         }
 
         on<RenewToken> {

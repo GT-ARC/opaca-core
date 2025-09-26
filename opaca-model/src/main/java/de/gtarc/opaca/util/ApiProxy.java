@@ -89,6 +89,17 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
+    public void containerLogout() throws IOException {
+        client.post("/logout", null, null);
+    }
+
+    @Override
+    public boolean containerLogout(String containerId) throws IOException {
+        var path = String.format("/containers/logout/%s", containerId);
+        return client.post(path, null, Boolean.class);
+    }
+
+    @Override
     public String renewToken() throws IOException {
         return client.readStream(client.request("GET", "/token", null));
     }

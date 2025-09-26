@@ -367,6 +367,16 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 		return implementation.containerLogin(containerId, loginParams, extractToken((token)));
 	}
 
+	@RequestMapping(value="/containers/logout/{containerId}", method=RequestMethod.POST)
+	@Operation(summary="Logout at given container", tags={"containers"})
+	public boolean containerLogout(
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
+			@PathVariable String containerId
+	) throws IOException {
+		log.info("POST /containers/logout/{}", containerId);
+		return implementation.containerLogout(containerId, extractToken((token)));
+	}
+
 	/*
 	 * CONNECTIONS ROUTES
 	 */

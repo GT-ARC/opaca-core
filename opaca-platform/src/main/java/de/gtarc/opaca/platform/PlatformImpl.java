@@ -162,6 +162,19 @@ public class PlatformImpl {
         return token;
     }
 
+    public boolean containerLogout(String containerId, String userToken) throws IOException {
+        if (! runningContainers.containsKey(containerId)) {
+            throw new NoSuchElementException("Container not found: " + containerId);
+        }
+        var token = userDetailsService.removeContainerToken(getUser(userToken), containerId);
+        if (token != null) {
+            getClient(containerId, tokens.get(containerId))
+                    .withExtraHeaders(Map.of(AgentContainerApi.HEADER_TOKEN, token))
+                    .containerLogout();
+        }
+        return token != null;
+    }
+
     public String renewToken(String token) {
         // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
         String owner = userDetailsService.getUser(jwtUtil.getUsernameFromToken(token)).getUsername();

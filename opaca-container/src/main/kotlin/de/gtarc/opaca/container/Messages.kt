@@ -19,6 +19,7 @@ data class DeRegister(val agentId: String, val notify: Boolean)
 // and other messages so the respective agents can select the respective login (or cached client) for that user.
 
 data class LoginMsg(val loginToken: String, val login: Login)
+data class LogoutMsg(val loginToken: String)
 
 // Message for Invoking a OPACA action at a containerized agent, wrapping the name of the action to call
 // and its parameters, to be handled by an invoke-ask "respond" handler.

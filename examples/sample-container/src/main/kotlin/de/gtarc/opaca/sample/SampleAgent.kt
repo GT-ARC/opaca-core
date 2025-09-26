@@ -4,6 +4,7 @@ import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.container.AbstractContainerizedAgent
 import de.gtarc.opaca.container.LoginMsg
+import de.gtarc.opaca.container.LogoutMsg
 import de.gtarc.opaca.container.OpacaException
 import de.gtarc.opaca.model.Message
 import de.gtarc.opaca.model.Parameter
@@ -90,6 +91,10 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
 
     override fun handleLogin(loginMsg: LoginMsg) {
         logins[loginMsg.loginToken] = loginMsg.login.username
+    }
+
+    override fun handleLogout(logoutMsg: LogoutMsg) {
+        logins.remove(logoutMsg.loginToken)
     }
 
     override fun behaviour() = super.behaviour().and(act {

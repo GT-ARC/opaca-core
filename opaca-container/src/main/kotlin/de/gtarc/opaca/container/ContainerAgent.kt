@@ -116,6 +116,14 @@ class ContainerAgent(
             return token
         }
 
+        override fun containerLogout() {
+            log.debug("LOGOUT")
+            for (agent in registeredAgents.values) {
+                val ref = system.resolve(agent.agentId)
+                ref tell LogoutMsg(token)
+            }
+        }
+
         override fun getAgents(): List<AgentDescription> {
             log.debug("GET AGENTS")
             return registeredAgents.values.toList()

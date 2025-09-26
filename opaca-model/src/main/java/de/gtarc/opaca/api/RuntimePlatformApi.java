@@ -82,6 +82,13 @@ public interface RuntimePlatformApi extends CommonApi {
     String containerLogin(String containerId, Login loginParams) throws IOException;
 
     /**
+     * Log current user out of a previously logged in container.
+     *
+     * REST: POST /containers/logout/{containerId}
+     */
+    boolean containerLogout(String containerId) throws IOException;
+
+    /**
      * Retrieve new Access Token for already logged in user.
      *
      * REST: GET /token

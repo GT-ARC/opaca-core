@@ -35,6 +35,9 @@ class RestServerJavalin(val impl: ContainerAgent, val port: Int, val token: Stri
                 val login = RestHelper.readObject(it.body(), Login::class.java)
                 it.json(withToken(it).containerLogin(login))
             }
+            .post("/logout") {
+                withToken(it).containerLogout()
+            }
             .get("/agents") {
                 it.json(withToken(it).agents)
             }

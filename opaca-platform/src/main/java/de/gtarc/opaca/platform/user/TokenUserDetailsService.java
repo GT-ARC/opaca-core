@@ -245,18 +245,18 @@ public class TokenUserDetailsService implements UserDetailsService {
     }
 
     /**
-     * Deleted Access Token associated with container, return true if existed, otherwise false
+     * Deleted Access Token associated with container, return old token if existed, otherwise null
      */
-    public boolean removeContainerToken(String username, String containerId) {
+    public String removeContainerToken(String username, String containerId) {
         User user = userRepository.findByUsername(username);
         if (user == null) throw new UsernameNotFoundException(username);
         if (user.getContainerLoginTokens().containsKey(containerId)) {
-            user.getContainerLoginTokens().remove(containerId);
+            var token = user.getContainerLoginTokens().remove(containerId);
             userRepository.deleteByUsername(username);
             userRepository.save(user);
-            return true;
+            return token;
         } else {
-            return false;
+            return null;
         }
     }
 
