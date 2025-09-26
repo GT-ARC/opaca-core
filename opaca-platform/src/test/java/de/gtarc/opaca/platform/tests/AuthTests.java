@@ -313,6 +313,17 @@ public class AuthTests {
         Assert.assertEquals(200, con.getResponseCode());
         Assert.assertEquals("\"Logged in as container user 2\"", result(con));
 
+        // logout as user 1; user 2 still logged in
+        result(requestWithToken(PLATFORM_A, "POST", "/containers/logout/" + containerId, null, token1));
+
+        con = requestWithToken(PLATFORM_A, "POST", "/invoke/LoginTest", Map.of(), token1);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Not logged in\"", result(con));
+
+        con = requestWithToken(PLATFORM_A, "POST", "/invoke/LoginTest", Map.of(), token2);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Logged in as container user 2\"", result(con));
+
         // finally, login to unknown container...
         con = requestWithToken(PLATFORM_A, "POST", "/containers/login/does-not-exist", new Login("container user 1", ""), token1);
         Assert.assertEquals(404, con.getResponseCode());

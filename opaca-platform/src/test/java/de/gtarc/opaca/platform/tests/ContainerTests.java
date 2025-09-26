@@ -627,6 +627,13 @@ public class ContainerTests {
         Assert.assertEquals(200, con.getResponseCode());
         Assert.assertEquals("\"Logged in as container user 1\"", result(con));
 
+        // logout again
+        result(request(PLATFORM_URL, "POST", "/containers/logout/" + containerId, null));
+
+        con = request(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Not logged in\"", result(con));
+
         // login to unknown container...
         con = request(PLATFORM_URL, "POST", "/containers/login/does-not-exist", new Login("container user 1", ""));
         Assert.assertEquals(404, con.getResponseCode());
