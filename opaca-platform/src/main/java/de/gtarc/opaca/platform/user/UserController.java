@@ -63,7 +63,7 @@ public class UserController {
      */
     @RequestMapping(value="/users", method=RequestMethod.POST)
     @Operation(summary="Add a new user to the connected database", tags={"users"})
-    public ResponseEntity<?> addUser(
+    public ResponseEntity<String> addUser(
             @RequestBody User user
     ) {
         log.info("POST /users {}", user);
@@ -79,7 +79,7 @@ public class UserController {
      */
     @RequestMapping(value="/users/{username}", method=RequestMethod.DELETE)
     @Operation(summary="Delete an existing user from the connected database", tags={"users"})
-    public ResponseEntity<?> deleteUser(
+    public ResponseEntity<Boolean> deleteUser(
             @PathVariable String username
     ) {
         log.info("DELETE /users/{}", username);
@@ -125,7 +125,7 @@ public class UserController {
      */
     @RequestMapping(value="/users/{username}", method=RequestMethod.PUT)
     @Operation(summary="Update the information of an existing user in the connected database", tags={"users"})
-    public ResponseEntity<?> updateUser(
+    public ResponseEntity<String> updateUser(
             @PathVariable String username,
             @RequestBody User user
     ) {

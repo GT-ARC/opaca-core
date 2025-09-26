@@ -22,7 +22,7 @@ public class User {
     /** name of the user */
     String username;
 
-    /** password used to create a JWT */
+    /** plain-text password for POST, then stored as password-hash in the database */
     String password;
 
     /** role of the user, used to determine which routes are allowed */
