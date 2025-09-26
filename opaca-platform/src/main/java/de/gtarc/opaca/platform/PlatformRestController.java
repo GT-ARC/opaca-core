@@ -359,7 +359,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@RequestMapping(value="/containers/login/{containerId}", method=RequestMethod.POST)
 	@Operation(summary="Login with username and password at given container", tags={"containers"})
 	public String containerLogin(
-			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = true) String token,
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@PathVariable String containerId,
 			@RequestBody Login loginParams
 	) throws IOException {

@@ -1,9 +1,7 @@
 package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.api.AgentContainerApi;
-import de.gtarc.opaca.model.AgentContainer;
-import de.gtarc.opaca.model.AgentDescription;
-import de.gtarc.opaca.model.RuntimePlatform;
+import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.platform.Application;
 
 import lombok.AllArgsConstructor;
@@ -614,6 +612,24 @@ public class ContainerTests {
         System.out.println(System.currentTimeMillis() - start);
         Assert.assertTrue("At least 1 of the 2 requests failed.", noErrorsDetected.get());
         Assert.assertTrue(System.currentTimeMillis() - start < 8 * 1000);
+    }
+
+    /**
+     * Even without platform-auth, container auth should still be possible (and associated with the default admin user)
+     */
+    @Test
+    public void testContainerLoginNoAuth() throws Exception {
+        // login to container
+        result(request(PLATFORM_URL, "POST", "/containers/login/" + containerId, new Login("container user 1", "")));
+
+        // call test-login route --> container should recognize the previously logged in user
+        var con = request(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Logged in as container user 1\"", result(con));
+
+        // login to unknown container...
+        con = request(PLATFORM_URL, "POST", "/containers/login/does-not-exist", new Login("container user 1", ""));
+        Assert.assertEquals(404, con.getResponseCode());
     }
 
     /**

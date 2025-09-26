@@ -153,17 +153,13 @@ public class PlatformImpl {
         if (! runningContainers.containsKey(containerId)) {
             throw new NoSuchElementException("Container not found: " + containerId);
         }
-        if (config.enableAuth) {
-            // find matching user and container
-            var user = jwtUtil.getUsernameFromToken(userToken);
-            var client = getClient(containerId, tokens.get(containerId));
-            // get container-login-token, associate with user
-            String token = client.containerLogin(loginParams);
-            userDetailsService.addContainerToken(user, containerId, token);
-            return token;
-        } else {
-            throw new IllegalArgumentException("Container Login is only supported if Authentication is enabled.");
-        }
+        // find matching user and container
+        var user = getUser(userToken);
+        var client = getClient(containerId, tokens.get(containerId));
+        // get container-login-token, associate with user
+        String token = client.containerLogin(loginParams);
+        userDetailsService.addContainerToken(user, containerId, token);
+        return token;
     }
 
     public String renewToken(String token) {
@@ -352,9 +348,7 @@ public class PlatformImpl {
         validators.remove(containerId);
         userDetailsService.removeUser(containerId);
         containerClient.stopContainer(containerId);
-        if (userToken != null) {
-            userDetailsService.removeContainerToken(jwtUtil.getUsernameFromToken(userToken), containerId);
-        }
+        userDetailsService.removeContainerToken(getUser(userToken), containerId);
         return true;
     }
 
@@ -464,6 +458,15 @@ public class PlatformImpl {
      */
 
     /**
+     * Get the logged-in user from the provided user token, or default user if token is null.
+     * the default-user is only relevant for container-login if no auth is enabled and only used
+     * to associate the container logins with
+     */
+    private String getUser(String userToken) {
+        return userToken != null ? jwtUtil.getUsernameFromToken(userToken) : config.platformAdminUser;
+    }
+
+    /**
      * Create Websocket connection and associate it with the connected platform's URL, to be closed when disconnected
      */
     private void openConnectionWebsocket(String url, String token) {
@@ -500,7 +503,7 @@ public class PlatformImpl {
                 try {
                     return callback.apply(match);
                 } catch (IOException e) {
-                    log.warn("Exception from container: {}", e);
+                    log.warn("Exception from container", e);
                     lastException = e;
                 }
             } else if (match.isParamsMismatch()) {
@@ -741,12 +744,11 @@ public class PlatformImpl {
         }
 
         public ApiProxy getClientFor(String userToken) {
-            // not logged in or redirect to another platform
-            if (userToken == null || actualContainerId == null) {
+            // redirect to another platform
+            if (actualContainerId == null) {
                 return client;
             }
-            var username = jwtUtil.getUsernameFromToken(userToken);
-            var containerLoginToken = userDetailsService.getContainerToken(username, actualContainerId);
+            var containerLoginToken = userDetailsService.getContainerToken(getUser(userToken), actualContainerId);
             // not logged in to container
             if (containerLoginToken == null) {
                 return client;
