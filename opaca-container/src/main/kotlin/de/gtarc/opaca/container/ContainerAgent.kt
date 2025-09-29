@@ -13,7 +13,9 @@ import java.io.InputStream
 import java.time.Duration
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.util.*
 import java.util.concurrent.Semaphore
+import kotlin.NoSuchElementException
 
 
 const val CONTAINER_AGENT = "container-agent"
@@ -30,7 +32,7 @@ class ContainerAgent(
 
     private val broker by resolve<BrokerAgentRef>()
 
-    private val server by lazy { RestServerJavalin(impl, image.apiPort, token) }
+    private val server by lazy { RestServerJavalin(this, image.apiPort, token) }
 
     // information on current state of agent container
 
@@ -96,11 +98,30 @@ class ContainerAgent(
      * Implementation of the Agent Container API. The methods of this class are executed by the
      * HTTP handler in its thread. It acts as bridge between HTTP handler and Container Agent.
      */
-    private val impl = object : AgentContainerApi {
+
+    inner class LoggedInContainerImpl(val loginToken: String?) : AgentContainerApi {
 
         override fun getContainerInfo(): AgentContainer {
             log.debug("GET INFO")
             return AgentContainer(containerId, image, getParameters(), agents, owner, startedAt, null)
+        }
+
+        override fun containerLogin(loginParams: Login): String {
+            log.debug("LOGIN: {}", loginParams)
+            val token = UUID.randomUUID().toString()
+            for (agent in registeredAgents.values) {
+                val ref = system.resolve(agent.agentId)
+                ref tell LoginMsg(token,  loginParams)
+            }
+            return token
+        }
+
+        override fun containerLogout() {
+            log.debug("LOGOUT")
+            for (agent in registeredAgents.values) {
+                val ref = system.resolve(agent.agentId)
+                ref tell LogoutMsg(token)
+            }
         }
 
         override fun getAgents(): List<AgentDescription> {
@@ -128,7 +149,7 @@ class ContainerAgent(
         override fun invoke(action: String, parameters: Map<String, JsonNode>, agentId: String?, timeout: Int, containerId: String, forward: Boolean): JsonNode? {
             log.debug("INVOKE ACTION OF AGENT: {} {} {}", agentId, action, parameters)
             val agent = findRegisteredAgent(agentId, action, null)
-            val res: Any = waitForInvoke(agent, Invoke(action, parameters), timeout)
+            val res: Any = waitForInvoke(agent, Invoke(action, parameters, loginToken), timeout)
             return RestHelper.mapper.valueToTree(res)
         }
 

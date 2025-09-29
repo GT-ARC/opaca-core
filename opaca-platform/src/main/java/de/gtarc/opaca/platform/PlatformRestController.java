@@ -228,6 +228,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@RequestMapping(value="/invoke/{action}", method=RequestMethod.POST)
 	@Operation(summary="Invoke action at any agent that provides it", tags={"agents"})
 	public JsonNode invoke(
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters,
 			@RequestParam(required = false, defaultValue = "-1") int timeout,
@@ -235,12 +236,13 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info("POST /invoke/{} {}", action, parameters);
-		return implementation.invoke(action, parameters, null, timeout, containerId, forward);
+		return implementation.invoke(action, parameters, null, timeout, containerId, forward, extractToken((token)));
 	}
 
 	@RequestMapping(value="/invoke/{action}/{agentId}", method=RequestMethod.POST)
 	@Operation(summary="Invoke action at that specific agent", tags={"agents"})
 	public JsonNode invoke(
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters,
 			@PathVariable String agentId,
@@ -249,7 +251,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info("POST /invoke/{}/{} {}", action, agentId, parameters);
-		return implementation.invoke(action, parameters, agentId, timeout, containerId, forward);
+		return implementation.invoke(action, parameters, agentId, timeout, containerId, forward, extractToken((token)));
 	}
 
 	@RequestMapping(value="/stream/{stream}", method=RequestMethod.GET)
@@ -352,6 +354,27 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	) throws IOException {
 		log.info("DELETE /containers/{}", containerId);
 		return implementation.removeContainer(containerId, extractToken(token));
+	}
+
+	@RequestMapping(value="/containers/login/{containerId}", method=RequestMethod.POST)
+	@Operation(summary="Login with username and password at given container", tags={"containers"})
+	public String containerLogin(
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
+			@PathVariable String containerId,
+			@RequestBody Login loginParams
+	) throws IOException {
+		log.info("POST /containers/login/{} {}", containerId, loginParams);
+		return implementation.containerLogin(containerId, loginParams, extractToken((token)));
+	}
+
+	@RequestMapping(value="/containers/logout/{containerId}", method=RequestMethod.POST)
+	@Operation(summary="Logout at given container", tags={"containers"})
+	public boolean containerLogout(
+			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
+			@PathVariable String containerId
+	) throws IOException {
+		log.info("POST /containers/logout/{}", containerId);
+		return implementation.containerLogout(containerId, extractToken((token)));
 	}
 
 	/*

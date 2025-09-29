@@ -220,12 +220,25 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 ### `POST /login`
 
-* login with user credentials
+* login with user credentials; this route is available for both, the Runtime Platform (for logging in to the platform as a whole) and for the Agent Container (for application-specific credentials to external APIs)
 * input:
-    * username
-    * password
+  * username
+  * password
 * output: Token
 * errors: 403 if user is not registered
+
+### `POST /containers/login{containerId}`
+
+* login as current user at given container with container-specific credentials
+* input: 
+  * username
+  * password
+* output: Token
+
+### `POST /containers/logout{containerId}`
+
+* logout from given container
+* output: previously logged in?
 
 
 ## Open API

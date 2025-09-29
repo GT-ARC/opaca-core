@@ -34,14 +34,14 @@ class WayfindingAgent : AbstractContainerizedAgent(
         this.addAction("FindRoomById", "Show the way to the room with the given ID using the LED ground guidance system", mapOf(
             "roomId" to Parameter("integer")
         ), null) {
-            val roomId = it["roomId"]!!.asInt()
+            val roomId = it.parameters["roomId"]!!.asInt()
             this.startWayfinding(roomId)
         }
 
         this.addAction("FindRoomByName", "Show the way to the room with the given name using the LED ground guidance system", mapOf(
             "roomName" to Parameter("string")
         ), null) {
-            val roomName = it["roomName"]!!.asText()
+            val roomName = it.parameters["roomName"]!!.asText()
             val roomId = this.getRoomIdFromHint(roomName)
             this.startWayfinding(roomId)
         }

@@ -259,33 +259,74 @@ public class AuthTests {
     public void test08AddUser() throws Exception {
         // GUEST USER
         var con = requestWithToken(PLATFORM_A, "POST", "/users",
-                new User("guest", "guestPwd", Role.GUEST, null), token_A);
+                user("guest", "guestPwd", Role.GUEST), token_A);
         Assert.assertEquals(201, con.getResponseCode());
 
         // (NORMAL) USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                new User("user", "userPwd", Role.USER, null), token_A);
+                user("user", "userPwd", Role.USER), token_A);
         Assert.assertEquals(201, con.getResponseCode());
 
         // CONTRIBUTOR USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                new User("contributor", "contributorPwd", Role.CONTRIBUTOR, null), token_A);
+                user("contributor", "contributorPwd", Role.CONTRIBUTOR), token_A);
         Assert.assertEquals(201, con.getResponseCode());
 
         // ADMIN USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                new User("admin", "adminPwd", Role.ADMIN, null), token_A);
+                user("admin", "adminPwd", Role.ADMIN), token_A);
         Assert.assertEquals(201, con.getResponseCode());
 
         // TEST USER
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                new User("test", "testPwd", Role.GUEST, null), token_A);
+                user("test", "testPwd", Role.GUEST), token_A);
         Assert.assertEquals(201, con.getResponseCode());
 
         // SECOND CONTRIBUTOR USER FOR SPECIFIC AUTHORITY TEST
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                new User("contributor2", "contributor2Pwd", Role.CONTRIBUTOR, null), token_A);
+                user("contributor2", "contributor2Pwd", Role.CONTRIBUTOR), token_A);
         Assert.assertEquals(201, con.getResponseCode());
+    }
+
+    @Test
+    public void test08ContainerLogin() throws Exception {
+        // create two users for testing
+        result(requestWithToken(PLATFORM_A, "POST", "/users", user("user1", "12345", Role.USER), token_A));
+        result(requestWithToken(PLATFORM_A, "POST", "/users", user("user2", "12345", Role.USER), token_A));
+        var token1 = result(request(PLATFORM_A, "POST", "/login", new Login("user1", "12345")));
+        var token2 = result(request(PLATFORM_A, "POST", "/login", new Login("user2", "12345")));
+
+        // login to container as both users
+        result(requestWithToken(PLATFORM_A, "POST", "/containers/login/" + containerId, new Login("container user 1", ""), token1));
+        result(requestWithToken(PLATFORM_A, "POST", "/containers/login/" + containerId, new Login("container user 2", ""), token2));
+
+        // call test-login route with different users --> container should recognize the calling user, if logged in
+        var con = requestWithToken(PLATFORM_A, "POST", "/invoke/LoginTest", Map.of(), token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Not logged in\"", result(con));
+
+        con = requestWithToken(PLATFORM_A, "POST", "/invoke/LoginTest", Map.of(), token1);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Logged in as container user 1\"", result(con));
+
+        con = requestWithToken(PLATFORM_A, "POST", "/invoke/LoginTest", Map.of(), token2);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Logged in as container user 2\"", result(con));
+
+        // logout as user 1; user 2 still logged in
+        result(requestWithToken(PLATFORM_A, "POST", "/containers/logout/" + containerId, null, token1));
+
+        con = requestWithToken(PLATFORM_A, "POST", "/invoke/LoginTest", Map.of(), token1);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Not logged in\"", result(con));
+
+        con = requestWithToken(PLATFORM_A, "POST", "/invoke/LoginTest", Map.of(), token2);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Logged in as container user 2\"", result(con));
+
+        // finally, login to unknown container...
+        con = requestWithToken(PLATFORM_A, "POST", "/containers/login/does-not-exist", new Login("container user 1", ""), token1);
+        Assert.assertEquals(404, con.getResponseCode());
     }
 
     // Role Authorization
@@ -399,7 +440,6 @@ public class AuthTests {
         Assert.assertEquals(403, con.getResponseCode());
     }
 
-
     // Container authorities started by users.
 
     @Test
@@ -432,7 +472,7 @@ public class AuthTests {
 
         // Check if container can NOT perform actions which require "ADMIN" role
         con = requestWithToken(PLATFORM_A, "POST", "/users",
-                new User("forbiddenUser", "forbidden", Role.GUEST, null), contContainerToken);
+                user("forbiddenUser", "forbidden", Role.GUEST), contContainerToken);
         Assert.assertEquals(403, con.getResponseCode());
         Thread.sleep(500);
 

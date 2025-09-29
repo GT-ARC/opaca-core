@@ -2,6 +2,7 @@ package de.gtarc.opaca.platform;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.platform.auth.JwtUtil;
 import de.gtarc.opaca.platform.user.TokenUserDetailsService;
@@ -148,6 +149,32 @@ public class PlatformImpl {
         return userDetailsService.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
     }
 
+    public String containerLogin(String containerId, Login loginParams, String userToken) throws IOException {
+        if (! runningContainers.containsKey(containerId)) {
+            throw new NoSuchElementException("Container not found: " + containerId);
+        }
+        // find matching user and container
+        var user = getUser(userToken);
+        var client = getClient(containerId, tokens.get(containerId));
+        // get container-login-token, associate with user
+        String token = client.containerLogin(loginParams);
+        userDetailsService.addContainerToken(user, containerId, token);
+        return token;
+    }
+
+    public boolean containerLogout(String containerId, String userToken) throws IOException {
+        if (! runningContainers.containsKey(containerId)) {
+            throw new NoSuchElementException("Container not found: " + containerId);
+        }
+        var token = userDetailsService.removeContainerToken(getUser(userToken), containerId);
+        if (token != null) {
+            getClient(containerId, tokens.get(containerId))
+                    .withExtraHeaders(Map.of(AgentContainerApi.HEADER_TOKEN, token))
+                    .containerLogout();
+        }
+        return token != null;
+    }
+
     public String renewToken(String token) {
         // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
         String owner = userDetailsService.getUser(jwtUtil.getUsernameFromToken(token)).getUsername();
@@ -194,10 +221,10 @@ public class PlatformImpl {
         );
     }
 
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward, String userToken) throws IOException, NoSuchElementException {
         return iterateClientMatches(
                 getClients(containerId, agentId, action, parameters, null, forward),
-                match -> match.getClient().invoke(action, parameters, agentId, timeout, containerId, false),
+                match -> match.getClientFor(userToken).invoke(action, parameters, agentId, timeout, containerId, false),
                 true
         );
     }
@@ -334,6 +361,7 @@ public class PlatformImpl {
         validators.remove(containerId);
         userDetailsService.removeUser(containerId);
         containerClient.stopContainer(containerId);
+        userDetailsService.removeContainerToken(getUser(userToken), containerId);
         return true;
     }
 
@@ -443,6 +471,15 @@ public class PlatformImpl {
      */
 
     /**
+     * Get the logged-in user from the provided user token, or default user if token is null.
+     * the default-user is only relevant for container-login if no auth is enabled and only used
+     * to associate the container logins with
+     */
+    private String getUser(String userToken) {
+        return config.enableAuth ? jwtUtil.getUsernameFromToken(userToken) : config.platformAdminUser;
+    }
+
+    /**
      * Create Websocket connection and associate it with the connected platform's URL, to be closed when disconnected
      */
     private void openConnectionWebsocket(String url, String token) {
@@ -479,7 +516,7 @@ public class PlatformImpl {
                 try {
                     return callback.apply(match);
                 } catch (IOException e) {
-                    log.warn("Exception from container: {}", e);
+                    log.warn("Exception from container", e);
                     lastException = e;
                 }
             } else if (match.isParamsMismatch()) {
@@ -584,7 +621,7 @@ public class PlatformImpl {
     protected void testSelfConnection() throws Exception {
         var token = config.enableAuth ?
                 userDetailsService.generateTokenForUser(config.platformAdminUser, config.platformAdminPwd) : null;
-        var info = new ApiProxy(config.getOwnBaseUrl(), null, token, 5000).getPlatformInfo();
+        var info = new ApiProxy(config.getOwnBaseUrl(), null, token).withTimeout(5000).getPlatformInfo();
         if (! Objects.equals(platformId, info.getPlatformId())) {
             throw new IllegalArgumentException("Mismatched Platform ID");
         }
@@ -598,17 +635,22 @@ public class PlatformImpl {
      */
     private class ClientMatch {
 
+        // the values that have to match (null being "any")
         private final String containerId;
         private final String agentId;
         private final String actionName;
         private final Map<String, JsonNode> actionArgs;
         private final String streamName;
 
+        // whether the above values match
         private boolean containerMatch;
         private boolean agentMatch;
         private boolean actionMatch;
         private boolean paramsMatch;
         private boolean streamMatch;
+
+        // the actual containerId this client is using, or null for platform client
+        private String actualContainerId = null;
 
         @Getter
         private ApiProxy client = null;
@@ -633,6 +675,7 @@ public class PlatformImpl {
          * Check if the given container fulfills the matching parameters.
          */
         public ClientMatch makeContainerMatch(AgentContainer container, ApiProxy client) {
+            this.actualContainerId = container.getContainerId();
             if (client != null) {
                 this.client = client;
             }
@@ -711,6 +754,20 @@ public class PlatformImpl {
                 }
             }
             return streamMatch;
+        }
+
+        public ApiProxy getClientFor(String userToken) {
+            // redirect to another platform
+            if (actualContainerId == null) {
+                return client;
+            }
+            var containerLoginToken = userDetailsService.getContainerToken(getUser(userToken), actualContainerId);
+            // not logged in to container
+            if (containerLoginToken == null) {
+                return client;
+            }
+            // get ApiProxy with additional container login token header
+            return client.withExtraHeaders(Map.of(AgentContainerApi.HEADER_TOKEN, containerLoginToken));
         }
     }
 

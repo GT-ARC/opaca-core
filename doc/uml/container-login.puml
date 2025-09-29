@@ -1,0 +1,34 @@
+@startuml notify-update
+'https://plantuml.com/sequence-diagram
+
+hide footbox
+actor "User" as U
+participant "RuntimePlatform" as P
+participant "AgentContainer" as C
+
+title Authentication to Runtime Platform and Agent Container
+
+hnote across: platform login
+
+U -> P: /login (usr1, pwd1)
+P -> P: create token
+U <-- P: platform-token
+
+hnote across: container login
+
+U -> P: /containers/login/{id} (usr2, pwd2) [platform-token]
+P -> C: /login (usr2, pwd2)
+C -> C: create token, \n associate with credentials
+P <-- C: container-token
+U <-- P: container-token
+
+hnote across: container interaction
+
+U -> P: /invoke/{action} (params) [platform-token]
+P -> P: lookup container-token for user
+P -> C: /invoke/{action} (params) [container-token]
+C -> C: lookup user credentials \n execute action
+P <-- C: result
+U <-- P: result
+
+@enduml

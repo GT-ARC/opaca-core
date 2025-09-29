@@ -53,6 +53,7 @@ public class UserRepository {
             document.put("password", user.getPassword());
             document.put("role", user.getRole());
             document.put("privileges", user.getPrivileges());
+            document.put("containerLoginTokens", user.getContainerLoginTokens());
             collection.insertOne(document);
         }
     }
@@ -107,6 +108,7 @@ public class UserRepository {
         user.setPassword(document.getString("password"));
         user.setRole(Role.valueOf(document.getString("role")));
         user.setPrivileges(document.getList("privileges", String.class));
+        user.setContainerLoginTokens(document.get("containerLoginTokens", Map.class));
         return user;
     }
 }

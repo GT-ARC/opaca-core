@@ -27,19 +27,19 @@ class DeskBookingAgent: AbstractContainerizedAgent(
         addAction("GetDesks", mapOf(
             "room" to Parameter("string", true)
         ), Parameter("array", true, ArrayItems("integer", null))) {
-            actionGetDesks(it["room"]!!.asText())
+            actionGetDesks(it.parameters["room"]!!.asText())
         }
         addAction("IsFree", mapOf(
             "room" to Parameter("string", true),
             "desk" to Parameter("integer", true)
         ), Parameter("boolean")) {
-            actionIsFree(it ["room"]!!.asText(), it["desk"]!!.asInt())
+            actionIsFree(it.parameters["room"]!!.asText(), it.parameters["desk"]!!.asInt())
         }
         addAction("BookDesk", mapOf(
             "room" to Parameter("string", true),
             "desk" to Parameter("integer", true)
         ), Parameter("boolean")) {
-            actionBookDesk(it ["room"]!!.asText(), it["desk"]!!.asInt())
+            actionBookDesk(it.parameters["room"]!!.asText(), it.parameters["desk"]!!.asInt())
         }
     }
 

@@ -46,20 +46,20 @@ class FridgeAgent : AbstractContainerizedAgent(
         this.addAction("GetGroceries", mapOf(
             "category" to Parameter("string", false, null)
         ), Parameter("array", true, Parameter.ArrayItems("Grocery", null))) {
-            getGroceries(it["category"]?.asText())
+            getGroceries(it.parameters["category"]?.asText())
         }
 
         this.addAction("AddGroceries", mapOf(
             "item" to Parameter("Grocery")
         ), null) {
-            val item = RestHelper.mapper.treeToValue(it["item"]!!, Grocery::class.java)
+            val item = RestHelper.mapper.treeToValue(it.parameters["item"]!!, Grocery::class.java)
             addGroceries(item)
         }
 
         this.addAction("RemoveGrocery", mapOf(
             "name" to Parameter("string")
         ), Parameter("boolean")) {
-            removeGrocery(it["name"]!!.asText())
+            removeGrocery(it.parameters["name"]!!.asText())
         }
     }
 

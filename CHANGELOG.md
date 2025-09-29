@@ -2,7 +2,7 @@
 
 ## 0.4 Snapshot
 
-* ...
+* added `/containers/login/{id}`route to allow user-specific login to individual containers
 
 
 ## 0.3 Release

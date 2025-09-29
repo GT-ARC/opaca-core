@@ -15,7 +15,7 @@ class PongAgent: AbstractContainerizedAgent(name="pong-agent-${Random.nextInt()}
             "request" to Parameter("integer", true),
             "offer" to Parameter("integer", true)
         ), Parameter("string", true)) {
-            pongAction(it["request"]!!.asInt(), it["offer"]!!.asInt())
+            pongAction(it.parameters["request"]!!.asInt(), it.parameters["offer"]!!.asInt())
         }
     }
 

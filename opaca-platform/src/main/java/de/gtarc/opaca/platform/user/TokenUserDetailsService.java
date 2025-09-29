@@ -90,7 +90,7 @@ public class TokenUserDetailsService implements UserDetailsService {
             if (username == null || password == null || role == null) {
                 throw new IllegalArgumentException("Username, Password and Role must be provided.");
             }
-            User user = new User(username, passwordEncoder.encode(password), role, privileges != null ? privileges : new ArrayList<>());
+            User user = new User(username, passwordEncoder.encode(password), role, privileges != null ? privileges : new ArrayList<>(), new HashMap<>());
             userRepository.save(user);
         }
     }
@@ -222,4 +222,42 @@ public class TokenUserDetailsService implements UserDetailsService {
         return details.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals(Role.ADMIN.role())) ||
                 details.getUsername().equals(username);
     }
+
+    /**
+     * Returns Access Token associated with container, or null
+     */
+    public String getContainerToken(String username, String containerId) {
+        User user = userRepository.findByUsername(username);
+        if (user == null) throw new UsernameNotFoundException(username);
+        return user.getContainerLoginTokens().get(containerId);
+    }
+
+    /**
+     * Associate Access Token with container, overwrite existing if any
+     */
+    public void addContainerToken(String username, String containerId, String token) {
+        User user = userRepository.findByUsername(username);
+        if (user == null) throw new UsernameNotFoundException(username);
+
+        user.getContainerLoginTokens().put(containerId, token);
+        userRepository.deleteByUsername(username);
+        userRepository.save(user);
+    }
+
+    /**
+     * Deleted Access Token associated with container, return old token if existed, otherwise null
+     */
+    public String removeContainerToken(String username, String containerId) {
+        User user = userRepository.findByUsername(username);
+        if (user == null) throw new UsernameNotFoundException(username);
+        if (user.getContainerLoginTokens().containsKey(containerId)) {
+            var token = user.getContainerLoginTokens().remove(containerId);
+            userRepository.deleteByUsername(username);
+            userRepository.save(user);
+            return token;
+        } else {
+            return null;
+        }
+    }
+
 }

@@ -3,6 +3,8 @@ package de.gtarc.opaca.sample
 import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.container.AbstractContainerizedAgent
+import de.gtarc.opaca.container.LoginMsg
+import de.gtarc.opaca.container.LogoutMsg
 import de.gtarc.opaca.container.OpacaException
 import de.gtarc.opaca.model.Message
 import de.gtarc.opaca.model.Parameter
@@ -17,13 +19,14 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     private var lastBroadcast: Any? = null
     private var lastPostedStream: Any? = null
     private var lastEvent: Event? = null
+    private val logins = mutableMapOf<String, String>()
 
     override fun setupAgent() {
         addAction("DoThis", mapOf(
             "message" to Parameter("string", true),
             "sleep_seconds" to Parameter("integer", true)
         ), Parameter("string")) {
-            actionDoThis(it["message"]!!.asText(), it["sleep_seconds"]!!.asInt())
+            actionDoThis(it.parameters["message"]!!.asText(), it.parameters["sleep_seconds"]!!.asInt())
         }
         addAction("GetInfo", mapOf(), Parameter("object", true)) {
             actionGetInfo()
@@ -35,7 +38,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             "x" to Parameter("integer", true),
             "y" to Parameter("integer", true)
         ), Parameter("integer")) {
-            actionAdd(it["x"]!!.asInt(), it["y"]!!.asInt())
+            actionAdd(it.parameters["x"]!!.asInt(), it.parameters["y"]!!.asInt())
         }
         addAction("Fail", mapOf(), null) {
             actionFail()
@@ -44,12 +47,12 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             "name" to Parameter("string", true),
             "notify" to Parameter("boolean", false)
         ), null) {
-            createAction(it["name"]!!.asText(), it["notify"]?.asBoolean() ?: true)
+            createAction(it.parameters["name"]!!.asText(), it.parameters["notify"]?.asBoolean() ?: true)
         }
         addAction("SpawnAgent", mapOf(
             "name" to Parameter("string", true)
         ), null) {
-            spawnAgent(it["name"]!!.asText())
+            spawnAgent(it.parameters["name"]!!.asText())
         }
         addAction("Deregister", mapOf(), null) {
             deregister(false)
@@ -58,7 +61,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         addAction("ErrorTest", mapOf(
             "hint" to Parameter("string", true)
         ), Parameter("string")) {
-            actionErrorTest(it["hint"]!!.asText())
+            actionErrorTest(it.parameters["hint"]!!.asText())
         }
         addAction("ValidatorTest", mapOf(
             "car" to Parameter("Car", true),
@@ -67,15 +70,31 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             "decimal" to Parameter("number", false),
             "desk" to Parameter("Desk", false)
         ), Parameter("string")) {
-            val carText = "Parameter \"car\": ${it["car"]!!.asText()}"
-            val listText = "Parameter \"listOfLists\"${it["listOfLists"]!!.asText()}"
+            val carText = "Parameter \"car\": ${it.parameters["car"]!!.asText()}"
+            val listText = "Parameter \"listOfLists\"${it.parameters["listOfLists"]!!.asText()}"
             val result = "ValidatorTest:\n$carText\n$listText"
             print(result)
             result
         }
+        addAction("LoginTest", mapOf(), Parameter("string")) {
+            val token = it.loginToken
+            when {
+                token == null -> "Not logged in"
+                logins.containsKey(token) -> "Logged in as ${logins[token]}"
+                else -> "Unknown token: ${token}"
+            }
+        }
 
         addStreamPost("PostStream", this::actionPostStream)
         addStreamGet("GetStream", this::actionGetStream)
+    }
+
+    override fun handleLogin(loginMsg: LoginMsg) {
+        logins[loginMsg.loginToken] = loginMsg.login.username
+    }
+
+    override fun handleLogout(logoutMsg: LogoutMsg) {
+        logins.remove(logoutMsg.loginToken)
     }
 
     override fun behaviour() = super.behaviour().and(act {

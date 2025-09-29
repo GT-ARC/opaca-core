@@ -30,7 +30,7 @@ abstract class AbstractContainerizedAgent(name: String, val description: String?
     protected lateinit var parentProxy: ApiProxy
 
     protected val actions = mutableListOf<Action>()
-    protected val actionCallbacks = mutableMapOf<String, (Map<String, JsonNode>) -> Any?>()
+    protected val actionCallbacks = mutableMapOf<String, (Invoke) -> Any?>()
 
     protected val streams = mutableListOf<Stream>()
     protected val streamGetCallbacks = mutableMapOf<String, () -> Any?>()
@@ -73,13 +73,22 @@ abstract class AbstractContainerizedAgent(name: String, val description: String?
         this.streams
     )
 
-    fun addAction(name: String, parameters: Map<String, Parameter>, result: Parameter?, callback: (Map<String, JsonNode>) -> Any?) =
+    open fun handleLogin(loginMsg: LoginMsg) {
+        // implement this method if your agent needs to handle Logins, e.g. create a client for some external
+        // API using the given username and password and associating it with the given loginToken.
+    }
+
+    open fun handleLogout(logoutMsg: LogoutMsg) {
+        // implement this method if your agent needs to handle Logouts, e.g. forget client for given token
+    }
+
+    fun addAction(name: String, parameters: Map<String, Parameter>, result: Parameter?, callback: (Invoke) -> Any?) =
             addAction(Action(name, parameters, result), callback)
     
-    fun addAction(name: String, description: String?, parameters: Map<String, Parameter>, result: Parameter?, callback: (Map<String, JsonNode>) -> Any?) =
+    fun addAction(name: String, description: String?, parameters: Map<String, Parameter>, result: Parameter?, callback: (Invoke) -> Any?) =
             addAction(Action(name, description, parameters, result), callback)
 
-    fun addAction(action: Action, callback: (Map<String, JsonNode>) -> Any?) {
+    fun addAction(action: Action, callback: (Invoke) -> Any?) {
         log.info("Added action: $action")
         actions.add(action)
         actionCallbacks[action.name] = callback
@@ -105,9 +114,19 @@ abstract class AbstractContainerizedAgent(name: String, val description: String?
         respond<Invoke, Any?> {
             log.info("INVOKE RESPOND $it")
             when (it.name) {
-                in actionCallbacks -> actionCallbacks[it.name]?.let { cb -> cb(it.parameters) }
+                in actionCallbacks -> actionCallbacks[it.name]?.let { cb -> cb(it) }
                 else -> Unit
             }
+        }
+
+        on<LoginMsg> {
+            log.info("LOGIN $it")
+            handleLogin(it)
+        }
+
+        on<LogoutMsg> {
+            log.info("LOGOUT $it")
+            handleLogout(it)
         }
 
         on<RenewToken> {

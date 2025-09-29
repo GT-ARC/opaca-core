@@ -1,12 +1,12 @@
 # User-Management
 
-The User-Management system provides the ability to manage multiple users with different authority levels on the same or connected Runtime Platforms. A "User" can either be a real person interacting with the Runtime Platform or a connected Container.
+The User-Management system provides the ability to manage multiple users with different authority levels on the same or connected Runtime Platforms. A "User" can either be a real person interacting with the Runtime Platform or a deployed Container or another connected Platform.
 
 The User-Management is implemented with Spring Boot, Spring Data and uses Spring Security to implement a security filter chain, which checks for required permissions/authorities/roles of the requested user, based on the provided JWT (JSON Web Token). The JWT is generated after a successful login from a user or a successful container addition to the Runtime Platform.
 
 ## User Database
 
-There are currently two available options to save user-related information in a MongoDB: An external MongoDB instance, for example a running Docker container, or an embedded database using a simple hashmap for quick starts. These options can be selected by setting the environment variable `DB_EMBED` to either `true` or `false`. 
+There are currently two available options to save user-related information in a database: An external MongoDB instance, for example a running Docker container, or an embedded in-memory database using a simple hashmap for quick starts. These options can be selected by setting the environment variable `DB_EMBED` to either `true` or `false`. 
 
 ### MongoDB Docker Container
 
@@ -30,19 +30,19 @@ If the external MongoDB is started with the `docker-compose.yml`, the connected 
 
 ### Embedded Database
 
-Set `DB_EMBED: true` to use this saving method. Recommended for quick-starts, development and testing.
-
-The embedded database system uses a simple hash map to store all user-related information as a `TokenUser`, which includes the users name, encrypted password, role and a list of its privileges. 
+Set `DB_EMBED: true` to use this saving method. Recommended for quick-starts, development and testing. The embedded database system uses a simple hash map to store all user-related information. 
 
 Since the embedded database is for quick deployment usage only, data is **NOT** persistently stored when using the embedded database. All stored users will be automatically deleted when the application is terminated. If you need to store user data persistently, please use the added MongoDB functionality.
 
 ## User-Management Models
 
-A `TokenUser` consists of a `username`, `password`, `role`, and `privileges`. Further it is assigned a unique ID which is used to store the Object in the In-memory database. This process is done automatically and cannot be modified by any user. 
+A `User` consists of a `username`, `password`, `role`, and `privileges`. Further it is assigned a unique ID which is used to store the Object in the In-memory database. This process is done automatically and cannot be modified by any user.
 
-The username and password are stored as strings, the privileges as a list of strings, since multiple privileges might be assigned to a single user. The password will get encoded before storing it as a string into the database. The role is saved as an enum with the same name. Each user needs to be assigned exactly one role of the pre-defined roles, listed in [Authority Levels](#authority-levels).
+**Note:** When creating a User through the POST route, or editing it via PUT, the `password` field hold the users assigned password, but before the user object is stored in the database, the password field is replaced with a cryptographic hash of the password that can be used to verify the password on login without at any time storing the actual password in the database.
 
-### TokenUser
+The username and hashed password are stored as strings, the privileges as a list of strings, since multiple privileges might be assigned to a single user. The password will get encoded before storing it as a string into the database. The role is saved as an enum with the same name. Each user needs to be assigned exactly one role of the pre-defined roles, listed in [Authority Levels](#authority-levels).
+
+### User
 ```
 {
     "username": string,
@@ -85,6 +85,7 @@ A route ending with /** includes every possible path suffix. If no REST methods 
 | /broadcast/**               |   X   |      X      |  X   |       |
 | /containers/** GET          |   X   |      X      |  X   |   X   |
 | /containers/** DELETE/POST  |   X   |     X*      |      |       |
+| /containers/(login,logout)  |   X   |      X      |  X   |       |
 | /connections GET            |   X   |      X      |  X   |       |
 | /connections/** DELETE/POST |   X   |             |      |       |
 | /history GET                |   X   |      X      |  X   |       |
