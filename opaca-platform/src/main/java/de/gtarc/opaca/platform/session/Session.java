@@ -102,7 +102,7 @@ public class Session {
                 this.data.users.putAll(lastdata.users);
     
             } catch (IOException e) {
-                log.error("Could not load Session data: {}", e);
+                log.error("Could not load Session data", e);
             }
         }
     }
@@ -112,7 +112,7 @@ public class Session {
             String content = RestHelper.writeJson(this.data);
             Files.writeString(filePath, content);
         } catch (IOException e) {
-            log.error("Could not save Session data: {}", e);
+            log.error("Could not save Session data", e);
         }
     }
 
