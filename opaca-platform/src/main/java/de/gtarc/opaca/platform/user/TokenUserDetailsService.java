@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -213,10 +214,11 @@ public class TokenUserDetailsService implements UserDetailsService {
     /**
      * Checks if the current request user is either an admin (has full control over user management)
      * or the request user is performing request on its own data
-     * @param token: The token belonging to a user in the database for whom to check their authorities
      * @param username: Name of user which will get affected by request (NOT THE CURRENT REQUEST USER)
      */
-    public boolean isAdminOrSelf(String token, String username) {
+    public boolean isAdminOrSelf(String username) {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        var token = (String) auth.getCredentials();
         UserDetails details = loadUserByUsername(jwtUtil.getUsernameFromToken(token));
         if (details == null) return false;
         return details.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals(Role.ADMIN.role())) ||
