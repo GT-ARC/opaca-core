@@ -9,7 +9,6 @@ import de.gtarc.opaca.util.EventHistory;
 import de.gtarc.opaca.util.RestHelper.RequestException;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.NotNull;
@@ -134,16 +133,14 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestBody Login loginParams
 	) throws IOException {
 		log.info("POST /login {}", loginParams);
-		return implementation.login(loginParams);
+		return implementation.platformLogin(loginParams);
 	}
 
 	@RequestMapping(value="/token", method=RequestMethod.GET)
 	@Operation(summary="Renew token for logged in user.", tags={"authentication"})
-	public String renewToken(
-			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = true) String token
-	) throws IOException {
+	public String renewToken() throws IOException {
 		log.info("GET /token");
-		return implementation.renewToken(extractToken(token));
+		return implementation.renewToken();
 	}
 
 	/*
@@ -228,7 +225,6 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@RequestMapping(value="/invoke/{action}", method=RequestMethod.POST)
 	@Operation(summary="Invoke action at any agent that provides it", tags={"agents"})
 	public JsonNode invoke(
-			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters,
 			@RequestParam(required = false, defaultValue = "-1") int timeout,
@@ -236,13 +232,12 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info("POST /invoke/{} {}", action, parameters);
-		return implementation.invoke(action, parameters, null, timeout, containerId, forward, extractToken((token)));
+		return implementation.invoke(action, parameters, null, timeout, containerId, forward);
 	}
 
 	@RequestMapping(value="/invoke/{action}/{agentId}", method=RequestMethod.POST)
 	@Operation(summary="Invoke action at that specific agent", tags={"agents"})
 	public JsonNode invoke(
-			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@PathVariable String action,
 			@RequestBody Map<String, JsonNode> parameters,
 			@PathVariable String agentId,
@@ -251,7 +246,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info("POST /invoke/{}/{} {}", action, agentId, parameters);
-		return implementation.invoke(action, parameters, agentId, timeout, containerId, forward, extractToken((token)));
+		return implementation.invoke(action, parameters, agentId, timeout, containerId, forward);
 	}
 
 	@RequestMapping(value="/stream/{stream}", method=RequestMethod.GET)
@@ -309,24 +304,22 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@RequestMapping(value="/containers", method=RequestMethod.POST)
 	@Operation(summary="Start a new Agent Container on this platform", tags={"containers"})
 	public String addContainer(
-			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@RequestBody PostAgentContainer container,
 			@RequestParam(required = false, defaultValue = "-1") int timeout
 	) throws IOException {
 		log.info("POST /containers {}", container);
 		log.info(String.format("POST /containers %s", container));
-		return implementation.addContainer(container, timeout, extractToken(token));
+		return implementation.addContainer(container, timeout);
 	}
 
 	@RequestMapping(value="/containers", method=RequestMethod.PUT)
 	@Operation(summary="Start a new Agent Container on this platform, replacing an existing container of the same image", tags={"containers"})
 	public String updateContainer(
-			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@RequestBody PostAgentContainer container,
 			@RequestParam(required = false, defaultValue = "-1") int timeout
 	) throws IOException {
 		log.info("PUT /containers {}", container);
-		return implementation.updateContainer(container, timeout, extractToken(token));
+		return implementation.updateContainer(container, timeout);
 	}
 
 	@RequestMapping(value="/containers", method=RequestMethod.GET)
@@ -349,32 +342,29 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@Operation(summary="Stop and remove Agent Container running on this platform; " +
 			"return false if container not found or already stopped", tags={"containers"})
 	public boolean removeContainer(
-			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@PathVariable String containerId
 	) throws IOException {
 		log.info("DELETE /containers/{}", containerId);
-		return implementation.removeContainer(containerId, extractToken(token));
+		return implementation.removeContainer(containerId);
 	}
 
 	@RequestMapping(value="/containers/login/{containerId}", method=RequestMethod.POST)
 	@Operation(summary="Login with username and password at given container", tags={"containers"})
 	public String containerLogin(
-			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@PathVariable String containerId,
 			@RequestBody Login loginParams
 	) throws IOException {
 		log.info("POST /containers/login/{} {}", containerId, loginParams);
-		return implementation.containerLogin(containerId, loginParams, extractToken((token)));
+		return implementation.containerLogin(containerId, loginParams);
 	}
 
 	@RequestMapping(value="/containers/logout/{containerId}", method=RequestMethod.POST)
 	@Operation(summary="Logout at given container", tags={"containers"})
 	public boolean containerLogout(
-			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@PathVariable String containerId
 	) throws IOException {
 		log.info("POST /containers/logout/{}", containerId);
-		return implementation.containerLogout(containerId, extractToken((token)));
+		return implementation.containerLogout(containerId);
 	}
 
 	/*
@@ -385,11 +375,10 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@Operation(summary="Establish connection to another Runtime Platform; " +
 			"return false if platform already connected", tags={"connections"})
 	public boolean connectPlatform(
-			@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
 			@RequestBody ConnectionRequest loginConnection
 	) throws IOException {
 		log.info("POST /connections {}", loginConnection.getUrl());
-		return implementation.connectPlatform(loginConnection, extractToken(token));
+		return implementation.connectPlatform(loginConnection);
 	}
 
 	@RequestMapping(value="/connections", method=RequestMethod.GET)
@@ -434,12 +423,4 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 		StreamingResponseBody responseBody = stream::transferTo;
 		return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM).body(responseBody);
 	}
-
-	/**
-	 * Get the actual "token" part from "Bearer token" if not null.
-	 */
-	private String extractToken(String maybeToken) {
-		return maybeToken != null ? maybeToken.substring(7) : null;
-	}
-
 }

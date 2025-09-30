@@ -96,11 +96,10 @@ public class UserController {
     @RequestMapping(value="/users/{username}", method=RequestMethod.GET)
     @Operation(summary="Get an existing user from the connected database", tags={"users"})
     public ResponseEntity<String> getUser(
-            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
             @PathVariable String username
     ) {
         log.info("GET /users/{}", username);
-        if (!config.enableAuth || userDetailsService.isAdminOrSelf(extractToken(token), username)){
+        if (!config.enableAuth || userDetailsService.isAdminOrSelf(username)){
             return new ResponseEntity<>(userDetailsService.getUser(username).toString(), HttpStatus.OK);
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN);
@@ -132,11 +131,5 @@ public class UserController {
         log.info("PUT /users/{} {}", username, user);
         return new ResponseEntity<>(userDetailsService.updateUser(username, user.getUsername(), user.getPassword(),
                 user.getRole(), user.getPrivileges()), HttpStatus.OK);
-    }
-
-    // Helper methods
-
-    private String extractToken(String bearerToken) {
-        return bearerToken.substring(7);
     }
 }

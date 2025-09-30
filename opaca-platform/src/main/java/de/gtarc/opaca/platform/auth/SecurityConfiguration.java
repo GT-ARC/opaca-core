@@ -157,7 +157,7 @@ public class SecurityConfiguration {
                     try {
                         UserDetails userDetails = myUserDetailsService.loadUserByUsername(username);
                         if (jwtUtil.validateToken(jwtToken, userDetails)) {
-                            var authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                            var authToken = new UsernamePasswordAuthenticationToken(userDetails, jwtToken, userDetails.getAuthorities());
                             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                             SecurityContextHolder.getContext().setAuthentication(authToken);
                         } else {

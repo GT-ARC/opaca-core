@@ -21,6 +21,7 @@ import de.gtarc.opaca.util.EventHistory;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
@@ -50,7 +51,7 @@ import org.springframework.web.server.ResponseStatusException;
  */
 @Log4j2
 @Component
-public class PlatformImpl {
+public class PlatformImpl implements RuntimePlatformApi {
 
     @Autowired
     private SessionData sessionData;
@@ -126,6 +127,7 @@ public class PlatformImpl {
      * PLATFORM INFO AND CONFIG
      */
 
+    @Override
     public RuntimePlatform getPlatformInfo() {
         return new RuntimePlatform(
                 platformId,
@@ -137,24 +139,28 @@ public class PlatformImpl {
         );
     }
 
+    @Override
     public Map<String, ?> getPlatformConfig() {
         return config.toMap();
     }
 
+    @Override
     public List<Event> getHistory() {
         return EventHistory.getInstance().getEvents();
     }
 
-    public String login(Login loginParams) {
+    @Override
+    public String platformLogin(Login loginParams) {
         return userDetailsService.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
     }
 
-    public String containerLogin(String containerId, Login loginParams, String userToken) throws IOException {
+    @Override
+    public String containerLogin(String containerId, Login loginParams) throws IOException {
         if (! runningContainers.containsKey(containerId)) {
             throw new NoSuchElementException("Container not found: " + containerId);
         }
         // find matching user and container
-        var user = getUser(userToken);
+        var user = getUser();
         var client = getClient(containerId, tokens.get(containerId));
         // get container-login-token, associate with user
         String token = client.containerLogin(loginParams);
@@ -162,11 +168,12 @@ public class PlatformImpl {
         return token;
     }
 
-    public boolean containerLogout(String containerId, String userToken) throws IOException {
+    @Override
+    public boolean containerLogout(String containerId) throws IOException {
         if (! runningContainers.containsKey(containerId)) {
             throw new NoSuchElementException("Container not found: " + containerId);
         }
-        var token = userDetailsService.removeContainerToken(getUser(userToken), containerId);
+        var token = userDetailsService.removeContainerToken(getUser(), containerId);
         if (token != null) {
             getClient(containerId, tokens.get(containerId))
                     .withExtraHeaders(Map.of(AgentContainerApi.HEADER_TOKEN, token))
@@ -175,9 +182,10 @@ public class PlatformImpl {
         return token != null;
     }
 
-    public String renewToken(String token) {
+    @Override
+    public String renewToken() {
         // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
-        String owner = userDetailsService.getUser(jwtUtil.getUsernameFromToken(token)).getUsername();
+        String owner = getUser();
         return jwtUtil.generateToken(owner, Duration.ofHours(10));
     }
 
@@ -185,20 +193,24 @@ public class PlatformImpl {
      * AGENTS ROUTES
      */
 
+    @Override
     public List<AgentDescription> getAgents() {
         return streamAgents(false).collect(Collectors.toList());
     }
 
+    @Override
     public List<AgentDescription> getAllAgents() {
         return streamAgents(true).collect(Collectors.toList());
     }
 
+    @Override
     public AgentDescription getAgent(String agentId) {
         return streamAgents(true)
                 .filter(a -> a.getAgentId().equals(agentId))
                 .findAny().orElse(null);
     }
 
+    @Override
     public void send(String agentId, Message message, String containerId, boolean forward) throws IOException, NoSuchElementException {
         iterateClientMatches(
                 getClients(containerId, agentId, null, null, null, forward),
@@ -210,6 +222,7 @@ public class PlatformImpl {
         );
     }
 
+    @Override
     public void broadcast(String channel, Message message, String containerId, boolean forward) throws IOException {
         iterateClientMatches(
                 getClients(containerId, null, null, null, null, forward),
@@ -221,14 +234,16 @@ public class PlatformImpl {
         );
     }
 
-    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward, String userToken) throws IOException, NoSuchElementException {
+    @Override
+    public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
         return iterateClientMatches(
                 getClients(containerId, agentId, action, parameters, null, forward),
-                match -> match.getClientFor(userToken).invoke(action, parameters, agentId, timeout, containerId, false),
+                match -> match.getClientForUser().invoke(action, parameters, agentId, timeout, containerId, false),
                 true
         );
     }
 
+    @Override
     public InputStream getStream(String stream, String agentId, String containerId, boolean forward) throws IOException {
         return iterateClientMatches(
                 getClients(containerId, agentId, null, null, stream, forward),
@@ -237,6 +252,7 @@ public class PlatformImpl {
         );
     }
 
+    @Override
     public void postStream(String stream, byte[] inputStream, String agentId, String containerId, boolean forward) throws IOException {
         iterateClientMatches(
                 getClients(containerId, agentId, null, null, stream, forward),
@@ -252,7 +268,8 @@ public class PlatformImpl {
      * CONTAINERS ROUTES
      */
 
-    public String addContainer(PostAgentContainer postContainer, int timeout, String userToken) throws IOException {
+    @Override
+    public String addContainer(PostAgentContainer postContainer, int timeout) throws IOException {
         checkConfig(postContainer);
         checkRequirements(postContainer);
         String agentContainerId = UUID.randomUUID().toString();
@@ -260,7 +277,7 @@ public class PlatformImpl {
         String owner = "";
         if (config.enableAuth) {
             token = jwtUtil.generateToken(agentContainerId, Duration.ofHours(24));
-            owner = jwtUtil.getUsernameFromToken(userToken);
+            owner = getUser();
         }
         // create user first so the container can immediately talk with the platform
         userDetailsService.createTempSubUser(agentContainerId, owner);
@@ -324,15 +341,16 @@ public class PlatformImpl {
         throw new IOException(errorMessage);
     }
 
-    public String updateContainer(PostAgentContainer container, int timeout, String userToken) throws IOException {
+    @Override
+    public String updateContainer(PostAgentContainer container, int timeout) throws IOException {
         var matchingContainers = runningContainers.values().stream()
                 .filter(c -> c.getImage().getImageName().equals(container.getImage().getImageName()))
                 .toList();
         switch (matchingContainers.size()) {
             case 1: {
                 var oldContainer = matchingContainers.get(0);
-                removeContainer(oldContainer.getContainerId(), userToken);
-                return addContainer(container, timeout, userToken);
+                removeContainer(oldContainer.getContainerId());
+                return addContainer(container, timeout);
             }
             case 0:
                 throw new IllegalArgumentException("No matching container is currently running; please use POST instead.");
@@ -341,17 +359,20 @@ public class PlatformImpl {
         }
     }
 
+    @Override
     public List<AgentContainer> getContainers() {
         return List.copyOf(runningContainers.values());
     }
 
+    @Override
     public AgentContainer getContainer(String containerId) {
         return runningContainers.get(containerId);
     }
 
-    public boolean removeContainer(String containerId, String userToken) throws IOException {
+    @Override
+    public boolean removeContainer(String containerId) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
-        if (config.enableAuth && userToken != null && ! userDetailsService.isAdminOrSelf(userToken, container.getOwner())) {
+        if (config.enableAuth && ! getUser().equals(config.platformAdminUser) && ! userDetailsService.isAdminOrSelf(container.getOwner())) {
             // ignore if userToken == null; this is only the case iff the platform is about to shut down
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
@@ -361,7 +382,7 @@ public class PlatformImpl {
         validators.remove(containerId);
         userDetailsService.removeUser(containerId);
         containerClient.stopContainer(containerId);
-        userDetailsService.removeContainerToken(getUser(userToken), containerId);
+        userDetailsService.removeContainerToken(getUser(), containerId);
         return true;
     }
 
@@ -369,7 +390,8 @@ public class PlatformImpl {
      * CONNECTIONS ROUTES
      */
 
-    public boolean connectPlatform(ConnectionRequest connect, String userToken) throws IOException {
+    @Override
+    public boolean connectPlatform(ConnectionRequest connect) throws IOException {
         String url = normalizeString(connect.getUrl());
         checkUrl(url);
         if (url.equals(config.getOwnBaseUrl()) || connectedPlatforms.containsKey(url)) {
@@ -383,7 +405,7 @@ public class PlatformImpl {
         if (connect.isConnectBack()) {
             var ownUrl = config.getOwnBaseUrl();
             var ownToken = config.enableAuth ? jwtUtil.generateToken(url, Duration.ofDays(7)) : null;
-            var owner = config.enableAuth ? jwtUtil.getUsernameFromToken(userToken) : null;
+            var owner = getUser();
             userDetailsService.createTempSubUser(url, owner);
             client.connectPlatform(new ConnectionRequest(ownUrl, false, ownToken));
         }
@@ -396,10 +418,12 @@ public class PlatformImpl {
         return true;
     }
 
+    @Override
     public List<String> getConnections() {
         return List.copyOf(connectedPlatforms.keySet());
     }
 
+    @Override
     public boolean disconnectPlatform(ConnectionRequest disconnect) throws IOException {
         var url = normalizeString(disconnect.getUrl());
         checkUrl(url);
@@ -423,6 +447,7 @@ public class PlatformImpl {
         return false;
     }
 
+    @Override
     public boolean notifyUpdateContainer(String containerId) {
         containerId = normalizeString(containerId);
         if (! runningContainers.containsKey(containerId)) {
@@ -443,6 +468,7 @@ public class PlatformImpl {
         }
     }
 
+    @Override
     public boolean notifyUpdatePlatform(String platformUrl) {
         platformUrl = normalizeString(platformUrl);
         checkUrl(platformUrl);
@@ -471,12 +497,18 @@ public class PlatformImpl {
      */
 
     /**
-     * Get the logged-in user from the provided user token, or default user if token is null.
-     * the default-user is only relevant for container-login if no auth is enabled and only used
-     * to associate the container logins with
+     * Get the logged-in user from the user token in auth context, or default user if no auth.
+     * The default-user is only relevant for container-login if no auth is enabled and only used
+     * to associate the container logins with.
      */
-    private String getUser(String userToken) {
-        return config.enableAuth ? jwtUtil.getUsernameFromToken(userToken) : config.platformAdminUser;
+    private String getUser() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        var token = (String) auth.getCredentials();
+        if (config.enableAuth && token != null) {
+            return jwtUtil.getUsernameFromToken(token);
+        } else {
+            return config.platformAdminUser;
+        }
     }
 
     /**
@@ -756,12 +788,12 @@ public class PlatformImpl {
             return streamMatch;
         }
 
-        public ApiProxy getClientFor(String userToken) {
+        public ApiProxy getClientForUser() {
             // redirect to another platform
             if (actualContainerId == null) {
                 return client;
             }
-            var containerLoginToken = userDetailsService.getContainerToken(getUser(userToken), actualContainerId);
+            var containerLoginToken = userDetailsService.getContainerToken(getUser(), actualContainerId);
             // not logged in to container
             if (containerLoginToken == null) {
                 return client;
