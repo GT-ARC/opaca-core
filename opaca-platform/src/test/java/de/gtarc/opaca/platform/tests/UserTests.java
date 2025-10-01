@@ -78,7 +78,9 @@ public class UserTests {
         // get user
         con = requestWithToken(PLATFORM_A, "GET", "/users/name", null, adminToken);
         Assert.assertEquals(200, con.getResponseCode());
-        Assert.assertTrue(result(con, User.class).getUsername().equals("name"));
+        var newUser = result(con, User.class);
+        Assert.assertEquals("name", newUser.getUsername());
+        Assert.assertNotEquals("pwd", newUser.getPassword()); // password is hashed
 
         // delete user
         con = requestWithToken(PLATFORM_A, "DELETE", "/users/name", null, adminToken);
@@ -143,6 +145,7 @@ public class UserTests {
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, List.class);
         Assert.assertEquals(3, res.size());
+        Assert.assertNull(((Map<?,?>) res.get(0)).get("password"));
 
         deleteUser(adminToken, "test1");
         deleteUser(adminToken, "test2");
