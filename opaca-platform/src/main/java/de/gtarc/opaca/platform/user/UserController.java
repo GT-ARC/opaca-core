@@ -5,7 +5,6 @@ import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.auth.JwtUtil;
 import de.gtarc.opaca.platform.user.TokenUserDetailsService.UserAlreadyExistsException;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,8 +24,10 @@ public class UserController {
 
     @Autowired
     private TokenUserDetailsService userDetailsService;
+
     @Autowired
     private JwtUtil jwtUtil;
+
     @Autowired
     private PlatformConfig config;
 
@@ -63,12 +64,12 @@ public class UserController {
      */
     @RequestMapping(value="/users", method=RequestMethod.POST)
     @Operation(summary="Add a new user to the connected database", tags={"users"})
-    public ResponseEntity<String> addUser(
+    public ResponseEntity<User> addUser(
             @RequestBody User user
     ) {
         log.info("POST /users {}", user);
-        userDetailsService.createUser(user.getUsername(), user.getPassword(), user.getRole(), user.getPrivileges());
-        return new ResponseEntity<>(userDetailsService.getUser(user.getUsername()).toString(), HttpStatus.CREATED);
+        var newUser = userDetailsService.createUser(user.getUsername(), user.getPassword(), user.getRole(), user.getPrivileges());
+        return new ResponseEntity<>(newUser, HttpStatus.CREATED);
     }
 
     /**
@@ -89,31 +90,31 @@ public class UserController {
     /**
      * Returns information (username, roles) for a specific user in the database
      * If security is disabled, do not perform secondary role check
-     * @param token JWT to check the requesters authority
      * @param username User from which the information is requested
-     * @return User as a string representation
+     * @return User
      */
     @RequestMapping(value="/users/{username}", method=RequestMethod.GET)
     @Operation(summary="Get an existing user from the connected database", tags={"users"})
-    public ResponseEntity<String> getUser(
+    public ResponseEntity<User> getUser(
             @PathVariable String username
     ) {
         log.info("GET /users/{}", username);
         if (!config.enableAuth || userDetailsService.isAdminOrSelf(username)){
-            return new ResponseEntity<>(userDetailsService.getUser(username).toString(), HttpStatus.OK);
+            return new ResponseEntity<>(userDetailsService.getUser(username), HttpStatus.OK);
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN);
     }
 
     /**
      * Return all users in the database
-     * @return All users in the database as their string representation
+     * @return All users in the database with their private attributes removed
      */
     @RequestMapping(value="/users", method=RequestMethod.GET)
     @Operation(summary="Get all users from the connected database", tags={"users"})
-    public ResponseEntity<List<String>> getUsers() {
+    public ResponseEntity<List<User>> getUsers() {
         log.info("GET /users");
-        return new ResponseEntity<>(List.copyOf(userDetailsService.getUsers()), HttpStatus.OK);
+        var publicUsers = userDetailsService.getUsers().stream().map(User::publicView).toList();
+        return new ResponseEntity<>(publicUsers, HttpStatus.OK);
     }
 
     /**
@@ -124,7 +125,7 @@ public class UserController {
      */
     @RequestMapping(value="/users/{username}", method=RequestMethod.PUT)
     @Operation(summary="Update the information of an existing user in the connected database", tags={"users"})
-    public ResponseEntity<String> updateUser(
+    public ResponseEntity<User> updateUser(
             @PathVariable String username,
             @RequestBody User user
     ) {
