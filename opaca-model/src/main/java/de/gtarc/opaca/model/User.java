@@ -1,5 +1,6 @@
 package de.gtarc.opaca.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,7 +19,8 @@ import java.util.Map;
  */
 @Data
 @AllArgsConstructor @NoArgsConstructor
-@ToString(exclude = {"password"})
+@ToString(exclude = {"password", "containerLoginTokens"})
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class User {
 
     /** name of the user */
@@ -35,5 +37,12 @@ public class User {
 
     /** map of container-logins stored for this user, mapping container-ids to access-tokens */
     Map<String, String> containerLoginTokens = new HashMap<>();
+
+    /**
+     * Create copy of the user without any secret attributes
+     */
+    public User publicView() {
+        return new User(this.username, null, this.role, this.privileges, null);
+    }
 
 }
