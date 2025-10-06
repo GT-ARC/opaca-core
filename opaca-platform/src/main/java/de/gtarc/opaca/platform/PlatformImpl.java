@@ -503,7 +503,7 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
     private String getUser() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
-        var token = (String) auth.getCredentials();
+        var token = auth != null ? (String) auth.getCredentials() : null;
         if (config.enableAuth && token != null) {
             return jwtUtil.getUsernameFromToken(token);
         } else {
