@@ -5,7 +5,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.result.DeleteResult;
-import de.gtarc.opaca.model.Role;
+import de.gtarc.opaca.model.User.Role;
 import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.session.SessionData;
@@ -48,13 +48,7 @@ public class UserRepository {
             users.put(user.getUsername(), user);
         }
         else {
-            Document document = new Document();
-            document.put("username", user.getUsername());
-            document.put("password", user.getPassword());
-            document.put("role", user.getRole());
-            document.put("privileges", user.getPrivileges());
-            document.put("containerLoginTokens", user.getContainerLoginTokens());
-            collection.insertOne(document);
+            collection.insertOne(mapToDocument(user));
         }
     }
 
@@ -102,6 +96,17 @@ public class UserRepository {
 
     // Helper functions
 
+    private Document mapToDocument(User user) {
+        Document document = new Document();
+        document.put("username", user.getUsername());
+        document.put("password", user.getPassword());
+        document.put("role", user.getRole());
+        document.put("privileges", user.getPrivileges());
+        document.put("containerLoginTokens", user.getContainerLoginTokens());
+        return document;
+    }
+
+    @SuppressWarnings("unchecked")
     private User mapToUser(Document document) {
         User user = new User();
         user.setUsername(document.getString("username"));

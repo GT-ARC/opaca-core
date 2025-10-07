@@ -1,6 +1,5 @@
 package de.gtarc.opaca.platform.auth;
 
-import de.gtarc.opaca.model.Role;
 import de.gtarc.opaca.platform.PlatformConfig;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.Jwts;

@@ -2,7 +2,7 @@ package de.gtarc.opaca.platform.tests;
 
 
 import de.gtarc.opaca.model.Login;
-import de.gtarc.opaca.model.Role;
+import de.gtarc.opaca.model.User.Role;
 import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.Application;
 import static de.gtarc.opaca.platform.tests.TestUtils.*;

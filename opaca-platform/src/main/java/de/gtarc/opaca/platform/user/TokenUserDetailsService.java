@@ -5,7 +5,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Strings;
-import de.gtarc.opaca.model.Role;
+import de.gtarc.opaca.model.User.Role;
 import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.auth.JwtUtil;
 import jakarta.annotation.PostConstruct;
