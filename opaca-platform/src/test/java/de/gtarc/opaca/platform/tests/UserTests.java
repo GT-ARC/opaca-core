@@ -2,7 +2,7 @@ package de.gtarc.opaca.platform.tests;
 
 
 import de.gtarc.opaca.model.Login;
-import de.gtarc.opaca.model.Role;
+import de.gtarc.opaca.model.User.Role;
 import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.Application;
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
@@ -78,7 +78,9 @@ public class UserTests {
         // get user
         con = requestWithToken(PLATFORM_A, "GET", "/users/name", null, adminToken);
         Assert.assertEquals(200, con.getResponseCode());
-        Assert.assertTrue(result(con).contains("username=name"));
+        var newUser = result(con, User.class);
+        Assert.assertEquals("name", newUser.getUsername());
+        Assert.assertNotEquals("pwd", newUser.getPassword()); // password is hashed
 
         // delete user
         con = requestWithToken(PLATFORM_A, "DELETE", "/users/name", null, adminToken);
@@ -143,6 +145,7 @@ public class UserTests {
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, List.class);
         Assert.assertEquals(3, res.size());
+        Assert.assertNull(((Map<?,?>) res.get(0)).get("password"));
 
         deleteUser(adminToken, "test1");
         deleteUser(adminToken, "test2");
@@ -156,8 +159,8 @@ public class UserTests {
         // user can get self
         var con = requestWithToken(PLATFORM_A, "GET", "/users/test1", null, userToken);
         Assert.assertEquals(200, con.getResponseCode());
-        var res = result(con); // result is user.toString (without pwd), not user itself
-        Assert.assertTrue(res.contains("username=test1"));
+        var res = result(con, User.class);
+        Assert.assertTrue(res.getUsername().equals("test1"));
 
         deleteUser(adminToken, "test1");
     }
@@ -243,9 +246,9 @@ public class UserTests {
         // new user exists and conforms to edit
         con = requestWithToken(PLATFORM_A, "GET", "/users/newName", null, adminToken);
         Assert.assertEquals(200, con.getResponseCode());
-        var res = result(con); // result is user.toString (without pwd), not user itself
-        Assert.assertTrue(res.contains("newName"));
-        Assert.assertTrue(res.contains("Some_privilege"));
+        var res = result(con, User.class);
+        Assert.assertTrue(res.getUsername().equals("newName"));
+        Assert.assertTrue(res.getPrivileges().contains("Some_privilege"));
 
         deleteUser(adminToken, "newName");
     }
@@ -256,13 +259,13 @@ public class UserTests {
 
         // get current user
         var con = requestWithToken(PLATFORM_A, "GET", "/users/test1", null, adminToken);
-        var oldUser = result(con);
+        var oldUser = result(con, User.class);
 
         // make pseudo edit-request without any changes
         var edit = user(null, null, null);
         con = requestWithToken(PLATFORM_A, "PUT", "/users/test1", edit, adminToken);
         Assert.assertEquals(200, con.getResponseCode());
-        Assert.assertEquals(oldUser, result(con));
+        Assert.assertEquals(oldUser, result(con, User.class));
 
         deleteUser(adminToken, "test1");
     }
@@ -339,7 +342,7 @@ public class UserTests {
     }
 
     private static void createUser(String token, String name, String pwd, Role role, List<String> privileges) throws Exception {
-        var user = user(name, pwd, role);
+        var user = new User(name, pwd, role, privileges, null);
         var con = requestWithToken(PLATFORM_A, "POST", "/users", user, token);
         Assert.assertEquals(201, con.getResponseCode());
     }

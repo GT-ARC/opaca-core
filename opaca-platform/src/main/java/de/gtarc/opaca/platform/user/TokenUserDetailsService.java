@@ -5,7 +5,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Strings;
-import de.gtarc.opaca.model.Role;
+import de.gtarc.opaca.model.User.Role;
 import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.auth.JwtUtil;
 import jakarta.annotation.PostConstruct;
@@ -83,7 +83,7 @@ public class TokenUserDetailsService implements UserDetailsService {
      * or containers [containerID, password(random), roles, privileges]
      * If a User already exists, throw an exception
      */
-    public void createUser(String username, String password, Role role, List<String> privileges) {
+    public User createUser(String username, String password, Role role, List<String> privileges) {
         if (userRepository.findByUsername(username) != null) {
             throw new UserAlreadyExistsException(username);
         } else {
@@ -93,6 +93,7 @@ public class TokenUserDetailsService implements UserDetailsService {
             }
             User user = new User(username, passwordEncoder.encode(password), role, privileges != null ? privileges : new ArrayList<>(), new HashMap<>());
             userRepository.save(user);
+            return user;
         }
     }
 
@@ -103,11 +104,11 @@ public class TokenUserDetailsService implements UserDetailsService {
      * @param username the name of the new user to be created
      * @param owner the name of the user creating the new user (ignored if no auth)
      */
-    public void createTempSubUser(String username, String owner) {
+    public User createTempSubUser(String username, String owner) {
         if (config.enableAuth && ! Strings.isNullOrEmpty(owner)) {
-            createUser(username, generateRandomPwd(), getUserRole(owner), getUserPrivileges(owner));
+            return createUser(username, generateRandomPwd(), getUserRole(owner), getUserPrivileges(owner));
         } else {
-            createUser(username, generateRandomPwd(), Role.USER, null);
+            return createUser(username, generateRandomPwd(), Role.USER, null);
         }
     }
 
@@ -131,8 +132,8 @@ public class TokenUserDetailsService implements UserDetailsService {
     /**
      * Return all users in the UserRepository
      */
-    public List<String> getUsers() {
-        return userRepository.findAll().stream().map(User::toString).collect(Collectors.toList());
+    public List<User> getUsers() {
+        return userRepository.findAll().stream().toList();
     }
 
     /**
@@ -150,7 +151,7 @@ public class TokenUserDetailsService implements UserDetailsService {
      * If privileges are set, ALL privileges of the user will be replaced with the new list.
      * Return the updated user.
      */
-    public String updateUser(String username, String newUsername, String password, Role role, List<String> privileges) {
+    public User updateUser(String username, String newUsername, String password, Role role, List<String> privileges) {
         // get user to be updated
         User user = userRepository.findByUsername(username);
         if (user == null) {
@@ -170,7 +171,7 @@ public class TokenUserDetailsService implements UserDetailsService {
         // delete the old and save and get updated user
         userRepository.deleteByUsername(username);
         userRepository.save(user);
-        return getUser(user.getUsername()).toString();
+        return getUser(user.getUsername());
     }
 
     /**

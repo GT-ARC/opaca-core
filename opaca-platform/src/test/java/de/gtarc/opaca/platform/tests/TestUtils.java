@@ -1,6 +1,7 @@
 package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.model.*;
+import de.gtarc.opaca.model.User.Role;
 import de.gtarc.opaca.model.AgentContainerImage.ImageParameter;
 import de.gtarc.opaca.util.RestHelper;
 
