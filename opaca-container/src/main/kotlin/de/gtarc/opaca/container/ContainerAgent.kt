@@ -29,7 +29,7 @@ const val CONTAINER_AGENT = "container-agent"
 class ContainerAgent(
         val image: AgentContainerImage, 
         val subscribeToEvents: Boolean = false,
-        val loginHandler: LoginHandler = NoLoginHandler()
+        val loginHandler: LoginHandler<*> = NoLoginHandler()
     ): Agent(overrideName=CONTAINER_AGENT) {
 
     private val broker by resolve<BrokerAgentRef>()
@@ -295,12 +295,14 @@ class ContainerAgent(
  * Helper class for handling Container Logins. An instance of this class can be provided to the Container Agent
  * and accessed by the other agents in the system to handle and share login information and cached API clients.
  */
-abstract class LoginHandler {
-    abstract fun handleLogin(containerToken: String, credentials: Login): LoginStatus
-    abstract fun handleLogout(containerToken: String?): Boolean
+abstract class LoginHandler<T> {
+    abstract fun handleLogin(loginToken: String, credentials: Login): LoginStatus
+    abstract fun handleLogout(loginToken: String?): Boolean
+    abstract fun get(loginToken: String): T?
 }
 
-class NoLoginHandler: LoginHandler() {
-    override fun handleLogin(containerToken: String, credentials: Login) = LoginStatus.NOT_SUPPORTED
-    override fun handleLogout(containerToken: String?) = false
+class NoLoginHandler: LoginHandler<Any>() {
+    override fun handleLogin(loginToken: String, credentials: Login) = LoginStatus.NOT_SUPPORTED
+    override fun handleLogout(loginToken: String?) = false
+    override fun get(loginToken: String) = null
 }
