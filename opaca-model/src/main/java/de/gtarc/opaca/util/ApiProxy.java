@@ -77,20 +77,20 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
-    public String containerLogin(Login loginParams) throws IOException {
+    public ContainerLoginResponse containerLogin(Login loginParams) throws IOException {
         // token should be raw string
-        return client.readStream(client.request("POST", "/login", loginParams));
+        return client.post("/login", loginParams, ContainerLoginResponse.class);
     }
 
     @Override
-    public String containerLogin(String containerId, Login loginParams) throws IOException {
+    public ContainerLoginResponse containerLogin(String containerId, Login loginParams) throws IOException {
         var path = String.format("/containers/login/%s", containerId);
-        return client.readStream(client.request("POST", path, loginParams));
+        return client.post(path, loginParams, ContainerLoginResponse.class);
     }
 
     @Override
-    public void containerLogout() throws IOException {
-        client.post("/logout", null, null);
+    public boolean containerLogout() throws IOException {
+        return client.post("/logout", null, Boolean.class);
     }
 
     @Override
