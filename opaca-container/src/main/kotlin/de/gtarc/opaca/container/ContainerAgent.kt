@@ -6,6 +6,7 @@ import de.dailab.jiacvi.BrokerAgentRef
 import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.model.*
+import de.gtarc.opaca.model.ContainerLoginResponse.LoginStatus
 import de.gtarc.opaca.util.ApiProxy
 import de.gtarc.opaca.util.RestHelper
 import de.gtarc.opaca.util.WebSocketConnector
@@ -27,7 +28,8 @@ const val CONTAINER_AGENT = "container-agent"
  */
 class ContainerAgent(
         val image: AgentContainerImage, 
-        val subscribeToEvents: Boolean = false
+        val subscribeToEvents: Boolean = false,
+        val loginHandler: LoginHandler = NoLoginHandler()
     ): Agent(overrideName=CONTAINER_AGENT) {
 
     private val broker by resolve<BrokerAgentRef>()
@@ -106,22 +108,16 @@ class ContainerAgent(
             return AgentContainer(containerId, image, getParameters(), agents, owner, startedAt, null)
         }
 
-        override fun containerLogin(loginParams: Login): String {
+        override fun containerLogin(loginParams: Login): ContainerLoginResponse {
             log.debug("LOGIN: {}", loginParams)
             val token = UUID.randomUUID().toString()
-            for (agent in registeredAgents.values) {
-                val ref = system.resolve(agent.agentId)
-                ref tell LoginMsg(token,  loginParams)
-            }
-            return token
+            val status = loginHandler.handleLogin(token, loginParams)
+            return ContainerLoginResponse(status, if (status.isOkay) token else null)
         }
 
-        override fun containerLogout() {
+        override fun containerLogout(): Boolean {
             log.debug("LOGOUT")
-            for (agent in registeredAgents.values) {
-                val ref = system.resolve(agent.agentId)
-                ref tell LogoutMsg(token)
-            }
+            return loginHandler.handleLogout(loginToken)
         }
 
         override fun getAgents(): List<AgentDescription> {
@@ -293,4 +289,18 @@ class ContainerAgent(
         var error: Any?
     )
 
+}
+
+/**
+ * Helper class for handling Container Logins. An instance of this class can be provided to the Container Agent
+ * and accessed by the other agents in the system to handle and share login information and cached API clients.
+ */
+abstract class LoginHandler {
+    abstract fun handleLogin(containerToken: String, credentials: Login): LoginStatus
+    abstract fun handleLogout(containerToken: String?): Boolean
+}
+
+class NoLoginHandler: LoginHandler() {
+    override fun handleLogin(containerToken: String, credentials: Login) = LoginStatus.NOT_SUPPORTED
+    override fun handleLogout(containerToken: String?) = false
 }
