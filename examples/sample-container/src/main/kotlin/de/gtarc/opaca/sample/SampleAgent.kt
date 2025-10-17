@@ -2,10 +2,7 @@ package de.gtarc.opaca.sample
 
 import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.api.AgentContainerApi
-import de.gtarc.opaca.container.AbstractContainerizedAgent
-import de.gtarc.opaca.container.LoginMsg
-import de.gtarc.opaca.container.LogoutMsg
-import de.gtarc.opaca.container.OpacaException
+import de.gtarc.opaca.container.*
 import de.gtarc.opaca.model.Message
 import de.gtarc.opaca.model.Parameter
 import de.gtarc.opaca.model.Event
@@ -13,13 +10,12 @@ import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.nio.charset.Charset
 
-class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
+class SampleAgent(name: String, val loginHandler: LoginHandler<String>): AbstractContainerizedAgent(name=name) {
 
     private var lastMessage: Any? = null
     private var lastBroadcast: Any? = null
     private var lastPostedStream: Any? = null
     private var lastEvent: Event? = null
-    private val logins = mutableMapOf<String, String>()
 
     override fun setupAgent() {
         addAction("DoThis", mapOf(
@@ -80,21 +76,13 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             val token = it.loginToken
             when {
                 token == null -> "Not logged in"
-                logins.containsKey(token) -> "Logged in as ${logins[token]}"
+                loginHandler.get(token) != null -> "Logged in as ${loginHandler.get(token)}"
                 else -> "Unknown token: ${token}"
             }
         }
 
         addStreamPost("PostStream", this::actionPostStream)
         addStreamGet("GetStream", this::actionGetStream)
-    }
-
-    override fun handleLogin(loginMsg: LoginMsg) {
-        logins[loginMsg.loginToken] = loginMsg.login.username
-    }
-
-    override fun handleLogout(logoutMsg: LogoutMsg) {
-        logins.remove(logoutMsg.loginToken)
     }
 
     override fun behaviour() = super.behaviour().and(act {
@@ -162,7 +150,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     }
 
     private fun spawnAgent(name: String) {
-        system.spawnAgent(SampleAgent(name))
+        system.spawnAgent(SampleAgent(name, loginHandler))
     }
 
     private fun actionErrorTest(hint: String): String {

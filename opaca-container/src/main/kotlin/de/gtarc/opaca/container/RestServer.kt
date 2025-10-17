@@ -36,7 +36,7 @@ class RestServerJavalin(val impl: ContainerAgent, val port: Int, val token: Stri
                 it.json(withToken(it).containerLogin(login))
             }
             .post("/logout") {
-                withToken(it).containerLogout()
+                it.json(withToken(it).containerLogout())
             }
             .get("/agents") {
                 it.json(withToken(it).agents)
