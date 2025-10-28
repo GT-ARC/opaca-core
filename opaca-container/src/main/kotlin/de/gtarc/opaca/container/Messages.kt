@@ -2,7 +2,6 @@ package de.gtarc.opaca.container
 
 import com.fasterxml.jackson.databind.JsonNode
 import de.gtarc.opaca.model.AgentDescription
-import de.gtarc.opaca.model.Login
 
 // Messages for Registering an Agent with the Container Agent (or updating an already registered agent)
 // and for de-registering an agent. Those just wrap one other element each, but may still be useful for
@@ -13,6 +12,12 @@ data class Register(val description: AgentDescription, val notify: Boolean)
 data class Registered(val parentUrl: String?, val containerId: String, val authToken: String?)
 
 data class DeRegister(val agentId: String, val notify: Boolean)
+
+enum class LoginStatus {
+    ACCEPTED,      // the container accepted the login and may or may not have performed a trial login
+    INVALID,       // the container unsuccessfully performed a trial login
+    NOT_SUPPORTED, // the container does not support login
+}
 
 // Message for Invoking a OPACA action at a containerized agent, wrapping the name of the action to call
 // and its parameters, to be handled by an invoke-ask "respond" handler.

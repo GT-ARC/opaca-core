@@ -6,7 +6,6 @@ import de.dailab.jiacvi.BrokerAgentRef
 import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.model.*
-import de.gtarc.opaca.model.ContainerLoginResponse.LoginStatus
 import de.gtarc.opaca.util.ApiProxy
 import de.gtarc.opaca.util.RestHelper
 import de.gtarc.opaca.util.WebSocketConnector
@@ -108,11 +107,14 @@ class ContainerAgent(
             return AgentContainer(containerId, image, getParameters(), agents, owner, startedAt, null)
         }
 
-        override fun containerLogin(loginParams: Login): ContainerLoginResponse {
+        override fun containerLogin(loginParams: Login): String {
             log.debug("LOGIN: {}", loginParams)
             val token = UUID.randomUUID().toString()
-            val status = loginHandler.handleLogin(token, loginParams)
-            return ContainerLoginResponse(status, if (status.isOkay) token else null)
+            return when (loginHandler.handleLogin(token, loginParams)) {
+                LoginStatus.ACCEPTED -> token
+                LoginStatus.INVALID -> throw OpacaException(401, "Login invalid")
+                LoginStatus.NOT_SUPPORTED -> throw OpacaException(501, "Login not supported")
+            }
         }
 
         override fun containerLogout(): Boolean {
