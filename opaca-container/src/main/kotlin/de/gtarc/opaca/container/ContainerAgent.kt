@@ -300,11 +300,11 @@ class ContainerAgent(
 abstract class LoginHandler<T> {
     abstract fun handleLogin(loginToken: String, credentials: Login): LoginStatus
     abstract fun handleLogout(loginToken: String?): Boolean
-    abstract fun get(loginToken: String): T?
+    abstract fun get(loginToken: String?): T?
 }
 
 class NoLoginHandler: LoginHandler<Any>() {
     override fun handleLogin(loginToken: String, credentials: Login) = LoginStatus.NOT_SUPPORTED
     override fun handleLogout(loginToken: String?) = false
-    override fun get(loginToken: String) = null
+    override fun get(loginToken: String?) = null
 }

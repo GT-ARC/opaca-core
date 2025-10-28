@@ -19,7 +19,7 @@ object loginHandler: LoginHandler<String>() {
         return LoginStatus.ACCEPTED
     }
     override fun handleLogout(loginToken: String?) = logins.remove(loginToken) != null
-    override fun get(loginToken: String) = logins.get(loginToken)
+    override fun get(loginToken: String?) = logins.get(loginToken)
 }
 
 fun main() {
