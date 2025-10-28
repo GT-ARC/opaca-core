@@ -79,7 +79,7 @@ public interface RuntimePlatformApi extends CommonApi {
      * @param loginParams username and password for that container to use to login at upstream services
      * @return access token for that container
      */
-    ContainerLoginResponse containerLogin(String containerId, Login loginParams) throws IOException;
+    String containerLogin(String containerId, Login loginParams) throws IOException;
 
     /**
      * Log current user out of a previously logged in container.

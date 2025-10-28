@@ -350,7 +350,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 
 	@RequestMapping(value="/containers/login/{containerId}", method=RequestMethod.POST)
 	@Operation(summary="Login with username and password at given container", tags={"containers"})
-	public ContainerLoginResponse containerLogin(
+	public String containerLogin(
 			@PathVariable String containerId,
 			@RequestBody Login loginParams
 	) throws IOException {

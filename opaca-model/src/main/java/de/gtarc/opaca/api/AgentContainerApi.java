@@ -1,7 +1,6 @@
 package de.gtarc.opaca.api;
 
 import de.gtarc.opaca.model.AgentContainer;
-import de.gtarc.opaca.model.ContainerLoginResponse;
 import de.gtarc.opaca.model.Login;
 
 import java.io.IOException;
@@ -55,7 +54,7 @@ public interface AgentContainerApi extends CommonApi{
      * @param loginParams Bundles the username and password in the request body
      * @return container- and user-specific access token
      */
-    ContainerLoginResponse containerLogin(Login loginParams) throws IOException;
+    String containerLogin(Login loginParams) throws IOException;
 
     /**
      * Log current user out of a previously logged in container.

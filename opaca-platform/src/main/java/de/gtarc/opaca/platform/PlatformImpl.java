@@ -12,7 +12,6 @@ import de.gtarc.opaca.platform.containerclient.KubernetesClient;
 import de.gtarc.opaca.platform.session.SessionData;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.model.AgentContainer.Connectivity;
-import de.gtarc.opaca.model.ContainerLoginResponse.LoginStatus;
 import de.gtarc.opaca.platform.util.ArgumentValidator;
 import de.gtarc.opaca.platform.util.RequirementsChecker;
 import de.gtarc.opaca.util.ApiProxy;
@@ -156,7 +155,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public ContainerLoginResponse containerLogin(String containerId, Login loginParams) throws IOException {
+    public String containerLogin(String containerId, Login loginParams) throws IOException {
         if (! runningContainers.containsKey(containerId)) {
             throw new NoSuchElementException("Container not found: " + containerId);
         }
@@ -164,11 +163,9 @@ public class PlatformImpl implements RuntimePlatformApi {
         var user = getUser();
         var client = getClient(containerId, tokens.get(containerId));
         // get container-login-token, associate with user
-        var result = client.containerLogin(loginParams);
-        if (result.getStatus().isOkay()) {
-            userDetailsService.addContainerToken(user, containerId, result.getContainerToken());
-        }
-        return result;
+        String token = client.containerLogin(loginParams);
+        userDetailsService.addContainerToken(user, containerId, token);
+        return token;
     }
 
     @Override
