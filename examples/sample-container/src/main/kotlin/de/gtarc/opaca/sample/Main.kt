@@ -11,6 +11,10 @@ import de.gtarc.opaca.util.ConfigLoader
 object loginHandler: LoginHandler<String>() {
     private val logins = mutableMapOf<String, String>()
     override fun handleLogin(loginToken: String, credentials: Login): LoginStatus {
+        // this does not make sense and is here just for checking those cases in unit tests
+        if (credentials.username == "invalid") return LoginStatus.INVALID
+        if (credentials.username == "not-supported") return LoginStatus.NOT_SUPPORTED
+        // regular case
         logins[loginToken] = credentials.username
         return LoginStatus.ACCEPTED
     }
