@@ -174,12 +174,9 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw new NoSuchElementException("Container not found: " + containerId);
         }
         var token = userDetailsService.removeContainerToken(getUser(), containerId);
-        if (token != null) {
-            getClient(containerId, tokens.get(containerId))
+        return token != null && getClient(containerId, tokens.get(containerId))
                     .withExtraHeaders(Map.of(AgentContainerApi.HEADER_TOKEN, token))
                     .containerLogout();
-        }
-        return token != null;
     }
 
     @Override

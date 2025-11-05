@@ -27,7 +27,8 @@ const val CONTAINER_AGENT = "container-agent"
  */
 class ContainerAgent(
         val image: AgentContainerImage, 
-        val subscribeToEvents: Boolean = false
+        val subscribeToEvents: Boolean = false,
+        val loginHandler: LoginHandler<*> = NoLoginHandler()
     ): Agent(overrideName=CONTAINER_AGENT) {
 
     private val broker by resolve<BrokerAgentRef>()
@@ -109,19 +110,16 @@ class ContainerAgent(
         override fun containerLogin(loginParams: Login): String {
             log.debug("LOGIN: {}", loginParams)
             val token = UUID.randomUUID().toString()
-            for (agent in registeredAgents.values) {
-                val ref = system.resolve(agent.agentId)
-                ref tell LoginMsg(token,  loginParams)
+            return when (loginHandler.handleLogin(token, loginParams)) {
+                LoginStatus.ACCEPTED -> token
+                LoginStatus.INVALID -> throw OpacaException(401, "Login invalid")
+                LoginStatus.NOT_SUPPORTED -> throw OpacaException(501, "Login not supported")
             }
-            return token
         }
 
-        override fun containerLogout() {
+        override fun containerLogout(): Boolean {
             log.debug("LOGOUT")
-            for (agent in registeredAgents.values) {
-                val ref = system.resolve(agent.agentId)
-                ref tell LogoutMsg(token)
-            }
+            return loginHandler.handleLogout(loginToken)
         }
 
         override fun getAgents(): List<AgentDescription> {
@@ -293,4 +291,20 @@ class ContainerAgent(
         var error: Any?
     )
 
+}
+
+/**
+ * Helper class for handling Container Logins. An instance of this class can be provided to the Container Agent
+ * and accessed by the other agents in the system to handle and share login information and cached API clients.
+ */
+abstract class LoginHandler<T> {
+    abstract fun handleLogin(loginToken: String, credentials: Login): LoginStatus
+    abstract fun handleLogout(loginToken: String?): Boolean
+    abstract fun get(loginToken: String?): T?
+}
+
+class NoLoginHandler: LoginHandler<Any>() {
+    override fun handleLogin(loginToken: String, credentials: Login) = LoginStatus.NOT_SUPPORTED
+    override fun handleLogout(loginToken: String?) = false
+    override fun get(loginToken: String?) = null
 }

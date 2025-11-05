@@ -121,6 +121,7 @@ public class TestUtils {
     }
 
     public static ErrorResponse error(HttpURLConnection connection) throws IOException {
+        // IMPORTANT: FOR SOME REASON, THE ERROR STREAM IS NULL BEFORE THE STATUS CODE HAS BEEN RETRIEVED1!
         var content = new String(connection.getErrorStream().readAllBytes());
         return RestHelper.readObject(content, ErrorResponse.class);
     }

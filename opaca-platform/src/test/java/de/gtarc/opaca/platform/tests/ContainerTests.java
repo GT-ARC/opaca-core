@@ -620,10 +620,11 @@ public class ContainerTests {
     @Test
     public void testContainerLoginNoAuth() throws Exception {
         // login to container
-        result(request(PLATFORM_URL, "POST", "/containers/login/" + containerId, new Login("container user 1", "")));
+        var con = request(PLATFORM_URL, "POST", "/containers/login/" + containerId, new Login("container user 1", ""));
+        Assert.assertEquals(200, con.getResponseCode());
 
         // call test-login route --> container should recognize the previously logged in user
-        var con = request(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of());
+        con = request(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of());
         Assert.assertEquals(200, con.getResponseCode());
         Assert.assertEquals("\"Logged in as container user 1\"", result(con));
 
@@ -633,6 +634,15 @@ public class ContainerTests {
         con = request(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of());
         Assert.assertEquals(200, con.getResponseCode());
         Assert.assertEquals("\"Not logged in\"", result(con));
+
+        // invalid or not supported login (here "simulated" with specific usernames)
+        con = request(PLATFORM_URL, "POST", "/containers/login/" + containerId, new Login("invalid", ""));
+        Assert.assertEquals(502, con.getResponseCode());
+        Assert.assertEquals(401, error(con).cause.statusCode.intValue());
+
+        con = request(PLATFORM_URL, "POST", "/containers/login/" + containerId, new Login("not-supported", ""));
+        Assert.assertEquals(502, con.getResponseCode());
+        Assert.assertEquals(501, error(con).cause.statusCode.intValue());
 
         // login to unknown container...
         con = request(PLATFORM_URL, "POST", "/containers/login/does-not-exist", new Login("container user 1", ""));

@@ -61,7 +61,9 @@ public interface AgentContainerApi extends CommonApi{
      * The logout request is forwarded to all agents in the container which then do the actual logout on their side.
      *
      * REST: POST /logout
+     *
+     * @return logout successful (previously logged in)
      */
-    void containerLogout() throws IOException;
+    boolean containerLogout() throws IOException;
 
 }
