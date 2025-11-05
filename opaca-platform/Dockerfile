@@ -1,4 +1,4 @@
-FROM openjdk:21
+FROM ibm-semeru-runtimes:open-21-jdk
 
 COPY target/opaca-platform-0.4-SNAPSHOT-with-dependencies.jar /app/app.jar
 WORKDIR /app
