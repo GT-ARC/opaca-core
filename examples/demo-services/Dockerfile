@@ -1,4 +1,4 @@
-# Build as `docker build -t sample-agent-container-image .`
-FROM ibm-semeru-runtimes:open-19-jdk
+# Build as `docker build -t demo-services .`
+FROM ibm-semeru-runtimes:open-21-jdk
 ADD ./target/appassembler/ /app
 ENTRYPOINT ["/app/bin/main-kt"]
