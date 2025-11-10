@@ -62,7 +62,7 @@ class HomeAssistantAgent: AbstractContainerizedAgent(
 
     private fun actionGetValue(sensor: String, key: String): Double {
         log.info("Getting the $key value of the sensor $sensor...")
-        return when (key.toLowerCase()) {
+        return when (key.lowercase()) {
             "temperature" -> Random.nextDouble(20.0, 30.0)
             "co2" -> Random.nextDouble(400.0, 1500.0)
             "noise" -> Random.nextDouble(40.0, 80.0)

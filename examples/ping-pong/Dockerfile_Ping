@@ -1,6 +1,4 @@
-# Build as `docker build -t sample-agent-container-image .`
-FROM openjdk:19-slim
+# Build as `docker build -t ping-container-image .`
+FROM ibm-semeru-runtimes:open-21-jdk
 ADD ./target/appassembler/ /app
-
-# use this to create ping-container: docker build -t ping-container-image .
 ENTRYPOINT ["/app/bin/main-kt", "ping"]
