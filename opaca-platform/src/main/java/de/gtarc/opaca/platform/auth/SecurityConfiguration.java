@@ -76,40 +76,31 @@ public class SecurityConfiguration {
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        if (config.enableAuth) {
-            http
-                    .csrf(CsrfConfigurer::disable)
-                    .authorizeHttpRequests((auth) -> auth
-                            // some routes, like those related to OpenAPI and login, should work without Authentication
-                            // (except for the OpenAPI route giving insight into the agents' actions)
-                            .requestMatchers(HttpMethod.GET, "/v3/api-docs/actions").hasRole(Role.GUEST.name())
-                            .requestMatchers(noAuthRoutes).permitAll()
-                            // The next block implements the RBAC defined in the user-management docs
-                            // A rule consists of a specific or generic (/**) route, the lowest role level
-                            // to access the route (see role hierarchy), and the optional REST method
-                            // the route is requested with (if none given, all methods are concerned)
-                            .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
-                            .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**", "/users/**").hasRole(Role.GUEST.name())
-                            .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole(Role.USER.name())
-                            .requestMatchers(HttpMethod.POST, "/containers/login/**", "/containers/logout/**").hasRole(Role.USER.name())
-                            .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**", "/stream/**").hasRole(Role.USER.name())
-                            .requestMatchers(HttpMethod.POST, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
-                            .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
-                            .requestMatchers("/connections/**", "/users/**").hasRole(Role.ADMIN.name())
-                            .anyRequest().authenticated()
-                    )
-                    .sessionManagement((session) -> session
-                            .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                    )
-                    .addFilterBefore(new JwtRequestFilter(), UsernamePasswordAuthenticationFilter.class);
-        } else {
-            http
-                    .csrf(CsrfConfigurer::disable)
-                    .authorizeHttpRequests((auth) -> auth
-                            .anyRequest().permitAll()
-                    );
-        }
-        return http.build();
+        var permitAllRoutes = config.enableAuth ? noAuthRoutes : new String[] { "**" };
+        return http
+                .csrf(CsrfConfigurer::disable)
+                .authorizeHttpRequests((auth) -> auth
+                        // some routes, like those related to OpenAPI and login, should work without Authentication
+                        // (except for the OpenAPI route giving insight into the agents' actions)
+                        .requestMatchers(HttpMethod.GET, "/v3/api-docs/actions").hasRole(Role.GUEST.name())
+                        .requestMatchers(permitAllRoutes).permitAll()
+                        // The next block implements the RBAC defined in the user-management docs
+                        // A rule consists of a specific or generic (/**) route, the lowest role level
+                        // to access the route (see role hierarchy), and the optional REST method
+                        // the route is requested with (if none given, all methods are concerned)
+                        .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
+                        .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**", "/users/**").hasRole(Role.GUEST.name())
+                        .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole(Role.USER.name())
+                        .requestMatchers(HttpMethod.POST, "/containers/login/**", "/containers/logout/**").hasRole(Role.USER.name())
+                        .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**", "/stream/**").hasRole(Role.USER.name())
+                        .requestMatchers(HttpMethod.POST, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
+                        .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
+                        .requestMatchers("/connections/**", "/users/**").hasRole(Role.ADMIN.name())
+                        .anyRequest().authenticated()
+                )
+                .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(new JwtRequestFilter(), UsernamePasswordAuthenticationFilter.class)
+                .build();
     }
 
     @Bean
@@ -133,13 +124,12 @@ public class SecurityConfiguration {
         @Override
         protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
                 throws ServletException, IOException {
-            String requestURI = request.getRequestURI();
             String requestTokenHeader = request.getHeader("Authorization");
 
-            if (Stream.of(noAuthRoutes).noneMatch(s -> requestURI.startsWith(s.replace("**", "")))
-                    || requestURI.startsWith("/v3/api-docs/actions")) { // exception from the exceptions...
+            if (requestTokenHeader != null || uriNeedsAuth(request.getRequestURI())) {
                 String username = null;
                 String jwtToken = null;
+                // get username from token (thus validating that the token was issued from RP)
                 if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
                     jwtToken = requestTokenHeader.substring(7);
                     try {
@@ -153,6 +143,7 @@ public class SecurityConfiguration {
                     handleException(response, HttpStatus.BAD_REQUEST, "Missing Token.");
                 }
 
+                // check that user (still) exists and set jwtToken in security context holder so impl can access it
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     try {
                         UserDetails userDetails = myUserDetailsService.loadUserByUsername(username);
@@ -176,5 +167,16 @@ public class SecurityConfiguration {
             response.setStatus(status.value());
             response.getWriter().write(message);
         }
+    }
+
+    /**
+     * Check whether the given request URI needs auth
+     * @param uri The Path-part of the URI (after the port)
+     * @return Whether the URI requires auth
+     */
+    private boolean uriNeedsAuth(String uri) {
+        if (! config.enableAuth) return false;
+        if (uri.startsWith("/v3/api-docs/actions")) return false; // exception from the exceptions...
+        return Stream.of(noAuthRoutes).noneMatch(s -> uri.startsWith(s.replace("**", "")));
     }
 }
