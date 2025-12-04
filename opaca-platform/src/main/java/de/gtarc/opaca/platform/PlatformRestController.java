@@ -308,7 +308,6 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "-1") int timeout
 	) throws IOException {
 		log.info("POST /containers {}", container);
-		log.info(String.format("POST /containers %s", container));
 		return implementation.addContainer(container, timeout);
 	}
 
