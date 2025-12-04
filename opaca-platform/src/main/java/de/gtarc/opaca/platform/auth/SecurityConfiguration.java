@@ -77,12 +77,13 @@ public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         var permitAllRoutes = config.enableAuth ? noAuthRoutes : new String[] { "**" };
+        var openApiActions = config.enableAuth ? "/v3/api-docs/actions" : "/xxxxxx"; // ugly fix for exception...
         return http
                 .csrf(CsrfConfigurer::disable)
                 .authorizeHttpRequests((auth) -> auth
                         // some routes, like those related to OpenAPI and login, should work without Authentication
                         // (except for the OpenAPI route giving insight into the agents' actions)
-                        .requestMatchers(HttpMethod.GET, "/v3/api-docs/actions").hasRole(Role.GUEST.name())
+                        .requestMatchers(HttpMethod.GET, openApiActions).hasRole(Role.GUEST.name())
                         .requestMatchers(permitAllRoutes).permitAll()
                         // The next block implements the RBAC defined in the user-management docs
                         // A rule consists of a specific or generic (/**) route, the lowest role level
@@ -176,7 +177,7 @@ public class SecurityConfiguration {
      */
     private boolean uriNeedsAuth(String uri) {
         if (! config.enableAuth) return false;
-        if (uri.startsWith("/v3/api-docs/actions")) return false; // exception from the exceptions...
+        if (uri.startsWith("/v3/api-docs/actions")) return true; // exception from the exceptions...
         return Stream.of(noAuthRoutes).noneMatch(s -> uri.startsWith(s.replace("**", "")));
     }
 }
