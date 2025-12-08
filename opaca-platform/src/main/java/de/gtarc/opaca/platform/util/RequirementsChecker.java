@@ -38,7 +38,7 @@ public class RequirementsChecker {
         provisions.add("config:container-env=" + config.get("containerEnvironment"));
         provisions.add("config:platform-env=" + config.get("platformEnvironment"));
         provisions.add("config:session-policy=" + config.get("sessionPolicy"));
-        provisions.add("config:enable-auth=" + config.get("enableAuth"));
+        provisions.add("config:require-auth=" + config.get("requireAuth"));
 
         // from containers, agents, actions
         for (AgentContainer container : this.platform.getContainers()) {

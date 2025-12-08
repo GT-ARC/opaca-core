@@ -99,7 +99,7 @@ public class UserController {
             @PathVariable String username
     ) {
         log.info("GET /users/{}", username);
-        if (!config.enableAuth || userDetailsService.isAdminOrSelf(username)){
+        if (!config.requireAuth || userDetailsService.isAdminOrSelf(username)){
             return new ResponseEntity<>(userDetailsService.getUser(username), HttpStatus.OK);
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN);

@@ -78,7 +78,7 @@ public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(CsrfConfigurer::disable);
-        if (config.enableAuth) {
+        if (config.requireAuth) {
             // role-based access control if auth is required
             http.authorizeHttpRequests((auth) -> auth
                     // some routes, like those related to OpenAPI and login, should work without Authentication
@@ -183,7 +183,7 @@ public class SecurityConfiguration {
      * @return Whether the URI requires auth
      */
     private boolean uriNeedsAuth(String uri) {
-        if (! config.enableAuth) return false;
+        if (! config.requireAuth) return false;
         if (uri.startsWith("/v3/api-docs/actions")) return true; // exception from the exceptions...
         return Stream.of(noAuthRoutes).noneMatch(s -> uri.startsWith(s.replace("**", "")));
     }

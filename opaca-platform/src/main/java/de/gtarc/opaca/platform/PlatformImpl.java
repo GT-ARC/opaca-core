@@ -272,7 +272,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         String agentContainerId = UUID.randomUUID().toString();
         String token = "";
         String owner = "";
-        if (config.enableAuth) {
+        if (config.requireAuth) {
             token = jwtUtil.generateToken(agentContainerId, Duration.ofHours(24));
             owner = getUser();
         }
@@ -369,7 +369,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public boolean removeContainer(String containerId) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
-        if (config.enableAuth && ! getUser().equals(config.platformAdminUser) && ! userDetailsService.isAdminOrSelf(container.getOwner())) {
+        if (config.requireAuth && ! getUser().equals(config.platformAdminUser) && ! userDetailsService.isAdminOrSelf(container.getOwner())) {
             // ignore if userToken == null; this is only the case iff the platform is about to shut down
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
@@ -401,7 +401,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         // ask other platform to connect back to self?
         if (connect.isConnectBack()) {
             var ownUrl = config.getOwnBaseUrl();
-            var ownToken = config.enableAuth ? jwtUtil.generateToken(url, Duration.ofDays(7)) : null;
+            var ownToken = config.requireAuth ? jwtUtil.generateToken(url, Duration.ofDays(7)) : null;
             var owner = getUser();
             userDetailsService.createTempSubUser(url, owner);
             client.connectPlatform(new ConnectionRequest(ownUrl, false, ownToken));
@@ -503,7 +503,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         var token = auth != null ? (String) auth.getCredentials() : null;
         if (token != null && ! token.isEmpty()) {
             return jwtUtil.getUsernameFromToken(token);
-        } else if (! config.enableAuth){
+        } else if (! config.requireAuth){
             return config.platformAdminUser;
         } else {
             return null;
@@ -650,7 +650,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     protected void testSelfConnection() throws Exception {
-        var token = config.enableAuth ?
+        var token = config.requireAuth ?
                 userDetailsService.generateTokenForUser(config.platformAdminUser, config.platformAdminPwd) : null;
         var info = new ApiProxy(config.getOwnBaseUrl(), null, token).withTimeout(5000).getPlatformInfo();
         if (! Objects.equals(platformId, info.getPlatformId())) {

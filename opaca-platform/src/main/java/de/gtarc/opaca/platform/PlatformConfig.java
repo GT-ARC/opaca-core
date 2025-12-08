@@ -54,8 +54,8 @@ public class PlatformConfig {
 
     // SECURITY & AUTHENTICATION
 
-    @Value("${security.enableAuth}")
-    public Boolean enableAuth;
+    @Value("${security.requireAuth}")
+    public Boolean requireAuth;
 
     @Value("${security.secret}")
     public String secret;
@@ -136,7 +136,7 @@ public class PlatformConfig {
         res.put("eventHistorySize", eventHistorySize);
         res.put("alwaysPullImages", alwaysPullImages);
         // auth stuff
-        res.put("enableAuth", enableAuth);
+        res.put("requireAuth", requireAuth);
         // user management stuff
         res.put("dbEmbed", dbEmbed);
         // image registry stuff

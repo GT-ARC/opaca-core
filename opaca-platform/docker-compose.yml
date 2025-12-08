@@ -25,7 +25,7 @@ services:
       ALWAYS_PULL_IMAGES:
       LOG_LEVEL:
       # Security & Authentication
-      ENABLE_AUTH:
+      REQUIRE_AUTH:
       SECRET:
       PLATFORM_ADMIN_USER:
       PLATFORM_ADMIN_PWD:
