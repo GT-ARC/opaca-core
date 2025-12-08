@@ -8,15 +8,13 @@ Using the Swagger UI, you have to click the "Authorize" button and enter the tok
 
 ### Requiring Platform Authentication
 
-By default, authentication is not required. To change that, set the `REQUIRE_AUTH` environment variable to `true`. Also, you will have to specify a "secret" and admin-password. All of those are set via Environment Variables, either in the Docker Compose or using `export` (or equivalent) before starting the container, e.g.:
+By default, authentication is not required. To change that, set the `REQUIRE_AUTH` environment variable to `true`. Even if authentication is not _required_, it is _enabled_ and can be used to create new Users, log in and invoke actions as those users. This is so that Container Login (see below) is properly usable even if no platform login is required. Otherwise, container-login tokens would be associated with the default user, which may not be desirable if the platform is used by multiple users. For logging in as a user, you have to specify a "secret" and (if auth is required) an admin-password. All of those are set via Environment Variables, either in the Docker Compose or using `export` (or equivalent) before starting the container, e.g.:
 
 ```bash
 export REQUIRE_AUTH=true
 export SECRET=...
 export PLATFORM_ADMIN_PWD=...
 ```
-
-**NOTE:** Even if authentication is not _required_, it is _enabled_ and can be used to create new Users, log in and invoke actions as those users. This is so that Container Login (see below) is properly usable even if no platform login is required. Otherwise, container-login tokens would be associated with the default user, which may not be desirable if the platform is used by multiple users.
 
 Please refer to the [User Management](user-management.md) documentation on how to add additional users to the system.
 
