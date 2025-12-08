@@ -102,7 +102,7 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 * `KUBERNETES_CONFIG` (default: "~/.kube/config") Alternative location for Kubernetes config.
 
 ### Security & Authentication
-* `ENABLE_AUTH` (default: false) Whether to require token-based authentication on all routes; see [Authentication](doc/auth.md) for details.
+* `REQUIRE_AUTH` (default: false) Whether to require token-based authentication on most routes; see [Authentication](doc/auth.md) for details.
 * `SECRET` (default: null) The secret used to encrypt and decrypt the JWT tokens used for authentication.
 * `PLATFORM_ADMIN_USER` (default: admin) Name of the "admin" user
 * `PLATFORM_ADMIN_PWD` (default: "") Password of the "admin" user

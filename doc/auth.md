@@ -2,19 +2,21 @@
 
 ## Platform Authentication
 
-The Runtime Platform can optionally require Authentication on all routes, as determined by the `ENABLE_AUTH` environment variable. Authentication is handled through a JWT (JSON Web Token) bearer token, which is issued by the Runtime Platform to all authorized users as well as to all Agent Containers started by the platform.
+The Runtime Platform can optionally require Authentication on all routes, as determined by the `REQUIRE_AUTH` environment variable. Authentication is handled through a JWT (JSON Web Token) bearer token, which is issued by the Runtime Platform to all authorized users as well as to all Agent Containers started by the platform.
 
 Using the Swagger UI, you have to click the "Authorize" button and enter the token, which will subsequently be used for all requests. When calling the routes programmatically, including e.g. from within the Agent Container, the token has to be provided as a header field, e.g. `connection.setRequestProperty("Authorization", "Bearer " + token)`.
 
-### Enabling Platform Authentication
+### Requiring Platform Authentication
 
-By default, authentication is disabled, to enable it, set the `ENABLE_AUTH` environment variable to `true`. Also, you will have to specify a "secret" and admin-password. All of those are set via Environment Variables, either in the Docker Compose or using `export` (or equivalent) before starting the container, e.g.:
+By default, authentication is not required. To change that, set the `REQUIRE_AUTH` environment variable to `true`. Also, you will have to specify a "secret" and admin-password. All of those are set via Environment Variables, either in the Docker Compose or using `export` (or equivalent) before starting the container, e.g.:
 
 ```bash
-export ENABLE_AUTH=true
+export REQUIRE_AUTH=true
 export SECRET=...
 export PLATFORM_ADMIN_PWD=...
 ```
+
+**NOTE:** Even if authentication is not _required_, it is _enabled_ and can be used to create new Users, log in and invoke actions as those users. This is so that Container Login (see below) is properly usable even if no platform login is required. Otherwise, container-login tokens would be associated with the default user, which may not be desirable if the platform is used by multiple users.
 
 Please refer to the [User Management](user-management.md) documentation on how to add additional users to the system.
 
