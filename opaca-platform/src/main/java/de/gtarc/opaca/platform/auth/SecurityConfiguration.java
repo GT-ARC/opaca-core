@@ -74,31 +74,38 @@ public class SecurityConfiguration {
      * in order to access the specified routes. The swagger ui routes, along with "/login"
      * and "/error", are always permitted.
      */
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        var permitAllRoutes = config.enableAuth ? noAuthRoutes : new String[] { "**" };
-        var openApiActions = config.enableAuth ? "/v3/api-docs/actions" : "/xxxxxx"; // ugly fix for exception...
+        http.csrf(CsrfConfigurer::disable);
+        if (config.enableAuth) {
+            // role-based access control if auth is required
+            http.authorizeHttpRequests((auth) -> auth
+                    // some routes, like those related to OpenAPI and login, should work without Authentication
+                    // (except for the OpenAPI route giving insight into the agents' actions)
+                    .requestMatchers(HttpMethod.GET, "/v3/api-docs/actions").hasRole(Role.GUEST.name())
+                    .requestMatchers(noAuthRoutes).permitAll()
+                    // The next block implements the RBAC defined in the user-management docs
+                    // A rule consists of a specific or generic (/**) route, the lowest role level
+                    // to access the route (see role hierarchy), and the optional REST method
+                    // the route is requested with (if none given, all methods are concerned)
+                    .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
+                    .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**", "/users/**").hasRole(Role.GUEST.name())
+                    .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole(Role.USER.name())
+                    .requestMatchers(HttpMethod.POST, "/containers/login/**", "/containers/logout/**").hasRole(Role.USER.name())
+                    .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**", "/stream/**").hasRole(Role.USER.name())
+                    .requestMatchers(HttpMethod.POST, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
+                    .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
+                    .requestMatchers("/connections/**", "/users/**").hasRole(Role.ADMIN.name())
+                    .anyRequest().authenticated()
+            );
+        } else {
+            // permit-all if no auth required (but still enable auth)
+            http.authorizeHttpRequests((auth) -> auth
+                    .anyRequest().permitAll()
+            );
+        }
         return http
-                .csrf(CsrfConfigurer::disable)
-                .authorizeHttpRequests((auth) -> auth
-                        // some routes, like those related to OpenAPI and login, should work without Authentication
-                        // (except for the OpenAPI route giving insight into the agents' actions)
-                        .requestMatchers(HttpMethod.GET, openApiActions).hasRole(Role.GUEST.name())
-                        .requestMatchers(permitAllRoutes).permitAll()
-                        // The next block implements the RBAC defined in the user-management docs
-                        // A rule consists of a specific or generic (/**) route, the lowest role level
-                        // to access the route (see role hierarchy), and the optional REST method
-                        // the route is requested with (if none given, all methods are concerned)
-                        .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
-                        .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**", "/users/**").hasRole(Role.GUEST.name())
-                        .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole(Role.USER.name())
-                        .requestMatchers(HttpMethod.POST, "/containers/login/**", "/containers/logout/**").hasRole(Role.USER.name())
-                        .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**", "/stream/**").hasRole(Role.USER.name())
-                        .requestMatchers(HttpMethod.POST, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
-                        .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
-                        .requestMatchers("/connections/**", "/users/**").hasRole(Role.ADMIN.name())
-                        .anyRequest().authenticated()
-                )
                 .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(new JwtRequestFilter(), UsernamePasswordAuthenticationFilter.class)
                 .build();
