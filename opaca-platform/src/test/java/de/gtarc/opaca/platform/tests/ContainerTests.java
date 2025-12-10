@@ -45,6 +45,7 @@ public class ContainerTests {
     @BeforeClass
     public static void setupPlatform() throws Exception {
         platform = SpringApplication.run(Application.class,
+                "--security.secret=no-auth-but-needed-for-creating-users",
                 "--server.port=" + PLATFORM_PORT);
         containerId = postSampleContainer(PLATFORM_URL);
         checkInvariantStatic();
@@ -647,6 +648,49 @@ public class ContainerTests {
         // login to unknown container...
         con = request(PLATFORM_URL, "POST", "/containers/login/does-not-exist", new Login("container user 1", ""));
         Assert.assertEquals(404, con.getResponseCode());
+    }
+
+    /**
+     * Even without platform-auth, container auth should still be possible (and associated with the default admin user
+     * ... UNLESS one actually logs in as a user (still possible if no auth), in this case the container-login should
+     * still ONLY apple to that user, and not to a different user or default admin user)
+     * (this test is largely identical to {@link AuthTests#test08ContainerLogin()}
+     */
+    @Test
+    public void testContainerLoginNoAuthButUsers() throws Exception {
+        // create two users for testing
+        result(request(PLATFORM_URL, "POST", "/users", user("user1", "12345", User.Role.USER)));
+        result(request(PLATFORM_URL, "POST", "/users", user("user2", "12345", User.Role.USER)));
+        var token1 = result(request(PLATFORM_URL, "POST", "/login", new Login("user1", "12345")));
+        var token2 = result(request(PLATFORM_URL, "POST", "/login", new Login("user2", "12345")));
+
+        // login to container as both users
+        result(requestWithToken(PLATFORM_URL, "POST", "/containers/login/" + containerId, new Login("container user 1", ""), token1));
+        result(requestWithToken(PLATFORM_URL, "POST", "/containers/login/" + containerId, new Login("container user 2", ""), token2));
+
+        // call test-login route with different users --> container should recognize the calling user, if logged in
+        var con = request(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Not logged in\"", result(con));
+
+        con = requestWithToken(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of(), token1);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Logged in as container user 1\"", result(con));
+
+        con = requestWithToken(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of(), token2);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Logged in as container user 2\"", result(con));
+
+        // logout as user 1; user 2 still logged in
+        result(requestWithToken(PLATFORM_URL, "POST", "/containers/logout/" + containerId, null, token1));
+
+        con = requestWithToken(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of(), token1);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Not logged in\"", result(con));
+
+        con = requestWithToken(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of(), token2);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Logged in as container user 2\"", result(con));
     }
 
     /**

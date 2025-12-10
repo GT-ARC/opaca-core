@@ -173,7 +173,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	public String getOpenApiActions(
 			@RequestParam(required = false, defaultValue = "JSON") ActionFormat format
 	) throws IOException {
-		return ActionToOpenApi.createOpenApiSchema(implementation.getContainers(), format, config.enableAuth);
+		return ActionToOpenApi.createOpenApiSchema(implementation.getContainers(), format, config.requireAuth);
 	}
 
 	/*

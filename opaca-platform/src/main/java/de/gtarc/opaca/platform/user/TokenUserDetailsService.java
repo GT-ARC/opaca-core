@@ -105,7 +105,7 @@ public class TokenUserDetailsService implements UserDetailsService {
      * @param owner the name of the user creating the new user (ignored if no auth)
      */
     public User createTempSubUser(String username, String owner) {
-        if (config.enableAuth && ! Strings.isNullOrEmpty(owner)) {
+        if (config.requireAuth && ! Strings.isNullOrEmpty(owner)) {
             return createUser(username, generateRandomPwd(), getUserRole(owner), getUserPrivileges(owner));
         } else {
             return createUser(username, generateRandomPwd(), Role.USER, null);
