@@ -70,13 +70,13 @@ public interface RuntimePlatformApi extends CommonApi {
 
     /**
      * Login to given Agent Container (e.g. so that the container can itself login at some upstream service),
-     * retrieving an access token (if the container provides one) and associating it with the currently logged
-     * in user and  that container.
+     * retrieving an access token (if the container provides one) and associating it with the currently logged-in
+     * user and  that container.
      *
      * REST: POST /containers/login/{containerId}
      *
      * @param containerId ID of the container where to login
-     * @param loginParams username and password for that container to use to login at upstream services
+     * @param loginParams username and password for that container to use to log-in at upstream services
      * @return access token for that container
      */
     String containerLogin(String containerId, Login loginParams) throws IOException;
@@ -89,7 +89,7 @@ public interface RuntimePlatformApi extends CommonApi {
     boolean containerLogout(String containerId) throws IOException;
 
     /**
-     * Retrieve new Access Token for already logged in user.
+     * Retrieve new Access Token for already logged-in user.
      *
      * REST: GET /token
      *

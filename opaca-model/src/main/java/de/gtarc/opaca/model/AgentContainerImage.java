@@ -58,7 +58,7 @@ public class AgentContainerImage {
     @NonNull
     List<ImageParameter> parameters = List.of();
 
-    /** custom type definitions using json schema, maps schema title to schema */
+    /** custom type definitions using JSON Schema, maps schema title to schema */
     @NonNull
     Map<String, JsonNode> definitions = Map.of();
 

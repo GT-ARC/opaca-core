@@ -157,7 +157,7 @@ public class TokenUserDetailsService implements UserDetailsService {
         if (user == null) {
             throw new UsernameNotFoundException(username);
         }
-        // update user name? check for conflict
+        // update username? check for conflict
         if (newUsername != null && ! Objects.equals(username, newUsername)) {
             if (userRepository.existsByUsername(newUsername)) {
                 throw new UserAlreadyExistsException(newUsername);

@@ -624,7 +624,7 @@ public class ContainerTests {
         var con = request(PLATFORM_URL, "POST", "/containers/login/" + containerId, new Login("container user 1", ""));
         Assert.assertEquals(200, con.getResponseCode());
 
-        // call test-login route --> container should recognize the previously logged in user
+        // call test-login route --> container should recognize the previously logged-in user
         con = request(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of());
         Assert.assertEquals(200, con.getResponseCode());
         Assert.assertEquals("\"Logged in as container user 1\"", result(con));
