@@ -29,7 +29,7 @@ public class EventsFilter implements Filter {
 
         if (request instanceof HttpServletRequest httpRequest &&
                 response instanceof HttpServletResponse httpResponse &&
-                requestShouldCreateEvent((HttpServletRequest) request)) {
+                requestShouldCreateEvent(httpRequest)) {
 
             // create call event
             String route = String.format("%s %s", httpRequest.getMethod(), httpRequest.getRequestURI());

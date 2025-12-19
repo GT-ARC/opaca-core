@@ -157,7 +157,7 @@ class ContainerAgent(
             waitForInvoke(agent, StreamPost(stream, data), -1)
         }
 
-        override fun getStream(stream: String, agentId: String?, containerId: String, forward: Boolean): InputStream? {
+        override fun getStream(stream: String, agentId: String?, containerId: String, forward: Boolean): InputStream {
             log.debug("GET STREAM OF AGENT: $agentId $stream")
             val agent = findRegisteredAgent(agentId, null, stream)
             val inputStream: InputStream = waitForInvoke(agent, StreamGet(stream), -1) as InputStream

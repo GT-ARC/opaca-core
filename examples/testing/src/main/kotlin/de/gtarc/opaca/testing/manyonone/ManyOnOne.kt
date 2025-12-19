@@ -33,12 +33,12 @@ import com.fasterxml.jackson.databind.JsonNode
  * RELATED ISSUE OR MERGE REQUEST: https://gitlab.dai-labor.de/jiacpp/prototype/-/merge_requests/107
  */
 
-val NUM_CLIENTS: Int = 10
-val TURN_DURATION: Long = 1000
-val USE_OPACA = true
-val ACTION_SLEEP: Long = 70
-val TIMEOUT_SEC = 10
-val BATCH_SIZE = 2
+const val NUM_CLIENTS: Int = 10
+const val TURN_DURATION: Long = 1000
+const val USE_OPACA = true
+const val ACTION_SLEEP: Long = 70
+const val TIMEOUT_SEC = 10
+const val BATCH_SIZE = 2
 
 fun runManyOnOneTest() {
     val name = "testing"

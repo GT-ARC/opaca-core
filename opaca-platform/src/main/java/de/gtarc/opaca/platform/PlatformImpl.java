@@ -312,7 +312,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 startedContainers.put(agentContainerId, postContainer);
                 tokens.put(agentContainerId, token);
                 validators.put(agentContainerId, new ArgumentValidator(container.getImage()));
-                log.info("Container started: " + agentContainerId);
+                log.info("Container started: {}", agentContainerId);
                 return agentContainerId;
             } catch (JsonMappingException e) {
                 errorMessage = "Container returned malformed /info: " + e.getMessage();

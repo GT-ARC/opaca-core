@@ -160,7 +160,7 @@ public class UserTests {
         var con = requestWithToken(PLATFORM_A, "GET", "/users/test1", null, userToken);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, User.class);
-        Assert.assertTrue(res.getUsername().equals("test1"));
+        Assert.assertEquals("test1", res.getUsername());
 
         deleteUser(adminToken, "test1");
     }
@@ -247,7 +247,7 @@ public class UserTests {
         con = requestWithToken(PLATFORM_A, "GET", "/users/newName", null, adminToken);
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, User.class);
-        Assert.assertTrue(res.getUsername().equals("newName"));
+        Assert.assertEquals("newName", res.getUsername());
         Assert.assertTrue(res.getPrivileges().contains("Some_privilege"));
 
         deleteUser(adminToken, "newName");

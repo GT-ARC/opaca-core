@@ -133,8 +133,8 @@ public class PlatformTests {
         }
 
         var defaultImages = session.readDefaultImages();
-        Assert.assertEquals(defaultImages.size(), 1);
-        Assert.assertEquals(defaultImages.get(0).getAbsolutePath(), imageFile.getAbsolutePath());
+        Assert.assertEquals(1, defaultImages.size());
+        Assert.assertEquals(imageFile.getAbsolutePath(), defaultImages.get(0).getAbsolutePath());
 
         imageFile.delete();
     }

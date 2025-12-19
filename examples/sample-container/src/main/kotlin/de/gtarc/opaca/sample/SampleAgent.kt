@@ -77,7 +77,7 @@ class SampleAgent(name: String, val loginHandler: LoginHandler<String>): Abstrac
             when {
                 token == null -> "Not logged in"
                 loginHandler.get(token) != null -> "Logged in as ${loginHandler.get(token)}"
-                else -> "Unknown token: ${token}"
+                else -> "Unknown token: $token"
             }
         }
 
