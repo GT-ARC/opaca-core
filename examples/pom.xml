@@ -9,7 +9,6 @@
     </parent>
 
     <artifactId>opaca-examples</artifactId>
-    <version>0.4-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>

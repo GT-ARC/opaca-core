@@ -9,7 +9,6 @@
 	</parent>
 
 	<artifactId>opaca-platform</artifactId>
-	<version>0.4-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<properties>

@@ -4,7 +4,6 @@ import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.platform.PlatformImpl;
 import lombok.extern.log4j.Log4j2;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
