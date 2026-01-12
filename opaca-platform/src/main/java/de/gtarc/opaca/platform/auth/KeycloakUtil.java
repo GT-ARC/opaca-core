@@ -1,32 +1,55 @@
 package de.gtarc.opaca.platform.auth;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gtarc.opaca.model.User;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class KeycloakUtil {
 
-    // TODO
-    // login to keycloak
-    // renew token
-    // create temp sub user
-
     // FORMER METHODS OF JWT UTIL
 
+    // used for JWTs for containers and connected platform, also for token-renewal
     public String generateToken(String owner, Duration duration) {
-        return null;
+        return null; // TODO
     }
 
+    // used in getUser() helper method
     public String getUsernameFromToken(String token) {
-        return null;
+        return null; // TODO
     }
 
     // FORMER METHODS OF TOKEN USER DETAILS SERVICE
 
-    public String generateTokenForUser(String username, String password) {
-        return null;
+    // used for platform login
+    public String generateTokenForUser(String username, String password) throws Exception {
+        var data = Map.of(
+                "grant_type", "password",
+                "client_id", "testclient", // TODO get from config
+                "username", username,
+                "password", password
+        );
+        String form = data.entrySet().stream()
+                .map(e -> e.getKey() + "=" + e.getValue())
+                .collect(Collectors.joining("&"));
+        var response = HttpClient.newHttpClient().send(
+                HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8888/realms/testrealm/protocol/openid-connect/token")) // TODO get from config
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(form))
+                        .build(),
+                HttpResponse.BodyHandlers.ofString()
+        );
+        return new ObjectMapper().readTree(response.body()).get("access_token").asText();
     }
 
     /**
@@ -37,7 +60,7 @@ public class KeycloakUtil {
      * @param owner the name of the user creating the new user (ignored if no auth)
      */
     public User createTempSubUser(String username, String owner) {
-        return null;
+        return null; // TODO
     }
 
     /**
@@ -46,7 +69,7 @@ public class KeycloakUtil {
      * If the user does not exist, throw exception.
      */
     public Boolean removeUser(String username) {
-        return null;
+        return null; // TODO
     }
 
     /**
@@ -54,29 +77,36 @@ public class KeycloakUtil {
      * or the request user is performing request on its own data
      * @param username: Name of user which will get affected by request (NOT THE CURRENT REQUEST USER)
      */
+    // used in remove-container
     public boolean isAdminOrSelf(String username) {
-        return false;
+        return false; // TODO
     }
+
+    /*
+     * CONTAINER TOKEN STUFF... store those in KeyCloak, or just in-memory?
+     */
+
+    private Map<String, Map<String, String>> containerTokens = new HashMap<>();
 
     /**
      * Returns Access Token associated with container, or null
      */
     public String getContainerToken(String username, String containerId) {
-        return null;
+        return containerTokens.getOrDefault(username, Map.of()).getOrDefault(containerId, null);
     }
 
     /**
      * Associate Access Token with container, overwrite existing if any
      */
     public void addContainerToken(String username, String containerId, String token) {
-
+        containerTokens.computeIfAbsent(username, s -> new HashMap<>()).put(containerId, token);
     }
 
     /**
      * Deleted Access Token associated with container, return old token if existed, otherwise null
      */
     public String removeContainerToken(String username, String containerId) {
-        return null;
+        return containerTokens.getOrDefault(username, Map.of()).remove(containerId);
     }
 
 }

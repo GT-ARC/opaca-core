@@ -150,8 +150,12 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public String platformLogin(Login loginParams) {
-        return keycloakUtil.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
+    public String platformLogin(Login loginParams) throws IOException {
+        try {
+            return keycloakUtil.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
+        } catch (Exception e) {
+            throw new IOException("Failed to get Access Token", e);
+        }
     }
 
     @Override
@@ -497,6 +501,8 @@ public class PlatformImpl implements RuntimePlatformApi {
      * Get the logged-in user from the user token in auth context, or default user if no auth.
      * The default-user is only relevant for container-login if no auth is enabled and only used
      * to associate the container logins with.
+     *
+     * XXX move this method to KeyCloakUtils?
      */
     private String getUser() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
@@ -504,7 +510,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         System.out.println("TOKEN " + token);
         if (token instanceof Jwt jwt) {
             System.out.println("CLAIMS " + jwt.getClaims());
-            return "keycloakUtil.getUsernameFromToken(token)"; // TODO
+            return jwt.getClaimAsString("preferred_username");
         } else if (! config.requireAuth){
             return config.platformAdminUser;
         } else {
