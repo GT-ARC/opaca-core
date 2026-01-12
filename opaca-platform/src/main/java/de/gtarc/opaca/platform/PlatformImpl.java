@@ -4,8 +4,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.api.RuntimePlatformApi;
-import de.gtarc.opaca.platform.auth.JwtUtil;
-import de.gtarc.opaca.platform.user.TokenUserDetailsService;
+import de.gtarc.opaca.platform.auth.KeycloakUtil;
 import de.gtarc.opaca.platform.containerclient.ContainerClient;
 import de.gtarc.opaca.platform.containerclient.DockerClient;
 import de.gtarc.opaca.platform.containerclient.KubernetesClient;
@@ -22,6 +21,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
@@ -60,10 +60,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     private PlatformConfig config;
 
     @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
-    private TokenUserDetailsService userDetailsService;
+    private KeycloakUtil keycloakUtil;
 
 
     /** platform's own UUID */
@@ -129,6 +126,9 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public RuntimePlatform getPlatformInfo() {
+
+        getUser();
+
         return new RuntimePlatform(
                 platformId,
                 config.getOwnBaseUrl(),
@@ -151,7 +151,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public String platformLogin(Login loginParams) {
-        return userDetailsService.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
+        return keycloakUtil.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
     }
 
     @Override
@@ -164,7 +164,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         var client = getClient(containerId, tokens.get(containerId));
         // get container-login-token, associate with user
         String token = client.containerLogin(loginParams);
-        userDetailsService.addContainerToken(user, containerId, token);
+        keycloakUtil.addContainerToken(user, containerId, token);
         return token;
     }
 
@@ -173,7 +173,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (! runningContainers.containsKey(containerId)) {
             throw new NoSuchElementException("Container not found: " + containerId);
         }
-        var token = userDetailsService.removeContainerToken(getUser(), containerId);
+        var token = keycloakUtil.removeContainerToken(getUser(), containerId);
         return token != null && getClient(containerId, tokens.get(containerId))
                     .withExtraHeaders(Map.of(AgentContainerApi.HEADER_TOKEN, token))
                     .containerLogout();
@@ -183,7 +183,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     public String renewToken() {
         // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
         String owner = getUser();
-        return jwtUtil.generateToken(owner, Duration.ofHours(10));
+        return keycloakUtil.generateToken(owner, Duration.ofHours(10));
     }
 
     /*
@@ -273,18 +273,18 @@ public class PlatformImpl implements RuntimePlatformApi {
         String token = "";
         String owner = "";
         if (config.requireAuth) {
-            token = jwtUtil.generateToken(agentContainerId, Duration.ofHours(24));
+            token = keycloakUtil.generateToken(agentContainerId, Duration.ofHours(24));
             owner = getUser();
         }
         // create user first so the container can immediately talk with the platform
-        userDetailsService.createTempSubUser(agentContainerId, owner);
+        keycloakUtil.createTempSubUser(agentContainerId, owner);
 
         // start container... this may raise an Exception, or returns the connectivity info
         Connectivity connectivity;
         try {
             connectivity = containerClient.startContainer(agentContainerId, token, owner, postContainer);
         } catch (Exception e) {
-            userDetailsService.removeUser(agentContainerId);
+            keycloakUtil.removeUser(agentContainerId);
             throw e;
         }
 
@@ -331,7 +331,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         log.warn("Stopping Container. {}", errorMessage);
         try {
             containerClient.stopContainer(agentContainerId);
-            userDetailsService.removeUser(agentContainerId);
+            keycloakUtil.removeUser(agentContainerId);
         } catch (Exception e) {
             log.warn("Failed to stop container: {}", e.getMessage());
         }
@@ -369,7 +369,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public boolean removeContainer(String containerId) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
-        if (config.requireAuth && ! getUser().equals(config.platformAdminUser) && ! userDetailsService.isAdminOrSelf(container.getOwner())) {
+        if (config.requireAuth && ! getUser().equals(config.platformAdminUser) && ! keycloakUtil.isAdminOrSelf(container.getOwner())) {
             // ignore if userToken == null; this is only the case iff the platform is about to shut down
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
@@ -377,9 +377,9 @@ public class PlatformImpl implements RuntimePlatformApi {
         runningContainers.remove(containerId);
         startedContainers.remove(containerId);
         validators.remove(containerId);
-        userDetailsService.removeUser(containerId);
+        keycloakUtil.removeUser(containerId);
         containerClient.stopContainer(containerId);
-        userDetailsService.removeContainerToken(getUser(), containerId);
+        keycloakUtil.removeContainerToken(getUser(), containerId);
         return true;
     }
 
@@ -401,9 +401,9 @@ public class PlatformImpl implements RuntimePlatformApi {
         // ask other platform to connect back to self?
         if (connect.isConnectBack()) {
             var ownUrl = config.getOwnBaseUrl();
-            var ownToken = config.requireAuth ? jwtUtil.generateToken(url, Duration.ofDays(7)) : null;
+            var ownToken = config.requireAuth ? keycloakUtil.generateToken(url, Duration.ofDays(7)) : null;
             var owner = getUser();
-            userDetailsService.createTempSubUser(url, owner);
+            keycloakUtil.createTempSubUser(url, owner);
             client.connectPlatform(new ConnectionRequest(ownUrl, false, ownToken));
         }
         // use websocket to connect to updates
@@ -427,7 +427,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (connectedPlatforms.containsKey(url)) {
             connectedPlatforms.remove(url);
             tokens.remove(url);
-            userDetailsService.removeUser(url);
+            keycloakUtil.removeUser(url);
             if (connectionWebsockets.containsKey(url)) {
                 var ws = connectionWebsockets.remove(url);
                 ws.sendClose(1000, "disconnected");
@@ -500,9 +500,11 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
     private String getUser() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
-        var token = auth != null ? (String) auth.getCredentials() : null;
-        if (token != null && ! token.isEmpty()) {
-            return jwtUtil.getUsernameFromToken(token);
+        var token = auth != null ? auth.getCredentials() : null;
+        System.out.println("TOKEN " + token);
+        if (token instanceof Jwt jwt) {
+            System.out.println("CLAIMS " + jwt.getClaims());
+            return "keycloakUtil.getUsernameFromToken(token)"; // TODO
         } else if (! config.requireAuth){
             return config.platformAdminUser;
         } else {
@@ -651,7 +653,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     protected void testSelfConnection() throws Exception {
         var token = config.requireAuth ?
-                userDetailsService.generateTokenForUser(config.platformAdminUser, config.platformAdminPwd) : null;
+                keycloakUtil.generateTokenForUser(config.platformAdminUser, config.platformAdminPwd) : null;
         var info = new ApiProxy(config.getOwnBaseUrl(), null, token).withTimeout(5000).getPlatformInfo();
         if (! Objects.equals(platformId, info.getPlatformId())) {
             throw new IllegalArgumentException("Mismatched Platform ID");
@@ -792,7 +794,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             if (actualContainerId == null) {
                 return client;
             }
-            var containerLoginToken = userDetailsService.getContainerToken(getUser(), actualContainerId);
+            var containerLoginToken = keycloakUtil.getContainerToken(getUser(), actualContainerId);
             // not logged in to container
             if (containerLoginToken == null) {
                 return client;
