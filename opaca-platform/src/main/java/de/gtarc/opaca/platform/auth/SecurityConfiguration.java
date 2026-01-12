@@ -15,27 +15,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.SignatureException;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.stream.Stream;
 
 /**
  * The SecurityConfiguration class is a configuration class for enabling and configuring authentication for the Spring
@@ -47,10 +28,7 @@ import java.util.stream.Stream;
 public class SecurityConfiguration {
 
     @Autowired
-    private UserDetailsService myUserDetailsService;
-
-    @Autowired
-    private JwtUtil jwtUtil;
+    private JwtConverter jwtConverter;
 
     @Autowired
     private PlatformConfig config;
@@ -77,7 +55,11 @@ public class SecurityConfiguration {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(CsrfConfigurer::disable);
+        http
+                .csrf(CsrfConfigurer::disable)
+                .oauth2ResourceServer(oauth2 ->
+                        oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtConverter))
+                );
         if (config.requireAuth) {
             // role-based access control if auth is required
             http.authorizeHttpRequests((auth) -> auth
@@ -89,7 +71,7 @@ public class SecurityConfiguration {
                     // A rule consists of a specific or generic (/**) route, the lowest role level
                     // to access the route (see role hierarchy), and the optional REST method
                     // the route is requested with (if none given, all methods are concerned)
-                    .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
+                    .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name()) // XXX remove?
                     .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**", "/users/**").hasRole(Role.GUEST.name())
                     .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole(Role.USER.name())
                     .requestMatchers(HttpMethod.POST, "/containers/login/**", "/containers/logout/**").hasRole(Role.USER.name())
@@ -107,7 +89,6 @@ public class SecurityConfiguration {
         }
         return http
                 .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(new JwtRequestFilter(), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
@@ -127,64 +108,4 @@ public class SecurityConfiguration {
         return roleHierarchy;
     }
 
-    public class JwtRequestFilter extends OncePerRequestFilter {
-
-        @Override
-        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
-                throws ServletException, IOException {
-            String requestTokenHeader = request.getHeader("Authorization");
-
-            if (requestTokenHeader != null || uriNeedsAuth(request.getRequestURI())) {
-                String username = null;
-                String jwtToken = null;
-                // get username from token (thus validating that the token was issued from RP)
-                if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
-                    jwtToken = requestTokenHeader.substring(7);
-                    try {
-                        username = jwtUtil.getUsernameFromToken(jwtToken);
-                    } catch (SignatureException | IllegalArgumentException e) {
-                        handleException(response, HttpStatus.UNAUTHORIZED, e.getMessage());
-                    } catch (MalformedJwtException e) {
-                        handleException(response, HttpStatus.BAD_REQUEST, e.getMessage());
-                    }
-                } else {
-                    handleException(response, HttpStatus.BAD_REQUEST, "Missing Token.");
-                }
-
-                // check that user (still) exists and set jwtToken in security context holder so impl can access it
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    try {
-                        UserDetails userDetails = myUserDetailsService.loadUserByUsername(username);
-                        if (jwtUtil.validateToken(jwtToken, userDetails)) {
-                            var authToken = new UsernamePasswordAuthenticationToken(userDetails, jwtToken, userDetails.getAuthorities());
-                            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                            SecurityContextHolder.getContext().setAuthentication(authToken);
-                        } else {
-                            handleException(response, HttpStatus.UNAUTHORIZED, "Invalid Token.");
-                        }
-                    } catch (UsernameNotFoundException e) {
-                        handleException(response, HttpStatus.UNAUTHORIZED, "Username not found.");
-                    }
-                }
-            }
-            chain.doFilter(request, response);
-        }
-
-        private void handleException(HttpServletResponse response, HttpStatus status, String message)
-                throws IOException {
-            response.setStatus(status.value());
-            response.getWriter().write(message);
-        }
-    }
-
-    /**
-     * Check whether the given request URI needs auth
-     * @param uri The Path-part of the URI (after the port)
-     * @return Whether the URI requires auth
-     */
-    private boolean uriNeedsAuth(String uri) {
-        if (! config.requireAuth) return false;
-        if (uri.startsWith("/v3/api-docs/actions")) return true; // exception from the exceptions...
-        return Stream.of(noAuthRoutes).noneMatch(s -> uri.startsWith(s.replace("**", "")));
-    }
 }
