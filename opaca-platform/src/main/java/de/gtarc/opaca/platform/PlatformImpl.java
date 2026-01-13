@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.api.RuntimePlatformApi;
-import de.gtarc.opaca.platform.auth.KeycloakUtil;
+import de.gtarc.opaca.platform.auth.AuthUtils;
 import de.gtarc.opaca.platform.containerclient.ContainerClient;
 import de.gtarc.opaca.platform.containerclient.DockerClient;
 import de.gtarc.opaca.platform.containerclient.KubernetesClient;
@@ -60,7 +60,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     private PlatformConfig config;
 
     @Autowired
-    private KeycloakUtil keycloakUtil;
+    private AuthUtils authUtils;
 
 
     /** platform's own UUID */
@@ -152,7 +152,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public String platformLogin(Login loginParams) throws IOException {
         try {
-            return keycloakUtil.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
+            return authUtils.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
         } catch (Exception e) {
             throw new IOException("Failed to get Access Token", e);
         }
@@ -168,7 +168,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         var client = getClient(containerId, tokens.get(containerId));
         // get container-login-token, associate with user
         String token = client.containerLogin(loginParams);
-        keycloakUtil.addContainerToken(user, containerId, token);
+        authUtils.addContainerToken(user, containerId, token);
         return token;
     }
 
@@ -177,7 +177,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (! runningContainers.containsKey(containerId)) {
             throw new NoSuchElementException("Container not found: " + containerId);
         }
-        var token = keycloakUtil.removeContainerToken(getUser(), containerId);
+        var token = authUtils.removeContainerToken(getUser(), containerId);
         return token != null && getClient(containerId, tokens.get(containerId))
                     .withExtraHeaders(Map.of(AgentContainerApi.HEADER_TOKEN, token))
                     .containerLogout();
@@ -187,7 +187,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     public String renewToken() {
         // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
         String owner = getUser();
-        return keycloakUtil.generateToken(owner, Duration.ofHours(10));
+        return authUtils.generateToken(owner, Duration.ofHours(10));
     }
 
     /*
@@ -277,18 +277,18 @@ public class PlatformImpl implements RuntimePlatformApi {
         String token = "";
         String owner = "";
         if (config.requireAuth) {
-            token = keycloakUtil.generateToken(agentContainerId, Duration.ofHours(24));
+            token = authUtils.generateToken(agentContainerId, Duration.ofHours(24));
             owner = getUser();
         }
         // create user first so the container can immediately talk with the platform
-        keycloakUtil.createTempSubUser(agentContainerId, owner);
+        authUtils.createTempSubUser(agentContainerId, owner);
 
         // start container... this may raise an Exception, or returns the connectivity info
         Connectivity connectivity;
         try {
             connectivity = containerClient.startContainer(agentContainerId, token, owner, postContainer);
         } catch (Exception e) {
-            keycloakUtil.removeUser(agentContainerId);
+            authUtils.removeUser(agentContainerId);
             throw e;
         }
 
@@ -335,7 +335,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         log.warn("Stopping Container. {}", errorMessage);
         try {
             containerClient.stopContainer(agentContainerId);
-            keycloakUtil.removeUser(agentContainerId);
+            authUtils.removeUser(agentContainerId);
         } catch (Exception e) {
             log.warn("Failed to stop container: {}", e.getMessage());
         }
@@ -373,7 +373,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public boolean removeContainer(String containerId) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
-        if (config.requireAuth && ! getUser().equals(config.platformAdminUser) && ! keycloakUtil.isAdminOrSelf(container.getOwner())) {
+        if (config.requireAuth && ! authUtils.isAdminOrSelf(container.getOwner())) {
             // ignore if userToken == null; this is only the case iff the platform is about to shut down
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
@@ -381,9 +381,9 @@ public class PlatformImpl implements RuntimePlatformApi {
         runningContainers.remove(containerId);
         startedContainers.remove(containerId);
         validators.remove(containerId);
-        keycloakUtil.removeUser(containerId);
+        authUtils.removeUser(containerId);
         containerClient.stopContainer(containerId);
-        keycloakUtil.removeContainerToken(getUser(), containerId);
+        authUtils.removeContainerToken(getUser(), containerId);
         return true;
     }
 
@@ -405,9 +405,9 @@ public class PlatformImpl implements RuntimePlatformApi {
         // ask other platform to connect back to self?
         if (connect.isConnectBack()) {
             var ownUrl = config.getOwnBaseUrl();
-            var ownToken = config.requireAuth ? keycloakUtil.generateToken(url, Duration.ofDays(7)) : null;
+            var ownToken = config.requireAuth ? authUtils.generateToken(url, Duration.ofDays(7)) : null;
             var owner = getUser();
-            keycloakUtil.createTempSubUser(url, owner);
+            authUtils.createTempSubUser(url, owner);
             client.connectPlatform(new ConnectionRequest(ownUrl, false, ownToken));
         }
         // use websocket to connect to updates
@@ -431,7 +431,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (connectedPlatforms.containsKey(url)) {
             connectedPlatforms.remove(url);
             tokens.remove(url);
-            keycloakUtil.removeUser(url);
+            authUtils.removeUser(url);
             if (connectionWebsockets.containsKey(url)) {
                 var ws = connectionWebsockets.remove(url);
                 ws.sendClose(1000, "disconnected");
@@ -512,7 +512,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             System.out.println("CLAIMS " + jwt.getClaims());
             return jwt.getClaimAsString("preferred_username");
         } else if (! config.requireAuth){
-            return config.platformAdminUser;
+            return "anonymous"; // TODO make this a configurable property?
         } else {
             return null;
         }
@@ -658,9 +658,11 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     protected void testSelfConnection() throws Exception {
-        var token = config.requireAuth ?
-                keycloakUtil.generateTokenForUser(config.platformAdminUser, config.platformAdminPwd) : null;
-        var info = new ApiProxy(config.getOwnBaseUrl(), null, token).withTimeout(5000).getPlatformInfo();
+        if (config.requireAuth) {
+            log.warn("Unable to Test Self-Connection if requireAuth=true");
+            return;
+        }
+        var info = new ApiProxy(config.getOwnBaseUrl(), null, null).withTimeout(5000).getPlatformInfo();
         if (! Objects.equals(platformId, info.getPlatformId())) {
             throw new IllegalArgumentException("Mismatched Platform ID");
         }
@@ -800,7 +802,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             if (actualContainerId == null) {
                 return client;
             }
-            var containerLoginToken = keycloakUtil.getContainerToken(getUser(), actualContainerId);
+            var containerLoginToken = authUtils.getContainerToken(getUser(), actualContainerId);
             // not logged in to container
             if (containerLoginToken == null) {
                 return client;

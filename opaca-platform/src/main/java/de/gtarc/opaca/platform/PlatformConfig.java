@@ -19,7 +19,7 @@ import java.util.Map;
  */
 @Log4j2
 @Configuration
-@ToString(exclude = {"registryPasswords", "platformAdminPwd", "secret"})
+@ToString(exclude = {"registryPasswords"})
 public class PlatformConfig {
 
     // GENERAL SETTINGS
@@ -56,25 +56,11 @@ public class PlatformConfig {
     @Value("${security.requireAuth}")
     public Boolean requireAuth;
 
-    @Value("${security.secret}")
-    public String secret;
+    @Value("${security.kc_realm}")
+    public String keycloakRealm;
 
-    @Value("${platform_admin_user}")
-    public String platformAdminUser;
-
-    @Value("${platform_admin_pwd}")
-    public String platformAdminPwd;
-
-    // USER MANAGEMENT MONGO DB
-
-    @Value("${db_embed}")
-    public Boolean dbEmbed;
-
-    @Value("${db_uri}")
-    public String dbURI;
-
-    @Value("${db_name}")
-    public String dbName;
+    @Value("${security.kc_clientid}")
+    public String keycloakClientId;
 
     // IMAGE REGISTRY CREDENTIALS
 
@@ -136,8 +122,7 @@ public class PlatformConfig {
         res.put("alwaysPullImages", alwaysPullImages);
         // auth stuff
         res.put("requireAuth", requireAuth);
-        // user management stuff
-        res.put("dbEmbed", dbEmbed);
+        res.put("keycloakRealm", keycloakRealm);
         // image registry stuff
         res.put("registryNames", registryNames);
         // docker & kubernetes stuff

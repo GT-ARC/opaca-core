@@ -9,12 +9,14 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authorization.AuthorityReactiveAuthorizationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.SecurityFilterChain;
 
 
@@ -52,11 +54,13 @@ public class SecurityConfiguration {
      * in order to access the specified routes. The swagger ui routes, along with "/login"
      * and "/error", are always permitted.
      */
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // no sessions / stateless; no CSRF necessary
+                .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(CsrfConfigurer::disable)
+                // JWT access tokens using OAuth2/Keycloak
                 .oauth2ResourceServer(oauth2 ->
                         oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtConverter))
                 );
@@ -68,17 +72,13 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.GET, "/v3/api-docs/actions").hasRole(Role.GUEST.name())
                     .requestMatchers(noAuthRoutes).permitAll()
                     // The next block implements the RBAC defined in the user-management docs
-                    // A rule consists of a specific or generic (/**) route, the lowest role level
-                    // to access the route (see role hierarchy), and the optional REST method
-                    // the route is requested with (if none given, all methods are concerned)
-                    .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name()) // XXX remove?
-                    .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**", "/users/**").hasRole(Role.GUEST.name())
+                    .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**").hasRole(Role.GUEST.name())
                     .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole(Role.USER.name())
-                    .requestMatchers(HttpMethod.POST, "/containers/login/**", "/containers/logout/**").hasRole(Role.USER.name())
                     .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**", "/stream/**").hasRole(Role.USER.name())
+                    .requestMatchers(HttpMethod.POST, "/containers/login/**", "/containers/logout/**").hasRole(Role.USER.name())
                     .requestMatchers(HttpMethod.POST, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
                     .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
-                    .requestMatchers("/connections/**", "/users/**").hasRole(Role.ADMIN.name())
+                    .requestMatchers("/connections/**").hasRole(Role.ADMIN.name())
                     .anyRequest().authenticated()
             );
         } else {
@@ -87,9 +87,7 @@ public class SecurityConfiguration {
                     .anyRequest().permitAll()
             );
         }
-        return http
-                .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .build();
+        return http.build();
     }
 
     @Bean

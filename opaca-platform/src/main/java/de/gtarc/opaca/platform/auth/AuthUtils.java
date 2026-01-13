@@ -2,6 +2,8 @@ package de.gtarc.opaca.platform.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gtarc.opaca.model.User;
+import de.gtarc.opaca.platform.PlatformConfig;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -14,17 +16,15 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-public class KeycloakUtil {
+public class AuthUtils {
+
+    @Autowired
+    private PlatformConfig config;
 
     // FORMER METHODS OF JWT UTIL
 
     // used for JWTs for containers and connected platform, also for token-renewal
     public String generateToken(String owner, Duration duration) {
-        return null; // TODO
-    }
-
-    // used in getUser() helper method
-    public String getUsernameFromToken(String token) {
         return null; // TODO
     }
 
@@ -34,7 +34,7 @@ public class KeycloakUtil {
     public String generateTokenForUser(String username, String password) throws Exception {
         var data = Map.of(
                 "grant_type", "password",
-                "client_id", "testclient", // TODO get from config
+                "client_id", config.keycloakClientId,
                 "username", username,
                 "password", password
         );
@@ -43,7 +43,7 @@ public class KeycloakUtil {
                 .collect(Collectors.joining("&"));
         var response = HttpClient.newHttpClient().send(
                 HttpRequest.newBuilder()
-                        .uri(URI.create("http://localhost:8888/realms/testrealm/protocol/openid-connect/token")) // TODO get from config
+                        .uri(URI.create(config.keycloakRealm + "/protocol/openid-connect/token"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .POST(HttpRequest.BodyPublishers.ofString(form))
                         .build(),
@@ -86,7 +86,7 @@ public class KeycloakUtil {
      * CONTAINER TOKEN STUFF... store those in KeyCloak, or just in-memory?
      */
 
-    private Map<String, Map<String, String>> containerTokens = new HashMap<>();
+    private final Map<String, Map<String, String>> containerTokens = new HashMap<>();
 
     /**
      * Returns Access Token associated with container, or null
@@ -103,7 +103,7 @@ public class KeycloakUtil {
     }
 
     /**
-     * Deleted Access Token associated with container, return old token if existed, otherwise null
+     * Delete Access Token associated with container, return old token if existed, otherwise null
      */
     public String removeContainerToken(String username, String containerId) {
         return containerTokens.getOrDefault(username, Map.of()).remove(containerId);
