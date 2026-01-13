@@ -2,6 +2,7 @@ package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.*;
+import de.gtarc.opaca.model.User.Role;
 import de.gtarc.opaca.platform.Application;
 
 import lombok.AllArgsConstructor;
@@ -659,8 +660,8 @@ public class ContainerTests {
     @Test
     public void testContainerLoginNoAuthButUsers() throws Exception {
         // create two users for testing
-        result(request(PLATFORM_URL, "POST", "/users", user("user1", "12345", User.Role.USER)));
-        result(request(PLATFORM_URL, "POST", "/users", user("user2", "12345", User.Role.USER)));
+        result(request(PLATFORM_URL, "POST", "/users", user("user1", "12345", Role.USER)));
+        result(request(PLATFORM_URL, "POST", "/users", user("user2", "12345", Role.USER)));
         var token1 = result(request(PLATFORM_URL, "POST", "/login", new Login("user1", "12345")));
         var token2 = result(request(PLATFORM_URL, "POST", "/login", new Login("user2", "12345")));
 
