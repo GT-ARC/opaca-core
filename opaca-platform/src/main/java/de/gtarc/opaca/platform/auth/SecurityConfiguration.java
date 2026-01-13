@@ -9,9 +9,11 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -19,8 +21,7 @@ import org.springframework.security.web.SecurityFilterChain;
 
 /**
  * The SecurityConfiguration class is a configuration class for enabling and configuring authentication for the Spring
- * application. The inner class JwtRequestFilter is the filter that is applied to ensure that only authenticated and
- * authorized users are allowed for requesting the platform.
+ * application. The users are managed and JWTs are created by KeyCloak.
  */
 @Configuration
 @EnableWebSecurity
@@ -53,17 +54,9 @@ public class SecurityConfiguration {
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                // no sessions / stateless; no CSRF necessary
-                .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .csrf(CsrfConfigurer::disable)
-                // JWT access tokens using OAuth2/Keycloak
-                .oauth2ResourceServer(oauth2 ->
-                        oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtConverter))
-                );
-        if (config.requireAuth) {
-            // role-based access control if auth is required
-            http.authorizeHttpRequests((auth) -> auth
+        Customizer<AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry> authPolicy = config.requireAuth
+                // Role-Based Access Control if auth is required
+                ? auth -> auth
                     // some routes, like those related to OpenAPI and login, should work without Authentication
                     // (except for the OpenAPI route giving insight into the agents' actions)
                     .requestMatchers(HttpMethod.GET, "/v3/api-docs/actions").hasRole(Role.GUEST.name())
@@ -77,23 +70,30 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
                     .requestMatchers("/connections/**").hasRole(Role.ADMIN.name())
                     .anyRequest().authenticated()
-            );
-        } else {
-            // permit-all if no auth required (but still enable auth)
-            http.authorizeHttpRequests((auth) -> auth
-                    .anyRequest().permitAll()
-            );
-        }
+                // no auth required -> permit all (but still path JWT tokens)
+                : auth -> auth.anyRequest().permitAll();
+
+        // no sessions / stateless; no CSRF necessary
+        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        http.csrf(CsrfConfigurer::disable);
+        // JWT access tokens using OAuth2/Keycloak
+        http.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtConverter)));
+        // authorization rules with required-auth and without
+        http.authorizeHttpRequests(authPolicy);
         return http.build();
     }
 
     /*
+    // not sure why, or why it was needed before, but removing this solved a StackOverflowError if the token was invalid
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
             throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
+    // the roles hierarchy is now defined in keycloak. I guess we COULD also keep it here, reducing the necessary
+    configuration in keycloak, but you still have to define the roles themselves, so it would not save much...
+    // also, if the UserController is completely removed, and we don't need the User class anymore, Role should be moved here
     @Bean
     public RoleHierarchy roleHierarchy() {
         RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
