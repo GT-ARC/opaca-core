@@ -1,11 +1,13 @@
 package de.gtarc.opaca.platform.auth;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.PlatformConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -49,7 +51,12 @@ public class AuthUtils {
                         .build(),
                 HttpResponse.BodyHandlers.ofString()
         );
-        return new ObjectMapper().readTree(response.body()).get("access_token").asText();
+        JsonNode body = new ObjectMapper().readTree(response.body());
+        if (response.statusCode() == 200) {
+            return body.get("access_token").asText();
+        } else {
+            throw new IOException(String.format("Login failed (%s): %s", response.statusCode(), body.get("error_description").asText()));
+        }
     }
 
     /**
