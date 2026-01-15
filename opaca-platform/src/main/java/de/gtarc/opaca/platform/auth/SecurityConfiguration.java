@@ -142,10 +142,8 @@ public class SecurityConfiguration {
                     jwtToken = requestTokenHeader.substring(7);
                     try {
                         username = jwtUtil.getUsernameFromToken(jwtToken);
-                    } catch (SignatureException | IllegalArgumentException e) {
+                    } catch (SignatureException | IllegalArgumentException | MalformedJwtException e) {
                         handleException(response, HttpStatus.UNAUTHORIZED, e.getMessage());
-                    } catch (MalformedJwtException e) {
-                        handleException(response, HttpStatus.BAD_REQUEST, e.getMessage());
                     }
                 } else {
                     handleException(response, HttpStatus.UNAUTHORIZED, "Missing Token.");

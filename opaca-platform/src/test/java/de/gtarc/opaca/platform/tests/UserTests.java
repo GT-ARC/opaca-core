@@ -318,7 +318,7 @@ public class UserTests {
 
         // ... or use a previously acquired token
         con = requestWithToken(PLATFORM_A, "GET", "/info", null, userToken);
-        Assert.assertEquals(403, con.getResponseCode());
+        Assert.assertEquals(401, con.getResponseCode());
     }
 
     @Test

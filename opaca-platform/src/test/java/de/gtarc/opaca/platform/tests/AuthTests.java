@@ -127,13 +127,13 @@ public class AuthTests {
     public void test02WithWrongToken() throws Exception {
         var invalidToken = "wrong-token";
         var con = requestWithToken(PLATFORM_A, "GET", "/info", null, invalidToken);
-        Assert.assertEquals(403, con.getResponseCode());
+        Assert.assertEquals(401, con.getResponseCode());
     }
 
     @Test
     public void test02WithoutToken() throws Exception {
         var con = request(PLATFORM_A, "GET", "/info", null);
-        Assert.assertEquals(403, con.getResponseCode());
+        Assert.assertEquals(401, con.getResponseCode());
     }
 
     @Test
