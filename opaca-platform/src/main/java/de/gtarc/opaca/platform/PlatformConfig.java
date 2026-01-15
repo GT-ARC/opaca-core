@@ -19,7 +19,7 @@ import java.util.Map;
  */
 @Log4j2
 @Configuration
-@ToString(exclude = {"registryPasswords"})
+@ToString(exclude = {"registryPasswords", "keycloakAdmin", "keycloakAdminPw"})
 public class PlatformConfig {
 
     // GENERAL SETTINGS
@@ -61,6 +61,12 @@ public class PlatformConfig {
 
     @Value("${opaca.security.kc_clientid}")
     public String keycloakClientId;
+
+    @Value("${opaca.security.kc_admin}")
+    public String keycloakAdmin;
+
+    @Value("${opaca.security.kc_admin_pw}")
+    public String keycloakAdminPw;
 
     // IMAGE REGISTRY CREDENTIALS
 

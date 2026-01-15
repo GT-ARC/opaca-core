@@ -33,7 +33,7 @@ public class AuthUtils {
     // FORMER METHODS OF TOKEN USER DETAILS SERVICE
 
     // used for platform login
-    public String generateTokenForUser(String username, String password) throws Exception {
+    public String generateTokenForUser(String username, String password) throws IOException {
         var data = Map.of(
                 "grant_type", "password",
                 "client_id", config.keycloakClientId,
@@ -43,19 +43,23 @@ public class AuthUtils {
         String form = data.entrySet().stream()
                 .map(e -> e.getKey() + "=" + e.getValue())
                 .collect(Collectors.joining("&"));
-        var response = HttpClient.newHttpClient().send(
-                HttpRequest.newBuilder()
-                        .uri(URI.create(config.keycloakRealm + "/protocol/openid-connect/token"))
-                        .header("Content-Type", "application/x-www-form-urlencoded")
-                        .POST(HttpRequest.BodyPublishers.ofString(form))
-                        .build(),
-                HttpResponse.BodyHandlers.ofString()
-        );
-        JsonNode body = new ObjectMapper().readTree(response.body());
-        if (response.statusCode() == 200) {
-            return body.get("access_token").asText();
-        } else {
-            throw new IOException(String.format("Login failed (%s): %s", response.statusCode(), body.get("error_description").asText()));
+        try {
+            var response = HttpClient.newHttpClient().send(
+                    HttpRequest.newBuilder()
+                            .uri(URI.create(config.keycloakRealm + "/protocol/openid-connect/token"))
+                            .header("Content-Type", "application/x-www-form-urlencoded")
+                            .POST(HttpRequest.BodyPublishers.ofString(form))
+                            .build(),
+                    HttpResponse.BodyHandlers.ofString()
+            );
+            JsonNode body = new ObjectMapper().readTree(response.body());
+            if (response.statusCode() == 200) {
+                return body.get("access_token").asText();
+            } else {
+                throw new IOException(String.format("Login failed (%s): %s", response.statusCode(), body.get("error_description").asText()));
+            }
+        } catch (InterruptedException e) {
+            throw new IOException("Login failed: Interrupted");
         }
     }
 
@@ -66,7 +70,23 @@ public class AuthUtils {
      * @param username the name of the new user to be created
      * @param owner the name of the user creating the new user (ignored if no auth)
      */
-    public User createTempSubUser(String username, String owner) {
+    public User createTempSubUser(String username, String owner) throws IOException {
+        String adminToken = generateTokenForUser(config.keycloakAdmin, config.keycloakAdminPw);
+
+        var data = Map.of(
+                "username", username,
+                "enabled", true,
+                "credentials", Map.of(
+                        "type", "password",
+                        "value", username, // TODO generate random password
+                        "temporary", false
+                )
+        );
+        // TODO send POST with above body to {kc-base}/admin/realms/{realm}/users" to create user
+        //  login as the new user to get their access token, return the token
+        //  do in plain REST or use Java client?
+        //  need new var for KC base URL...
+        //  is there also API for getting the token?
         return null; // TODO
     }
 
