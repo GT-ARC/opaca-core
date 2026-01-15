@@ -167,7 +167,9 @@ public class SecurityConfiguration {
                     }
                 }
             }
-            chain.doFilter(request, response);
+            if (response.getStatus() < 400) {
+                chain.doFilter(request, response);
+            }
         }
 
         private void handleException(HttpServletResponse response, HttpStatus status, String message)
