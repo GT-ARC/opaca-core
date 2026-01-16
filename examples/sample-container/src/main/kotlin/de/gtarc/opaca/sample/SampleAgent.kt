@@ -126,7 +126,7 @@ class SampleAgent(name: String, val loginHandler: LoginHandler<String>): Abstrac
 
     private fun actionTestOutbound(agentId: String): String {
         // Just call another action using "outbound" invoke, testing communication from container to parent platform.
-        // In the end the call can go to the agent itself; the important bit is that it's routed through the platform.
+        // It can go to another agent on the same platform; the important bit is that it's routed through the platform.
         val res = sendOutboundInvoke("Add", agentId, mapOf("x" to 42, "y" to 23), Int::class.java)
         return "Result of outbound Invoke Add(42, 23): $res"
     }
