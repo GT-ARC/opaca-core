@@ -45,8 +45,11 @@ Using the `/containers/login/{containerId}` route (introduced in version 0.4), u
 
 If feasible, the Agent Container should test the credentials immediately when the `login` route is called. If this is not possible, the credentials (or an appropriately instantiated API client) may just be stored for later use. In case credentials have been tested but do not work, the container should return a **401** (unauthorized) status code. If container login is not supported, a **501** (not implemented) status code should be returned (this is the default behavior).
 
+### Container Login for Extra Ports
 
-## Visualization
+Agent Containers may provide "extra-ports" for e.g. custom web-UIs or for exposing additional services or protocols. These ports are called directly at the Agent Container (the ports are mapped to free ports on the host machine, but the calls are not routed through the OPACA Runtime Platform). Thus, the RP can not automatically set the `ContainerLoginToken` header in these cases. Clients calling an extra-port of an Agent Container requiring authentication should add the header themselves. (The container login token is returned by the RP's `/container/login` route.) In addition, in case the extra-port is for a web-UI that could be included in another website using an IFrame, it should also be possible to pass the token via a query-parameter; the convention for this is `?token=...`.
+
+### Visualization
 
 The following sequence diagram shows, slightly simplified, how the interaction between user, runtime platform, and agent container takes place. In the arrow labels, `{...}` denotes a path parameter, `(...)` the request body, and `[...]` an HTTP header.
 
