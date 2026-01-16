@@ -4,6 +4,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.PlatformConfig;
+import de.gtarc.opaca.util.KeycloakUtil;
+import de.gtarc.opaca.util.RestHelper;
+import jakarta.ws.rs.core.Response;
+import org.jboss.resteasy.client.jaxrs.internal.ResteasyClientBuilderImpl;
+import org.keycloak.OAuth2Constants;
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.KeycloakBuilder;
+import org.keycloak.representations.idm.ClientRepresentation;
+import org.keycloak.representations.idm.authorization.ResourceServerRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +24,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,33 +44,7 @@ public class AuthUtils {
 
     // used for platform login
     public String generateTokenForUser(String username, String password) throws IOException {
-        var data = Map.of(
-                "grant_type", "password",
-                "client_id", config.keycloakClientId,
-                "username", username,
-                "password", password
-        );
-        String form = data.entrySet().stream()
-                .map(e -> e.getKey() + "=" + e.getValue())
-                .collect(Collectors.joining("&"));
-        try {
-            var response = HttpClient.newHttpClient().send(
-                    HttpRequest.newBuilder()
-                            .uri(URI.create(config.keycloakRealm + "/protocol/openid-connect/token"))
-                            .header("Content-Type", "application/x-www-form-urlencoded")
-                            .POST(HttpRequest.BodyPublishers.ofString(form))
-                            .build(),
-                    HttpResponse.BodyHandlers.ofString()
-            );
-            JsonNode body = new ObjectMapper().readTree(response.body());
-            if (response.statusCode() == 200) {
-                return body.get("access_token").asText();
-            } else {
-                throw new IOException(String.format("Login failed (%s): %s", response.statusCode(), body.get("error_description").asText()));
-            }
-        } catch (InterruptedException e) {
-            throw new IOException("Login failed: Interrupted");
-        }
+        return KeycloakUtil.getTokenForUser(config.keycloakRealm, config.keycloakClientId, username, password);
     }
 
     /**
@@ -71,23 +55,71 @@ public class AuthUtils {
      * @param owner the name of the user creating the new user (ignored if no auth)
      */
     public User createTempSubUser(String username, String owner) throws IOException {
-        String adminToken = generateTokenForUser(config.keycloakAdmin, config.keycloakAdminPw);
 
-        var data = Map.of(
-                "username", username,
-                "enabled", true,
-                "credentials", Map.of(
-                        "type", "password",
-                        "value", username, // TODO generate random password
-                        "temporary", false
-                )
-        );
-        // TODO send POST with above body to {kc-base}/admin/realms/{realm}/users" to create user
-        //  login as the new user to get their access token, return the token
-        //  do in plain REST or use Java client?
-        //  need new var for KC base URL...
-        //  is there also API for getting the token?
+        //var userToken = KeycloakUtil.getTokenForUser("http://localhost:8888/realms/opaca", "opaca-rp", "test", "test1234");
+        //System.out.println(userToken);
+
+        //var adminToken = KeycloakUtil.getTokenForUser("http://localhost:8888/realms/master", "admin-cli", "admin", "admin");
+        //System.out.println(adminToken);
+
+        Keycloak keycloak = KeycloakBuilder.builder()
+                .serverUrl("http://localhost:8888/")
+                .realm("master")
+                .clientId("admin-cli")
+                .grantType("password")
+                .username("admin")
+                .password("admin")
+                .build();
+
+        var clientId = "1234567890";
+        var secret = "OC5lcOXvNpeVQ3oCZcEF6qZjvEfhrztE";
+
+        ClientRepresentation clientRep = new ClientRepresentation();
+        clientRep.setClientId(clientId);
+        clientRep.setSecret(secret);
+        clientRep.setProtocol("openid-connect");
+        clientRep.setEnabled(true);
+        clientRep.setPublicClient(false);
+        clientRep.setStandardFlowEnabled(false);
+        clientRep.setClientAuthenticatorType("client-secret");
+        clientRep.setDirectAccessGrantsEnabled(false);
+        clientRep.setServiceAccountsEnabled(true);
+        //clientRep.setAuthorizationSettings();
+        /*
+        "clientId": "my-client",
+        "enabled": true,
+        "protocol": "openid-connect",
+        "publicClient": false,
+        "serviceAccountsEnabled": true,
+        "clientAuthenticatorType": "client-secret",
+        "redirectUris": ["https://app.example/*"],
+        "directAccessGrantsEnabled": true
+         */
+
+        var res2 = keycloak.realm("opaca").clients().create(clientRep);
+        System.out.println("RESPONSE " + res2.getStatus());
+
+        var clientToken = KeycloakUtil.getTokenForClient("http://localhost:8888/realms/opaca", clientId, secret);
+        System.out.println("TOKEN " + clientToken);
+
+        var id = keycloak.realm("opaca").clients().findByClientId(clientId).get(0).getId();
+        System.out.println(id);
+        var res3 = keycloak.realm("opaca").clients().delete(id);
+        System.out.println("RESPONSE " + res3.getStatus());
+
+
+        // TODO https://stackoverflow.com/questions/52230634/issuing-api-keys-using-keycloak
+        //  Here:
+        //  - create temp client with client-id = container-id
+        //  - get and return the client secret
+        //  - add client secret and KC URL to the container's env
+        //  Inside the container:
+        //  - get access token as above, with client-id as username and secret as password
         return null; // TODO
+    }
+
+    public static void main(String[] args) throws Exception {
+        new AuthUtils().createTempSubUser(null, null);
     }
 
     /**
