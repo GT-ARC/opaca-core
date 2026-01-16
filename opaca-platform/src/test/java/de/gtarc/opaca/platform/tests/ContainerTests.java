@@ -125,6 +125,14 @@ public class ContainerTests {
     }
 
     @Test
+    public void testInvokeActionOutbound() throws Exception {
+        var con = request(PLATFORM_URL, "POST", "/invoke/OutboundInvokeTest/sample1", Map.of("agentId", "sample2"));
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, String.class);
+        Assert.assertTrue(res.contains("65"));
+    }
+
+    @Test
     public void testGetStream() throws Exception {
         var con = request(PLATFORM_URL, "GET", "/stream/GetStream", null);
         Assert.assertEquals(200, con.getResponseCode());
