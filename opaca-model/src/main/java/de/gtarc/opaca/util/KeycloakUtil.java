@@ -13,33 +13,33 @@ import java.util.stream.Collectors;
 
 public class KeycloakUtil {
 
-    public static String getTokenForUser(String keycloak, String clientId, String username, String password) throws IOException {
+    public static String getTokenForUser(String keycloakUrl, String realm, String clientId, String username, String password) throws IOException {
         var data = Map.of(
                 "grant_type", "password",
                 "client_id", clientId,
                 "username", username,
                 "password", password
         );
-        return getToken(keycloak, data);
+        return getToken(keycloakUrl, realm, data);
     }
 
-    public static String getTokenForClient(String keycloak, String clientId, String clientSecret) throws IOException {
+    public static String getTokenForClient(String keycloakUrl, String realm, String clientId, String clientSecret) throws IOException {
         var data = Map.of(
                 "grant_type", "client_credentials",
                 "client_id", clientId,
                 "client_secret", clientSecret
         );
-        return getToken(keycloak, data);
+        return getToken(keycloakUrl, realm, data);
     }
 
-    private static String getToken(String keycloak, Map<String, String> data) throws IOException {
+    private static String getToken(String keycloakUrl, String realm, Map<String, String> data) throws IOException {
         String form = data.entrySet().stream()
                 .map(e -> e.getKey() + "=" + e.getValue())
                 .collect(Collectors.joining("&"));
         try {
             var response = HttpClient.newHttpClient().send(
                     HttpRequest.newBuilder()
-                            .uri(URI.create(keycloak + "/protocol/openid-connect/token"))
+                            .uri(URI.create(keycloakUrl + "/realms/" + realm + "/protocol/openid-connect/token"))
                             .header("Content-Type", "application/x-www-form-urlencoded")
                             .POST(HttpRequest.BodyPublishers.ofString(form))
                             .build(),

@@ -56,6 +56,9 @@ public class PlatformConfig {
     @Value("${opaca.security.requireAuth}")
     public Boolean requireAuth;
 
+    @Value("${opaca.security.kc_url}")
+    public String keycloakUrl;
+
     @Value("${opaca.security.kc_realm}")
     public String keycloakRealm;
 

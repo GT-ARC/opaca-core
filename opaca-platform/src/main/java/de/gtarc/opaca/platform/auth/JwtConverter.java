@@ -31,6 +31,10 @@ public class JwtConverter implements Converter<Jwt, AbstractAuthenticationToken>
                 converter.convert(jwt).stream(),
                 extractResourceRoles(jwt).stream()
         ).collect(Collectors.toSet());
+        // XXX client-tokens have role "USER"...
+        if (((String) jwt.getClaim("preferred_username")).startsWith("service-account-")) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+        }
         System.out.println("AUTHORITIES " + authorities);
         return new JwtAuthenticationToken(jwt, authorities, jwt.getClaim(JwtClaimNames.SUB));
     }
