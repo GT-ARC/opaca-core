@@ -142,13 +142,11 @@ public class SecurityConfiguration {
                     jwtToken = requestTokenHeader.substring(7);
                     try {
                         username = jwtUtil.getUsernameFromToken(jwtToken);
-                    } catch (SignatureException | IllegalArgumentException e) {
+                    } catch (SignatureException | IllegalArgumentException | MalformedJwtException e) {
                         handleException(response, HttpStatus.UNAUTHORIZED, e.getMessage());
-                    } catch (MalformedJwtException e) {
-                        handleException(response, HttpStatus.BAD_REQUEST, e.getMessage());
                     }
                 } else {
-                    handleException(response, HttpStatus.BAD_REQUEST, "Missing Token.");
+                    handleException(response, HttpStatus.UNAUTHORIZED, "Missing Token.");
                 }
 
                 // check that user (still) exists and set jwtToken in security context holder so impl can access it
@@ -167,12 +165,15 @@ public class SecurityConfiguration {
                     }
                 }
             }
-            chain.doFilter(request, response);
+            if (response.getStatus() < 400) {
+                chain.doFilter(request, response);
+            }
         }
 
         private void handleException(HttpServletResponse response, HttpStatus status, String message)
                 throws IOException {
             response.setStatus(status.value());
+            response.setHeader("www-authenticate", "Bearer");
             response.getWriter().write(message);
         }
     }
