@@ -20,8 +20,6 @@ import de.gtarc.opaca.util.EventHistory;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
@@ -182,13 +180,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         return token != null && getContainerClient(containerId)
                     .withExtraHeaders(Map.of(AgentContainerApi.HEADER_TOKEN, token))
                     .containerLogout();
-    }
-
-    @Override
-    public String renewToken() {
-        // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
-        String owner = getUser();
-        return authUtils.generateToken(owner, Duration.ofHours(10));
     }
 
     /*

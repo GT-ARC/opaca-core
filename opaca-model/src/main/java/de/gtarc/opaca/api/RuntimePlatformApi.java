@@ -88,15 +88,6 @@ public interface RuntimePlatformApi extends CommonApi {
      */
     boolean containerLogout(String containerId) throws IOException;
 
-    /**
-     * Retrieve new Access Token for already logged-in user.
-     *
-     * REST: GET /token
-     *
-     * @return JWT access token
-     */
-    String renewToken() throws IOException;
-
     /*
      * AGENT CONTAINER ROUTES
      */
