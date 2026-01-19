@@ -6,7 +6,6 @@ import de.dailab.jiacvi.BrokerAgentRef
 import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.model.*
-import de.gtarc.opaca.util.ApiProxy
 import de.gtarc.opaca.util.RestHelper
 import de.gtarc.opaca.util.WebSocketConnector
 import java.io.InputStream
@@ -33,7 +32,7 @@ class ContainerAgent(
 
     private val broker by resolve<BrokerAgentRef>()
 
-    private val server by lazy { RestServerJavalin(this, image.apiPort, token) }
+    private val server by lazy { RestServerJavalin(this, image.apiPort) }
 
     // information on current state of agent container
 
@@ -45,12 +44,6 @@ class ContainerAgent(
 
     /** the URL of the parent Runtime Platform, received on initialization */
     private val runtimePlatformUrl = System.getenv(AgentContainerApi.ENV_PLATFORM_URL)
-
-    /** the token for accessing the parent Runtime Platform, received on initialization */
-    private var token = System.getenv(AgentContainerApi.ENV_TOKEN)
-
-    /** API Proxy for sending request to this ContainerAgent's parent RuntimePlatform */
-    private var parentProxy: ApiProxy = ApiProxy(runtimePlatformUrl, containerId, token)
 
     /** the owner who started the Agent Container */
     private val owner = System.getenv(AgentContainerApi.ENV_OWNER)
@@ -69,7 +62,8 @@ class ContainerAgent(
             log.info("Starting Container Agent...")
             server.start()
             if (subscribeToEvents) {
-                WebSocketConnector.subscribe(runtimePlatformUrl, token, "/invoke", this::onEvent)
+                TODO()
+                //WebSocketConnector.subscribe(runtimePlatformUrl, token, "/invoke", this::onEvent)
             }
         }.start()
     }
@@ -194,7 +188,7 @@ class ContainerAgent(
                 notifyPlatform()
             }
 
-            Registered(runtimePlatformUrl, containerId, token)
+            Registered(containerId)
         }
 
         // in case agents want to de-register themselves before the container as a whole terminates
@@ -219,37 +213,14 @@ class ContainerAgent(
                 it.lock.release()
             }.timeout(Duration.ofSeconds(if (it.timeout > 0) it.timeout.toLong() else 30))
         }
-
-        // renew token every 9 hours (should be valid for 10 hours)
-        // (first called after one interval, not directly after startup)
-        every(Duration.ofSeconds(60 * 60 * 9)) {
-            // TODO test if token is close to expiring --> requires async encryption for tokens so container can check it
-            if (! token.isNullOrEmpty()) {
-                try {
-                    log.info("Renewing token...")
-                    renewToken()
-                } catch (e: Exception) {
-                    log.error("Error during token renewal: ${e.message}")
-                }
-            }
-        }
     }
 
     private fun notifyPlatform() {
         if (! server.isRunning) return
         try {
-            parentProxy.notifyUpdateContainer(containerId)
+            AuthHelper.getParentProxy().notifyUpdateContainer(containerId)
         } catch (e: RestHelper.RequestException) {
             log.error("Failed to notify parent platform: ${e.message}")
-        }
-    }
-
-    private fun renewToken() {
-        token = parentProxy.renewToken()
-        parentProxy = ApiProxy(runtimePlatformUrl, containerId, token)
-        for (agentId in registeredAgents.keys.toList()) {
-            val ref = system.resolve(agentId)
-            ref tell RenewToken(token!!)
         }
     }
 

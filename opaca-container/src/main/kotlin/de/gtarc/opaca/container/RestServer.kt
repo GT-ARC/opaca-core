@@ -4,6 +4,7 @@ import de.gtarc.opaca.model.ErrorResponse
 import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.model.Login
 import de.gtarc.opaca.model.Message
+import de.gtarc.opaca.util.KeycloakUtil
 import de.gtarc.opaca.util.RestHelper
 import io.javalin.Javalin
 import io.javalin.http.Context
@@ -19,12 +20,12 @@ import io.javalin.http.Context
  * calls functions of the API Implementation and the Container Agent (still in that thread!). Any
  * callbacks, e.g. for invoke-ask, are then handled by the Container Agent's thread.
  */
-class RestServerJavalin(val impl: ContainerAgent, val port: Int, val token: String?) {
+class RestServerJavalin(val impl: ContainerAgent, val port: Int) {
 
     private val server = Javalin.create()
             .before {
                 val tokenFromRequest = it.header("Authorization")?.removePrefix("Bearer ")
-                if (! token.isNullOrEmpty() && tokenFromRequest != token) {
+                if (! AuthHelper.validateToken(tokenFromRequest)) {
                     throw NotAuthenticatedException("Unauthorized: Token does not match")
                 }
             }
