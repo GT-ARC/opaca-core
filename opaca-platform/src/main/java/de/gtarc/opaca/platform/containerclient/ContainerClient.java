@@ -6,6 +6,7 @@ import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.session.SessionData;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 /**
@@ -35,7 +36,7 @@ public interface ContainerClient {
      *
      * @return Port Mappings
      */
-    AgentContainer.Connectivity startContainer(String containerId, String token, String owner, PostAgentContainer container) throws IOException, NoSuchElementException;
+    AgentContainer.Connectivity startContainer(String containerId, PostAgentContainer container, Map<String, String> env) throws IOException, NoSuchElementException;
 
     /**
      * Stop the agent container with the given ID.

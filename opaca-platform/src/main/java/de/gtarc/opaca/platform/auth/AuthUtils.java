@@ -6,6 +6,8 @@ import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -33,9 +35,13 @@ public class AuthUtils {
                 .build();
     }
 
+    public String getKeycloakUrlAndRealm() {
+        return config.keycloakUrl + "/realms/" + config.keycloakRealm;
+    }
+
     // used for platform login
     public String getTokenForUser(String username, String password) throws IOException {
-        return KeycloakUtil.getTokenForUser(config.keycloakUrl, config.keycloakRealm, config.keycloakClientId, username, password);
+        return KeycloakUtil.getTokenForUser(getKeycloakUrlAndRealm(), config.keycloakClientId, username, password);
     }
 
     // TODO https://stackoverflow.com/questions/52230634/issuing-api-keys-using-keycloak
@@ -69,7 +75,7 @@ public class AuthUtils {
         return secret;
     }
 
-    public void deleteClient(String clientId) throws IOException {
+    public boolean deleteClient(String clientId) throws IOException {
         try (var keycloak = keycloakClient()) {
             var client = keycloak.realm("opaca").clients().findByClientId(clientId).stream().findAny();
             if (client.isPresent()) {
@@ -78,17 +84,18 @@ public class AuthUtils {
                         throw new IOException("Keycloak Client could not be deleted: " + result.getStatusInfo());
                     }
                 }
+                return true;
             } else {
-                throw new NoSuchElementException("Keycloak Client not found: " + clientId);
+                return false;
             }
         }
     }
 
     public static void main(String[] args) throws Exception {
 
-        var userToken = KeycloakUtil.getTokenForUser("http://localhost:8888", "opaca", "opaca-rp", "test", "test1234");
+        var userToken = KeycloakUtil.getTokenForUser("http://localhost:8888/realms/opaca", "opaca-rp", "test", "test1234");
         System.out.println(userToken);
-        KeycloakUtil.validateToken("http://localhost:8888", "opaca", userToken);
+        KeycloakUtil.validateToken("http://localhost:8888/realms/opaca", userToken);
 
         Keycloak keycloak = KeycloakBuilder.builder()
                 .serverUrl("http://localhost:8888/")
@@ -116,9 +123,9 @@ public class AuthUtils {
         System.out.println("RESPONSE " + res2.getStatus());
 
         try {
-            var clientToken = KeycloakUtil.getTokenForClient("http://localhost:8888", "opaca", clientId, secret);
+            var clientToken = KeycloakUtil.getTokenForClient("http://localhost:8888/realms/opaca", clientId, secret);
             System.out.println("TOKEN " + clientToken);
-            KeycloakUtil.validateToken("http://localhost:8888", "opaca", clientToken);
+            KeycloakUtil.validateToken("http://localhost:8888/realms/opaca", clientToken);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -141,6 +148,47 @@ public class AuthUtils {
 
     @Deprecated
     public String generateToken(String owner, Duration duration) {
+        return null;
+    }
+
+    /**
+     * Get the logged-in user from the user token in auth context, or default user if no auth.
+     * The default-user is only relevant for container-login if no auth is enabled and only used
+     * to associate the container logins with.
+     */
+    public String getRequestUser() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth.getCredentials() instanceof Jwt jwt) {
+            System.out.println("TOKEN " + jwt.getTokenValue());
+            System.out.println("CLAIMS " + jwt.getClaims());
+            return jwt.getClaimAsString("preferred_username");
+        } else if (! config.requireAuth){
+            return "anonymous"; // TODO make this a configurable property?
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Get the original JWT that was used for the current request, or null if no JWT was passed
+     */
+    public String getRequestToken() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth.getCredentials() instanceof Jwt jwt) {
+            return jwt.getTokenValue();
+        } else {
+            return null;
+        }
+    }
+
+    public String getPlatformToken() {
+        /*
+         TODO
+          get token for the platform itself, for calling routes at the agent containers
+          create client for the platform itself, if it does not exist yet
+          create token for the platform
+          create current request user as additional user-attribute
+         */
         return null;
     }
 

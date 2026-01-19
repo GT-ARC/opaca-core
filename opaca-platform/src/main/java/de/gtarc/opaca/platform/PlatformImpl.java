@@ -74,6 +74,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     /** Currently running Agent Containers, mapping container ID to description */
     private Map<String, AgentContainer> runningContainers;
     private Map<String, PostAgentContainer> startedContainers;
+    // TODO what to do with container tokens?
     private Map<String, String> tokens;
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
@@ -127,7 +128,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public RuntimePlatform getPlatformInfo() {
 
-        getUser();
+        authUtils.getRequestUser();
 
         return new RuntimePlatform(
                 platformId,
@@ -164,8 +165,8 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw new NoSuchElementException("Container not found: " + containerId);
         }
         // find matching user and container
-        var user = getUser();
-        var client = getClient(containerId, tokens.get(containerId));
+        var user = authUtils.getRequestUser();
+        var client = getContainerClient(containerId);
         // get container-login-token, associate with user
         String token = client.containerLogin(loginParams);
         authUtils.addContainerToken(user, containerId, token);
@@ -177,8 +178,8 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (! runningContainers.containsKey(containerId)) {
             throw new NoSuchElementException("Container not found: " + containerId);
         }
-        var token = authUtils.removeContainerToken(getUser(), containerId);
-        return token != null && getClient(containerId, tokens.get(containerId))
+        var token = authUtils.removeContainerToken(authUtils.getRequestUser(), containerId);
+        return token != null && getContainerClient(containerId)
                     .withExtraHeaders(Map.of(AgentContainerApi.HEADER_TOKEN, token))
                     .containerLogout();
     }
@@ -274,27 +275,26 @@ public class PlatformImpl implements RuntimePlatformApi {
         checkConfig(postContainer);
         checkRequirements(postContainer);
         String agentContainerId = UUID.randomUUID().toString();
-        String token = "";
-        String owner = "";
+        Map<String, String> env = new HashMap<>();
+        env.put(AgentContainerApi.ENV_OWNER, authUtils.getRequestUser());
+        String owner = authUtils.getRequestUser();
         if (config.requireAuth) {
-            token = authUtils.generateToken(agentContainerId, Duration.ofHours(24));
-            owner = getUser();
+            env.put(AgentContainerApi.ENV_KEYCLOAK_URL, authUtils.getKeycloakUrlAndRealm());
+            env.put(AgentContainerApi.ENV_CLIENT_SECRET, authUtils.createClientAndGetSecret(agentContainerId));
         }
-        // create user first so the container can immediately talk with the platform
-        authUtils.createTempSubUser(agentContainerId, owner);
 
         // start container... this may raise an Exception, or returns the connectivity info
         Connectivity connectivity;
         try {
-            connectivity = containerClient.startContainer(agentContainerId, token, owner, postContainer);
+            connectivity = containerClient.startContainer(agentContainerId, postContainer, env);
         } catch (Exception e) {
-            authUtils.removeUser(agentContainerId);
+            authUtils.deleteClient(agentContainerId);
             throw e;
         }
 
         // wait until container is up and running...
         var containerTimeout = System.currentTimeMillis() + (timeout > 0 ? timeout : config.containerTimeoutSec) * 1000L;
-        var client = getClient(agentContainerId, token);
+        var client = getContainerClient(agentContainerId);
         String errorMessage = "Container did not respond with /info in time.";
         while (System.currentTimeMillis() < containerTimeout) {
             // check whether container is still starting or alive at all
@@ -314,7 +314,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 // register container in different collections
                 runningContainers.put(agentContainerId, container);
                 startedContainers.put(agentContainerId, postContainer);
-                tokens.put(agentContainerId, token);
+                //tokens.put(agentContainerId, token);
                 validators.put(agentContainerId, new ArgumentValidator(container.getImage()));
                 log.info("Container started: {}", agentContainerId);
                 return agentContainerId;
@@ -335,7 +335,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         log.warn("Stopping Container. {}", errorMessage);
         try {
             containerClient.stopContainer(agentContainerId);
-            authUtils.removeUser(agentContainerId);
+            authUtils.deleteClient(agentContainerId);
         } catch (Exception e) {
             log.warn("Failed to stop container: {}", e.getMessage());
         }
@@ -381,9 +381,8 @@ public class PlatformImpl implements RuntimePlatformApi {
         runningContainers.remove(containerId);
         startedContainers.remove(containerId);
         validators.remove(containerId);
-        authUtils.removeUser(containerId);
+        authUtils.deleteClient(containerId);
         containerClient.stopContainer(containerId);
-        authUtils.removeContainerToken(getUser(), containerId);
         return true;
     }
 
@@ -406,7 +405,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (connect.isConnectBack()) {
             var ownUrl = config.getOwnBaseUrl();
             var ownToken = config.requireAuth ? authUtils.generateToken(url, Duration.ofDays(7)) : null;
-            var owner = getUser();
+            var owner = authUtils.getRequestUser();
             authUtils.createTempSubUser(url, owner);
             client.connectPlatform(new ConnectionRequest(ownUrl, false, ownToken));
         }
@@ -456,7 +455,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw new NoSuchElementException(msg);
         }
         try {
-            var client = this.getClient(containerId, tokens.get(containerId));
+            var client = getContainerClient(containerId);
             var containerInfo = client.getContainerInfo();
             containerInfo.setConnectivity(runningContainers.get(containerId).getConnectivity());
             runningContainers.put(containerId, containerInfo);
@@ -496,27 +495,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     /*
      * HELPER METHODS
      */
-
-    /**
-     * Get the logged-in user from the user token in auth context, or default user if no auth.
-     * The default-user is only relevant for container-login if no auth is enabled and only used
-     * to associate the container logins with.
-     *
-     * XXX move this method to KeyCloakUtils?
-     */
-    private String getUser() {
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        var token = auth != null ? auth.getCredentials() : null;
-        System.out.println("TOKEN " + token);
-        if (token instanceof Jwt jwt) {
-            System.out.println("CLAIMS " + jwt.getClaims());
-            return jwt.getClaimAsString("preferred_username");
-        } else if (! config.requireAuth){
-            return "anonymous"; // TODO make this a configurable property?
-        } else {
-            return null;
-        }
-    }
 
     /**
      * Create Websocket connection and associate it with the connected platform's URL, to be closed when disconnected
@@ -589,7 +567,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         // var clients = new HashMap<ApiProxy, MatchResult>();
 
         var localMatches = runningContainers.values().stream().map(container -> {
-            var client = getClient(container.getContainerId(), tokens.get(container.getContainerId()));
+            var client = getContainerClient(container.getContainerId());
             return new ClientMatch(containerId, agentId, action, parameters, stream)
                     .makeContainerMatch(container, client);
         });
@@ -616,8 +594,9 @@ public class PlatformImpl implements RuntimePlatformApi {
         return containers.flatMap(c -> c.getAgents().stream());
     }
 
-    private ApiProxy getClient(String containerId, String token) {
+    private ApiProxy getContainerClient(String containerId) {
         var url = containerClient.getUrl(containerId);
+        String token = authUtils.getRequestToken(); // Request token is reused for request at container itself
         return new ApiProxy(url, config.getOwnBaseUrl(), token);
     }
 
@@ -802,7 +781,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             if (actualContainerId == null) {
                 return client;
             }
-            var containerLoginToken = authUtils.getContainerToken(getUser(), actualContainerId);
+            var containerLoginToken = authUtils.getContainerToken(authUtils.getRequestUser(), actualContainerId);
             // not logged in to container
             if (containerLoginToken == null) {
                 return client;

@@ -22,33 +22,33 @@ import java.util.stream.Collectors;
 
 public class KeycloakUtil {
 
-    public static String getTokenForUser(String keycloakUrl, String realm, String clientId, String username, String password) throws IOException {
+    public static String getTokenForUser(String keycloakUrlAndRealm, String clientId, String username, String password) throws IOException {
         var data = Map.of(
                 "grant_type", "password",
                 "client_id", clientId,
                 "username", username,
                 "password", password
         );
-        return getToken(keycloakUrl, realm, data);
+        return getToken(keycloakUrlAndRealm, data);
     }
 
-    public static String getTokenForClient(String keycloakUrl, String realm, String clientId, String clientSecret) throws IOException {
+    public static String getTokenForClient(String keycloakUrlAndRealm, String clientId, String clientSecret) throws IOException {
         var data = Map.of(
                 "grant_type", "client_credentials",
                 "client_id", clientId,
                 "client_secret", clientSecret
         );
-        return getToken(keycloakUrl, realm, data);
+        return getToken(keycloakUrlAndRealm, data);
     }
 
-    private static String getToken(String keycloakUrl, String realm, Map<String, String> data) throws IOException {
+    public static String getToken(String keycloakUrlAndRealm, Map<String, String> data) throws IOException {
         String form = data.entrySet().stream()
                 .map(e -> e.getKey() + "=" + e.getValue())
                 .collect(Collectors.joining("&"));
         try {
             var response = HttpClient.newHttpClient().send(
                     HttpRequest.newBuilder()
-                            .uri(URI.create(keycloakUrl + "/realms/" + realm + "/protocol/openid-connect/token"))
+                            .uri(URI.create(keycloakUrlAndRealm + "/protocol/openid-connect/token"))
                             .header("Content-Type", "application/x-www-form-urlencoded")
                             .POST(HttpRequest.BodyPublishers.ofString(form))
                             .build(),
@@ -65,8 +65,8 @@ public class KeycloakUtil {
         }
     }
 
-    public static Map<String, Object> validateToken(String keycloakUrl, String realm, String token) throws IOException {
-        String jwksUri = keycloakUrl + "/realms/" + realm + "/protocol/openid-connect/certs";
+    public static Map<String, Object> validateToken(String keycloakUrlAndRealm, String token) throws IOException {
+        String jwksUri = keycloakUrlAndRealm + "/protocol/openid-connect/certs";
         JWKSource<SecurityContext> keySource = new RemoteJWKSet<>(new URL(jwksUri));
 
         ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
