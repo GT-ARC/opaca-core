@@ -2,9 +2,18 @@ package de.gtarc.opaca.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.jwk.source.RemoteJWKSet;
+import com.nimbusds.jose.proc.JWSVerificationKeySelector;
+import com.nimbusds.jose.proc.SecurityContext;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
+import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -56,8 +65,19 @@ public class KeycloakUtil {
         }
     }
 
-    public static Map<String, Object> validateToken(String keycloak, String token) throws IOException {
-        return null; // TODO
+    public static Map<String, Object> validateToken(String keycloakUrl, String realm, String token) throws IOException {
+        String jwksUri = keycloakUrl + "/realms/" + realm + "/protocol/openid-connect/certs";
+        JWKSource<SecurityContext> keySource = new RemoteJWKSet<>(new URL(jwksUri));
+
+        ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
+        jwtProcessor.setJWSKeySelector(new JWSVerificationKeySelector<>(JWSAlgorithm.RS256, keySource));
+        try {
+            JWTClaimsSet claims = jwtProcessor.process(token, null);
+            return claims.getClaims();
+        } catch (Exception e) {
+            throw new IOException("Verifying JWT failed", e);
+        }
     }
+
 
 }

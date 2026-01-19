@@ -10,10 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class AuthUtils {
@@ -89,11 +86,9 @@ public class AuthUtils {
 
     public static void main(String[] args) throws Exception {
 
-        //var userToken = KeycloakUtil.getTokenForUser("http://localhost:8888/realms/opaca", "opaca-rp", "test", "test1234");
-        //System.out.println(userToken);
-
-        //var adminToken = KeycloakUtil.getTokenForUser("http://localhost:8888/realms/master", "admin-cli", "admin", "admin");
-        //System.out.println(adminToken);
+        var userToken = KeycloakUtil.getTokenForUser("http://localhost:8888", "opaca", "opaca-rp", "test", "test1234");
+        System.out.println(userToken);
+        KeycloakUtil.validateToken("http://localhost:8888", "opaca", userToken);
 
         Keycloak keycloak = KeycloakBuilder.builder()
                 .serverUrl("http://localhost:8888/")
@@ -123,6 +118,7 @@ public class AuthUtils {
         try {
             var clientToken = KeycloakUtil.getTokenForClient("http://localhost:8888", "opaca", clientId, secret);
             System.out.println("TOKEN " + clientToken);
+            KeycloakUtil.validateToken("http://localhost:8888", "opaca", clientToken);
         } catch (Exception e) {
             e.printStackTrace();
         }
