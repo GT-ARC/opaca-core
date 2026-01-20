@@ -2,6 +2,8 @@ package de.gtarc.opaca.platform.auth;
 
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.util.KeycloakUtil;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.representations.idm.ClientRepresentation;
@@ -25,6 +27,39 @@ public class AuthUtils {
 
     @Autowired
     private PlatformConfig config;
+
+    /** platform's own UUID */
+    public final String platformId = UUID.randomUUID().toString();
+
+    /** secret for private KC client used by platform for requests to containers */
+    private String platformClientSecret = null;
+
+
+    @PostConstruct
+    private void startup() throws IOException {
+        // some basic config consistency checks
+        if (config.requireAuth && config.isSet(config.keycloakUrl)) {
+            throw new RuntimeException("Keycloak URL must be given if Authentication is required");
+        }
+        if (config.isSet(config.keycloakUrl) && ! (
+                config.isSet(config.keycloakRealm) &&
+                config.isSet(config.keycloakClientId) &&
+                config.isSet(config.keycloakAdmin) &&
+                config.isSet(config.keycloakAdminPw)
+        )) {
+            throw new RuntimeException("When using Keycloak, Realm, Client, Admin and Admin-PW must also be set");
+        }
+        // create client for platform itself
+        if (config.isSet((config.keycloakUrl))) {
+            platformClientSecret = createClientAndGetSecret(platformId);
+        }
+    }
+
+    @PreDestroy
+    private void teardown() throws IOException {
+        // delete platform client
+        deleteClient(platformId);
+    }
 
     /*
      * KEYCLOAK AUTHENTICATION
@@ -50,13 +85,15 @@ public class AuthUtils {
         return KeycloakUtil.getTokenForUser(getKeycloakUrlAndRealm(), config.keycloakClientId, username, password);
     }
 
-    // TODO https://stackoverflow.com/questions/52230634/issuing-api-keys-using-keycloak
-    //  Here:
-    //  - create temp client with client-id = container-id
-    //  - get and return the client secret
-    //  - add client secret and KC URL to the container's env
-    //  Inside the container:
-    //  - get access token as above, with client-id as username and secret as password
+    public String getPlatformToken() {
+        if (platformClientSecret == null) return null;
+        try {
+            // TODO include current request user's username as extra payload?
+            return KeycloakUtil.getTokenForClient(getKeycloakUrlAndRealm(), platformId, platformClientSecret);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not get JWT for Runtime Platform", e);
+        }
+    }
 
     public String createClientAndGetSecret(String clientId) throws  IOException {
         var secret = UUID.randomUUID().toString();
@@ -169,33 +206,10 @@ public class AuthUtils {
             System.out.println("CLAIMS " + jwt.getClaims());
             return jwt.getClaimAsString("preferred_username");
         } else if (! config.requireAuth){
-            return "anonymous"; // TODO make this a configurable property?
+            return "anonymous";
         } else {
             return null;
         }
-    }
-
-    /**
-     * Get the original JWT that was used for the current request, or null if no JWT was passed
-     */
-    public String getRequestToken() {
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth.getCredentials() instanceof Jwt jwt) {
-            return jwt.getTokenValue();
-        } else {
-            return null;
-        }
-    }
-
-    public String getPlatformToken() {
-        /*
-         TODO
-          get token for the platform itself, for calling routes at the agent containers
-          create client for the platform itself, if it does not exist yet
-          create token for the platform
-          create current request user as additional user-attribute
-         */
-        return null;
     }
 
     /**

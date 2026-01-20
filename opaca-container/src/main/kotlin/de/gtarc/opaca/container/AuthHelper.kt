@@ -29,6 +29,8 @@ object AuthHelper {
         } else {
             try {
                 KeycloakUtil.validateToken(keycloakUrl, token)
+                // TODO check JWT claims, or just check that it can be decoded?
+                //  should at least check time-to-live
                 return true
             } catch (e: Exception) {
                 return false

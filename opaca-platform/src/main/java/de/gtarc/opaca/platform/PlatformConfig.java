@@ -54,7 +54,7 @@ public class PlatformConfig {
     // SECURITY & AUTHENTICATION
 
     @Value("${opaca.security.requireAuth}")
-    public Boolean requireAuth;
+    public boolean requireAuth;
 
     @Value("${opaca.security.kc_url}")
     public String keycloakUrl;
@@ -175,6 +175,10 @@ public class PlatformConfig {
         }
         ownBaseUrl = "http://" + host + ":" + serverPort;
         return ownBaseUrl;
+    }
+
+    public boolean isSet(String val) {
+        return val != null && ! val.isEmpty();
     }
 
 }

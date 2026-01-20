@@ -61,8 +61,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     private AuthUtils authUtils;
 
 
-    /** platform's own UUID */
-    private final String platformId = UUID.randomUUID().toString();
 
     /** when the platform was started */
     private final ZonedDateTime startedAt = ZonedDateTime.now(ZoneId.of("Z"));
@@ -129,7 +127,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         authUtils.getRequestUser();
 
         return new RuntimePlatform(
-                platformId,
+                authUtils.platformId,
                 config.getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),
                 requirementsChecker.getFullPlatformProvisions(),
@@ -633,7 +631,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             return;
         }
         var info = new ApiProxy(config.getOwnBaseUrl(), null, null).withTimeout(5000).getPlatformInfo();
-        if (! Objects.equals(platformId, info.getPlatformId())) {
+        if (! Objects.equals(authUtils.platformId, info.getPlatformId())) {
             throw new IllegalArgumentException("Mismatched Platform ID");
         }
     }
