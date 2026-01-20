@@ -154,7 +154,6 @@ docker container run \
 * [Execution Environments](doc/environments.md)
 * [Session Handling](doc/session.md)
 * [Authentication](doc/auth.md)
-* [User Management](doc/user-management.md)
 * [Parameter Validation](doc/validation.md)
 * [JIAC VI Basics](doc/jiac-vi.md)
 * [Websockets](doc/websockets.md)

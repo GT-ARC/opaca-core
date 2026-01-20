@@ -35,6 +35,42 @@ See [API docs](api.md) for complete list of environment variables passed to the 
 * refer to sample realm exported as JSON (t.b.d.)
 </font>
 
+
+## Rule Based Access Control
+
+When checking a users' authority, their role as well as their privileges are converted to so-called "Granted Authorities". This is primarily used by the Security Filter Chain, but is also checked during requests, which can be accessed by lower-level authorities, but need further checking for specific permissions.
+
+These are the currently implemented Roles. The roles are part of a role hierarchy, granting the higher role all permissions of the lower role.
+
+- **ADMIN**: Has the highest authority and full control over a Runtime Platform. Can connect the platform with other platforms.
+- **CONTRIBUTOR**: Is actively contributing to the Runtime Platform by providing and deploying containers. Is able to delete only its own deployed containers.
+- **USER**: Can use the functionalities provided by the running containers on the Runtime Platform. Is also able to send/broadcast messages on the platform and retrieve information about connected platforms or the history of the platform.
+- **GUEST**: Is a provisional role with the most limited access. Is only able to get information about the Runtime Platform, running containers and agents.
+
+**Note:** The roles and the above role hierarchy have to be defined in the Keycloak Realm. They are defined in the sample Realm config included as a JSON in this repository.
+
+<!-- TODO actually create and include this JSON file... -->
+
+The following table provides an overview of all implemented routes along with the necessary authority levels. In addition to those, the routes `/login`, `/error`, as well as specific _swagger.io_ paths are permitted to all (non-logged in) users.
+
+| Routes and Methods          | ADMIN | CONTRIBUTOR | USER | GUEST |
+|:----------------------------|:-----:|:-----------:|:----:|:-----:|
+| /agents/**                  |   X   |      X      |  X   |   X   |
+| /broadcast/**               |   X   |      X      |  X   |       |
+| /containers/** GET          |   X   |      X      |  X   |   X   |
+| /containers/** DELETE/POST  |   X   |     X*      |      |       |
+| /containers/(login,logout)  |   X   |      X      |  X   |       |
+| /connections GET            |   X   |      X      |  X   |       |
+| /connections/** DELETE/POST |   X   |             |      |       |
+| /history GET                |   X   |      X      |  X   |       |
+| /info GET                   |   X   |      X      |  X   |   X   |
+| /invoke/**                  |   X   |      X      |  X   |       |
+| /send/**                    |   X   |      X      |  X   |       |
+| /stream/**                  |   X   |      X      |  X   |       |
+
+*: A contributor can only delete containers which were started by it.
+
+
 ## Authentication Workflows
 
 ### Authenticating Users against the Runtime Platform
