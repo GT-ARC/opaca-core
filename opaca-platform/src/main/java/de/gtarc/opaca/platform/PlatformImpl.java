@@ -144,11 +144,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public String platformLogin(Login loginParams) throws IOException {
-        try {
-            return authUtils.getTokenForUser(loginParams.getUsername(), loginParams.getPassword());
-        } catch (Exception e) {
-            throw new IOException("Failed to get Access Token", e);
-        }
+        return authUtils.getTokenForUser(loginParams.getUsername(), loginParams.getPassword());
     }
 
     @Override

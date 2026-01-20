@@ -38,17 +38,18 @@ public class AuthUtils {
     private void startup() throws IOException {
         // some basic config consistency checks
         if (config.requireAuth && ! config.isSet(config.keycloakIssuerUri)) {
-            throw new RuntimeException("Keycloak URL must be given if Authentication is required");
+            System.err.println("Keycloak URL must be given if Authentication is required.");
+            System.exit(1);
         }
         if (config.isSet(config.keycloakIssuerUri) && ! (
                 config.isSet(config.keycloakClientId) &&
                 config.isSet(config.keycloakAdmin) &&
                 config.isSet(config.keycloakAdminPw)
         )) {
-            throw new RuntimeException("When using Keycloak, Realm, Client, Admin and Admin-PW must also be set");
+            System.err.println("When using Keycloak, KC-Client, -Admin and -Admin-PW must also be set.");
+            System.exit(1);
         }
         // create client for platform itself
-        System.out.println("ISSUER #### " + config.keycloakIssuerUri + "####");
         if (config.isSet((config.keycloakIssuerUri))) {
             platformClientSecret = createClientAndGetSecret(platformId);
         }
@@ -77,6 +78,9 @@ public class AuthUtils {
 
     // used for platform login
     public String getTokenForUser(String username, String password) throws IOException {
+        if (config.keycloakIssuerUri == null) {
+            throw new IllegalArgumentException("Login not possible: Keycloak is not configured!");
+        }
         return KeycloakUtil.getTokenForUser(config.keycloakIssuerUri, config.keycloakClientId, username, password);
     }
 
