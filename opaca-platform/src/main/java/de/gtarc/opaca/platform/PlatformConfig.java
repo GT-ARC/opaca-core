@@ -56,11 +56,8 @@ public class PlatformConfig {
     @Value("${opaca.security.requireAuth}")
     public boolean requireAuth;
 
-    @Value("${opaca.security.kc_url}")
-    public String keycloakUrl;
-
-    @Value("${opaca.security.kc_realm}")
-    public String keycloakRealm;
+    @Value("${opaca.security.kc_issuer_uri}")
+    public String keycloakIssuerUri;
 
     @Value("${opaca.security.kc_clientid}")
     public String keycloakClientId;
@@ -131,7 +128,7 @@ public class PlatformConfig {
         res.put("alwaysPullImages", alwaysPullImages);
         // auth stuff
         res.put("requireAuth", requireAuth);
-        res.put("keycloakRealm", keycloakRealm);
+        res.put("keycloakIssuerUri", keycloakIssuerUri);
         // image registry stuff
         res.put("registryNames", registryNames);
         // docker & kubernetes stuff
@@ -178,7 +175,7 @@ public class PlatformConfig {
     }
 
     public boolean isSet(String val) {
-        return val != null && ! val.isEmpty();
+        return val != null && ! val.isBlank();
     }
 
 }

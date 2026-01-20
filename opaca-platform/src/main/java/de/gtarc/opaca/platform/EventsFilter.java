@@ -55,9 +55,9 @@ public class EventsFilter implements Filter {
     private boolean requestShouldCreateEvent(HttpServletRequest request) {
         Map<String, Set<String>> routes = Map.of(
             "GET", Set.of("/stream", "/token"),
-            "POST", Set.of("/users", "/stream", "/invoke", "/send", "/broadcast", "/login", "/containers", "/connections"),
-            "PUT", Set.of("/users", "/containers"),
-            "DELETE", Set.of("/users", "/containers", "/connections")
+            "POST", Set.of("/stream", "/invoke", "/send", "/broadcast", "/login", "/containers", "/connections"),
+            "PUT", Set.of("/containers"),
+            "DELETE", Set.of("/containers", "/connections")
         );
         return routes.getOrDefault(request.getMethod(), Set.of()).stream()
                 .anyMatch(r -> request.getRequestURI().startsWith(r));

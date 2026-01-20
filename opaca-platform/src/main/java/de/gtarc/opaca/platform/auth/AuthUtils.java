@@ -18,10 +18,10 @@ import java.util.*;
 @Service
 public class AuthUtils {
 
-    final static String ROLE_ADMIN = "ROLE_ADMIN";
-    final static String ROLE_CONTRIBUTOR = "ROLE_CONTRIBUTOR";
-    final static String ROLE_USER = "ROLE_USER";
-    final static String ROLE_GUEST = "ROLE_GUEST";
+    final static String ROLE_ADMIN = "ADMIN";
+    final static String ROLE_CONTRIBUTOR = "CONTRIBUTOR";
+    final static String ROLE_USER = "USER";
+    final static String ROLE_GUEST = "GUEST";
 
 
     @Autowired
@@ -37,11 +37,10 @@ public class AuthUtils {
     @PostConstruct
     private void startup() throws IOException {
         // some basic config consistency checks
-        if (config.requireAuth && config.isSet(config.keycloakUrl)) {
+        if (config.requireAuth && ! config.isSet(config.keycloakIssuerUri)) {
             throw new RuntimeException("Keycloak URL must be given if Authentication is required");
         }
-        if (config.isSet(config.keycloakUrl) && ! (
-                config.isSet(config.keycloakRealm) &&
+        if (config.isSet(config.keycloakIssuerUri) && ! (
                 config.isSet(config.keycloakClientId) &&
                 config.isSet(config.keycloakAdmin) &&
                 config.isSet(config.keycloakAdminPw)
@@ -49,7 +48,8 @@ public class AuthUtils {
             throw new RuntimeException("When using Keycloak, Realm, Client, Admin and Admin-PW must also be set");
         }
         // create client for platform itself
-        if (config.isSet((config.keycloakUrl))) {
+        System.out.println("ISSUER #### " + config.keycloakIssuerUri + "####");
+        if (config.isSet((config.keycloakIssuerUri))) {
             platformClientSecret = createClientAndGetSecret(platformId);
         }
     }
@@ -66,7 +66,7 @@ public class AuthUtils {
 
     private Keycloak keycloakClient() {
         return KeycloakBuilder.builder()
-                .serverUrl(config.keycloakUrl)
+                .serverUrl(config.keycloakIssuerUri.split("/realms/")[0])
                 .realm("master")
                 .clientId("admin-cli")
                 .grantType("password")
@@ -75,20 +75,16 @@ public class AuthUtils {
                 .build();
     }
 
-    public String getKeycloakUrlAndRealm() {
-        return config.keycloakUrl + "/realms/" + config.keycloakRealm;
-    }
-
     // used for platform login
     public String getTokenForUser(String username, String password) throws IOException {
-        return KeycloakUtil.getTokenForUser(getKeycloakUrlAndRealm(), config.keycloakClientId, username, password);
+        return KeycloakUtil.getTokenForUser(config.keycloakIssuerUri, config.keycloakClientId, username, password);
     }
 
     public String getPlatformToken() {
         if (platformClientSecret == null) return null;
         try {
             // TODO include current request user's username as extra payload?
-            return KeycloakUtil.getTokenForClient(getKeycloakUrlAndRealm(), platformId, platformClientSecret);
+            return KeycloakUtil.getTokenForClient(config.keycloakIssuerUri, platformId, platformClientSecret);
         } catch (IOException e) {
             throw new RuntimeException("Could not get JWT for Runtime Platform", e);
         }
@@ -118,6 +114,7 @@ public class AuthUtils {
     }
 
     public boolean deleteClient(String clientId) throws IOException {
+        if (config.keycloakIssuerUri == null) return false;
         try (var keycloak = keycloakClient()) {
             var client = keycloak.realm("opaca").clients().findByClientId(clientId).stream().findAny();
             if (client.isPresent()) {

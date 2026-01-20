@@ -264,7 +264,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         env.put(AgentContainerApi.ENV_OWNER, authUtils.getRequestUser());
         String owner = authUtils.getRequestUser();
         if (config.requireAuth) {
-            env.put(AgentContainerApi.ENV_KEYCLOAK_URL, authUtils.getKeycloakUrlAndRealm());
+            env.put(AgentContainerApi.ENV_KEYCLOAK_URL, config.keycloakIssuerUri);
             env.put(AgentContainerApi.ENV_CLIENT_SECRET, authUtils.createClientAndGetSecret(agentContainerId));
         }
 
