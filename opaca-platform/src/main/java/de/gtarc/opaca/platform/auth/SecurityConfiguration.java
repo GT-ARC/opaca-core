@@ -1,16 +1,11 @@
 package de.gtarc.opaca.platform.auth;
 
-import de.gtarc.opaca.model.User.Role;
 import de.gtarc.opaca.platform.PlatformConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
-import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
@@ -59,16 +54,16 @@ public class SecurityConfiguration {
                 ? auth -> auth
                     // some routes, like those related to OpenAPI and login, should work without Authentication
                     // (except for the OpenAPI route giving insight into the agents' actions)
-                    .requestMatchers(HttpMethod.GET, "/v3/api-docs/actions").hasRole(Role.GUEST.name())
+                    .requestMatchers(HttpMethod.GET, "/v3/api-docs/actions").hasRole(AuthUtils.ROLE_GUEST)
                     .requestMatchers(noAuthRoutes).permitAll()
                     // The next block implements the RBAC defined in the user-management docs
-                    .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**").hasRole(Role.GUEST.name())
-                    .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole(Role.USER.name())
-                    .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**", "/stream/**").hasRole(Role.USER.name())
-                    .requestMatchers(HttpMethod.POST, "/containers/login/**", "/containers/logout/**").hasRole(Role.USER.name())
-                    .requestMatchers(HttpMethod.POST, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
-                    .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
-                    .requestMatchers("/connections/**").hasRole(Role.ADMIN.name())
+                    .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**").hasRole(AuthUtils.ROLE_GUEST)
+                    .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole(AuthUtils.ROLE_USER)
+                    .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**", "/stream/**").hasRole(AuthUtils.ROLE_USER)
+                    .requestMatchers(HttpMethod.POST, "/containers/login/**", "/containers/logout/**").hasRole(AuthUtils.ROLE_USER)
+                    .requestMatchers(HttpMethod.POST, "/containers/**").hasRole(AuthUtils.ROLE_CONTRIBUTOR)
+                    .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole(AuthUtils.ROLE_CONTRIBUTOR)
+                    .requestMatchers("/connections/**").hasRole(AuthUtils.ROLE_ADMIN)
                     .anyRequest().authenticated()
                 // no auth required -> permit all (but still path JWT tokens)
                 : auth -> auth.anyRequest().permitAll();

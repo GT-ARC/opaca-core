@@ -17,6 +17,12 @@ import java.util.*;
 @Service
 public class AuthUtils {
 
+    final static String ROLE_ADMIN = "ROLE_ADMIN";
+    final static String ROLE_CONTRIBUTOR = "ROLE_CONTRIBUTOR";
+    final static String ROLE_USER = "ROLE_USER";
+    final static String ROLE_GUEST = "ROLE_GUEST";
+
+
     @Autowired
     private PlatformConfig config;
 
