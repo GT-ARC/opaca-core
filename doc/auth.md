@@ -2,37 +2,55 @@
 
 ## Platform Authentication
 
-The Runtime Platform can optionally require Authentication on all routes, as determined by the `REQUIRE_AUTH` environment variable. Authentication is handled through a JWT (JSON Web Token) bearer token, which is issued by the Runtime Platform to all authorized users as well as to all Agent Containers started by the platform.
+The Runtime Platform can optionally require Authentication on all routes, as determined by the `REQUIRE_AUTH` environment variable. Authentication is handled through a JWT (JSON Web Token) bearer token, which is issued by a Keycloak instance to all authorized users as well as to all Agent Containers started by the platform. Please see details below on how authentication works for communication between the different parties.
 
 Using the Swagger UI, you have to click the "Authorize" button and enter the token, which will subsequently be used for all requests. When calling the routes programmatically, including e.g. from within the Agent Container, the token has to be provided as a header field, e.g. `connection.setRequestProperty("Authorization", "Bearer " + token)`.
 
-### Requiring Platform Authentication
+To get the token, you can use the `/login` route and enter your Keycloak credentials, or acquire the token directly from Keycloak. Note that when using the `/login` route, your Keycloak credentials are passed through the OPACA platform, but they will at no point be stored or logged.
 
-By default, authentication is not required. To change that, set the `REQUIRE_AUTH` environment variable to `true`. Even if authentication is not _required_, it is _enabled_ and can be used to create new Users, log in and invoke actions as those users. This is so that Container Login (see below) is properly usable even if no platform login is required. Otherwise, container-login tokens would be associated with the default user, which may not be desirable if the platform is used by multiple users. For logging in as a user, you have to specify a "secret" and (if auth is required) an admin-password. All of those are set via Environment Variables, either in the Docker Compose or using `export` (or equivalent) before starting the container, e.g.:
+By default, authentication is not required, but even if authentication is not _required_, it is _enabled_ (provided that Keycloak is configured) and can be used to log in and invoke actions as specific users. This is so that Container Login (see below) is properly usable even if no platform login is required. Otherwise, container-login tokens would be associated with the default user, which may not be desirable if the platform is used by multiple users. 
 
-```bash
-export REQUIRE_AUTH=true
-export SECRET=...
-export PLATFORM_ADMIN_PWD=...
-```
+## Setup and Configuration
 
-Please refer to the [User Management](user-management.md) documentation on how to add additional users to the system.
+### Environment Variables set the Platform
+
+Authentication is configured using a number of Environment variables All of those are set either in the Docker Compose or using `export` (or equivalent) before starting the Runtime Platform.
+
+* `REQUIRE_AUTH`: Whether auth is required for accessing most routes.
+* `KC_URL`: Base URL (protocol, host and port) where to find the Keycloak instance; must be provided if Auth is required, and for allowing for user login, otherwise optional.
+* `KC_REALM`: Name of the Keycloak realm to use, see below for details
+* `KC_CLIENT`: Name of the public Keycloak client within the real to be used for users.
+* `KC_ADMIN`: Username of a Keycloak user with admin privileges in the realm; needed for creating temporary clients.
+* `KC_ADMIN_PW`: Password for the above user with admin privileges.
+
+### Environment Variables passed to the Container
+
+TODO
+
+### Keycloak Setup
+
+<font color="red"><strong>TODO</strong>
+* refer to docker compose
+* refer to sample realm exported as JSON (t.b.d.)
+</font>
+
+## Authentication Workflows
 
 ### Authenticating Users against the Runtime Platform
 
-The Runtime Platform utilizes O2Auth as its authentication mechanism, requiring users to log in using their credentials. These credentials are subsequently compared to those provided in the environmental variables, as outlined in the previous section. Upon successful validation, the user is issued a token which enables interaction with the Runtime Platform. To facilitate this interaction, the user must inject the JWT into the lock, visibly located in the upper right corner of the window when accessing the Swagger UI. Subsequently, the JWT is consistently included in the header of all requests sent by the endpoints.
+For users to authenticate against the runtime platform, they first have to create a user account in Keycloak Realm given in the environment. They can then use the `/login` route of the Runtime Platform to get a JWT Access Token, or get that token directly from Keycloak. This token then has to be supplied in the `Authentication: Bearer <token>` header for all subsequent requests. Using the Swagger Web UI, this can be achieved by using the Authorize button to log in with the previously generated token, visibly located in the upper right corner of the window when accessing the Swagger UI. Subsequently, the JWT is consistently included in the header of all requests sent by the endpoints.
 
 ### Authenticating Agent Containers against the Runtime Platform
 
-When an AgentContainer is initiated, it is assigned its own token in the `TOKEN` environmental variable. This token serves as an authentication mechanism when communicating with the Runtime Platform and has to be provided as a header in all requests (see above). In the JIAC VI Reference Implementation, this is handled automatically by the `ContainerAgent` and `AbstractContainerizedAgent`.
+When an Agent Container is initiated, the runtime platform creates a temporary client within Keycloak for this container, using the Container-ID as the Client-ID. The client's "secret" is passed to the Container in its environment, along with the Keycloak URL. The Container can then acquire Access Tokens for that client through Keycloak and use those to authenticate itself against its parent Runtime Platform, e.g. for calling actions provided by agents in different containers. In the JIAC VI Reference Implementation, this is handled automatically by the `ContainerAgent` and `AbstractContainerizedAgent`.
 
 ### Authenticating the Runtime Platform against its Agent Containers
 
-If authentication is enabled, the RuntimePlatform sends the AgentContainer's own token with each request to the container, so it can verify that the requests actually came from the RuntimePlatform and not from some external entity, bypassing the platform. In the JIAC VI Reference Implementation, this is handled automatically by the `ContainerAgent`.
+On startup, the platform also creates a temporary client for itself, which is then used to create access tokens for forwarding requests to the containers. The token includes the original requester's username as a sub-field, without exposing their original JWT to the container, so the container can not impersonate that user. The container should then check the validity of the token (c.f. the JIAC VI Reference Implementation for how this can be done) and can optionally also check which user made the request. (A user may also use their own JWT to send a request directly to the container, but as long as authentication is enabled, the container should reject requests with a missing or invalid JWT.)
 
 ### Authenticating the Runtime Platform against another Runtime Platform
 
-If authentication is enabled at a remote RuntimePlatform, the `POST /connections` route requires an additional `token` parameter. This token is then associated with the platform and used in all following requests to that platform, e.g. for invoking actions there. If the `connectBack` parameter is set, the platform will generate a token to be used by the connected platform (similar to when containers are started) and include that in the request to the other platform to connect back to itself.
+If authentication is enabled at a remote RuntimePlatform, the `POST /connections` route requires an additional `client_secret` parameter. This secret can be acquired from Keycloak after creating a Client to be used by platform A for creating access token for forwarding requests to platform B (which may be using a different Keycloak, so platform A can not do this itself), e.g. for invoking actions there. If the `connectBack` parameter is set, the platform will create another client to be used by the connected platform (similar to when containers are started) and include its client-secret in the request to the other platform to connect back to itself.
 
 
 ## Container Authentication

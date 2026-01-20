@@ -695,17 +695,6 @@ public class ContainerTests {
     }
 
     /**
-     * if auth is disabled, no token should be passed to container
-     */
-    @Test
-    public void testAuthNoToken() throws Exception {
-        var con = request(PLATFORM_URL, "POST", "/invoke/GetInfo", Map.of());
-        Assert.assertEquals(200, con.getResponseCode());
-        var res = result(con, Map.class);
-        Assert.assertEquals("", res.get(AgentContainerApi.ENV_TOKEN));
-    }
-
-    /**
      * classes for testing the argument validator
      */
 

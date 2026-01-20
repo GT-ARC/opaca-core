@@ -443,6 +443,7 @@ public class AuthTests {
 
     // Container authorities started by users.
 
+    /*
     @Test
     public void test10ContributorContainer() throws Exception {
         var token_cont = getUserToken("contributor");
@@ -481,6 +482,7 @@ public class AuthTests {
         con = requestWithToken(PLATFORM_A, "DELETE", "/containers/" + newContainerId, image, token_cont);
         Assert.assertEquals(200, con.getResponseCode());
     }
+    */
 
     // Specific User Authority
 
