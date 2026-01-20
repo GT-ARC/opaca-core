@@ -93,13 +93,11 @@ public class Session {
                 SessionData lastdata = RestHelper.readObject(content, SessionData.class);
 
                 this.data.reset();
-                this.data.tokens.putAll(lastdata.tokens);
                 this.data.runningContainers.putAll(lastdata.runningContainers);
                 this.data.startContainerRequests.putAll(lastdata.startContainerRequests);
                 this.data.connectedPlatforms.putAll(lastdata.connectedPlatforms);
                 this.data.dockerContainers.putAll(lastdata.dockerContainers);
                 this.data.usedPorts.addAll(lastdata.usedPorts);
-                this.data.users.putAll(lastdata.users);
     
             } catch (IOException e) {
                 log.error("Could not load Session data", e);
@@ -178,7 +176,7 @@ public class Session {
         log.info("Disconnecting from other Platforms...");
         for (String url : implementation.getConnections()) {
             try {
-                implementation.disconnectPlatform(new ConnectionRequest(url, false, null));
+                implementation.disconnectPlatform(new ConnectionRequest(url, false));
             } catch (Exception e) {
                 log.warn("Exception disconnecting from {}: {}", url, e.getMessage());
             }

@@ -13,7 +13,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.*;
 
 @Service
@@ -179,20 +178,6 @@ public class AuthUtils {
         System.out.println("RESPONSE " + res3.getStatus());
     }
 
-    @Deprecated
-    public void createTempSubUser(String user, String owner) {
-
-    }
-
-    @Deprecated
-    public Boolean removeUser(String username) {
-        return false;
-    }
-
-    @Deprecated
-    public String generateToken(String owner, Duration duration) {
-        return null;
-    }
 
     /**
      * Get the logged-in user from the user token in auth context, or default user if no auth.

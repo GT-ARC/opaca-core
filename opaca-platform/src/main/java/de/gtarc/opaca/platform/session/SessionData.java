@@ -3,7 +3,6 @@ package de.gtarc.opaca.platform.session;
 import java.util.*;
 
 import de.gtarc.opaca.model.PostAgentContainer;
-import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.containerclient.DockerClient;
 import de.gtarc.opaca.platform.containerclient.KubernetesClient;
 import org.springframework.stereotype.Component;
@@ -20,7 +19,7 @@ import lombok.Data;
 public class SessionData {
 
     /* PlatformImpl variables */
-    public Map<String, String> tokens = new HashMap<>();
+    public Map<String, String> platformClientSecrets = new HashMap<>();
     public Map<String, AgentContainer> runningContainers = new HashMap<>();
     public Map<String, PostAgentContainer> startContainerRequests = new HashMap<>();
     public Map<String, RuntimePlatform> connectedPlatforms = new HashMap<>();
@@ -32,18 +31,14 @@ public class SessionData {
     /* KubernetesClient variables */
     public Map<String, KubernetesClient.PodInfo> pods = new HashMap<>();
 
-    /* UserData variables */
-    public Map<String, User> users = new HashMap<>();
-
     public void reset() {
-        this.tokens.clear();
+        this.platformClientSecrets.clear();
         this.runningContainers.clear();
         this.startContainerRequests.clear();
         this.connectedPlatforms.clear();
         this.dockerContainers.clear();
         this.usedPorts.clear();
         this.pods.clear();
-        this.users.clear();
     }
 
 }

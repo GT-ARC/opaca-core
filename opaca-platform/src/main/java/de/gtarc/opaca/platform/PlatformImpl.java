@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.http.WebSocket;
-import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -70,8 +69,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     /** Currently running Agent Containers, mapping container ID to description */
     private Map<String, AgentContainer> runningContainers;
     private Map<String, PostAgentContainer> startedContainers;
-    // TODO what to do with container tokens?
-    private Map<String, String> tokens;
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
     private Map<String, RuntimePlatform> connectedPlatforms;
@@ -88,7 +85,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         // restore session data
         this.runningContainers = sessionData.runningContainers;
         this.startedContainers = sessionData.startContainerRequests;
-        this.tokens = sessionData.tokens;
         this.connectedPlatforms = sessionData.connectedPlatforms;
         this.connectionWebsockets = new HashMap<>();
 
@@ -113,7 +109,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             validators.put(containerId, new ArgumentValidator(image));
         }
         for (var url : connectedPlatforms.keySet()) {
-            openConnectionWebsocket(url, tokens.get(url));
+            openConnectionWebsocket(url);
         }
     }
 
@@ -387,23 +383,18 @@ public class PlatformImpl implements RuntimePlatformApi {
             return false;
         }
         // try to get info (with token, if given)
-        var token = connect.getToken();
-        var client = getPlatformClient(url, token);
+        var client = getPlatformClient(url, authUtils.getPlatformToken());
         var info = client.getPlatformInfo();
         // ask other platform to connect back to self?
         if (connect.isConnectBack()) {
             var ownUrl = config.getOwnBaseUrl();
-            var ownToken = config.requireAuth ? authUtils.generateToken(url, Duration.ofDays(7)) : null;
-            var owner = authUtils.getRequestUser();
-            authUtils.createTempSubUser(url, owner);
-            client.connectPlatform(new ConnectionRequest(ownUrl, false, ownToken));
+            client.connectPlatform(new ConnectionRequest(ownUrl, false));
         }
         // use websocket to connect to updates
-        openConnectionWebsocket(url, token);
+        openConnectionWebsocket(url);
 
         // store connection if all the above steps succeeded
         connectedPlatforms.put(url, info);
-        tokens.put(url, token);
         return true;
     }
 
@@ -418,17 +409,15 @@ public class PlatformImpl implements RuntimePlatformApi {
         checkUrl(url);
         if (connectedPlatforms.containsKey(url)) {
             connectedPlatforms.remove(url);
-            tokens.remove(url);
-            authUtils.removeUser(url);
             if (connectionWebsockets.containsKey(url)) {
                 var ws = connectionWebsockets.remove(url);
                 ws.sendClose(1000, "disconnected");
             }
             // disconnect other?
             if (disconnect.isConnectBack()) {
-                var client = getPlatformClient(url, disconnect.getToken());
+                var client = getPlatformClient(url, authUtils.getPlatformToken());
                 var ownUrl = config.getOwnBaseUrl();
-                client.disconnectPlatform(new ConnectionRequest(ownUrl, false, null));
+                client.disconnectPlatform(new ConnectionRequest(ownUrl, false));
             }
             log.info("Disconnected from {}", url);
             return true;
@@ -488,8 +477,9 @@ public class PlatformImpl implements RuntimePlatformApi {
     /**
      * Create Websocket connection and associate it with the connected platform's URL, to be closed when disconnected
      */
-    private void openConnectionWebsocket(String url, String token) {
+    private void openConnectionWebsocket(String url) {
         try {
+            var token = authUtils.getPlatformToken();
             var res = WebSocketConnector.subscribe(url, token, "/containers", msg -> notifyUpdatePlatform(url));
             connectionWebsockets.put(url, res.get());
         } catch (ExecutionException | InterruptedException e) {
@@ -564,7 +554,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (!includeConnected) return localMatches;
 
         var platformMatches = connectedPlatforms.entrySet().stream().map(entry -> {
-            var client = getPlatformClient(entry.getKey(), tokens.get(entry.getKey()));
+            var client = getPlatformClient(entry.getKey(), authUtils.getPlatformToken());
             return new ClientMatch(containerId, agentId, action, parameters, stream)
                     .makePlatformMatch(entry.getValue(), client);
         });
@@ -585,7 +575,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     private ApiProxy getContainerClient(String containerId) {
         var url = containerClient.getUrl(containerId);
-        String token = authUtils.getRequestToken(); // Request token is reused for request at container itself
+        String token = authUtils.getPlatformToken();
         return new ApiProxy(url, config.getOwnBaseUrl(), token);
     }
 
