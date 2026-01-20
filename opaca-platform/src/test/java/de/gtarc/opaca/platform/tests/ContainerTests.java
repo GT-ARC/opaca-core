@@ -2,7 +2,6 @@ package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.*;
-import de.gtarc.opaca.model.User.Role;
 import de.gtarc.opaca.platform.Application;
 
 import lombok.AllArgsConstructor;
@@ -46,7 +45,7 @@ public class ContainerTests {
     @BeforeClass
     public static void setupPlatform() throws Exception {
         platform = SpringApplication.run(Application.class,
-                "--security.secret=no-auth-but-needed-for-creating-users",
+                "--security.secret=no-auth-but-needed-for-creating-users", // TODO update
                 "--server.port=" + PLATFORM_PORT);
         containerId = postSampleContainer(PLATFORM_URL);
         checkInvariantStatic();
@@ -659,9 +658,7 @@ public class ContainerTests {
      */
     @Test
     public void testContainerLoginNoAuthButUsers() throws Exception {
-        // create two users for testing
-        result(request(PLATFORM_URL, "POST", "/users", user("user1", "12345", Role.USER)));
-        result(request(PLATFORM_URL, "POST", "/users", user("user2", "12345", Role.USER)));
+        // login as two users for testing
         var token1 = result(request(PLATFORM_URL, "POST", "/login", new Login("user1", "12345")));
         var token2 = result(request(PLATFORM_URL, "POST", "/login", new Login("user2", "12345")));
 

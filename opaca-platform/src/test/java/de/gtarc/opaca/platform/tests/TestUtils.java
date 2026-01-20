@@ -1,7 +1,6 @@
 package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.model.*;
-import de.gtarc.opaca.model.User.Role;
 import de.gtarc.opaca.model.AgentContainerImage.ImageParameter;
 import de.gtarc.opaca.util.RestHelper;
 
@@ -143,15 +142,11 @@ public class TestUtils {
 
     public static void connectPlatforms(String platformUrl, String connectedUrl) throws Exception {
         var connectedBaseUrl = getBaseUrl(connectedUrl);
-        var loginCon = new ConnectionRequest(connectedBaseUrl, true, null);
+        var loginCon = new ConnectionRequest(connectedBaseUrl, true);
         var con = request(platformUrl, "POST", "/connections", loginCon);
         if (con.getResponseCode() != 200) {
             var message = new String(con.getErrorStream().readAllBytes());
             throw new IOException("Failed to connect platforms: " + message);
         }
-    }
-
-    public static User user(String name, String pwd, Role role) {
-        return new User(name, pwd, role, null, Map.of());
     }
 }

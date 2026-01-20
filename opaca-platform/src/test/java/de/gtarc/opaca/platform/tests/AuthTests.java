@@ -1,8 +1,6 @@
 package de.gtarc.opaca.platform.tests;
 
-import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.*;
-import de.gtarc.opaca.model.User.Role;
 import de.gtarc.opaca.platform.Application;
 import de.gtarc.opaca.util.WebSocketConnector;
 
@@ -220,17 +218,17 @@ public class AuthTests {
 
 
      // Authentication against the connected platforms
-
+/*
     @Test
     public void test05ConnectPlatformWrongToken() throws Exception {
         var loginCon = new ConnectionRequest(PLATFORM_A, false, "wrong-token");
         var con = requestWithToken(PLATFORM_B, "POST", "/connections", loginCon, token_B);
         Assert.assertEquals(502, con.getResponseCode());
     }
-
+*/
     @Test
     public void test06ConnectPlatform() throws Exception {
-        var loginCon = new ConnectionRequest(PLATFORM_A, true, token_A);
+        var loginCon = new ConnectionRequest(PLATFORM_A, true); // does not need token if same keycloak
         var con = requestWithToken(PLATFORM_B, "POST", "/connections", loginCon, token_B);
         Assert.assertEquals(200, con.getResponseCode());
         Assert.assertTrue(result(con, Boolean.class));
@@ -255,7 +253,7 @@ public class AuthTests {
         System.out.println(res);
         Assert.assertEquals("testUser", res.get("OWNER"));
     }
-
+/*
     @Test
     public void test08AddUser() throws Exception {
         // GUEST USER
@@ -288,12 +286,10 @@ public class AuthTests {
                 user("contributor2", "contributor2Pwd", Role.CONTRIBUTOR), token_A);
         Assert.assertEquals(201, con.getResponseCode());
     }
-
+*/
     @Test
     public void test08ContainerLogin() throws Exception {
-        // create two users for testing
-        result(requestWithToken(PLATFORM_A, "POST", "/users", user("user1", "12345", Role.USER), token_A));
-        result(requestWithToken(PLATFORM_A, "POST", "/users", user("user2", "12345", Role.USER), token_A));
+        // login as two users for testing
         var token1 = result(request(PLATFORM_A, "POST", "/login", new Login("user1", "12345")));
         var token2 = result(request(PLATFORM_A, "POST", "/login", new Login("user2", "12345")));
 
@@ -425,9 +421,6 @@ public class AuthTests {
 
         con = requestWithToken(PLATFORM_A, "GET", "/history", null, token_guest);
         Assert.assertEquals(403, con.getResponseCode());
-
-        con = requestWithToken(PLATFORM_A, "GET", "/users/guest", null, token_guest);
-        Assert.assertEquals(200, con.getResponseCode());
 
         var message = Map.of("payload", "testBroadcast", "replyTo", "doesnotmatter");
         con = requestWithToken(PLATFORM_A, "POST", "/broadcast/topic", message, token_guest);
