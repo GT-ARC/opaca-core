@@ -17,15 +17,16 @@ By default, authentication is not required, but even if authentication is not _r
 Authentication is configured using a number of Environment variables All of those are set either in the Docker Compose or using `export` (or equivalent) before starting the Runtime Platform.
 
 * `REQUIRE_AUTH`: Whether auth is required for accessing most routes.
-* `KC_URL`: Base URL (protocol, host and port) where to find the Keycloak instance; must be provided if Auth is required, and for allowing for user login, otherwise optional.
-* `KC_REALM`: Name of the Keycloak realm to use, see below for details
+* `KC_ISSUER_URI`: Keycloak JWT Issuer-URI up to and including the Realm to be used; must be provided if Auth is required, and for allowing for user login, otherwise optional.
 * `KC_CLIENT`: Name of the public Keycloak client within the real to be used for users.
 * `KC_ADMIN`: Username of a Keycloak user with admin privileges in the realm; needed for creating temporary clients.
 * `KC_ADMIN_PW`: Password for the above user with admin privileges.
 
-### Environment Variables passed to the Container
+### Relevant Environment Variables passed to the Container
 
-TODO
+In the container, the Keycloak Issuer URI can be found in the `KEYCLOAK_URL` variable. The platform has created a private client for the Container, which can be used for getting access tokens for communicating with the parent platform. The client's ID is the `CONTAINER_ID`; its secret as given in the `CLIENT_SECRET` environment variable. See `AuthHelper` class in the JIAC VI reference implementation for details.
+
+See [API docs](api.md) for complete list of environment variables passed to the Agent Container when it is started.
 
 ### Keycloak Setup
 
@@ -46,11 +47,13 @@ When an Agent Container is initiated, the runtime platform creates a temporary c
 
 ### Authenticating the Runtime Platform against its Agent Containers
 
+<!--TODO das mit original requester username ist noch nicht implementiert-->
+
 On startup, the platform also creates a temporary client for itself, which is then used to create access tokens for forwarding requests to the containers. The token includes the original requester's username as a sub-field, without exposing their original JWT to the container, so the container can not impersonate that user. The container should then check the validity of the token (c.f. the JIAC VI Reference Implementation for how this can be done) and can optionally also check which user made the request. (A user may also use their own JWT to send a request directly to the container, but as long as authentication is enabled, the container should reject requests with a missing or invalid JWT.)
 
 ### Authenticating the Runtime Platform against another Runtime Platform
 
-If authentication is enabled at a remote RuntimePlatform, the `POST /connections` route requires an additional `client_secret` parameter. This secret can be acquired from Keycloak after creating a Client to be used by platform A for creating access token for forwarding requests to platform B (which may be using a different Keycloak, so platform A can not do this itself), e.g. for invoking actions there. If the `connectBack` parameter is set, the platform will create another client to be used by the connected platform (similar to when containers are started) and include its client-secret in the request to the other platform to connect back to itself.
+At the moment, connecting two platforms requires both platforms to use the same Keycloak instance and Realm, so they can acquire access tokens to authenticate at each others (or not requiring auth at all).
 
 
 ## Container Authentication
@@ -65,6 +68,8 @@ If feasible, the Agent Container should test the credentials immediately when th
 
 
 ## Visualization
+
+TODO update (the figure includes "create token" which is not correct anymore)
 
 The following sequence diagram shows, slightly simplified, how the interaction between user, runtime platform, and agent container takes place. In the arrow labels, `{...}` denotes a path parameter, `(...)` the request body, and `[...]` an HTTP header.
 

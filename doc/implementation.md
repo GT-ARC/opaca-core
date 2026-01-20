@@ -57,7 +57,7 @@ Note that in all cases, connected runtime platforms will _only_ be considered if
 
 #### Other Functions
 
-Besides that, the runtime platform offers additional routes and functionality for [basic authentication](auth.md), [session handling](session.md), [user management](user-management.md) and [input validation](validation.md), which are covered in separate documents.
+Besides that, the runtime platform offers additional routes and functionality for [basic authentication](auth.md), [session handling](session.md), and [input validation](validation.md), which are covered in separate documents.
 
 
 ## Agent Container

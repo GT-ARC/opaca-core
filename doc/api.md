@@ -11,7 +11,8 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 * `CONTAINER_ID` The Agent Container's own container ID used to identify the container at the Runtime Platform.
 * `PLATFORM_URL` The URL or IP address where the Agent Container can reach its parent Runtime Platform
-* `TOKEN` Bearer token assigned to the container needed to interact with the parent Runtime Platform if it is using authentication (see [Authentication](auth.md) for details).
+* `KEYCLOAK_URL`: The Keycloak JWT Issuer-URI for acquiring a new access token.
+* `CLIENT_SECRET`: Client-Secret needed for acquiring a new access token (the cient-ID is the container-ID).
 * `OWNER` The username corresponding to the user who has started the Agent Container. The owner has special permissions to perform actions on his own containers.
 * `PORT_MAPPING` Which ports on the host the container's ports are mapped to, in the format `containerPort1:hostPort1,...`
 
@@ -196,8 +197,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 ### `POST /connections`
 
 * connect platform to another remote Runtime Platform (both directions, unless remote requires authentication, then just one direction)
-* input: username & password (optional, if remote RP requires authentication)
-* body: the base URL of that other Runtime Platform
+* body: the base URL of that other Runtime Platform, and whether the other platform should connect back
 * output: `true/false` whether the platform was newly connected or already known
 * errors: 502 (bad gateway) if not reachable
 
@@ -220,7 +220,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 ### `POST /login`
 
-* login with user credentials; this route is available for both, the Runtime Platform (for logging in to the platform as a whole) and for the Agent Container (for application-specific credentials to external APIs)
+* login with user credentials; this route is available for both, the Runtime Platform (for logging in to the platform as a whole) and for the Agent Container (for application-specific credentials to external APIs). The route for platform-login will forward the request to the configured Keycloak instance, if any, without itself storing or logging the user credentials.
 * input:
   * username
   * password

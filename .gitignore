@@ -3,6 +3,7 @@
 target
 .env
 default-images
+default-test-images
 Session.json
 .vscode
 *.log
