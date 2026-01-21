@@ -16,6 +16,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Converting Keycloak-Token to SpringBoot token, normalizing roles and adding implicit role for e.g. requests from AC.
+ */
 @Component
 public class JwtConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
@@ -27,7 +30,7 @@ public class JwtConverter implements Converter<Jwt, AbstractAuthenticationToken>
                 converter.convert(jwt).stream(),
                 extractResourceRoles(jwt).stream()
         ).collect(Collectors.toSet());
-        // XXX client-tokens have role "USER"...
+        // client-tokens are implicitly given the "USER" role
         if (((String) jwt.getClaim("preferred_username")).startsWith("service-account-")) {
             authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
         }

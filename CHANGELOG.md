@@ -1,5 +1,11 @@
 # CHANGELOG
 
+
+## 0.5 Snapshot
+
+* replaced custom simple UserManagement with proper Keycloak integration 
+
+
 ## 0.4 Snapshot
 
 * added `/containers/login/{id}`route to allow user-specific login to individual containers

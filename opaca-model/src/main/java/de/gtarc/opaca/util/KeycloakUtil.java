@@ -21,8 +21,15 @@ import java.util.Date;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Helper class for interaction with Keycloak, especially for acquiring Access Tokens for Users or Clients, and for
+ * validating tokens.
+ */
 public class KeycloakUtil {
 
+    /**
+     * Call getToken with payload for User login
+     */
     public static String getTokenForUser(String keycloakUrlAndRealm, String clientId, String username, String password) throws IOException {
         var data = Map.of(
                 "grant_type", "password",
@@ -33,6 +40,9 @@ public class KeycloakUtil {
         return getToken(keycloakUrlAndRealm, data);
     }
 
+    /**
+     * Call getToken with payload for Client login.
+     */
     public static String getTokenForClient(String keycloakUrlAndRealm, String clientId, String clientSecret) throws IOException {
         var data = Map.of(
                 "grant_type", "client_credentials",
@@ -42,7 +52,7 @@ public class KeycloakUtil {
         return getToken(keycloakUrlAndRealm, data);
     }
 
-    public static String getToken(String keycloakUrlAndRealm, Map<String, String> data) throws IOException {
+    private static String getToken(String keycloakUrlAndRealm, Map<String, String> data) throws IOException {
         String form = data.entrySet().stream()
                 .map(e -> e.getKey() + "=" + e.getValue())
                 .collect(Collectors.joining("&"));
@@ -66,6 +76,10 @@ public class KeycloakUtil {
         }
     }
 
+    /**
+     * Validate the given token, by trying to process it using the given Keycloak URL, then
+     * checking the expiration date. Returns Map of the token's claims.
+     */
     public static Map<String, Object> validateToken(String keycloakUrlAndRealm, String token) throws IOException {
         String jwksUri = keycloakUrlAndRealm + "/protocol/openid-connect/certs";
         JWKSource<SecurityContext> keySource = new RemoteJWKSet<>(new URL(jwksUri));
@@ -82,6 +96,5 @@ public class KeycloakUtil {
             throw new IOException("Verifying JWT failed", e);
         }
     }
-
 
 }

@@ -16,10 +16,17 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.util.*;
 
+/**
+ * Provides various low-level helper-methods for working with Keycloak, managing clients and access tokens,
+ * getting information about the current user, etc.
+ * Also for handling Container-Login tokens. This is not really related to Keycloak, but also auth, and is so simple
+ * it does not really warrant a separate helper class. Also could be integrated with Keycloak tokens in the future...
+ */
 @Log4j2
 @Service
 public class AuthUtils {
 
+    // User roles. These roles and their hierarchy have to be defined in the Keycloak realm!
     final static String ROLE_ADMIN = "ADMIN";
     final static String ROLE_CONTRIBUTOR = "CONTRIBUTOR";
     final static String ROLE_USER = "USER";
@@ -36,6 +43,10 @@ public class AuthUtils {
     private String platformClientSecret = null;
 
 
+    /**
+     * When using auth, create a Keycloak client for the Platform itself, to be used when forwarding
+     * requests to deployed Agent Containers or connected Platforms.
+     */
     @PostConstruct
     private void startup() throws IOException {
         // some basic config consistency checks
@@ -57,6 +68,9 @@ public class AuthUtils {
         }
     }
 
+    /**
+     * Delete platform client again on shutdown.
+     */
     @PreDestroy
     private void teardown() throws IOException {
         // delete platform client
@@ -67,9 +81,12 @@ public class AuthUtils {
      * KEYCLOAK AUTHENTICATION
      */
 
+    /**
+     * Keycloak admin-client for managing temporary clients.
+     */
     private Keycloak keycloakClient() {
         return KeycloakBuilder.builder()
-                .serverUrl(config.keycloakIssuerUri.split("/realms/")[0])
+                .serverUrl(getIssuerUri())
                 .realm("master")
                 .clientId("admin-cli")
                 .grantType("password")
@@ -78,7 +95,9 @@ public class AuthUtils {
                 .build();
     }
 
-    // used for platform login
+    /**
+     * Get JWT for Keycloak user, used in the /login route.
+     */
     public String getTokenForUser(String username, String password) throws IOException {
         if (config.keycloakIssuerUri == null) {
             throw new IllegalArgumentException("Login not possible: Keycloak is not configured!");
@@ -86,8 +105,12 @@ public class AuthUtils {
         return KeycloakUtil.getTokenForUser(config.keycloakIssuerUri, config.keycloakClientId, username, password);
     }
 
+    /**
+     * Get Token for the platform itself, for requests to deployed containers and connected platforms.
+     */
     public String getPlatformToken() {
         if (platformClientSecret == null) return null;
+        // TODO reuse last token if still valid
         try {
             // TODO include current request user's username as extra payload?
             return KeycloakUtil.getTokenForClient(config.keycloakIssuerUri, platformId, platformClientSecret);
@@ -96,6 +119,10 @@ public class AuthUtils {
         }
     }
 
+    /**
+     * Creates a temporary private Keycloak Client, e.g. for the platform itself or a deployed container.
+     * Returns the client's secret, which along with the client-id can be used to get access tokens for this client.
+     */
     public String createClientAndGetSecret(String clientId) throws  IOException {
         var secret = UUID.randomUUID().toString();
 
@@ -110,7 +137,7 @@ public class AuthUtils {
         clientRep.setServiceAccountsEnabled(true);
 
         try (var keycloak = keycloakClient()) {
-            try (var result = keycloak.realm("opaca").clients().create(clientRep)) {
+            try (var result = keycloak.realm(getRealm()).clients().create(clientRep)) {
                 if (result.getStatus() > 299) {
                     throw new IOException("Keycloak Client could not be created: " + result.getStatusInfo());
                 }
@@ -119,12 +146,15 @@ public class AuthUtils {
         return secret;
     }
 
+    /**
+     * Delete temporary client, e.g. when removing containers again or stopping the platform.
+     */
     public boolean deleteClient(String clientId) throws IOException {
         if (config.keycloakIssuerUri == null) return false;
         try (var keycloak = keycloakClient()) {
-            var client = keycloak.realm("opaca").clients().findByClientId(clientId).stream().findAny();
+            var client = keycloak.realm(getRealm()).clients().findByClientId(clientId).stream().findAny();
             if (client.isPresent()) {
-                try (var result = keycloak.realm("opaca").clients().delete(client.get().getId())) {
+                try (var result = keycloak.realm(getRealm()).clients().delete(client.get().getId())) {
                     if (result.getStatus() > 299) {
                         throw new IOException("Keycloak Client could not be deleted: " + result.getStatusInfo());
                     }
@@ -162,8 +192,19 @@ public class AuthUtils {
         return false; // TODO
     }
 
+    private String getIssuerUri() {
+        return config.keycloakIssuerUri.split("/realms/")[0];
+    }
+
+    private String getRealm() {
+        return config.keycloakIssuerUri.split("/realms/")[1];
+    }
+
     /*
-     * CONTAINER TOKEN STUFF... store those in KeyCloak, or just in-memory?
+     * HANDLING OF CONTAINER TOKENS
+     * Container-Tokens were previously stored in the User objects, in the Database. Now, with Keycloak, we just
+     * store the Access tokens in an internal HashMap (they are obsolete after restart anyway). Midterm, they might
+     * not be needed anymore at all, if we include the original request user in the Token sent to the Container.
      */
 
     private final Map<String, Map<String, String>> containerTokens = new HashMap<>();

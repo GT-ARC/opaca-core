@@ -611,6 +611,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     protected void testSelfConnection() throws Exception {
         if (config.requireAuth) {
+            // TODO restore self-connection test when using Auth
             log.warn("Unable to Test Self-Connection if requireAuth=true");
             return;
         }
