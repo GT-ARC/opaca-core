@@ -16,7 +16,6 @@ import org.springframework.context.annotation.Configuration;
         description = """
                 Use this Web API to interact with the OPACA Runtime Platform and its Agent Containers. Here's a short
                 description of the different groups of API routes:
-                * **users**: view, add or delete user accounts for this platform
                 * **agents**: interact with agents inside the containers, e.g. by sending them messages, invoking actions
                 * **authentication**: login to request an access token
                 * **containers**: view, deploy or remove Agent Containers running on this platform
@@ -64,7 +63,7 @@ public class SwaggerConfig {
     public GroupedOpenApi otherApi() {
         return GroupedOpenApi.builder()
                 .group("Other")
-                .pathsToMatch("/authentication/**", "/info", "/history", "/config")
+                .pathsToMatch("/login", "/info", "/history", "/config")
                 .build();
     }
             

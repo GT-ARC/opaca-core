@@ -19,7 +19,6 @@ import lombok.Data;
 public class SessionData {
 
     /* PlatformImpl variables */
-    public Map<String, String> platformClientSecrets = new HashMap<>();
     public Map<String, AgentContainer> runningContainers = new HashMap<>();
     public Map<String, PostAgentContainer> startContainerRequests = new HashMap<>();
     public Map<String, RuntimePlatform> connectedPlatforms = new HashMap<>();
@@ -32,7 +31,6 @@ public class SessionData {
     public Map<String, KubernetesClient.PodInfo> pods = new HashMap<>();
 
     public void reset() {
-        this.platformClientSecrets.clear();
         this.runningContainers.clear();
         this.startContainerRequests.clear();
         this.connectedPlatforms.clear();
