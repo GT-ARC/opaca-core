@@ -164,6 +164,15 @@ public class AuthTests {
     }
 
     @Test
+    public void test04OutboundInvoke() throws Exception {
+        // container can call action of another agent by calling /invoke at its parent platform
+        var con = requestWithToken(PLATFORM_A, "POST", "/invoke/OutboundInvokeTest/sample1", Map.of("agentId", "sample2"), token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, String.class);
+        Assert.assertTrue(res.contains("65"));
+    }
+
+    @Test
     public void test04TriggerAutoNotify() throws Exception {
         // create new agent action
         var con = requestWithToken(PLATFORM_A, "POST", "/invoke/CreateAction", Map.of("name", "TestAction", "notify", true), token_A);
