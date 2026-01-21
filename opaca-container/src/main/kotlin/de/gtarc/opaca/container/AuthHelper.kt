@@ -3,6 +3,7 @@ package de.gtarc.opaca.container
 import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.util.ApiProxy
 import de.gtarc.opaca.util.KeycloakUtil
+import kotlin.math.log
 
 object AuthHelper {
 
@@ -18,10 +19,9 @@ object AuthHelper {
     /** Client Secret to request a new JWT if Platform is using Auth; Client-ID is Container-ID */
     private var clientSecret = System.getenv(AgentContainerApi.ENV_CLIENT_SECRET)
 
-    fun getParentProxy(): ApiProxy {
-        val token = if (keycloakUrl.isNullOrBlank()) "" else KeycloakUtil.getTokenForClient(keycloakUrl, containerId, clientSecret)
-        return ApiProxy(runtimePlatformUrl, containerId, token)
-    }
+    fun getToken() = if (keycloakUrl.isNullOrBlank()) "" else KeycloakUtil.getTokenForClient(keycloakUrl, containerId, clientSecret)
+
+    fun getParentProxy() = ApiProxy(runtimePlatformUrl, containerId, getToken())
 
     fun validateToken(token: String?): Boolean {
         if (keycloakUrl.isNullOrBlank()) {
@@ -29,8 +29,7 @@ object AuthHelper {
         } else {
             try {
                 KeycloakUtil.validateToken(keycloakUrl, token)
-                // TODO check JWT claims, or just check that it can be decoded?
-                //  should at least check time-to-live
+                // validateToken checks signature and expired-time; check anything else here?
                 return true
             } catch (e: Exception) {
                 return false

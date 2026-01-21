@@ -10,6 +10,40 @@ To get the token, you can use the `/login` route and enter your Keycloak credent
 
 By default, authentication is not required, but even if authentication is not _required_, it is _enabled_ (provided that Keycloak is configured) and can be used to log in and invoke actions as specific users. This is so that Container Login (see below) is properly usable even if no platform login is required. Otherwise, container-login tokens would be associated with the default user, which may not be desirable if the platform is used by multiple users. 
 
+
+## Rule Based Access Control
+
+When checking a users' authority, their role as well as their privileges are converted to so-called "Granted Authorities". This is primarily used by the Security Filter Chain, but is also checked during requests, which can be accessed by lower-level authorities, but need further checking for specific permissions.
+
+These are the currently implemented Roles. The roles are part of a role hierarchy, granting the higher role all permissions of the lower role.
+
+- **ADMIN**: Has the highest authority and full control over a Runtime Platform. Can connect the platform with other platforms.
+- **CONTRIBUTOR**: Is actively contributing to the Runtime Platform by providing and deploying containers. Is able to delete only its own deployed containers.
+- **USER**: Can use the functionalities provided by the running containers on the Runtime Platform. Is also able to send/broadcast messages on the platform and retrieve information about connected platforms or the history of the platform.
+- **GUEST**: Is a provisional role with the most limited access. Is only able to get information about the Runtime Platform, running containers and agents.
+
+**Note:** The roles and the above role hierarchy have to be defined in the Keycloak Realm; see below for setting up Keycloak.
+
+The following table provides an overview of all implemented routes along with the necessary authority levels. In addition to those, the routes `/login`, `/error`, as well as specific _swagger.io_ paths are permitted to all (non-logged in) users.
+
+| Routes and Methods          | ADMIN | CONTRIBUTOR | USER | GUEST |
+|:----------------------------|:-----:|:-----------:|:----:|:-----:|
+| /agents/**                  |   X   |      X      |  X   |   X   |
+| /broadcast/**               |   X   |      X      |  X   |       |
+| /containers/** GET          |   X   |      X      |  X   |   X   |
+| /containers/** DELETE/POST  |   X   |     X*      |      |       |
+| /containers/(login,logout)  |   X   |      X      |  X   |       |
+| /connections GET            |   X   |      X      |  X   |       |
+| /connections/** DELETE/POST |   X   |             |      |       |
+| /history GET                |   X   |      X      |  X   |       |
+| /info GET                   |   X   |      X      |  X   |   X   |
+| /invoke/**                  |   X   |      X      |  X   |       |
+| /send/**                    |   X   |      X      |  X   |       |
+| /stream/**                  |   X   |      X      |  X   |       |
+
+*: A contributor can only delete containers which were started by it.
+
+
 ## Setup and Configuration
 
 ### Environment Variables set the Platform
@@ -34,41 +68,6 @@ See [API docs](api.md) for complete list of environment variables passed to the 
 * refer to docker compose
 * refer to sample realm exported as JSON (t.b.d.)
 </font>
-
-
-## Rule Based Access Control
-
-When checking a users' authority, their role as well as their privileges are converted to so-called "Granted Authorities". This is primarily used by the Security Filter Chain, but is also checked during requests, which can be accessed by lower-level authorities, but need further checking for specific permissions.
-
-These are the currently implemented Roles. The roles are part of a role hierarchy, granting the higher role all permissions of the lower role.
-
-- **ADMIN**: Has the highest authority and full control over a Runtime Platform. Can connect the platform with other platforms.
-- **CONTRIBUTOR**: Is actively contributing to the Runtime Platform by providing and deploying containers. Is able to delete only its own deployed containers.
-- **USER**: Can use the functionalities provided by the running containers on the Runtime Platform. Is also able to send/broadcast messages on the platform and retrieve information about connected platforms or the history of the platform.
-- **GUEST**: Is a provisional role with the most limited access. Is only able to get information about the Runtime Platform, running containers and agents.
-
-**Note:** The roles and the above role hierarchy have to be defined in the Keycloak Realm. They are defined in the sample Realm config included as a JSON in this repository.
-
-<!-- TODO actually create and include this JSON file... -->
-
-The following table provides an overview of all implemented routes along with the necessary authority levels. In addition to those, the routes `/login`, `/error`, as well as specific _swagger.io_ paths are permitted to all (non-logged in) users.
-
-| Routes and Methods          | ADMIN | CONTRIBUTOR | USER | GUEST |
-|:----------------------------|:-----:|:-----------:|:----:|:-----:|
-| /agents/**                  |   X   |      X      |  X   |   X   |
-| /broadcast/**               |   X   |      X      |  X   |       |
-| /containers/** GET          |   X   |      X      |  X   |   X   |
-| /containers/** DELETE/POST  |   X   |     X*      |      |       |
-| /containers/(login,logout)  |   X   |      X      |  X   |       |
-| /connections GET            |   X   |      X      |  X   |       |
-| /connections/** DELETE/POST |   X   |             |      |       |
-| /history GET                |   X   |      X      |  X   |       |
-| /info GET                   |   X   |      X      |  X   |   X   |
-| /invoke/**                  |   X   |      X      |  X   |       |
-| /send/**                    |   X   |      X      |  X   |       |
-| /stream/**                  |   X   |      X      |  X   |       |
-
-*: A contributor can only delete containers which were started by it.
 
 
 ## Authentication Workflows
@@ -105,7 +104,7 @@ If feasible, the Agent Container should test the credentials immediately when th
 
 ## Visualization
 
-TODO update (the figure includes "create token" which is not correct anymore)
+<!--TODO update (the figure includes "create token" which is not correct anymore)-->
 
 The following sequence diagram shows, slightly simplified, how the interaction between user, runtime platform, and agent container takes place. In the arrow labels, `{...}` denotes a path parameter, `(...)` the request body, and `[...]` an HTTP header.
 

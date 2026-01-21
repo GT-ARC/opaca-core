@@ -62,8 +62,7 @@ class ContainerAgent(
             log.info("Starting Container Agent...")
             server.start()
             if (subscribeToEvents) {
-                TODO()
-                //WebSocketConnector.subscribe(runtimePlatformUrl, token, "/invoke", this::onEvent)
+                WebSocketConnector.subscribe(runtimePlatformUrl, AuthHelper.getToken(), "/invoke", this::onEvent)
             }
         }.start()
     }

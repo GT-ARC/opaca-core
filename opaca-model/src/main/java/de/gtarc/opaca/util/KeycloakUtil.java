@@ -17,6 +17,7 @@ import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Date;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -73,6 +74,9 @@ public class KeycloakUtil {
         jwtProcessor.setJWSKeySelector(new JWSVerificationKeySelector<>(JWSAlgorithm.RS256, keySource));
         try {
             JWTClaimsSet claims = jwtProcessor.process(token, null);
+            if (claims.getExpirationTime().before(new Date())) {
+                throw new IllegalArgumentException("Token expired");
+            }
             return claims.getClaims();
         } catch (Exception e) {
             throw new IOException("Verifying JWT failed", e);
