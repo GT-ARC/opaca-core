@@ -4,6 +4,7 @@ import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.util.KeycloakUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import lombok.extern.log4j.Log4j2;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.representations.idm.ClientRepresentation;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.util.*;
 
+@Log4j2
 @Service
 public class AuthUtils {
 
@@ -38,7 +40,7 @@ public class AuthUtils {
     private void startup() throws IOException {
         // some basic config consistency checks
         if (config.requireAuth && ! config.isSet(config.keycloakIssuerUri)) {
-            System.err.println("Keycloak URL must be given if Authentication is required.");
+            log.fatal("Keycloak URL must be given if Authentication is required.");
             System.exit(1);
         }
         if (config.isSet(config.keycloakIssuerUri) && ! (
@@ -46,7 +48,7 @@ public class AuthUtils {
                 config.isSet(config.keycloakAdmin) &&
                 config.isSet(config.keycloakAdminPw)
         )) {
-            System.err.println("When using Keycloak, KC-Client, -Admin and -Admin-PW must also be set.");
+            log.fatal("When using Keycloak, KC-Client, -Admin and -Admin-PW must also be set.");
             System.exit(1);
         }
         // create client for platform itself

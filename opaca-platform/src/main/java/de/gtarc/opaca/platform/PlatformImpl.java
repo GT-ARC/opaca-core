@@ -96,7 +96,8 @@ public class PlatformImpl implements RuntimePlatformApi {
             log.info("Using Kubernetes with namespace {}", config.kubernetesNamespace);
             this.containerClient = new KubernetesClient();
         } else {
-            throw new IllegalArgumentException("Invalid environment specified");
+            log.fatal("Invalid environment specified");
+            System.exit(1);
         }
         // test resolving own base URL and print result
         log.info("Own Base URL: {}", config.getOwnBaseUrl());

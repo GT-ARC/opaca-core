@@ -78,13 +78,6 @@
 			<version>1.0.82</version>
 		</dependency>
 
-		<!-- User Management -->
-		<dependency>
-			<groupId>org.mongodb</groupId>
-			<artifactId>mongodb-driver-sync</artifactId>
-			<version>4.11.1</version>
-		</dependency>
-
 		<!-- Docker API for Java -->
 		<dependency>
 			<groupId>com.github.docker-java</groupId>
