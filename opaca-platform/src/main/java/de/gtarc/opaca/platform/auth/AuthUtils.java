@@ -136,52 +136,6 @@ public class AuthUtils {
         }
     }
 
-    public static void main(String[] args) throws Exception {
-
-        var userToken = KeycloakUtil.getTokenForUser("http://localhost:8888/realms/opaca", "opaca-rp", "test", "test1234");
-        System.out.println(userToken);
-        KeycloakUtil.validateToken("http://localhost:8888/realms/opaca", userToken);
-
-        Keycloak keycloak = KeycloakBuilder.builder()
-                .serverUrl("http://localhost:8888/")
-                .realm("master")
-                .clientId("admin-cli")
-                .grantType("password")
-                .username("admin")
-                .password("admin")
-                .build();
-
-        var clientId = "1234567890";
-        var secret = "OC5lcOXvNpeVQ3oCZcEF6qZjvEfhrztE";
-
-        ClientRepresentation clientRep = new ClientRepresentation();
-        clientRep.setClientId(clientId);
-        clientRep.setSecret(secret);
-        clientRep.setProtocol("openid-connect");
-        clientRep.setClientAuthenticatorType("client-secret");
-        clientRep.setPublicClient(false);
-        clientRep.setStandardFlowEnabled(false);
-        clientRep.setDirectAccessGrantsEnabled(false);
-        clientRep.setServiceAccountsEnabled(true);
-
-        var res2 = keycloak.realm("opaca").clients().create(clientRep);
-        System.out.println("RESPONSE " + res2.getStatus());
-
-        try {
-            var clientToken = KeycloakUtil.getTokenForClient("http://localhost:8888/realms/opaca", clientId, secret);
-            System.out.println("TOKEN " + clientToken);
-            KeycloakUtil.validateToken("http://localhost:8888/realms/opaca", clientToken);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        var id = keycloak.realm("opaca").clients().findByClientId(clientId).get(0).getId();
-        System.out.println(id);
-        var res3 = keycloak.realm("opaca").clients().delete(id);
-        System.out.println("RESPONSE " + res3.getStatus());
-    }
-
-
     /**
      * Get the logged-in user from the user token in auth context, or default user if no auth.
      * The default-user is only relevant for container-login if no auth is enabled and only used
@@ -190,8 +144,6 @@ public class AuthUtils {
     public String getRequestUser() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth.getCredentials() instanceof Jwt jwt) {
-            System.out.println("TOKEN " + jwt.getTokenValue());
-            System.out.println("CLAIMS " + jwt.getClaims());
             return jwt.getClaimAsString("preferred_username");
         } else if (! config.requireAuth){
             return "anonymous";

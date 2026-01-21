@@ -78,25 +78,4 @@ public class SecurityConfiguration {
         return http.build();
     }
 
-    /*
-    // not sure why, or why it was needed before, but removing this solved a StackOverflowError if the token was invalid
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
-            throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
-    }
-
-    // the roles hierarchy is now defined in keycloak. I guess we COULD also keep it here, reducing the necessary
-    configuration in keycloak, but you still have to define the roles themselves, so it would not save much...
-    // also, if the UserController is completely removed, and we don't need the User class anymore, Role should be moved here
-    @Bean
-    public RoleHierarchy roleHierarchy() {
-        RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
-        String hierarchy = Role.ADMIN.role() + " > " + Role.CONTRIBUTOR.role() + " \n " +
-                           Role.CONTRIBUTOR.role() + " > " + Role.USER.role() + " \n " +
-                           Role.USER.role() + " > " + Role.GUEST.role();
-        roleHierarchy.setHierarchy(hierarchy);
-        return roleHierarchy;
-    }
-*/
 }

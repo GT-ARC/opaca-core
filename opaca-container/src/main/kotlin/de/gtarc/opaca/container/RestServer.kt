@@ -26,7 +26,7 @@ class RestServerJavalin(val impl: ContainerAgent, val port: Int) {
             .before {
                 val tokenFromRequest = it.header("Authorization")?.removePrefix("Bearer ")
                 if (! AuthHelper.validateToken(tokenFromRequest)) {
-                    throw NotAuthenticatedException("Unauthorized: Token does not match")
+                    throw NotAuthenticatedException("Unauthorized: Token invalid")
                 }
             }
             .get("/info") {

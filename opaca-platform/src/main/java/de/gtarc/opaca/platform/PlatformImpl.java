@@ -120,9 +120,6 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public RuntimePlatform getPlatformInfo() {
-
-        authUtils.getRequestUser();
-
         return new RuntimePlatform(
                 authUtils.platformId,
                 config.getOwnBaseUrl(),
