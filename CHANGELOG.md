@@ -1,8 +1,9 @@
 # CHANGELOG
 
-## 0.4 Snapshot
+## 0.4 Release
 
 * added `/containers/login/{id}`route to allow user-specific login to individual containers
+* fixed return codes for various not-authenticated cases
 
 
 ## 0.3 Release
