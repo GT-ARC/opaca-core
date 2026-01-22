@@ -65,7 +65,7 @@ public class AuthUtils {
         }
         // create client for platform itself
         if (config.isSet((config.keycloakIssuerUri))) {
-            platformClientSecret = createClientAndGetSecret(platformId);
+            platformClientSecret = createClientAndGetSecret(platformId, "OPACA RP at " + config.getOwnBaseUrl());
         }
     }
 
@@ -124,11 +124,12 @@ public class AuthUtils {
      * Creates a temporary private Keycloak Client, e.g. for the platform itself or a deployed container.
      * Returns the client's secret, which along with the client-id can be used to get access tokens for this client.
      */
-    public String createClientAndGetSecret(String clientId) throws  IOException {
+    public String createClientAndGetSecret(String clientId, String description) throws  IOException {
         var secret = UUID.randomUUID().toString();
 
         ClientRepresentation clientRep = new ClientRepresentation();
         clientRep.setClientId(clientId);
+        clientRep.setDescription(description);
         clientRep.setSecret(secret);
         clientRep.setProtocol("openid-connect");
         clientRep.setClientAuthenticatorType("client-secret");

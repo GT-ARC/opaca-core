@@ -263,8 +263,9 @@ public class PlatformImpl implements RuntimePlatformApi {
         env.put(AgentContainerApi.ENV_OWNER, authUtils.getRequestUser());
         String owner = authUtils.getRequestUser();
         if (config.requireAuth) {
+            var clientSecret = authUtils.createClientAndGetSecret(agentContainerId, "OPACA AC of RP " + authUtils.platformId);
             env.put(AgentContainerApi.ENV_KEYCLOAK_URL, config.keycloakIssuerUri);
-            env.put(AgentContainerApi.ENV_CLIENT_SECRET, authUtils.createClientAndGetSecret(agentContainerId));
+            env.put(AgentContainerApi.ENV_CLIENT_SECRET, clientSecret);
         }
 
         // start container... this may raise an Exception, or returns the connectivity info

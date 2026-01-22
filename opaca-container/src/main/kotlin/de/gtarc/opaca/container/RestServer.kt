@@ -122,7 +122,7 @@ object ExceptionMapping {
 
     init {
         registerErrorCode(NoSuchElementException::class.java, 404)
-        registerErrorCode(NotAuthenticatedException::class.java, 403)
+        registerErrorCode(NotAuthenticatedException::class.java, 401)
     }
 
     fun registerErrorCode(exceptionClass: Class<out Exception>, code: Int) {
