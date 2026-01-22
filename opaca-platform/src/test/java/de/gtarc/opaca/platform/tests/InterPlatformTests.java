@@ -33,10 +33,8 @@ public class InterPlatformTests {
 
     @BeforeClass
     public static void setupPlatforms() throws Exception {
-        platformA = SpringApplication.run(Application.class,
-                "--server.port=" + PLATFORM_A_PORT);
-        platformB = SpringApplication.run(Application.class,
-                "--server.port=" + PLATFORM_B_PORT);
+        platformA = TestUtils.startPlatform(PLATFORM_A_PORT, false, false, false);
+        platformB = TestUtils.startPlatform(PLATFORM_B_PORT, false, false, false);
         containerId = postSampleContainer(PLATFORM_A_URL);
         connectPlatforms(PLATFORM_B_URL, PLATFORM_A_URL);
         checkInvariantStatic();

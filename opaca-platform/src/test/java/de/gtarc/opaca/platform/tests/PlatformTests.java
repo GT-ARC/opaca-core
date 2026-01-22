@@ -40,12 +40,8 @@ public class PlatformTests {
 
     @BeforeClass
     public static void setupPlatform() {
-        platformA = SpringApplication.run(Application.class,
-                "--server.port=" + PLATFORM_A_PORT,
-                "--default_image_directory=./default-test-images"
-        );
-        platformB = SpringApplication.run(Application.class,
-                "--server.port=" + PLATFORM_B_PORT);
+        platformA = startPlatform(PLATFORM_A_PORT, true, false, false);
+        platformB = startPlatform(PLATFORM_B_PORT, false, false, false);
     }
 
     @AfterClass

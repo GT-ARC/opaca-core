@@ -2,12 +2,16 @@ package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.model.AgentContainerImage.ImageParameter;
+import de.gtarc.opaca.platform.Application;
 import de.gtarc.opaca.util.RestHelper;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +26,34 @@ public class TestUtils {
      * during CI. When running tests locally, make sure to build the image first, with this name.
      */
     static final String TEST_IMAGE = "sample-agent-container-image";
+
+    /**
+     * Start OPACA Runtime for testing using specific settings.
+     *
+     * @param port The port there the platform should run.
+     * @param defaultImages Whether to use the default-test-images directory.
+     * @param requireAuth Whether to require authentication (will also require Keycloak)
+     * @param useKeycloak Whether to use Keycloak (does not require auth)
+     * @return application context, to be closed when tests are done.
+     */
+    public static ConfigurableApplicationContext startPlatform(int port, boolean defaultImages, boolean requireAuth, boolean useKeycloak) {
+        List<String> parameters = new ArrayList<>();
+        parameters.add("--server.port=" + port);
+        if (defaultImages) {
+            parameters.add("--default_image_directory=./default-test-images");
+        }
+        if (requireAuth) {
+            parameters.add("--security.requireAuth=true");
+        }
+        if (useKeycloak || requireAuth) {
+            parameters.add("--opaca.security.kc_issuer_uri=http://localhost:9000/realms/opaca");
+            parameters.add("--opaca.security.kc_clientid=opaca-rp");
+            parameters.add("--opaca.security.kc_admin=admin");
+            parameters.add("--opaca.security.kc_admin_pw=admin");
+            parameters.add("--spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:9000/realms/opaca");
+        }
+        return SpringApplication.run(Application.class, parameters.toArray(String[]::new));
+    }
 
     /*
      * HELPER METHODS

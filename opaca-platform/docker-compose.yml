@@ -40,6 +40,8 @@ services:
     # for running containers on the same Docker as the platform itself
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    profiles:
+      - platform
 
   # KEYCLOAK for Authentication (optional)
 
@@ -48,7 +50,7 @@ services:
     command: export --
     #command: start-dev
     ports:
-      - "8888:8080"
+      - "9000:8080"
     depends_on:
       - keycloak_db
     environment:
