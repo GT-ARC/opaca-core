@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Provides various low-level helper-methods for working with Keycloak, managing clients and access tokens,
@@ -182,14 +183,26 @@ public class AuthUtils {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    public Set<String> getRequestUserRoles() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth.getCredentials() instanceof Jwt jwt) {
+            var roles = (List<String>) jwt.getClaimAsMap("realm_access").get("roles");
+            return roles.stream().filter(x -> x.toUpperCase().equals(x)).collect(Collectors.toSet());
+        } else if (! config.requireAuth){
+            return Set.of(ROLE_MANAGER, ROLE_CONTRIBUTOR, ROLE_USER, ROLE_GUEST);
+        } else {
+            return Set.of();
+        }
+    }
+
     /**
-     * Checks if the current request user is either an admin (has full control over user management)
+     * Checks if the current request user is either a "manager" (formerly admin)
      * or the request user is performing request on its own data
-     * @param username: Name of user which will get affected by request (NOT THE CURRENT REQUEST USER)
+     * @param username Name of user which will get affected by request (NOT THE CURRENT REQUEST USER)
      */
-    // used in remove-container
     public boolean isAdminOrSelf(String username) {
-        return false; // TODO
+        return Objects.equals(username, getRequestUser()) || getRequestUserRoles().contains(ROLE_MANAGER);
     }
 
     private String getIssuerUri() {
