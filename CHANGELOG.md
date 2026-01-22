@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 0.5 Snapshot
+
+* ...
+
+
 ## 0.4 Release
 
 * added `/containers/login/{id}`route to allow user-specific login to individual containers

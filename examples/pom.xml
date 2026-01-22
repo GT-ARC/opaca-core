@@ -5,7 +5,7 @@
     <parent>
         <groupId>de.gtarc.opaca</groupId>
         <artifactId>opaca-parent</artifactId>
-        <version>0.4</version>
+        <version>0.5-SNAPSHOT</version>
     </parent>
 
     <artifactId>opaca-examples</artifactId>
