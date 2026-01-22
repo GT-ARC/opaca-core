@@ -27,7 +27,7 @@ import java.util.*;
 public class AuthUtils {
 
     // User roles. These roles and their hierarchy have to be defined in the Keycloak realm!
-    final static String ROLE_ADMIN = "ADMIN";
+    final static String ROLE_MANAGER = "MANAGER";
     final static String ROLE_CONTRIBUTOR = "CONTRIBUTOR";
     final static String ROLE_USER = "USER";
     final static String ROLE_GUEST = "GUEST";

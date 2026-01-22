@@ -17,7 +17,7 @@ When checking a users' authority, their role as well as their privileges are con
 
 These are the currently implemented Roles. The roles are part of a role hierarchy, granting the higher role all permissions of the lower role.
 
-- **ADMIN**: Has the highest authority and full control over a Runtime Platform. Can connect the platform with other platforms.
+- **MANAGER**: Has the highest authority and full control over a Runtime Platform. Can connect the platform with other platforms.
 - **CONTRIBUTOR**: Is actively contributing to the Runtime Platform by providing and deploying containers. Is able to delete only its own deployed containers.
 - **USER**: Can use the functionalities provided by the running containers on the Runtime Platform. Is also able to send/broadcast messages on the platform and retrieve information about connected platforms or the history of the platform.
 - **GUEST**: Is a provisional role with the most limited access. Is only able to get information about the Runtime Platform, running containers and agents.
@@ -26,20 +26,20 @@ These are the currently implemented Roles. The roles are part of a role hierarch
 
 The following table provides an overview of all implemented routes along with the necessary authority levels. In addition to those, the routes `/login`, `/error`, as well as specific _swagger.io_ paths are permitted to all (non-logged in) users.
 
-| Routes and Methods          | ADMIN | CONTRIBUTOR | USER | GUEST |
-|:----------------------------|:-----:|:-----------:|:----:|:-----:|
-| /agents/**                  |   X   |      X      |  X   |   X   |
-| /broadcast/**               |   X   |      X      |  X   |       |
-| /containers/** GET          |   X   |      X      |  X   |   X   |
-| /containers/** DELETE/POST  |   X   |     X*      |      |       |
-| /containers/(login,logout)  |   X   |      X      |  X   |       |
-| /connections GET            |   X   |      X      |  X   |       |
-| /connections/** DELETE/POST |   X   |             |      |       |
-| /history GET                |   X   |      X      |  X   |       |
-| /info GET                   |   X   |      X      |  X   |   X   |
-| /invoke/**                  |   X   |      X      |  X   |       |
-| /send/**                    |   X   |      X      |  X   |       |
-| /stream/**                  |   X   |      X      |  X   |       |
+| Routes and Methods          | MANAGER | CONTRIBUTOR | USER | GUEST |
+|:----------------------------|:-------:|:-----------:|:----:|:-----:|
+| /agents/**                  |    X    |      X      |  X   |   X   |
+| /broadcast/**               |    X    |      X      |  X   |       |
+| /containers/** GET          |    X    |      X      |  X   |   X   |
+| /containers/** DELETE/POST  |    X    |     X*      |      |       |
+| /containers/(login,logout)  |    X    |      X      |  X   |       |
+| /connections GET            |    X    |      X      |  X   |       |
+| /connections/** DELETE/POST |    X    |             |      |       |
+| /history GET                |    X    |      X      |  X   |       |
+| /info GET                   |    X    |      X      |  X   |   X   |
+| /invoke/**                  |    X    |      X      |  X   |       |
+| /send/**                    |    X    |      X      |  X   |       |
+| /stream/**                  |    X    |      X      |  X   |       |
 
 *: A contributor can only delete containers which were started by it.
 
@@ -95,7 +95,7 @@ At the moment, connecting two platforms requires both platforms to use the same 
 
 In addition to the Runtime Platform as a whole, individual Agent Containers can also require authentication in order to function properly. As an example, a container may interface with the user's e-mails, calendar, or some other personal account. If the container is to be used by a single user only, this information could be provided in container-parameters (see [API, section AgentContainerImage](api.md)), but this fails if the container should be used by multiple users.
 
-Using the `/containers/login/{containerId}` route (introduced in version 0.4), users can log in to individual containers, using credentials that are specific to those containers. The credentials are forwarded to the container, which then associates them with a randomly generated token and returns that to the runtime platform. This token is then included as a special HTTP header, `ContainerLoginToken` in all subsequent requests to that container by the same user, currently logged in to the OPACA Runtime Platform. (If Platform-Authentication is not enabled, the tokens are associated with the platform default admin-user instead.) To log out from the container, use the  `/containers/login/{containerId}` route while logged in as the same user.
+Using the `/containers/login/{containerId}` route (introduced in version 0.4), users can log in to individual containers, using credentials that are specific to those containers. The credentials are forwarded to the container, which then associates them with a randomly generated token and returns that to the runtime platform. This token is then included as a special HTTP header, `ContainerLoginToken` in all subsequent requests to that container by the same user, currently logged in to the OPACA Runtime Platform. (If Platform-Authentication via Keycloak is not enabled, the tokens are associated with the platform default "anonymous" user instead.) To log out from the container, use the  `/containers/login/{containerId}` route while logged in as the same user.
 
 **Note** that the actual handling of the user credentials is done by the implementing Agent Container and not part of the OPACA API. It is advised to e.g. instantiate and cache a user-specific client for the upstream service the credentials are needed for and not to store them in the container itself. Similarly, the container-credentials are received in plain-text by the runtime platform and passed on to the agent-container, but are at no point stored or logged by the platform.
 

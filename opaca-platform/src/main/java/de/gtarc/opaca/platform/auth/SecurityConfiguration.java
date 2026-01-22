@@ -64,7 +64,7 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.POST, "/containers/login/**", "/containers/logout/**").hasRole(AuthUtils.ROLE_USER)
                     .requestMatchers(HttpMethod.POST, "/containers/**").hasRole(AuthUtils.ROLE_CONTRIBUTOR)
                     .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole(AuthUtils.ROLE_CONTRIBUTOR)
-                    .requestMatchers("/connections/**").hasRole(AuthUtils.ROLE_ADMIN)
+                    .requestMatchers("/connections/**").hasRole(AuthUtils.ROLE_MANAGER)
                     .anyRequest().authenticated()
                 // no auth required -> permit all (but still path JWT tokens)
                 : auth -> auth.anyRequest().permitAll();
