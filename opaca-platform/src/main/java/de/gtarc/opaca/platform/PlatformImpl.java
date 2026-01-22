@@ -20,6 +20,7 @@ import de.gtarc.opaca.util.EventHistory;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
@@ -142,7 +143,11 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public String platformLogin(Login loginParams) throws IOException {
-        return authUtils.getTokenForUser(loginParams.getUsername(), loginParams.getPassword());
+        try {
+            return authUtils.getTokenForUser(loginParams.getUsername(), loginParams.getPassword());
+        } catch (IOException e) {
+            throw new BadCredentialsException(e.getMessage());
+        }
     }
 
     @Override

@@ -8,7 +8,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.*;
+import java.net.DatagramSocket;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -40,19 +42,29 @@ public class TestUtils {
         List<String> parameters = new ArrayList<>();
         parameters.add("--server.port=" + port);
         if (defaultImages) {
-            parameters.add("--default_image_directory=./default-test-images");
+            parameters.add("--opaca.default_image_directory=./default-test-images");
         }
         if (requireAuth) {
-            parameters.add("--security.requireAuth=true");
+            parameters.add("--opaca.security.requireAuth=true");
         }
         if (useKeycloak || requireAuth) {
-            parameters.add("--opaca.security.kc_issuer_uri=http://localhost:9000/realms/opaca");
+            var keycloak = "http://" + getOwnIP() + ":9000/realms/opaca";
+            parameters.add("--opaca.security.kc_issuer_uri=" + keycloak);
             parameters.add("--opaca.security.kc_clientid=opaca-rp");
             parameters.add("--opaca.security.kc_admin=admin");
             parameters.add("--opaca.security.kc_admin_pw=admin");
-            parameters.add("--spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:9000/realms/opaca");
+            parameters.add("--spring.security.oauth2.resourceserver.jwt.issuer-uri=" + keycloak);
         }
         return SpringApplication.run(Application.class, parameters.toArray(String[]::new));
+    }
+
+    public static String getOwnIP() {
+        try (DatagramSocket socket = new DatagramSocket()) {
+            socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
+            return socket.getLocalAddress().getHostAddress();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /*
