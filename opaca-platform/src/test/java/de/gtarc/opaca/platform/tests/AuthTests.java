@@ -125,13 +125,13 @@ public class AuthTests {
     public void test02WithWrongToken() throws Exception {
         var invalidToken = "wrong-token";
         var con = requestWithToken(PLATFORM_A, "GET", "/info", null, invalidToken);
-        Assert.assertEquals(403, con.getResponseCode());
+        Assert.assertEquals(401, con.getResponseCode());
     }
 
     @Test
     public void test02WithoutToken() throws Exception {
         var con = request(PLATFORM_A, "GET", "/info", null);
-        Assert.assertEquals(403, con.getResponseCode());
+        Assert.assertEquals(401, con.getResponseCode());
     }
 
     @Test
@@ -159,6 +159,15 @@ public class AuthTests {
         // container token can be used to call platform routes
         con = requestWithToken(PLATFORM_A, "GET", "/info", null, containerToken);
         Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    @Test
+    public void test04OutboundInvoke() throws Exception {
+        // container can call action of another agent by calling /invoke at its parent platform
+        var con = requestWithToken(PLATFORM_A, "POST", "/invoke/OutboundInvokeTest/sample1", Map.of("agentId", "sample2"), token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, String.class);
+        Assert.assertTrue(res.contains("65"));
     }
 
     @Test

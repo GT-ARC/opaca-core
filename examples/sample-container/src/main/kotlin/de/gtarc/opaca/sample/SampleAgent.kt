@@ -27,6 +27,9 @@ class SampleAgent(name: String, val loginHandler: LoginHandler<String>): Abstrac
         addAction("GetInfo", mapOf(), Parameter("object", true)) {
             actionGetInfo()
         }
+        addAction("OutboundInvokeTest", mapOf("agentId" to Parameter("string")), Parameter("string")) {
+            actionTestOutbound(it.parameters["agentId"]!!.asText())
+        }
         addAction("GetEnv", mapOf(), Parameter("object", true)) {
             actionGetEnv()
         }
@@ -119,6 +122,13 @@ class SampleAgent(name: String, val loginHandler: LoginHandler<String>): Abstrac
         Thread.sleep(1000 * sleepSeconds.toLong())
         log.info("done waiting")
         return "Action 'DoThis' of $name called with message=$message and sleep_seconds=$sleepSeconds"
+    }
+
+    private fun actionTestOutbound(agentId: String): String {
+        // Just call another action using "outbound" invoke, testing communication from container to parent platform.
+        // It can go to another agent on the same platform; the important bit is that it's routed through the platform.
+        val res = sendOutboundInvoke("Add", agentId, mapOf("x" to 42, "y" to 23), Int::class.java)
+        return "Result of outbound Invoke Add(42, 23): $res"
     }
 
     private fun actionAdd(x: Int, y: Int) = x + y
