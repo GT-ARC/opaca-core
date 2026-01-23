@@ -71,6 +71,7 @@ public class Session {
 
     @PreDestroy
     private void teardownPolicy() throws IOException {
+        implementation.setIsShuttingDown();
         if (config.sessionPolicy != SessionPolicy.SHUTDOWN) {
             saveToFile();
         }

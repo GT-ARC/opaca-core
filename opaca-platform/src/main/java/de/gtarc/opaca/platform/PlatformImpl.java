@@ -80,6 +80,9 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     private final RequirementsChecker requirementsChecker = new RequirementsChecker(this);
 
+    /** internal flag; set to true on shutdown to allow stopping containers without necessary credentials */
+    private boolean isShuttingDown = false;
+
 
     @PostConstruct
     public void initialize() {
@@ -358,7 +361,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public boolean removeContainer(String containerId) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
-        if (config.requireAuth && ! authUtils.isAdminOrSelf(container.getOwner())) {
+        if (config.requireAuth && ! isShuttingDown && ! authUtils.isAdminOrSelf(container.getOwner())) {
             // ignore if userToken == null; this is only the case iff the platform is about to shut down
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
@@ -626,6 +629,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (! Objects.equals(authUtils.platformId, info.getPlatformId())) {
             throw new IllegalArgumentException("Mismatched Platform ID");
         }
+    }
+
+    public void setIsShuttingDown() {
+        this.isShuttingDown = true;
     }
 
     /**

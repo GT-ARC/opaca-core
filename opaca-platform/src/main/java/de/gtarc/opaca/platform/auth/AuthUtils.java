@@ -175,7 +175,7 @@ public class AuthUtils {
      */
     public String getRequestUser() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth.getCredentials() instanceof Jwt jwt) {
+        if (auth != null && auth.getCredentials() instanceof Jwt jwt) {
             return jwt.getClaimAsString("preferred_username");
         } else if (! config.requireAuth){
             return "anonymous";
@@ -187,7 +187,7 @@ public class AuthUtils {
     @SuppressWarnings("unchecked")
     public Set<String> getRequestUserRoles() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth.getCredentials() instanceof Jwt jwt) {
+        if (auth != null && auth.getCredentials() instanceof Jwt jwt) {
             var roles = (List<String>) jwt.getClaimAsMap("realm_access").get("roles");
             return roles.stream().filter(x -> x.toUpperCase().equals(x)).collect(Collectors.toSet());
         } else if (! config.requireAuth){
