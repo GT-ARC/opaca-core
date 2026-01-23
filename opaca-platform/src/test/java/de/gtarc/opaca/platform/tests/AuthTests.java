@@ -210,7 +210,7 @@ public class AuthTests {
 
     @Test
     public void test06ConnectPlatform() throws Exception {
-        var loginCon = new ConnectionRequest(PLATFORM_A, true); // does not need token if same keycloak
+        var loginCon = new ConnectionRequest(PLATFORM_A, true, token_A); // does not need token if same keycloak
         var con = requestWithToken(PLATFORM_B, "POST", "/connections", loginCon, token_B);
         Assert.assertEquals(200, con.getResponseCode());
         Assert.assertTrue(result(con, Boolean.class));
@@ -325,7 +325,7 @@ public class AuthTests {
         con = requestWithToken(PLATFORM_A, "DELETE", "/containers/" + newContainerId, image, token_cont);
         Assert.assertEquals(200, con.getResponseCode());
 
-        con = requestWithToken(PLATFORM_A, "POST", "/connections", new ConnectionRequest(platformBBaseUrl, false), token_cont);
+        con = requestWithToken(PLATFORM_A, "POST", "/connections", new ConnectionRequest(platformBBaseUrl, false, null), token_cont);
         Assert.assertEquals(403, con.getResponseCode());
     }
 
@@ -348,7 +348,7 @@ public class AuthTests {
         con = requestWithToken(PLATFORM_A, "POST", "/containers", image, token_user);
         Assert.assertEquals(403, con.getResponseCode());
 
-        con = requestWithToken(PLATFORM_A, "POST", "/connections", new ConnectionRequest(platformBBaseUrl, false), token_user);
+        con = requestWithToken(PLATFORM_A, "POST", "/connections", new ConnectionRequest(platformBBaseUrl, false, null), token_user);
         Assert.assertEquals(403, con.getResponseCode());
     }
 
@@ -377,7 +377,7 @@ public class AuthTests {
         con = requestWithToken(PLATFORM_A, "POST", "/containers", image, token_guest);
         Assert.assertEquals(403, con.getResponseCode());
 
-        con = requestWithToken(PLATFORM_A, "POST", "/connections", new ConnectionRequest(platformBBaseUrl, false), token_guest);
+        con = requestWithToken(PLATFORM_A, "POST", "/connections", new ConnectionRequest(platformBBaseUrl, false, null), token_guest);
         Assert.assertEquals(403, con.getResponseCode());
     }
 

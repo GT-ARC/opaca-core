@@ -1,5 +1,6 @@
 package de.gtarc.opaca.platform.auth;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -22,6 +23,9 @@ import java.util.stream.Stream;
 @Component
 public class JwtConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
+    @Autowired
+    private AuthUtils authUtils;
+
     private final JwtGrantedAuthoritiesConverter converter = new JwtGrantedAuthoritiesConverter();
 
     @Override
@@ -30,9 +34,17 @@ public class JwtConverter implements Converter<Jwt, AbstractAuthenticationToken>
                 converter.convert(jwt).stream(),
                 extractResourceRoles(jwt).stream()
         ).collect(Collectors.toSet());
-        // client-tokens are implicitly given the "USER" role
-        if (((String) jwt.getClaim("preferred_username")).startsWith("service-account-")) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+        if (jwt.getClaim("preferred_username") instanceof String user) {
+            // client-tokens are implicitly given the "USER" role
+            if (user.startsWith("service-account-")) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+                authorities.add(new SimpleGrantedAuthority("ROLE_GUEST"));
+            }
+            // platform client also has "MANAGER" role
+            if (user.contains(authUtils.platformId)) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_MANAGER"));
+                authorities.add(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"));
+            }
         }
         return new JwtAuthenticationToken(jwt, authorities, jwt.getClaim(JwtClaimNames.SUB));
     }

@@ -407,7 +407,7 @@ public class PlatformTests {
     @Test
     public void testConnectAndDisconnect() throws Exception {
         var platformABaseUrl = getBaseUrl(PLATFORM_A_URL);
-        var loginCon = new ConnectionRequest(platformABaseUrl, true);
+        var loginCon = new ConnectionRequest(platformABaseUrl, true, null);
 
         // connect platforms
         var con = request(PLATFORM_B_URL, "POST", "/connections", loginCon);
@@ -442,21 +442,21 @@ public class PlatformTests {
 
     @Test
     public void testConnectUnknown() throws Exception {
-        var loginCon = new ConnectionRequest("http://flsflsfsjfkj.com", false);
+        var loginCon = new ConnectionRequest("http://flsflsfsjfkj.com", false, null);
         var con = request(PLATFORM_A_URL, "POST", "/connections", loginCon);
         Assert.assertEquals(502, con.getResponseCode());
     }
 
     @Test
     public void testConnectInvalid() throws Exception {
-        var loginCon = new ConnectionRequest("not a valid url", false);
+        var loginCon = new ConnectionRequest("not a valid url", false, null);
         var con = request(PLATFORM_A_URL, "POST", "/connections", loginCon);
         Assert.assertEquals(400, con.getResponseCode());
     }
 
     @Test
     public void testDisconnectUnknown() throws Exception {
-        var con = request(PLATFORM_A_URL, "DELETE", "/connections", new ConnectionRequest("http://flsflsfsjfkj.com", false));
+        var con = request(PLATFORM_A_URL, "DELETE", "/connections", new ConnectionRequest("http://flsflsfsjfkj.com", false, null));
         Assert.assertEquals(200, con.getResponseCode());
 
         // not really an error... afterward, the platform _is_ disconnected, it just never was connected, thus false

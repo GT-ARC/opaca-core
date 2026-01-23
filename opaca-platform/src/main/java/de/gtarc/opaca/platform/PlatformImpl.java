@@ -383,12 +383,13 @@ public class PlatformImpl implements RuntimePlatformApi {
             return false;
         }
         // try to get info (with token, if given)
-        var client = getPlatformClient(url, authUtils.getPlatformToken());
+        var token = connect.getToken() != null ? connect.getToken() : authUtils.getPlatformToken();
+        var client = getPlatformClient(url, token);
         var info = client.getPlatformInfo();
         // ask other platform to connect back to self?
         if (connect.isConnectBack()) {
             var ownUrl = config.getOwnBaseUrl();
-            client.connectPlatform(new ConnectionRequest(ownUrl, false));
+            client.connectPlatform(new ConnectionRequest(ownUrl, false, null));
         }
         // use websocket to connect to updates
         openConnectionWebsocket(url);
@@ -417,7 +418,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             if (disconnect.isConnectBack()) {
                 var client = getPlatformClient(url, authUtils.getPlatformToken());
                 var ownUrl = config.getOwnBaseUrl();
-                client.disconnectPlatform(new ConnectionRequest(ownUrl, false));
+                client.disconnectPlatform(new ConnectionRequest(ownUrl, false, null));
             }
             log.info("Disconnected from {}", url);
             return true;

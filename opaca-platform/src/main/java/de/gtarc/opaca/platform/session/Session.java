@@ -176,7 +176,7 @@ public class Session {
         log.info("Disconnecting from other Platforms...");
         for (String url : implementation.getConnections()) {
             try {
-                implementation.disconnectPlatform(new ConnectionRequest(url, false));
+                implementation.disconnectPlatform(new ConnectionRequest(url, false, null));
             } catch (Exception e) {
                 log.warn("Exception disconnecting from {}: {}", url, e.getMessage());
             }
