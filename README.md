@@ -2,7 +2,7 @@
 
 # OPACA: An Open, Language- and Platform-Independent API for Containerized Agents
 
-Copyright 2022-2025 GT-ARC & DAI-Labor, TU Berlin
+Copyright 2022-2026 GT-ARC & DAI-Labor, TU Berlin
 
 * Main Contributors: Tobias Küster and Benjamin Acar
 * Further contributions by: Oskar Kupke, Robert Strehlow
@@ -145,6 +145,11 @@ docker container run \
   -e PLATFORM_ENVIRONMENT=DOCKER \
   ghcr.io/gt-arc/opaca/opaca-platform:<VERSION>
 ```
+
+### Docker Compose
+
+The `opaca-platform` also includes a Docker Compose file, which automatically forwards all relevant Environment Variables from a local `.env` file and also can be used to start the OPACA Runtime Platform along with a Keycloak server for authentication. The Docker Compose defines two profiles. Use `--profile platform` to start the OPACA platform itself, and/or `--profile keycloak` to start the Keycloak server and database.
+
 
 ## Additional Information
 

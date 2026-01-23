@@ -51,7 +51,7 @@ The following table provides an overview of all implemented routes along with th
 Authentication is configured using a number of Environment variables All of those are set either in the Docker Compose or using `export` (or equivalent) before starting the Runtime Platform.
 
 * `REQUIRE_AUTH`: Whether auth is required for accessing most routes.
-* `KC_ISSUER_URI`: Keycloak JWT Issuer-URI up to and including the Realm to be used; must be provided if Auth is required, and for allowing for user login, otherwise optional.
+* `KC_ISSUER_URI`: Keycloak JWT Issuer-URI up to and including the Realm to be used, i.e. in the form `<host>/realms/<realm>`; must be provided if Auth is required, and for allowing for user login, otherwise optional.
 * `KC_CLIENT`: Name of the public Keycloak client within the real to be used for users.
 * `KC_ADMIN`: Username of a Keycloak user with admin privileges in the realm; needed for creating temporary clients.
 * `KC_ADMIN_PW`: Password for the above user with admin privileges.
@@ -64,10 +64,14 @@ See [API docs](api.md) for complete list of environment variables passed to the 
 
 ### Keycloak Setup
 
-<font color="red"><strong>TODO</strong>
-* refer to docker compose
-* refer to sample realm exported as JSON (t.b.d.)
-</font>
+You can start Keycloak using the Docker Compose file found in this repository, or by any other means, or use an existing Keycloak instance. You can then set up a Realm for OPACA:
+
+* Create a Keycloak Realm matching the one from `KC_ISSUER_URI`, e.g. `opaca`
+* Within that Realm, create a public Client matching `KC_CLIENT`, e.g. `opaca-rp`
+* Within that Realm, create Roles `GUEST`, `USER`, `CONTRIBUTOR`, and `MANAGER`, with each role including the one before it.
+* For logging in, create a user in the realm and assign it an appropriate Role.
+
+You can find a script within this repository to automate the Keycloak realm setup.
 
 
 ## Authentication Workflows
@@ -82,9 +86,7 @@ When an Agent Container is initiated, the runtime platform creates a temporary c
 
 ### Authenticating the Runtime Platform against its Agent Containers
 
-<!--TODO das mit original requester username ist noch nicht implementiert-->
-
-On startup, the platform also creates a temporary client for itself, which is then used to create access tokens for forwarding requests to the containers. The token includes the original requester's username as a sub-field, without exposing their original JWT to the container, so the container can not impersonate that user. The container should then check the validity of the token (c.f. the JIAC VI Reference Implementation for how this can be done) and can optionally also check which user made the request. (A user may also use their own JWT to send a request directly to the container, but as long as authentication is enabled, the container should reject requests with a missing or invalid JWT.)
+On startup, the platform also creates a temporary client for itself, which is then used to create access tokens for forwarding requests to the containers. <!-- NOT YET IMPLEMENTED The token includes the original requester's username as a sub-field, without exposing their original JWT to the container, so the container can not impersonate that user.--> The container should then check the validity of the token (c.f. the JIAC VI Reference Implementation for how this can be done) and can optionally also check which user made the request. (A user may also use their own JWT to send a request directly to the container, but as long as authentication is enabled, the container should reject requests with a missing or invalid JWT.)
 
 ### Authenticating the Runtime Platform against another Runtime Platform
 
@@ -106,8 +108,6 @@ If feasible, the Agent Container should test the credentials immediately when th
 Agent Containers may provide "extra-ports" for e.g. custom web-UIs or for exposing additional services or protocols. These ports are called directly at the Agent Container (the ports are mapped to free ports on the host machine, but the calls are not routed through the OPACA Runtime Platform). Thus, the RP can not automatically set the `ContainerLoginToken` header in these cases. Clients calling an extra-port of an Agent Container requiring authentication should add the header themselves. (The container login token is returned by the RP's `/container/login` route.) In addition, in case the extra-port is for a web-UI that could be included in another website using an IFrame, it should also be possible to pass the token via a query-parameter; the convention for this is `?token=...`.
 
 ### Visualization
-
-<!--TODO update (the figure includes "create token" which is not correct anymore)-->
 
 The following sequence diagram shows, slightly simplified, how the interaction between user, runtime platform, and agent container takes place. In the arrow labels, `{...}` denotes a path parameter, `(...)` the request body, and `[...]` an HTTP header.
 
