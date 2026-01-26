@@ -148,7 +148,7 @@ docker container run \
 
 ### Docker Compose
 
-The `opaca-platform` also includes a Docker Compose file, which automatically forwards all relevant Environment Variables from a local `.env` file and also can be used to start the OPACA Runtime Platform along with a Keycloak server for authentication. The Docker Compose defines two profiles. Use `--profile platform` to start the OPACA platform itself, and/or `--profile keycloak` to start the Keycloak server and database.
+The `opaca-platform` also includes a Docker Compose file, which automatically forwards all relevant Environment Variables from a local `.env` file and also can be used to start the OPACA Runtime Platform along with a Keycloak server for authentication. Use `--profile keycloak` to start the Keycloak server and database along with the OPACA platform. You can use this Docker Compose as a blueprint for your own "all included" setup. If you want to start _only_ Keycloak, e.g. for local testing, you can use the minimal Keycloak setup in the `keycloak` directory.
 
 
 ## Additional Information

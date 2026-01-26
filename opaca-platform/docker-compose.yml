@@ -40,8 +40,6 @@ services:
     # for running containers on the same Docker as the platform itself
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    profiles:
-      - platform
 
   # KEYCLOAK for Authentication (optional)
 
