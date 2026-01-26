@@ -1,3 +1,4 @@
+import optparse
 from keycloak import KeycloakAdmin
 
 
@@ -46,29 +47,34 @@ def create_user(kc, username, password, role=None, email=None, first=None, last=
         kc.assign_realm_roles(user_id, [role_repr])
 
 
-kc_master = KeycloakAdmin(
-    server_url="http://localhost:9000",
-    username='admin',
-    password='admin',
-    realm_name='master',
-    verify=True,
-)
+def main():
+    parser = optparse.OptionParser(description="Script for initializing Keycloak for OPACA Runtime Platform")
+    parser.add_option('-u', '--users', action='store_true', help="Create dummy users for Unit Tests")
+    opts, _ = parser.parse_args()
 
-kc_master = get_admin_client()
-kc_opaca = get_admin_client("opaca")
+    kc_master = get_admin_client()
+    kc_opaca = get_admin_client("opaca")
 
-# realm & client
-create_realm(kc_master, "opaca")
-create_client(kc_opaca, "opaca-rp")
-# roles
-create_role(kc_opaca, "MANAGER")
-create_role(kc_opaca, "CONTRIBUTOR")
-create_role(kc_opaca, "USER")
-create_role(kc_opaca, "GUEST")
-# users for unit tests
-create_user(kc_opaca, "guest", "12345", "GUEST")
-create_user(kc_opaca, "user1", "12345", "USER")
-create_user(kc_opaca, "user2", "12345", "USER")
-create_user(kc_opaca, "contributor1", "12345", "CONTRIBUTOR")
-create_user(kc_opaca, "contributor2", "12345", "CONTRIBUTOR")
-create_user(kc_opaca, "manager", "12345", "MANAGER")
+    # realm & client
+    print("Creating realm and client...")
+    create_realm(kc_master, "opaca")
+    create_client(kc_opaca, "opaca-rp")
+    # roles
+    print("Creating roles...")
+    create_role(kc_opaca, "MANAGER")
+    create_role(kc_opaca, "CONTRIBUTOR")
+    create_role(kc_opaca, "USER")
+    create_role(kc_opaca, "GUEST")
+
+    if opts.users:
+        # users for unit tests
+        print("Creating test users...")
+        create_user(kc_opaca, "guest", "12345", "GUEST")
+        create_user(kc_opaca, "user1", "12345", "USER")
+        create_user(kc_opaca, "user2", "12345", "USER")
+        create_user(kc_opaca, "contributor1", "12345", "CONTRIBUTOR")
+        create_user(kc_opaca, "contributor2", "12345", "CONTRIBUTOR")
+        create_user(kc_opaca, "manager", "12345", "MANAGER")
+
+
+main()
