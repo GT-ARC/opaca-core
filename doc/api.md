@@ -159,7 +159,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 ### `POST /containers`
 
-* deploy new Agent Container onto this platform; the body specifies the image to be deployed (not all fields have to be present, e.g. no "description", but image-name, ports, and parameters, if any) and any arguments (i.e. values for the parameters), passed as environment variables and optional a configuration for the container environment in use (e.g. which Kubernetes node to use).
+* deploy new Agent Container onto this platform; the body specifies the image to be deployed (not all fields have to be present, e.g. no "description", but image-name, ports, and parameters, if any) and any arguments (i.e. values for the parameters), passed as environment variables and optional a configuration for the container environment in use (e.g. which Kubernetes node to use). Parameter "pull" can be used to force to (not) pull the image before deployment, regardless of whether it is locally present, overriding the setting in the `ALWAYS_PULL_IMAGES` environment variable.
 * body: `PostAgentContainer`
 * output: ID of the created AgentContainer (string)
 * errors: 404 if image not found, 502 (bad gateway) if container did not start properly
@@ -306,6 +306,16 @@ The OPACA Platform uses Spring Boot, which provides an Open-API compliant descri
             "description": string
         }
     }
+}
+```
+
+### PostAgentContainer
+```
+{
+    "image": AgentContainerImage,
+    "arguments": {...}, // values for AgentContainerImage parameters
+    "pull": boolean,
+    "clientConfig": {...} // values for Container Client config parameters
 }
 ```
 
