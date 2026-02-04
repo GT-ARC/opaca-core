@@ -98,7 +98,8 @@ public class DockerClient extends AbstractContainerClient {
         var extraPorts = image.getExtraPorts();
 
         try {
-            if (config.alwaysPullImages || ! isImagePresent(imageName)) {
+            if ((Boolean.TRUE.equals(container.getPull()) || config.alwaysPullImages || ! isImagePresent(imageName))
+                    && ! Boolean.FALSE.equals(container.getPull())) {
                 pullDockerImage(imageName);
             }
 

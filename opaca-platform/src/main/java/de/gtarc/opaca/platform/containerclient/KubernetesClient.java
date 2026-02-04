@@ -106,12 +106,14 @@ public class KubernetesClient extends AbstractContainerClient {
         Map<Integer, Integer> portMap = Stream.concat(Stream.of(image.getApiPort()), extraPorts.keySet().stream())
                 .collect(Collectors.toMap(p -> p, p -> reserveNextFreePort(p, newPorts)));
 
+        var pullPolicy = Boolean.TRUE.equals(container.getPull()) || config.alwaysPullImages ? "Always" : "IfNotPresent";
+
         V1PodSpec podSpec = new V1PodSpec()
                         .containers(List.of(
                                 new V1Container()
                                         .name(containerId)
                                         .image(imageName)
-                                        .imagePullPolicy(config.alwaysPullImages ? "Always" : "IfNotPresent")
+                                        .imagePullPolicy(pullPolicy)
                                         .ports(List.of(
                                                 new V1ContainerPort().containerPort(image.getApiPort())
                                         ))
