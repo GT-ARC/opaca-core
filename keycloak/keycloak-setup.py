@@ -1,12 +1,21 @@
+import os
 import optparse
+import dotenv
 from keycloak import KeycloakAdmin
+
+
+dotenv.load_dotenv()
+kc_server, kc_realm = os.getenv("KC_ISSUER_URI", "http://localhost:9000/realms/opaca").split("/realms/")
+kc_client = os.getenv("KC_CLIENT", "opaca-rp")
+kc_admin = os.getenv("KC_ADMIN", "admin")
+kc_admin_pw = os.getenv("KC_ADMIN_PW", "admin")
 
 
 def get_admin_client(realm=None):
     return KeycloakAdmin(
-        server_url="http://localhost:9000",
-        username='admin',
-        password='admin',
+        server_url=kc_server,
+        username=kc_admin,
+        password=kc_admin_pw,
         realm_name=realm or 'master',
         user_realm_name='master',
         verify=True,
@@ -53,12 +62,12 @@ def main():
     opts, _ = parser.parse_args()
 
     kc_master = get_admin_client()
-    kc_opaca = get_admin_client("opaca")
+    kc_opaca = get_admin_client(kc_realm)
 
     # realm & client
     print("Creating realm and client...")
-    create_realm(kc_master, "opaca")
-    create_client(kc_opaca, "opaca-rp")
+    create_realm(kc_master, kc_realm)
+    create_client(kc_opaca, kc_client)
     # roles
     print("Creating roles...")
     create_role(kc_opaca, "MANAGER")
