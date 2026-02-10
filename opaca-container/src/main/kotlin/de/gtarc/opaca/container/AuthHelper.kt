@@ -29,7 +29,7 @@ object AuthHelper {
      * Get token for communicating with RP, if Keycloak is set, otherwise no token / empty string (will then be ignored)
      * TODO currently, this creates a fresh token with each call; ideally, the token should be cached while its valid.
      */
-    fun getToken() = if (keycloakUrl.isNullOrBlank()) "" else KeycloakUtil.getTokenForClient(keycloakUrl, containerId, clientSecret)
+    fun getToken() = if (keycloakUrl.isNullOrBlank()) null else KeycloakUtil.getTokenForClient(keycloakUrl, containerId, clientSecret)
 
     /**
      * Get Proxy to parent Runtime Platform, including fresh access token, if necessary.

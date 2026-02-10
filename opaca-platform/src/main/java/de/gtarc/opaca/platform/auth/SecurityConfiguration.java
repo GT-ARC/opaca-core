@@ -74,8 +74,10 @@ public class SecurityConfiguration {
         // no sessions / stateless; no CSRF necessary
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.csrf(CsrfConfigurer::disable);
-        // JWT access tokens using OAuth2/Keycloak
-        http.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtConverter)));
+        if (config.isSet(config.keycloakIssuerUri)) {
+            // JWT access tokens using OAuth2/Keycloak
+            http.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtConverter)));
+        }
         // authorization rules with required-auth and without
         http.authorizeHttpRequests(authPolicy);
         return http.build();
