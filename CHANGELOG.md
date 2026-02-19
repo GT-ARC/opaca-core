@@ -2,7 +2,7 @@
 
 ## 0.5 Snapshot
 
-* ...
+* added `url` field to container image description
 
 
 ## 0.4 Release
