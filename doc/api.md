@@ -295,7 +295,8 @@ The OPACA Platform uses Spring Boot, which provides an Open-API compliant descri
     "provides": [ string ],
     "name": string,
     "description": string,
-    "provider": string
+    "provider": string,
+    "url": string,
     "apiPort": int, // default: 8082
     "parameters": [
         {"name": string, "type": string, "required": boolean, "confidential": boolean, "defaultValue": string}
