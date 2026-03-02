@@ -55,17 +55,21 @@ public class AuthUtils {
             log.fatal("Keycloak URL must be given if Authentication is required.");
             System.exit(1);
         }
-        if (config.isSet(config.keycloakIssuerUri) && ! (
-                config.isSet(config.keycloakClientId) &&
-                config.isSet(config.keycloakAdmin) &&
-                config.isSet(config.keycloakAdminPw)
-        )) {
-            log.fatal("When using Keycloak, KC-Client, -Admin and -Admin-PW must also be set.");
-            System.exit(1);
-        }
-        // create client for platform itself
-        if (config.isSet((config.keycloakIssuerUri))) {
-            platformClientSecret = createClientAndGetSecret(platformId, "OPACA RP at " + config.getOwnBaseUrl());
+        if (config.isSet(config.keycloakIssuerUri)) {
+            if (! (config.isSet(config.keycloakClientId) &&
+                    config.isSet(config.keycloakAdmin) &&
+                    config.isSet(config.keycloakAdminPw)
+            )) {
+                log.fatal("When using Keycloak, KC-Client, -Admin and -Admin-PW must also be set.");
+                System.exit(1);
+            }
+            // create client for platform itself
+            try {
+                platformClientSecret = createClientAndGetSecret(platformId, "OPACA RP at " + config.getOwnBaseUrl());
+            } catch (Exception e) {
+                log.fatal("Could not get Platform Client Secret. Is Keycloak running and the realm configured?");
+                System.exit(1);
+            }
         }
     }
 
