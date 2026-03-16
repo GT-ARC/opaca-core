@@ -620,12 +620,8 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     protected void testSelfConnection() throws Exception {
-        if (config.requireAuth) {
-            // TODO restore self-connection test when using Auth
-            log.warn("Unable to Test Self-Connection if requireAuth=true");
-            return;
-        }
-        var info = new ApiProxy(config.getOwnBaseUrl(), null, null).withTimeout(5000).getPlatformInfo();
+        var token = authUtils.getPlatformToken();
+        var info = new ApiProxy(config.getOwnBaseUrl(), null, token).withTimeout(5000).getPlatformInfo();
         if (! Objects.equals(authUtils.platformId, info.getPlatformId())) {
             throw new IllegalArgumentException("Mismatched Platform ID");
         }
