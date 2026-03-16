@@ -3,6 +3,7 @@
   "name": "Reallabor Dummy Service",
   "version": "0.1",
   "provider": "GT-ARC",
+  "url": "https://github.com/GT-ARC/opaca-core",
 
   "apiPort": 8082,
   "definitions": {

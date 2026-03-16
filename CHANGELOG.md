@@ -3,6 +3,7 @@
 ## 0.5 Snapshot
 
 * replaced custom simple UserManagement with proper Keycloak integration 
+* added `url` field to container image description
 
 
 ## 0.4 Release

@@ -30,6 +30,10 @@ public class PostAgentContainer {
     @NonNull
     Map<String, String> arguments = Map.of();
 
+    /** whether to pull the image, by default using global "always-pull" policy if null;
+     * exact behavior may differ depending on container-client (Kubernetes or Docker) */
+    Boolean pull = null;
+
     /** optional configuration for container client */
     ClientConfig clientConfig;
 

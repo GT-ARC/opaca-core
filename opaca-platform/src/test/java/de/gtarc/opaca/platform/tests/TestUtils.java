@@ -78,7 +78,7 @@ public class TestUtils {
                 8888, new AgentContainerImage.PortDescription("TCP", "TCP Test Port"),
                 8889, new AgentContainerImage.PortDescription("UDP", "UDP Test Port")
         ));
-        return new PostAgentContainer(image, Map.of(), null);
+        return new PostAgentContainer(image, Map.of(), null, null);
     }
 
     public static void addImageParameters(PostAgentContainer sampleRequest) {
@@ -106,11 +106,19 @@ public class TestUtils {
         return requestWithToken(host, method, path, payload, null);
     }
 
-    // this is NOT using RestHelper since we are also interested in the exact HTTP Return Code
+
     public static int streamRequest(String baseUrl, String method, String path, byte[] payload) throws Exception {
+        return streamRequestWithToken(baseUrl, method, path, payload, null);
+    }
+
+    // this is NOT using RestHelper since we are also interested in the exact HTTP Return Code
+    public static int streamRequestWithToken(String baseUrl, String method, String path, byte[] payload, String token) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URI(baseUrl + path).toURL().openConnection();
         connection.setRequestMethod(method);
         connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+        if (token != null) {
+            connection.setRequestProperty("Authorization", "Bearer " + token);
+        }
 
         connection.setDoOutput(true);
         connection.connect();

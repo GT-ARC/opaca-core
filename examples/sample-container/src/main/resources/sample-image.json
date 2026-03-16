@@ -8,6 +8,7 @@
   "version": "0.1.9",
   "description": "Just a sample container doing nothing but receiving and reacting to API calls",
   "provider": "DAI-Lab",
+  "url": "https://github.com/GT-ARC/opaca-core",
 
   "apiPort": 8082,
   "extraPorts": {
