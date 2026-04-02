@@ -44,8 +44,8 @@ class FridgeAgent : AbstractContainerizedAgent(
 
     override fun setupAgent() {
         this.addAction("GetGroceries", mapOf(
-            "category" to Parameter("string", false, null)
-        ), Parameter("array", true, Parameter.ArrayItems("Grocery", null))) {
+            "category" to Parameter("string", null)
+        ), Parameter("array", true, null, Parameter.ArrayItems("Grocery", null))) {
             getGroceries(it.parameters["category"]?.asText())
         }
 
