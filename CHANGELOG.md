@@ -3,6 +3,7 @@
 ## 0.5 Snapshot
 
 * added `url` field to container image description
+* added `defaultValue` to action parameter description
 
 
 ## 0.4 Release
