@@ -27,8 +27,8 @@
 
     <modules>
         <module>opaca-model</module>
-        <module>opaca-container</module>
         <module>opaca-platform</module>
+        <module>opaca-container</module>
         <module>examples</module>
     </modules>
 
