@@ -13,7 +13,6 @@
 
 	<properties>
 		<springBoot.version>3.2.3</springBoot.version>
-		<java.version>17</java.version>
 	</properties>
 
 	<dependencies>
