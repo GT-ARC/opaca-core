@@ -34,8 +34,6 @@ class PingAgent: AbstractContainerizedAgent(name="ping-agent") {
         }
 
         on<Message> {
-            // TODO how best to check payload type? here we can just assume it's a Pong message
-            //  is there a better way than to just `try` to read the JSON tree as the expected type(s)?
             val pongMessage = RestHelper.mapper.convertValue(it.payload, PongMessage::class.java)
             if (pongMessage.request == lastRequest) {
                 log.info("Recording offer: $pongMessage")

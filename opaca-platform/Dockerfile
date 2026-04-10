@@ -1,5 +1,5 @@
-FROM openjdk:21
+FROM ibm-semeru-runtimes:open-21-jdk
 
-COPY target/opaca-platform-0.3-SNAPSHOT-with-dependencies.jar /app/app.jar
+COPY target/opaca-platform-0.5-SNAPSHOT-with-dependencies.jar /app/app.jar
 WORKDIR /app
 CMD ["java", "-jar", "app.jar"]

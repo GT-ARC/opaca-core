@@ -13,7 +13,9 @@ import java.io.InputStream
 import java.time.Duration
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.util.*
 import java.util.concurrent.Semaphore
+import kotlin.NoSuchElementException
 
 
 const val CONTAINER_AGENT = "container-agent"
@@ -25,12 +27,13 @@ const val CONTAINER_AGENT = "container-agent"
  */
 class ContainerAgent(
         val image: AgentContainerImage, 
-        val subscribeToEvents: Boolean = false
+        val subscribeToEvents: Boolean = false,
+        val loginHandler: LoginHandler<*> = NoLoginHandler()
     ): Agent(overrideName=CONTAINER_AGENT) {
 
     private val broker by resolve<BrokerAgentRef>()
 
-    private val server by lazy { RestServerJavalin(impl, image.apiPort, token) }
+    private val server by lazy { RestServerJavalin(this, image.apiPort, token) }
 
     // information on current state of agent container
 
@@ -96,11 +99,27 @@ class ContainerAgent(
      * Implementation of the Agent Container API. The methods of this class are executed by the
      * HTTP handler in its thread. It acts as bridge between HTTP handler and Container Agent.
      */
-    private val impl = object : AgentContainerApi {
+
+    inner class LoggedInContainerImpl(val loginToken: String?) : AgentContainerApi {
 
         override fun getContainerInfo(): AgentContainer {
             log.debug("GET INFO")
             return AgentContainer(containerId, image, getParameters(), agents, owner, startedAt, null)
+        }
+
+        override fun containerLogin(loginParams: Login): String {
+            log.debug("LOGIN: {}", loginParams)
+            val token = UUID.randomUUID().toString()
+            return when (loginHandler.handleLogin(token, loginParams)) {
+                LoginStatus.ACCEPTED -> token
+                LoginStatus.INVALID -> throw OpacaException(401, "Login invalid")
+                LoginStatus.NOT_SUPPORTED -> throw OpacaException(501, "Login not supported")
+            }
+        }
+
+        override fun containerLogout(): Boolean {
+            log.debug("LOGOUT")
+            return loginHandler.handleLogout(loginToken)
         }
 
         override fun getAgents(): List<AgentDescription> {
@@ -128,7 +147,7 @@ class ContainerAgent(
         override fun invoke(action: String, parameters: Map<String, JsonNode>, agentId: String?, timeout: Int, containerId: String, forward: Boolean): JsonNode? {
             log.debug("INVOKE ACTION OF AGENT: {} {} {}", agentId, action, parameters)
             val agent = findRegisteredAgent(agentId, action, null)
-            val res: Any = waitForInvoke(agent, Invoke(action, parameters), timeout)
+            val res: Any = waitForInvoke(agent, Invoke(action, parameters, loginToken), timeout)
             return RestHelper.mapper.valueToTree(res)
         }
 
@@ -138,7 +157,7 @@ class ContainerAgent(
             waitForInvoke(agent, StreamPost(stream, data), -1)
         }
 
-        override fun getStream(stream: String, agentId: String?, containerId: String, forward: Boolean): InputStream? {
+        override fun getStream(stream: String, agentId: String?, containerId: String, forward: Boolean): InputStream {
             log.debug("GET STREAM OF AGENT: $agentId $stream")
             val agent = findRegisteredAgent(agentId, null, stream)
             val inputStream: InputStream = waitForInvoke(agent, StreamGet(stream), -1) as InputStream
@@ -167,7 +186,6 @@ class ContainerAgent(
 
         // agents may register with the container agent, publishing their ID and actions
         respond<Register, Registered> {
-            // TODO should Register message contain the agent's internal name, or is that always equal to the agentId?
             log.info("Registering ${it.description}")
             registeredAgents[it.description.agentId] = it.description
 
@@ -244,7 +262,6 @@ class ContainerAgent(
             .filter { agt -> agentId == null || agt.agentId == agentId }
             .filter { agt -> action == null || agt.actions.any { act -> act.name == action } }
             .filter { agt -> stream == null || agt.streams.any { str -> str.name == stream } }
-            // TODO also check action parameters?
             .map { it.agentId }
             .ifEmpty { 
                 throw NoSuchElementException(when {
@@ -274,4 +291,20 @@ class ContainerAgent(
         var error: Any?
     )
 
+}
+
+/**
+ * Helper class for handling Container Logins. An instance of this class can be provided to the Container Agent
+ * and accessed by the other agents in the system to handle and share login information and cached API clients.
+ */
+abstract class LoginHandler<T> {
+    abstract fun handleLogin(loginToken: String, credentials: Login): LoginStatus
+    abstract fun handleLogout(loginToken: String?): Boolean
+    abstract fun get(loginToken: String?): T?
+}
+
+class NoLoginHandler: LoginHandler<Any>() {
+    override fun handleLogin(loginToken: String, credentials: Login) = LoginStatus.NOT_SUPPORTED
+    override fun handleLogout(loginToken: String?) = false
+    override fun get(loginToken: String?) = null
 }

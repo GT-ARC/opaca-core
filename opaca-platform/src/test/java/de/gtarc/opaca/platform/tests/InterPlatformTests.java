@@ -188,11 +188,8 @@ public class InterPlatformTests {
     }
 
     /**
-     * TODO check somehow that notify worked
-     *  but how? adding/removing a new container automatically notifies connected platforms
-     *  adding a new action would also not work since first, the platform hosting the container
-     *  would have to be notified, which also automatically notifies connected platforms
-     *
+     * call action to create a new action, then check that auto-notify worked and propagated the new action
+     * to the connected platform, so it can be called from there.
      */
     @Test
     public void testPlatformNotify() throws Exception {
@@ -224,8 +221,7 @@ public class InterPlatformTests {
     }
 
     /**
-     * TODO keep testing this? notify param in createAction might be obsolete.
-     *  we could of course still keep it specifically for the purpose of this test.
+     * analogous to {@link #testPlatformNotify()}, but suppressing auto-notify and calling notify manually
      */
     @Test
     public void testAddNewActionManualNotify() throws Exception {

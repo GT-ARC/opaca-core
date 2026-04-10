@@ -5,11 +5,10 @@
     <parent>
         <groupId>de.gtarc.opaca</groupId>
         <artifactId>opaca-parent</artifactId>
-        <version>0.3-SNAPSHOT</version>
+        <version>0.5-SNAPSHOT</version>
     </parent>
 
     <artifactId>opaca-examples</artifactId>
-    <version>0.3-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>

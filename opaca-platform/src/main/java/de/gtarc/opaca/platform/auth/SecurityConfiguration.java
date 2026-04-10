@@ -1,6 +1,6 @@
 package de.gtarc.opaca.platform.auth;
 
-import de.gtarc.opaca.model.Role;
+import de.gtarc.opaca.model.User.Role;
 import de.gtarc.opaca.platform.PlatformConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -15,6 +15,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -73,39 +74,41 @@ public class SecurityConfiguration {
      * in order to access the specified routes. The swagger ui routes, along with "/login"
      * and "/error", are always permitted.
      */
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        if (config.enableAuth) {
-            http
-                    .csrf(CsrfConfigurer::disable)
-                    .authorizeHttpRequests((auth) -> auth
-                            // some routes, like those related to OpenAPI and login, should work without Authentication
-                            .requestMatchers(noAuthRoutes).permitAll()
-                            // The next block implements the RBAC defined in the user-management docs
-                            // A rule consists of a specific or generic (/**) route, the lowest role level
-                            // to access the route (see role hierarchy), and the optional REST method
-                            // the route is requested with (if none given, all methods are concerned)
-                            .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
-                            .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**", "/users/**").hasRole(Role.GUEST.name())
-                            .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole(Role.USER.name())
-                            .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**", "/stream/**").hasRole(Role.USER.name())
-                            .requestMatchers(HttpMethod.POST, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
-                            .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
-                            .requestMatchers("/connections/**", "/users/**").hasRole(Role.ADMIN.name())
-                            .anyRequest().authenticated()
-                    )
-                    .sessionManagement((session) -> session
-                            .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                    )
-                    .addFilterBefore(new JwtRequestFilter(), UsernamePasswordAuthenticationFilter.class);
+        http.csrf(CsrfConfigurer::disable);
+        if (config.requireAuth) {
+            // role-based access control if auth is required
+            http.authorizeHttpRequests((auth) -> auth
+                    // some routes, like those related to OpenAPI and login, should work without Authentication
+                    // (except for the OpenAPI route giving insight into the agents' actions)
+                    .requestMatchers(HttpMethod.GET, "/v3/api-docs/actions").hasRole(Role.GUEST.name())
+                    .requestMatchers(noAuthRoutes).permitAll()
+                    // The next block implements the RBAC defined in the user-management docs
+                    // A rule consists of a specific or generic (/**) route, the lowest role level
+                    // to access the route (see role hierarchy), and the optional REST method
+                    // the route is requested with (if none given, all methods are concerned)
+                    .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
+                    .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**", "/users/**").hasRole(Role.GUEST.name())
+                    .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole(Role.USER.name())
+                    .requestMatchers(HttpMethod.POST, "/containers/login/**", "/containers/logout/**").hasRole(Role.USER.name())
+                    .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**", "/stream/**").hasRole(Role.USER.name())
+                    .requestMatchers(HttpMethod.POST, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
+                    .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
+                    .requestMatchers("/connections/**", "/users/**").hasRole(Role.ADMIN.name())
+                    .anyRequest().authenticated()
+            );
         } else {
-            http
-                    .csrf(CsrfConfigurer::disable)
-                    .authorizeHttpRequests((auth) -> auth
-                            .anyRequest().permitAll()
-                    );
+            // permit-all if no auth required (but still enable auth)
+            http.authorizeHttpRequests((auth) -> auth
+                    .anyRequest().permitAll()
+            );
         }
-        return http.build();
+        return http
+                .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(new JwtRequestFilter(), UsernamePasswordAuthenticationFilter.class)
+                .build();
     }
 
     @Bean
@@ -129,44 +132,60 @@ public class SecurityConfiguration {
         @Override
         protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
                 throws ServletException, IOException {
-            String requestURI = request.getRequestURI();
             String requestTokenHeader = request.getHeader("Authorization");
 
-            if (Stream.of(noAuthRoutes).noneMatch(s -> requestURI.startsWith(s.replace("**", "")))) {
+            if (requestTokenHeader != null || uriNeedsAuth(request.getRequestURI())) {
                 String username = null;
                 String jwtToken = null;
+                // get username from token (thus validating that the token was issued from RP)
                 if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
                     jwtToken = requestTokenHeader.substring(7);
                     try {
                         username = jwtUtil.getUsernameFromToken(jwtToken);
-                    } catch (SignatureException | IllegalArgumentException e) {
+                    } catch (SignatureException | IllegalArgumentException | MalformedJwtException e) {
                         handleException(response, HttpStatus.UNAUTHORIZED, e.getMessage());
-                    } catch (MalformedJwtException e) {
-                        handleException(response, HttpStatus.BAD_REQUEST, e.getMessage());
                     }
                 } else {
-                    handleException(response, HttpStatus.BAD_REQUEST, "Missing Token.");
+                    handleException(response, HttpStatus.UNAUTHORIZED, "Missing Token.");
                 }
 
+                // check that user (still) exists and set jwtToken in security context holder so impl can access it
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    UserDetails userDetails = myUserDetailsService.loadUserByUsername(username);
-                    if (jwtUtil.validateToken(jwtToken, userDetails)) {
-                        var authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(authToken);
-                        jwtUtil.setCurrentRequestUser(username);
-                    } else {
-                        handleException(response, HttpStatus.UNAUTHORIZED, "Invalid Token.");
+                    try {
+                        UserDetails userDetails = myUserDetailsService.loadUserByUsername(username);
+                        if (jwtUtil.validateToken(jwtToken, userDetails)) {
+                            var authToken = new UsernamePasswordAuthenticationToken(userDetails, jwtToken, userDetails.getAuthorities());
+                            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                            SecurityContextHolder.getContext().setAuthentication(authToken);
+                        } else {
+                            handleException(response, HttpStatus.UNAUTHORIZED, "Invalid Token.");
+                        }
+                    } catch (UsernameNotFoundException e) {
+                        handleException(response, HttpStatus.UNAUTHORIZED, "Username not found.");
                     }
                 }
             }
-            chain.doFilter(request, response);
+            if (response.getStatus() < 400) {
+                chain.doFilter(request, response);
+            }
         }
 
         private void handleException(HttpServletResponse response, HttpStatus status, String message)
                 throws IOException {
             response.setStatus(status.value());
+            response.setHeader("www-authenticate", "Bearer");
             response.getWriter().write(message);
         }
+    }
+
+    /**
+     * Check whether the given request URI needs auth
+     * @param uri The Path-part of the URI (after the port)
+     * @return Whether the URI requires auth
+     */
+    private boolean uriNeedsAuth(String uri) {
+        if (! config.requireAuth) return false;
+        if (uri.startsWith("/v3/api-docs/actions")) return true; // exception from the exceptions...
+        return Stream.of(noAuthRoutes).noneMatch(s -> uri.startsWith(s.replace("**", "")));
     }
 }

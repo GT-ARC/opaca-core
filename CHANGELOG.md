@@ -1,10 +1,25 @@
 # CHANGELOG
 
-## 0.3 Snapshot
+## 0.5 Snapshot
+
+* added `url` field to container image description
+* compatibility with Java 25
+
+
+## 0.4 Release
+
+* added `/containers/login/{id}`route to allow user-specific login to individual containers
+* fixed return codes for various not-authenticated cases
+
+
+## 0.3 Release
 
 * check container requirements against platform's provisions
 * fixed bug in port-checking logic when running in Docker
 * various smaller fixes
+* reworked `/connection` routes to allow for both uni- and bidirectional connections with and without auth
+* using websockets for updates on running containers of connected platforms
+* improved/fixed how the current user is checked to avoid possible concurrency issues
 
 
 ## 0.2 Release
@@ -16,6 +31,7 @@
 * added route/parameter to get agents of connected platforms, too
 * added Open-API compliant description of all agents' actions
 * various smaller fixes
+* added websocket connection to get notified about platform events
 
 
 ## 0.1 Release

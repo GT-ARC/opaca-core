@@ -23,7 +23,7 @@ class RoomBookingAgent : AbstractContainerizedAgent(
         addAction("GetLocationBookings", mapOf(
             "location" to Parameter("string")
         ), Parameter("array", true, ArrayItems("object", null))) {
-            getLocationBookings(it["location"]!!.asText())
+            getLocationBookings(it.parameters["location"]!!.asText())
         }
     }
 

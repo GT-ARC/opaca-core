@@ -2,7 +2,6 @@ package de.gtarc.opaca.platform;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.platform.util.ActionToOpenApi;
 import de.gtarc.opaca.platform.util.ActionToOpenApi.ActionFormat;
@@ -11,8 +10,11 @@ import de.gtarc.opaca.util.RestHelper.RequestException;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -32,15 +34,15 @@ import java.util.NoSuchElementException;
  * REST controller for the OPACA Runtime Platform API. This class only defines the REST endpoints,
  * handles security etc. (once that's implemented); the actual logic is implemented elsewhere.
  */
-@Log
+@Log4j2
 @RestController
 @SecurityRequirement(name = "bearerAuth")
 @CrossOrigin(origins = "*", allowedHeaders = "*",
 		methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS } )
-public class PlatformRestController {
+public class PlatformRestController implements ApplicationListener<ApplicationReadyEvent> {
 
 	@Autowired
-	private RuntimePlatformApi implementation;
+	private PlatformImpl implementation;
 
 	@Autowired
 	private PlatformConfig config;
@@ -55,6 +57,16 @@ public class PlatformRestController {
 		EventHistory.maxSize = config.eventHistorySize;
 	}
 
+	@Override
+	public void onApplicationEvent(@NotNull ApplicationReadyEvent event) {
+		try {
+			implementation.testSelfConnection();
+		} catch (Exception e) {
+			log.fatal("Test-Connection to self at {} failed: {}", config.getOwnBaseUrl(), e.getMessage());
+			System.exit(1);
+		}
+	}
+
 	/*
 	 * GENERIC/AUTOMATIC EXCEPTION HANDLING
 	 */
@@ -62,35 +74,35 @@ public class PlatformRestController {
 	@ExceptionHandler(value=NoSuchElementException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public ResponseEntity<ErrorResponse> handleNotFound(NoSuchElementException e) {
-		log.warning(e.getMessage());  // probably a user error
+		log.warn(e.getMessage());  // probably a user error
 		return makeErrorResponse(HttpStatus.NOT_FOUND, e, null);
 	}
 
 	@ExceptionHandler(value=JsonProcessingException.class)
 	@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
 	public ResponseEntity<ErrorResponse> handleJsonException(JsonProcessingException e) {
-		log.warning(e.getMessage());  // user error
+		log.warn(e.getMessage());  // user error
 		return makeErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, e, null);
 	}
 
 	@ExceptionHandler(value=RequestException.class)
 	@ResponseStatus(HttpStatus.BAD_GATEWAY)
 	public ResponseEntity<ErrorResponse> handleRequestException(RequestException e) {
-		log.severe(e.getMessage());
+		log.error(e.getMessage());
 		return makeErrorResponse(HttpStatus.BAD_GATEWAY, e, e.getNestedError());
 	}
 
 	@ExceptionHandler(value=IOException.class)
 	@ResponseStatus(HttpStatus.BAD_GATEWAY)
 	public ResponseEntity<ErrorResponse> handleIoException(IOException e) {
-		log.severe(e.getMessage());  // should not happen (but can also be user error)
+		log.error(e.getMessage());  // should not happen (but can also be user error)
 		return makeErrorResponse(HttpStatus.BAD_GATEWAY, e, null);
 	}
 
 	@ExceptionHandler(value=IllegalArgumentException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException e) {
-		log.warning(e.getMessage());  // probably user error
+		log.warn(e.getMessage());  // probably user error
 		return makeErrorResponse(HttpStatus.BAD_REQUEST, e, null);
 	}
 
@@ -120,12 +132,14 @@ public class PlatformRestController {
 	public String login(
 			@RequestBody Login loginParams
 	) throws IOException {
-		return implementation.login(loginParams);
+		log.info("POST /login {}", loginParams);
+		return implementation.platformLogin(loginParams);
 	}
 
 	@RequestMapping(value="/token", method=RequestMethod.GET)
 	@Operation(summary="Renew token for logged in user.", tags={"authentication"})
 	public String renewToken() throws IOException {
+		log.info("GET /token");
 		return implementation.renewToken();
 	}
 
@@ -136,31 +150,30 @@ public class PlatformRestController {
 	@RequestMapping(value="/info", method=RequestMethod.GET)
 	@Operation(summary="Get information on this Runtime Platform", tags={"info"})
 	public RuntimePlatform getPlatformInfo() throws IOException {
-		log.info("Get Info");
+		log.info("GET /info");
 		return implementation.getPlatformInfo();
 	}
 
 	@RequestMapping(value="/config", method=RequestMethod.GET)
 	@Operation(summary="Get Configuration of this Runtime Platform", tags={"info"})
 	public Map<String, ?> getPlatformConfig() throws IOException {
-		log.info("Get Config");
+		log.info("GET /config");
 		return implementation.getPlatformConfig();
 	}
 
 	@RequestMapping(value="/history", method=RequestMethod.GET)
 	@Operation(summary="Get history on this Runtime Platform", tags={"info"})
 	public List<Event> getHistory() throws IOException {
-		log.info("Get History");
+		log.info("GET /history");
 		return implementation.getHistory();
 	}
 
 	@RequestMapping(value="v3/api-docs/actions", method = RequestMethod.GET)
-	@Operation(summary = "Get an Open-API compliant list of all agent actions currently available on this Platform", tags={"info"}, hidden=true)
+	@Operation(summary = "Get an Open-API compliant list of all agent actions currently available on this Platform", hidden=true)
 	public String getOpenApiActions(
 			@RequestParam(required = false, defaultValue = "JSON") ActionFormat format
 	) throws IOException {
-		log.info("Get Actions");
-		return ActionToOpenApi.createOpenApiSchema(implementation.getContainers(), format, config.enableAuth);
+		return ActionToOpenApi.createOpenApiSchema(implementation.getContainers(), format, config.requireAuth);
 	}
 
 	/*
@@ -172,7 +185,7 @@ public class PlatformRestController {
 	public List<AgentDescription> getAgents(
 		@RequestParam(required = false, defaultValue = "false") boolean includeConnected
 	) throws IOException {
-		log.info("GET AGENTS");
+		log.info("GET /agents");
 		return includeConnected ? implementation.getAllAgents() : implementation.getAgents();
 	}
 
@@ -181,7 +194,7 @@ public class PlatformRestController {
 	public AgentDescription getAgent(
 			@PathVariable String agentId
 	) throws IOException {
-		log.info(String.format("GET AGENT: %s", agentId));
+		log.info("GET /agents/{}", agentId);
 		return implementation.getAgent(agentId);
 	}
 
@@ -193,7 +206,7 @@ public class PlatformRestController {
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("SEND: %s, %s", agentId, message));
+		log.info("POST /send/{} {}", agentId, message);
 		implementation.send(agentId, message, containerId, forward);
 	}
 
@@ -205,7 +218,7 @@ public class PlatformRestController {
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("BROADCAST: %s, %s", channel, message));
+		log.info("POST /broadcast/{} {}", channel, message);
 		implementation.broadcast(channel, message, containerId, forward);
 	}
 
@@ -218,7 +231,7 @@ public class PlatformRestController {
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("INVOKE: %s, %s", action, parameters));
+		log.info("POST /invoke/{} {}", action, parameters);
 		return implementation.invoke(action, parameters, null, timeout, containerId, forward);
 	}
 
@@ -232,7 +245,7 @@ public class PlatformRestController {
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("INVOKE: %s, %s, %s", action, agentId, parameters));
+		log.info("POST /invoke/{}/{} {}", action, agentId, parameters);
 		return implementation.invoke(action, parameters, agentId, timeout, containerId, forward);
 	}
 
@@ -243,7 +256,7 @@ public class PlatformRestController {
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("STREAM: %s ", stream));
+		log.info("GET /stream/{} ", stream);
 		return wrapStream(implementation.getStream(stream, null, containerId, forward));
 	}
 
@@ -255,7 +268,7 @@ public class PlatformRestController {
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
-		log.info(String.format("STREAM: %s, %s", stream, agentId));
+		log.info("GET /stream/{}/{}", stream, agentId);
 		return wrapStream(implementation.getStream(stream, agentId, containerId, forward));
 	}
 
@@ -267,7 +280,7 @@ public class PlatformRestController {
             @RequestParam(required = false) String containerId,
             @RequestParam(required = false, defaultValue = "true") boolean forward
     ) throws IOException {
-        log.info(String.format("POST STREAM: %s ", stream));
+        log.info("POST /stream/{} ", stream);
         implementation.postStream(stream, inputStream, null, containerId, forward);
     }
 
@@ -280,7 +293,7 @@ public class PlatformRestController {
             @RequestParam(required = false) String containerId,
             @RequestParam(required = false, defaultValue = "true") boolean forward
     ) throws IOException {
-        log.info(String.format("POST STREAM: %s, %s", stream, agentId));
+        log.info("POST /stream/{}/{}", stream, agentId);
         implementation.postStream(stream, inputStream, agentId, containerId, forward);
     }
 
@@ -294,7 +307,7 @@ public class PlatformRestController {
 			@RequestBody PostAgentContainer container,
 			@RequestParam(required = false, defaultValue = "-1") int timeout
 	) throws IOException {
-		log.info(String.format("ADD CONTAINER: %s", container));
+		log.info("POST /containers {}", container);
 		return implementation.addContainer(container, timeout);
 	}
 
@@ -304,14 +317,14 @@ public class PlatformRestController {
 			@RequestBody PostAgentContainer container,
 			@RequestParam(required = false, defaultValue = "-1") int timeout
 	) throws IOException {
-		log.info(String.format("UPDATE CONTAINER: %s", container));
+		log.info("PUT /containers {}", container);
 		return implementation.updateContainer(container, timeout);
 	}
 
 	@RequestMapping(value="/containers", method=RequestMethod.GET)
 	@Operation(summary="Get all Agent Containers running on this platform", tags={"containers"})
 	public List<AgentContainer> getContainers() throws IOException {
-		log.info("GET CONTAINERS");
+		log.info("GET /containers");
 		return implementation.getContainers();
 	}
 
@@ -320,7 +333,7 @@ public class PlatformRestController {
 	public AgentContainer getContainer(
 			@PathVariable String containerId
 	) throws IOException {
-		log.info(String.format("GET CONTAINER: %s", containerId));
+		log.info("GET /containers/{}", containerId);
 		return implementation.getContainer(containerId);
 	}
 
@@ -330,8 +343,27 @@ public class PlatformRestController {
 	public boolean removeContainer(
 			@PathVariable String containerId
 	) throws IOException {
-		log.info(String.format("REMOVE CONTAINER: %s", containerId));
+		log.info("DELETE /containers/{}", containerId);
 		return implementation.removeContainer(containerId);
+	}
+
+	@RequestMapping(value="/containers/login/{containerId}", method=RequestMethod.POST)
+	@Operation(summary="Login with username and password at given container", tags={"containers"})
+	public String containerLogin(
+			@PathVariable String containerId,
+			@RequestBody Login loginParams
+	) throws IOException {
+		log.info("POST /containers/login/{} {}", containerId, loginParams);
+		return implementation.containerLogin(containerId, loginParams);
+	}
+
+	@RequestMapping(value="/containers/logout/{containerId}", method=RequestMethod.POST)
+	@Operation(summary="Logout at given container", tags={"containers"})
+	public boolean containerLogout(
+			@PathVariable String containerId
+	) throws IOException {
+		log.info("POST /containers/logout/{}", containerId);
+		return implementation.containerLogout(containerId);
 	}
 
 	/*
@@ -342,27 +374,26 @@ public class PlatformRestController {
 	@Operation(summary="Establish connection to another Runtime Platform; " +
 			"return false if platform already connected", tags={"connections"})
 	public boolean connectPlatform(
-			@RequestBody LoginConnection loginConnection
+			@RequestBody ConnectionRequest loginConnection
 	) throws IOException {
-		// TODO handle IO Exception (platform not found or does not respond, could be either 404 or 502)
-		log.info(String.format("CONNECT PLATFORM: %s", loginConnection.getUrl()));
+		log.info("POST /connections {}", loginConnection.getUrl());
 		return implementation.connectPlatform(loginConnection);
 	}
 
 	@RequestMapping(value="/connections", method=RequestMethod.GET)
 	@Operation(summary="Get list of connected Runtime Platforms", tags={"connections"})
 	public List<String> getConnections() throws IOException {
-		log.info("GET CONNECTIONS");
+		log.info("GET /connections");
 		return implementation.getConnections();
 	}
 
 	@RequestMapping(value="/connections", method=RequestMethod.DELETE)
 	@Operation(summary="Remove connection to another Runtime Platform", tags={"connections"})
 	public boolean disconnectPlatform(
-			@RequestBody String url
+			@RequestBody ConnectionRequest disconnect
 	) throws IOException {
-		log.info(String.format("DISCONNECT PLATFORM: %s", url));
-		return implementation.disconnectPlatform(url);
+		log.info("DELETE /connections {}", disconnect);
+		return implementation.disconnectPlatform(disconnect);
 	}
 
 	/*
@@ -372,14 +403,14 @@ public class PlatformRestController {
 	@RequestMapping(value="/containers/notify", method=RequestMethod.POST)
 	@Operation(summary="Notify Platform about updates", tags={"containers"})
 	public boolean notifyUpdateContainer(@RequestBody String containerId) throws IOException {
-		log.info(String.format("NOTIFY: %s", containerId));
+		log.info("POST /containers/notify {}", containerId);
 		return implementation.notifyUpdateContainer(containerId);
 	}
 
 	@RequestMapping(value="/connections/notify", method=RequestMethod.POST)
 	@Operation(summary="Notify Platform about updates", tags={"connections"})
 	public boolean notifyUpdatePlatform(@RequestBody String platformUrl) throws IOException {
-		log.info(String.format("NOTIFY: %s", platformUrl));
+		log.info("POST /connections/notify {}", platformUrl);
 		return implementation.notifyUpdatePlatform(platformUrl);
 	}
 
@@ -391,5 +422,4 @@ public class PlatformRestController {
 		StreamingResponseBody responseBody = stream::transferTo;
 		return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM).body(responseBody);
 	}
-
 }

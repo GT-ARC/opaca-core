@@ -24,18 +24,21 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     public final String baseUrl;
     private final RestHelper client;
 
-    @Deprecated
-    public ApiProxy(String baseUrl) {
-        this(baseUrl, null, null, null);
-    }
-
     public ApiProxy(String baseUrl, String senderId, String token) {
-        this(baseUrl, senderId, token, null);
+        this.baseUrl = baseUrl;
+        this.client = new RestHelper(baseUrl);
+        this.client.senderId = senderId;
+        this.client.token = token;
     }
 
-    public ApiProxy(String baseUrl, String senderId, String token, Integer timeout) {
-        this.baseUrl = baseUrl;
-        this.client = new RestHelper(baseUrl, senderId, token, timeout, RestHelper.Encoding.JSON);
+    public ApiProxy withTimeout(int timeout) {
+        this.client.timeout = timeout;
+        return this;
+    }
+
+    public ApiProxy withExtraHeaders(Map<String, String> headers) {
+        this.client.extraHeaders = headers;
+        return this;
     }
 
     // INFO ROUTES
@@ -68,9 +71,32 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     // AUTHENTICATION
 
     @Override
-    public String login(Login loginParams) throws IOException {
+    public String platformLogin(Login loginParams) throws IOException {
         // token should be raw string
         return client.readStream(client.request("POST", "/login", loginParams));
+    }
+
+    @Override
+    public String containerLogin(Login loginParams) throws IOException {
+        // token should be raw string
+        return client.readStream(client.request("POST", "/login", loginParams));
+    }
+
+    @Override
+    public String containerLogin(String containerId, Login loginParams) throws IOException {
+        var path = String.format("/containers/login/%s", containerId);
+        return client.readStream(client.request("POST", path, loginParams));
+    }
+
+    @Override
+    public boolean containerLogout() throws IOException {
+        return client.post("/logout", null, Boolean.class);
+    }
+
+    @Override
+    public boolean containerLogout(String containerId) throws IOException {
+        var path = String.format("/containers/logout/%s", containerId);
+        return client.post(path, null, Boolean.class);
     }
 
     @Override
@@ -161,8 +187,8 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     // CONNECTING ROUTES
 
     @Override
-    public boolean connectPlatform(LoginConnection loginConnection) throws IOException {
-        return client.post("/connections", loginConnection, Boolean.class);
+    public boolean connectPlatform(ConnectionRequest connect) throws IOException {
+        return client.post("/connections", connect, Boolean.class);
     }
 
     @Override
@@ -171,8 +197,8 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
-    public boolean disconnectPlatform(String url) throws IOException {
-        return client.delete("/connections", url, Boolean.class);
+    public boolean disconnectPlatform(ConnectionRequest disconnect) throws IOException {
+        return client.delete("/connections", disconnect, Boolean.class);
     }
 
     @Override

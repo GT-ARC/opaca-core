@@ -1,6 +1,7 @@
 package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.model.*;
+import de.gtarc.opaca.model.User.Role;
 import de.gtarc.opaca.model.AgentContainerImage.ImageParameter;
 import de.gtarc.opaca.util.RestHelper;
 
@@ -34,7 +35,7 @@ public class TestUtils {
                 8888, new AgentContainerImage.PortDescription("TCP", "TCP Test Port"),
                 8889, new AgentContainerImage.PortDescription("UDP", "UDP Test Port")
         ));
-        return new PostAgentContainer(image, Map.of(), null);
+        return new PostAgentContainer(image, Map.of(), null, null);
     }
 
     public static void addImageParameters(PostAgentContainer sampleRequest) {
@@ -64,7 +65,6 @@ public class TestUtils {
 
     // this is NOT using RestHelper since we are also interested in the exact HTTP Return Code
     public static int streamRequest(String baseUrl, String method, String path, byte[] payload) throws Exception {
-        // TODO reduce code duplication a bit?
         HttpURLConnection connection = (HttpURLConnection) new URI(baseUrl + path).toURL().openConnection();
         connection.setRequestMethod(method);
         connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
@@ -121,6 +121,7 @@ public class TestUtils {
     }
 
     public static ErrorResponse error(HttpURLConnection connection) throws IOException {
+        // IMPORTANT: FOR SOME REASON, THE ERROR STREAM IS NULL BEFORE THE STATUS CODE HAS BEEN RETRIEVED1!
         var content = new String(connection.getErrorStream().readAllBytes());
         return RestHelper.readObject(content, ErrorResponse.class);
     }
@@ -142,7 +143,7 @@ public class TestUtils {
 
     public static void connectPlatforms(String platformUrl, String connectedUrl) throws Exception {
         var connectedBaseUrl = getBaseUrl(connectedUrl);
-        var loginCon = new LoginConnection(null, null, connectedBaseUrl);
+        var loginCon = new ConnectionRequest(connectedBaseUrl, true, null);
         var con = request(platformUrl, "POST", "/connections", loginCon);
         if (con.getResponseCode() != 200) {
             var message = new String(con.getErrorStream().readAllBytes());
@@ -150,12 +151,7 @@ public class TestUtils {
         }
     }
 
-    public static User getUser(String username, String password, Role role, List<String> privileges) {
-        User user = new User();
-        user.setUsername(username);
-        user.setPassword(password);
-        user.setRole(role);
-        user.setPrivileges(privileges);
-        return user;
+    public static User user(String name, String pwd, Role role) {
+        return new User(name, pwd, role, null, Map.of());
     }
 }

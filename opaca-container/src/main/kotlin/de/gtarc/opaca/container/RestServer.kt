@@ -2,9 +2,11 @@ package de.gtarc.opaca.container
 
 import de.gtarc.opaca.model.ErrorResponse
 import de.gtarc.opaca.api.AgentContainerApi
+import de.gtarc.opaca.model.Login
 import de.gtarc.opaca.model.Message
 import de.gtarc.opaca.util.RestHelper
 import io.javalin.Javalin
+import io.javalin.http.Context
 
 /**
  * New version of the server providing the REST routes for the OPACA Agent Container API using
@@ -17,7 +19,7 @@ import io.javalin.Javalin
  * calls functions of the API Implementation and the Container Agent (still in that thread!). Any
  * callbacks, e.g. for invoke-ask, are then handled by the Container Agent's thread.
  */
-class RestServerJavalin(val impl: AgentContainerApi, val port: Int, val token: String?) {
+class RestServerJavalin(val impl: ContainerAgent, val port: Int, val token: String?) {
 
     private val server = Javalin.create()
             .before {
@@ -27,53 +29,60 @@ class RestServerJavalin(val impl: AgentContainerApi, val port: Int, val token: S
                 }
             }
             .get("/info") {
-                it.json(impl.containerInfo)
+                it.json(withToken(it).containerInfo)
+            }
+            .post("/login") {
+                val login = RestHelper.readObject(it.body(), Login::class.java)
+                it.json(withToken(it).containerLogin(login))
+            }
+            .post("/logout") {
+                it.json(withToken(it).containerLogout())
             }
             .get("/agents") {
-                it.json(impl.agents)
+                it.json(withToken(it).agents)
             }
             .get("/agents/{agentId}") {
-                it.json(impl.getAgent(it.pathParam("agentId")))
+                it.json(withToken(it).getAgent(it.pathParam("agentId")))
             }
             .get("/stream/{stream}") {
                 it.contentType("application/octet-stream")
-                it.result(impl.getStream(it.pathParam("stream"), null, "", false))
+                it.result(withToken(it).getStream(it.pathParam("stream"), null, "", false))
             }
             .get("/stream/{stream}/{agentId}") { 
                 it.contentType("application/octet-stream")
-                it.result(impl.getStream(it.pathParam("stream"), it.pathParam("agentId"), "", false))
+                it.result(withToken(it).getStream(it.pathParam("stream"), it.pathParam("agentId"), "", false))
             }
             .post("/send/{agentId}") {
                 val id = it.pathParam("agentId")
                 val message = RestHelper.readObject(it.body(), Message::class.java)
-                impl.send(id, message, "", false)
+                withToken(it).send(id, message, "", false)
             }
             .post("/broadcast/{channel}") {
                 val channel = it.pathParam("channel")
                 val message = RestHelper.readObject(it.body(), Message::class.java)
-                impl.broadcast(channel, message, "", false)
+                withToken(it).broadcast(channel, message, "", false)
             }
             .post("/invoke/{action}") {
                 val action = it.pathParam("action")
                 val timeout = (it.queryParam("timeout") ?: "-1").toInt()
                 val parameters = RestHelper.readMap(it.body())
-                it.json(impl.invoke(action, parameters, null, timeout, "", false))
+                it.json(withToken(it).invoke(action, parameters, null, timeout, "", false))
             }
             .post("/invoke/{action}/{agentId}") {
                 val action = it.pathParam("action")
                 val agentId = it.pathParam("agentId")
                 val timeout = (it.queryParam("timeout") ?: "-1").toInt()
                 val parameters = RestHelper.readMap(it.body())
-                it.json(impl.invoke(action, parameters, agentId, timeout, "", false))
+                it.json(withToken(it).invoke(action, parameters, agentId, timeout, "", false))
             }
             .post("/stream/{stream}") {
                 val stream = it.pathParam("stream")
-                impl.postStream(stream, it.bodyAsBytes(), null, "", false)
+                withToken(it).postStream(stream, it.bodyAsBytes(), null, "", false)
             }
             .post("/stream/{stream}/{agentId}") {
                 val stream = it.pathParam("stream")
                 val agentId = it.pathParam("agentId")
-                impl.postStream(stream, it.bodyAsBytes(), agentId, "", false)
+                withToken(it).postStream(stream, it.bodyAsBytes(), agentId, "", false)
             }
             .exception(Exception::class.java) { e, ctx -> 
                 val code = ExceptionMapping.getErrorCode(e)
@@ -92,6 +101,10 @@ class RestServerJavalin(val impl: AgentContainerApi, val port: Int, val token: S
     fun stop() {
         isRunning = false
         server.stop()
+    }
+
+    fun withToken(context: Context): AgentContainerApi {
+        return impl.LoggedInContainerImpl(context.header(AgentContainerApi.HEADER_TOKEN))
     }
 
 }

@@ -1,25 +1,22 @@
 package de.gtarc.opaca.platform.user;
 
-import de.gtarc.opaca.model.Role;
 import de.gtarc.opaca.model.User;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.auth.JwtUtil;
 import de.gtarc.opaca.platform.user.TokenUserDetailsService.UserAlreadyExistsException;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
-@Log
+@Log4j2
 @RestController
 @SecurityRequirement(name = "bearerAuth")
 @CrossOrigin(origins = "*", methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE } )
@@ -27,8 +24,10 @@ public class UserController {
 
     @Autowired
     private TokenUserDetailsService userDetailsService;
+
     @Autowired
     private JwtUtil jwtUtil;
+
     @Autowired
     private PlatformConfig config;
 
@@ -36,15 +35,21 @@ public class UserController {
      * EXCEPTION HANDLERS
      */
 
-    @ExceptionHandler({IllegalArgumentException.class, UserAlreadyExistsException.class})
+    @ExceptionHandler({IllegalArgumentException.class})
     public ResponseEntity<String> handleBadRequestException(Exception e) {
-        log.warning(e.getMessage());
+        log.warn(e.toString());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
+    @ExceptionHandler({UserAlreadyExistsException.class})
+    public ResponseEntity<String> handleAlreadyExistsException(Exception e) {
+        log.warn(e.toString());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     }
 
     @ExceptionHandler({UsernameNotFoundException.class})
     public ResponseEntity<String> handleResourceNotFoundException(Exception e) {
-        log.warning(e.getMessage());
+        log.warn(e.toString());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
     }
 
@@ -59,64 +64,57 @@ public class UserController {
      */
     @RequestMapping(value="/users", method=RequestMethod.POST)
     @Operation(summary="Add a new user to the connected database", tags={"users"})
-    public ResponseEntity<?> addUser(
+    public ResponseEntity<User> addUser(
             @RequestBody User user
     ) {
-        userDetailsService.createUser(user.getUsername(), user.getPassword(), user.getRole(), user.getPrivileges());
-        log.info(String.format("ADD USER: [username='%s', role='%s', privileges=%s]",
-                user.getUsername(), user.getRole(), user.getPrivileges()));
-        return new ResponseEntity<>(userDetailsService.getUser(user.getUsername()).toString(), HttpStatus.CREATED);
+        log.info("POST /users {}", user);
+        var newUser = userDetailsService.createUser(user.getUsername(), user.getPassword(), user.getRole(), user.getPrivileges());
+        return new ResponseEntity<>(newUser, HttpStatus.CREATED);
     }
 
     /**
      * Deletes a user from the database
      * If security is disabled, do not perform secondary role check
-     * @param token JWT to check the requesters authority
      * @param username User which will be deleted from the database
      * @return True if deletion was successful, False if not
      */
     @RequestMapping(value="/users/{username}", method=RequestMethod.DELETE)
     @Operation(summary="Delete an existing user from the connected database", tags={"users"})
-    public ResponseEntity<?> deleteUser(
-            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
+    public ResponseEntity<Boolean> deleteUser(
             @PathVariable String username
     ) {
-        if (!config.enableAuth || isAdminOrSelf(token, username)){
-            log.info(String.format("DELETE USER: %s", username));
-            return new ResponseEntity<>(userDetailsService.removeUser(username), HttpStatus.OK);
-        }
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        log.info("DELETE /users/{}", username);
+        return new ResponseEntity<>(userDetailsService.removeUser(username), HttpStatus.OK);
     }
 
     /**
      * Returns information (username, roles) for a specific user in the database
      * If security is disabled, do not perform secondary role check
-     * @param token JWT to check the requesters authority
      * @param username User from which the information is requested
-     * @return User as a string representation
+     * @return User
      */
     @RequestMapping(value="/users/{username}", method=RequestMethod.GET)
     @Operation(summary="Get an existing user from the connected database", tags={"users"})
-    public ResponseEntity<String> getUser(
-            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String token,
+    public ResponseEntity<User> getUser(
             @PathVariable String username
     ) {
-        if (!config.enableAuth || isAdminOrSelf(token, username)){
-            log.info(String.format("GET USER: %s", username));
-            return new ResponseEntity<>(userDetailsService.getUser(username).toString(), HttpStatus.OK);
+        log.info("GET /users/{}", username);
+        if (!config.requireAuth || userDetailsService.isAdminOrSelf(username)){
+            return new ResponseEntity<>(userDetailsService.getUser(username), HttpStatus.OK);
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN);
     }
 
     /**
      * Return all users in the database
-     * @return All users in the database as their string representation
+     * @return All users in the database with their private attributes removed
      */
     @RequestMapping(value="/users", method=RequestMethod.GET)
     @Operation(summary="Get all users from the connected database", tags={"users"})
-    public ResponseEntity<List<String>> getUsers() {
-        log.info("GET USERS");
-        return new ResponseEntity<>(List.copyOf(userDetailsService.getUsers()), HttpStatus.OK);
+    public ResponseEntity<List<User>> getUsers() {
+        log.info("GET /users");
+        var publicUsers = userDetailsService.getUsers().stream().map(User::publicView).toList();
+        return new ResponseEntity<>(publicUsers, HttpStatus.OK);
     }
 
     /**
@@ -127,33 +125,12 @@ public class UserController {
      */
     @RequestMapping(value="/users/{username}", method=RequestMethod.PUT)
     @Operation(summary="Update the information of an existing user in the connected database", tags={"users"})
-    public ResponseEntity<?> updateUser(
+    public ResponseEntity<User> updateUser(
             @PathVariable String username,
             @RequestBody User user
     ) {
-        String logOut = String.format("UPDATE USER: %s (", username);
-        if (user.getUsername() != null) logOut += String.format("NEW USERNAME: %s ", user.getUsername());
-        if (user.getPassword() != null) logOut += "NEW PASSWORD ";
-        if (user.getRole() != null) logOut += String.format("NEW ROLE: %s ", user.getRole());
-        if (user.getPrivileges() != null && !user.getPrivileges().isEmpty()) logOut += String.format("NEW PRIVILEGES: %s ", user.getPrivileges());
-        log.info(logOut + ")");
+        log.info("PUT /users/{} {}", username, user);
         return new ResponseEntity<>(userDetailsService.updateUser(username, user.getUsername(), user.getPassword(),
                 user.getRole(), user.getPrivileges()), HttpStatus.OK);
-    }
-
-    // Helper methods
-
-    /**
-     * Checks if the current request user is either an admin (has full control over user management)
-     * or the request user is performing request on its own data
-     * @param token: The token belonging to a user in the database for whom to check their authorities
-     * @param username: Name of user which will get affected by request (NOT THE CURRENT REQUEST USER)
-     */
-    private boolean isAdminOrSelf(String token, String username) {
-        final String userToken = token.substring(7);
-        UserDetails details = userDetailsService.loadUserByUsername(jwtUtil.getUsernameFromToken(userToken));
-        if (details == null) return false;
-        return details.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals(Role.ADMIN.role())) ||
-                details.getUsername().equals(username);
     }
 }

@@ -10,30 +10,37 @@ title Protocol for Connecting two Runtime Platforms
 
 hnote across: "connect"
 
-U -> A: /connect "platform-b"
-A -> A: add "platform-b" to pending
-A -> B: /connect "platform-a"
-B -> B: add "platform-a" to pending
-B -> A: /connect "platform-b"
-A --> B: already in pending -> true
-B -> A: /info
-A --> B: platform-info
-B -> B: remove from pending,\nadd to connected
-B --> A: true
-A -> B: /info
-B --> A: platform-info
-A -> A: remove from pending,\nadd to connected
-A --> U: true
+U -> A: POST /connect "platform-b"
+A -> B: GET /info
+A <-- B: platform-info
+
+group opt [connect back?]
+    group opt [auth enabled?]
+        A -> A: generate token for B
+    end
+    A -> B: POST /connect "platform-a"
+    A <- B: GET /info
+    A --> B: platform-info
+    B -> B: add A to connected
+    A o<- B: WS /subscribe
+    A <-- B: true
+end
+A -> A: add B to connected
+A ->o B: WS /subscribe
+
+U <-- A: true
 
 hnote across: "disconnect"
 
-U -> A: /disconnect "platform-b"
-A -> A: remove "platform-b" from connected
-A -> B: /disconnect "platform-a"
-B -> B: remove "platform-a" from connected
-B -> A: /disconnect "platform-a"
-A --> B: already removed -> false
-B --> A: true
-A --> U: true
+U -> A: DEL /connect "platform-b"
+A -> A: remove B from connected
+A ->x B: WS (close)
+group opt [connect back?]
+    A -> B: DEL /connect "platform-a"
+    B -> B: remove A from connected
+    A x<- B: WS (close)
+    A <-- B: true
+end
+U <-- A: true
 
 @enduml

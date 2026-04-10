@@ -13,6 +13,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * `PLATFORM_URL` The URL or IP address where the Agent Container can reach its parent Runtime Platform
 * `TOKEN` Bearer token assigned to the container needed to interact with the parent Runtime Platform if it is using authentication (see [Authentication](auth.md) for details).
 * `OWNER` The username corresponding to the user who has started the Agent Container. The owner has special permissions to perform actions on his own containers.
+* `PORT_MAPPING` Which ports on the host the container's ports are mapped to, in the format `containerPort1:hostPort1,...`
 
 
 ## Agents API
@@ -158,7 +159,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 ### `POST /containers`
 
-* deploy new Agent Container onto this platform; the body specifies the image to be deployed (not all fields have to be present, e.g. no "description", but image-name, ports, and parameters, if any) and any arguments (i.e. values for the parameters), passed as environment variables and optional a configuration for the container environment in use (e.g. which Kubernetes node to use).
+* deploy new Agent Container onto this platform; the body specifies the image to be deployed (not all fields have to be present, e.g. no "description", but image-name, ports, and parameters, if any) and any arguments (i.e. values for the parameters), passed as environment variables and optional a configuration for the container environment in use (e.g. which Kubernetes node to use). Parameter "pull" can be used to force to (not) pull the image before deployment, regardless of whether it is locally present, overriding the setting in the `ALWAYS_PULL_IMAGES` environment variable.
 * body: `PostAgentContainer`
 * output: ID of the created AgentContainer (string)
 * errors: 404 if image not found, 502 (bad gateway) if container did not start properly
@@ -219,15 +220,33 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 
 ### `POST /login`
 
-* login with user credentials
+* login with user credentials; this route is available for both, the Runtime Platform (for logging in to the platform as a whole) and for the Agent Container (for application-specific credentials to external APIs)
 * input:
-    * username
-    * password
+  * username
+  * password
 * output: Token
 * errors: 403 if user is not registered
 
+### `POST /containers/login{containerId}`
 
-### Common Themes of different Routes
+* login as current user at given container with container-specific credentials
+* input: 
+  * username
+  * password
+* output: Token
+
+### `POST /containers/logout{containerId}`
+
+* logout from given container
+* output: previously logged in?
+
+
+## Open API
+
+The OPACA Platform uses Spring Boot, which provides an Open-API compliant description of the different OPACA REST routes at `/v3/api-docs/All`. Complementary to the general OPACA API docs, an open-API compliant documentation for the currently available action can be found at `/v3/api-docs/actions` (or `/v3/api-docs/actions?format=YAML` for YAML). Note that this route may require authorization, since it gives insight into the running agents.
+
+
+## Common Themes of different Routes
 
 * the `/send`, `/broadcast` and `/invoke` routes of the Agents API each have two optional query-parameters: `containerId` telling which specific container to address (default: any), and `forward` telling whether the call can be forwarded to another platform, if the agent or action is not found in a container on this one (default: true); these parameters are only relevant for the Runtime Platform version of those routes and can be ignored for the Agent Containers themselves
 * typically, the API will return HTTP Status codes 502 if the call could not be forwarded to the target container or platform, and 404 if the agent or action is question has not been found (an exception being the `DELETE` routes, since here the effect is the same whether the container/platform was found; those will just return `false` in this case)
@@ -276,7 +295,8 @@ When an Agent Container is started by the Runtime Platform, a number of environm
     "provides": [ string ],
     "name": string,
     "description": string,
-    "provider": string
+    "provider": string,
+    "url": string,
     "apiPort": int, // default: 8082
     "parameters": [
         {"name": string, "type": string, "required": boolean, "confidential": boolean, "defaultValue": string}
@@ -287,6 +307,16 @@ When an Agent Container is started by the Runtime Platform, a number of environm
             "description": string
         }
     }
+}
+```
+
+### PostAgentContainer
+```
+{
+    "image": AgentContainerImage,
+    "arguments": {...}, // values for AgentContainerImage parameters
+    "pull": boolean,
+    "clientConfig": {...} // values for Container Client config parameters
 }
 ```
 

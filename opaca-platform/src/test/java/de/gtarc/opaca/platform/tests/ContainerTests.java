@@ -1,9 +1,7 @@
 package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.api.AgentContainerApi;
-import de.gtarc.opaca.model.AgentContainer;
-import de.gtarc.opaca.model.AgentDescription;
-import de.gtarc.opaca.model.RuntimePlatform;
+import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.platform.Application;
 
 import lombok.AllArgsConstructor;
@@ -47,6 +45,7 @@ public class ContainerTests {
     @BeforeClass
     public static void setupPlatform() throws Exception {
         platform = SpringApplication.run(Application.class,
+                "--security.secret=no-auth-but-needed-for-creating-users",
                 "--server.port=" + PLATFORM_PORT);
         containerId = postSampleContainer(PLATFORM_URL);
         checkInvariantStatic();
@@ -123,6 +122,14 @@ public class ContainerTests {
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Integer.class);
         Assert.assertEquals(65L, res.longValue());
+    }
+
+    @Test
+    public void testInvokeActionOutbound() throws Exception {
+        var con = request(PLATFORM_URL, "POST", "/invoke/OutboundInvokeTest/sample1", Map.of("agentId", "sample2"));
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, String.class);
+        Assert.assertTrue(res.contains("65"));
     }
 
     @Test
@@ -205,7 +212,6 @@ public class ContainerTests {
 
     /**
      * test that action invocation fails if it does not respond within the specified time
-     * TODO this is not ideal yet... the original error may contain a descriptive message that is lost
      */
     @Test
     public void testInvokeTimeout() throws Exception {
@@ -325,8 +331,8 @@ public class ContainerTests {
         var lastEvent = result(con, Map.class).get("lastEvent");
         Thread.sleep(500);
 
-        // invoke DoThis (the params are wrong, but this does not matter here)
-        request(PLATFORM_URL, "POST", "/invoke/DoThis", Map.of()).getResponseCode();
+        // invoke DoThis to generate a new event
+        request(PLATFORM_URL, "POST", "/invoke/DoThis", Map.of("message", "foo", "sleep_seconds", 0)).getResponseCode();
 
         con = request(PLATFORM_URL, "POST", "/invoke/GetInfo", Map.of());
         var newEvent = result(con, Map.class).get("lastEvent");
@@ -422,7 +428,8 @@ public class ContainerTests {
     }
 
     /**
-     * TODO check somehow that notify worked
+     * this really only checks that the action return the expected return code; the actual effect is
+     * implicitly tested in {@link #testAddNewActionAutoNotify()}.
      */
     @Test
     public void testContainerNotify() throws Exception {
@@ -496,18 +503,41 @@ public class ContainerTests {
     }
 
     /**
-     * TODO keep testing this? notify param in createAction might be obsolete.
-     *  we could of course still keep it specifically for the purpose of this test.
+     * call action that adds a new action, then test that this action is known to the platform
      */
     @Test
     public void testAddNewActionAutoNotify() throws Exception {
         // create new agent action
-        var con = request(PLATFORM_URL, "POST", "/invoke/CreateAction/sample1", Map.of("name", "AnotherTemporaryTestAction", "notify", true));
+        var con = request(PLATFORM_URL, "POST", "/invoke/CreateAction/sample1",
+                Map.of("name", "AnotherTemporaryTestAction", "notify", true));
         Assert.assertEquals(200, con.getResponseCode());
         Thread.sleep(500);
 
         // agent container automatically notified platform of the changes
         con = request(PLATFORM_URL, "POST", "/invoke/AnotherTemporaryTestAction/sample1", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertTrue(result(con).contains("AnotherTemporaryTestAction"));
+    }
+
+    /**
+     * call action that adds a new action, then test that this action is known to the platform after manual notify
+     */
+    @Test
+    public void testAddNewActionManualNotify() throws Exception {
+        // create new agent action
+        var con = request(PLATFORM_URL, "POST", "/invoke/CreateAction/sample1", 
+                Map.of("name", "YetAnotherTemporaryTestAction", "notify", false));
+        Assert.assertEquals(200, con.getResponseCode());
+        Thread.sleep(500);
+
+        // parent platform has not yet been notified
+        con = request(PLATFORM_URL, "POST", "/invoke/YetAnotherTemporaryTestAction/sample1", Map.of());
+        Assert.assertEquals(404, con.getResponseCode());
+
+        // manually call notify and check again
+        var con1 = request(PLATFORM_URL, "POST", "/containers/notify", containerId);
+        Assert.assertEquals(200, con1.getResponseCode());
+        con = request(PLATFORM_URL, "POST", "/invoke/YetAnotherTemporaryTestAction/sample1", Map.of());
         Assert.assertEquals(200, con.getResponseCode());
         Assert.assertTrue(result(con).contains("AnotherTemporaryTestAction"));
     }
@@ -591,6 +621,84 @@ public class ContainerTests {
         System.out.println(System.currentTimeMillis() - start);
         Assert.assertTrue("At least 1 of the 2 requests failed.", noErrorsDetected.get());
         Assert.assertTrue(System.currentTimeMillis() - start < 8 * 1000);
+    }
+
+    /**
+     * Even without platform-auth, container auth should still be possible (and associated with the default admin user)
+     */
+    @Test
+    public void testContainerLoginNoAuth() throws Exception {
+        // login to container
+        var con = request(PLATFORM_URL, "POST", "/containers/login/" + containerId, new Login("container user 1", ""));
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // call test-login route --> container should recognize the previously logged-in user
+        con = request(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Logged in as container user 1\"", result(con));
+
+        // logout again
+        result(request(PLATFORM_URL, "POST", "/containers/logout/" + containerId, null));
+
+        con = request(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Not logged in\"", result(con));
+
+        // invalid or not supported login (here "simulated" with specific usernames)
+        con = request(PLATFORM_URL, "POST", "/containers/login/" + containerId, new Login("invalid", ""));
+        Assert.assertEquals(502, con.getResponseCode());
+        Assert.assertEquals(401, error(con).cause.statusCode.intValue());
+
+        con = request(PLATFORM_URL, "POST", "/containers/login/" + containerId, new Login("not-supported", ""));
+        Assert.assertEquals(502, con.getResponseCode());
+        Assert.assertEquals(501, error(con).cause.statusCode.intValue());
+
+        // login to unknown container...
+        con = request(PLATFORM_URL, "POST", "/containers/login/does-not-exist", new Login("container user 1", ""));
+        Assert.assertEquals(404, con.getResponseCode());
+    }
+
+    /**
+     * Even without platform-auth, container auth should still be possible (and associated with the default admin user
+     * ... UNLESS one actually logs in as a user (still possible if no auth), in this case the container-login should
+     * still ONLY apple to that user, and not to a different user or default admin user)
+     * (this test is largely identical to {@link AuthTests#test08ContainerLogin()}
+     */
+    @Test
+    public void testContainerLoginNoAuthButUsers() throws Exception {
+        // create two users for testing
+        result(request(PLATFORM_URL, "POST", "/users", user("user1", "12345", User.Role.USER)));
+        result(request(PLATFORM_URL, "POST", "/users", user("user2", "12345", User.Role.USER)));
+        var token1 = result(request(PLATFORM_URL, "POST", "/login", new Login("user1", "12345")));
+        var token2 = result(request(PLATFORM_URL, "POST", "/login", new Login("user2", "12345")));
+
+        // login to container as both users
+        result(requestWithToken(PLATFORM_URL, "POST", "/containers/login/" + containerId, new Login("container user 1", ""), token1));
+        result(requestWithToken(PLATFORM_URL, "POST", "/containers/login/" + containerId, new Login("container user 2", ""), token2));
+
+        // call test-login route with different users --> container should recognize the calling user, if logged in
+        var con = request(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of());
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Not logged in\"", result(con));
+
+        con = requestWithToken(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of(), token1);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Logged in as container user 1\"", result(con));
+
+        con = requestWithToken(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of(), token2);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Logged in as container user 2\"", result(con));
+
+        // logout as user 1; user 2 still logged in
+        result(requestWithToken(PLATFORM_URL, "POST", "/containers/logout/" + containerId, null, token1));
+
+        con = requestWithToken(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of(), token1);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Not logged in\"", result(con));
+
+        con = requestWithToken(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of(), token2);
+        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals("\"Logged in as container user 2\"", result(con));
     }
 
     /**

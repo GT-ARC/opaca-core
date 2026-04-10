@@ -13,10 +13,16 @@ data class Registered(val parentUrl: String?, val containerId: String, val authT
 
 data class DeRegister(val agentId: String, val notify: Boolean)
 
+enum class LoginStatus {
+    ACCEPTED,      // the container accepted the login and may or may not have performed a trial login
+    INVALID,       // the container unsuccessfully performed a trial login
+    NOT_SUPPORTED, // the container does not support login
+}
+
 // Message for Invoking a OPACA action at a containerized agent, wrapping the name of the action to call
 // and its parameters, to be handled by an invoke-ask "respond" handler.
 
-data class Invoke(val name: String, val parameters: Map<String, JsonNode>)
+data class Invoke(val name: String, val parameters: Map<String, JsonNode>, val loginToken: String? = null)
 data class RenewToken(val value: String)
 
 data class StreamGet(val name: String)

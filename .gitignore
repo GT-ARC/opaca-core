@@ -11,3 +11,4 @@ Session.json
 *.ipr
 *.iws
 runner-log.txt
+.venv

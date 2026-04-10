@@ -2,6 +2,7 @@ package de.gtarc.opaca.platform;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.platform.auth.JwtUtil;
 import de.gtarc.opaca.platform.user.TokenUserDetailsService;
@@ -14,20 +15,25 @@ import de.gtarc.opaca.model.AgentContainer.Connectivity;
 import de.gtarc.opaca.platform.util.ArgumentValidator;
 import de.gtarc.opaca.platform.util.RequirementsChecker;
 import de.gtarc.opaca.util.ApiProxy;
+import de.gtarc.opaca.util.WebSocketConnector;
 import lombok.Getter;
-import lombok.extern.java.Log;
 import de.gtarc.opaca.util.EventHistory;
-import org.apache.commons.lang3.RandomStringUtils;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.http.WebSocket;
+import java.time.Duration;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -37,8 +43,13 @@ import org.springframework.web.server.ResponseStatusException;
 /**
  * This class provides the actual implementation of the API routes. Might also be split up
  * further, e.g. for agent-forwarding, container-management, and linking to other platforms.
+ *
+ * Note that this class is closely related to the {@link RuntimePlatformApi} interface, without
+ * actually implementing it. This is due to the access-token being passed as an explicit parameter
+ * from the Rest-Controller for some routes where the current user is relevant, whereas for e.g.
+ * the {@link ApiProxy} the access-token should always be handled "behind the scenes".
  */
-@Log
+@Log4j2
 @Component
 public class PlatformImpl implements RuntimePlatformApi {
 
@@ -54,6 +65,13 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Autowired
     private TokenUserDetailsService userDetailsService;
 
+
+    /** platform's own UUID */
+    private final String platformId = UUID.randomUUID().toString();
+
+    /** when the platform was started */
+    private final ZonedDateTime startedAt = ZonedDateTime.now(ZoneId.of("Z"));
+
     private ContainerClient containerClient;
 
     /** Currently running Agent Containers, mapping container ID to description */
@@ -63,9 +81,7 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
     private Map<String, RuntimePlatform> connectedPlatforms;
-
-    /** Set of remote Runtime Platform URLs with a pending connection request */
-    private final Set<String> pendingConnections = new HashSet<>();
+    private Map<String, WebSocket> connectionWebsockets;
 
     /** Map of validators for validating action argument types for each container */
     private final Map<String, ArgumentValidator> validators = new HashMap<>();
@@ -75,23 +91,25 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @PostConstruct
     public void initialize() {
+        // restore session data
         this.runningContainers = sessionData.runningContainers;
         this.startedContainers = sessionData.startContainerRequests;
         this.tokens = sessionData.tokens;
         this.connectedPlatforms = sessionData.connectedPlatforms;
+        this.connectionWebsockets = new HashMap<>();
 
         // initialize container client based on environment
         if (config.containerEnvironment == PostAgentContainer.ContainerEnvironment.DOCKER) {
-            log.info("Using Docker on host " + config.remoteDockerHost);
+            log.info("Using Docker on host {}", config.remoteDockerHost);
             this.containerClient = new DockerClient();
         } else if (config.containerEnvironment == PostAgentContainer.ContainerEnvironment.KUBERNETES) {
-            log.info("Using Kubernetes with namespace " + config.kubernetesNamespace);
+            log.info("Using Kubernetes with namespace {}", config.kubernetesNamespace);
             this.containerClient = new KubernetesClient();
         } else {
             throw new IllegalArgumentException("Invalid environment specified");
         }
         // test resolving own base URL and print result
-        log.info("Own Base URL: " + config.getOwnBaseUrl());
+        log.info("Own Base URL: {}", config.getOwnBaseUrl());
 
         this.containerClient.initialize(config, sessionData);
         this.containerClient.testConnectivity();
@@ -100,20 +118,29 @@ public class PlatformImpl implements RuntimePlatformApi {
             var image = runningContainers.get(containerId).getImage();
             validators.put(containerId, new ArgumentValidator(image));
         }
+        for (var url : connectedPlatforms.keySet()) {
+            openConnectionWebsocket(url, tokens.get(url));
+        }
     }
+
+    /*
+     * PLATFORM INFO AND CONFIG
+     */
 
     @Override
     public RuntimePlatform getPlatformInfo() {
         return new RuntimePlatform(
+                platformId,
                 config.getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),
                 requirementsChecker.getFullPlatformProvisions(),
-                List.copyOf(connectedPlatforms.keySet())
+                List.copyOf(connectedPlatforms.keySet()),
+                startedAt
         );
     }
 
     @Override
-    public Map<String, ?> getPlatformConfig() throws IOException {
+    public Map<String, ?> getPlatformConfig() {
         return config.toMap();
     }
 
@@ -123,15 +150,40 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public String login(Login loginParams) {
-        return jwtUtil.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
+    public String platformLogin(Login loginParams) {
+        return userDetailsService.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
+    }
+
+    @Override
+    public String containerLogin(String containerId, Login loginParams) throws IOException {
+        if (! runningContainers.containsKey(containerId)) {
+            throw new NoSuchElementException("Container not found: " + containerId);
+        }
+        // find matching user and container
+        var user = getUser();
+        var client = getClient(containerId, tokens.get(containerId));
+        // get container-login-token, associate with user
+        String token = client.containerLogin(loginParams);
+        userDetailsService.addContainerToken(user, containerId, token);
+        return token;
+    }
+
+    @Override
+    public boolean containerLogout(String containerId) throws IOException {
+        if (! runningContainers.containsKey(containerId)) {
+            throw new NoSuchElementException("Container not found: " + containerId);
+        }
+        var token = userDetailsService.removeContainerToken(getUser(), containerId);
+        return token != null && getClient(containerId, tokens.get(containerId))
+                    .withExtraHeaders(Map.of(AgentContainerApi.HEADER_TOKEN, token))
+                    .containerLogout();
     }
 
     @Override
     public String renewToken() {
         // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
-        String owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
-        return jwtUtil.generateTokenForAgentContainer(owner);
+        String owner = getUser();
+        return jwtUtil.generateToken(owner, Duration.ofHours(10));
     }
 
     /*
@@ -144,7 +196,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public List<AgentDescription> getAllAgents() throws IOException {
+    public List<AgentDescription> getAllAgents() {
         return streamAgents(true).collect(Collectors.toList());
     }
 
@@ -183,7 +235,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     public JsonNode invoke(String action, Map<String, JsonNode> parameters, String agentId, int timeout, String containerId, boolean forward) throws IOException, NoSuchElementException {
         return iterateClientMatches(
                 getClients(containerId, agentId, action, parameters, null, forward),
-                match -> match.getClient().invoke(action, parameters, agentId, timeout, containerId, false),
+                match -> match.getClientForUser().invoke(action, parameters, agentId, timeout, containerId, false),
                 true
         );
     }
@@ -209,52 +261,6 @@ public class PlatformImpl implements RuntimePlatformApi {
         );
     }
 
-    /**
-     * Iterate over the provided ClientMatch stream, applying the given processor to all that are a full match.
-     * The result of the first successful processor is returned.
-     *
-     * @param clientMatches The stream of ClientMatch objects.
-     * @param callback A function that is applied to all eligible matches. Is allowed to throw IOException.
-     * @param failOnNoMatch If true, throw a NoSuchElementException in case no client matched the requirements.
-     * @return The result of the first successful processor function.
-     * @throws NoSuchElementException In case no client matched the requirements
-     * @throws IllegalArgumentException when a client matched the requirements but had mismatched action arguments.
-     * @throws IOException In case all matching clients fail with this exception type.
-     */
-    private <T> T iterateClientMatches(
-            Stream<ClientMatch> clientMatches,
-            ThrowingFunction<ClientMatch, T> callback,
-            boolean failOnNoMatch
-    ) throws NoSuchElementException, IllegalArgumentException, IOException {
-        ClientMatch mismatchedParamsClient = null;
-        IOException lastException = null;
-
-        for (ClientMatch match: (Iterable<? extends ClientMatch>) clientMatches::iterator) {
-            if (match.isFullMatch()) {
-                try {
-                    return callback.apply(match);
-                } catch (IOException e) {
-                    log.warning(String.format("Exception from container: %s", e));
-                    lastException = e;
-                }
-            } else if (match.isParamsMismatch()) {
-                mismatchedParamsClient = match;
-            }
-        }
-
-        if (lastException != null) {
-            throw lastException;
-        }
-        if (mismatchedParamsClient != null) {
-            throw new IllegalArgumentException(String.format("Provided arguments %s do not match action parameters.", mismatchedParamsClient.actionArgs));
-        }
-        if (failOnNoMatch) {
-            throw new NoSuchElementException("Requested resource not found.");
-        } else {
-            return null;
-        }
-    }
-
     /*
      * CONTAINERS ROUTES
      */
@@ -266,14 +272,12 @@ public class PlatformImpl implements RuntimePlatformApi {
         String agentContainerId = UUID.randomUUID().toString();
         String token = "";
         String owner = "";
-        if (config.enableAuth) {
-            token = jwtUtil.generateTokenForAgentContainer(agentContainerId);
-            owner = userDetailsService.getUser(jwtUtil.getCurrentRequestUser()).getUsername();
+        if (config.requireAuth) {
+            token = jwtUtil.generateToken(agentContainerId, Duration.ofHours(24));
+            owner = getUser();
         }
         // create user first so the container can immediately talk with the platform
-        userDetailsService.createUser(agentContainerId, generateRandomPwd(),
-                config.enableAuth ? userDetailsService.getUserRole(owner) : Role.GUEST,
-                config.enableAuth ? userDetailsService.getUserPrivileges(owner) : null);
+        userDetailsService.createTempSubUser(agentContainerId, owner);
 
         // start container... this may raise an Exception, or returns the connectivity info
         Connectivity connectivity;
@@ -289,20 +293,26 @@ public class PlatformImpl implements RuntimePlatformApi {
         var client = getClient(agentContainerId, token);
         String errorMessage = "Container did not respond with /info in time.";
         while (System.currentTimeMillis() < containerTimeout) {
+            // check whether container is still starting or alive at all
+            if (! containerClient.isContainerAlive(agentContainerId)) {
+                errorMessage = "Container failed to start.";
+                break;
+            }
             try {
+                // get container /info and add derived attributes
                 var container = client.getContainerInfo();
                 container.setConnectivity(connectivity);
+                container.setOwner(owner);
+                if (! container.getContainerId().equals(agentContainerId)) {
+                    log.warn("Agent Container ID does not match: Expected {}, but found {}",
+                            agentContainerId, container.getContainerId());
+                }
+                // register container in different collections
                 runningContainers.put(agentContainerId, container);
                 startedContainers.put(agentContainerId, postContainer);
                 tokens.put(agentContainerId, token);
                 validators.put(agentContainerId, new ArgumentValidator(container.getImage()));
-                container.setOwner(owner);
-                log.info("Container started: " + agentContainerId);
-                if (! container.getContainerId().equals(agentContainerId)) {
-                    log.warning("Agent Container ID does not match: Expected " +
-                            agentContainerId + ", but found " + container.getContainerId());
-                }
-                notifyConnectedPlatforms();
+                log.info("Container started: {}", agentContainerId);
                 return agentContainerId;
             } catch (JsonMappingException e) {
                 errorMessage = "Container returned malformed /info: " + e.getMessage();
@@ -313,21 +323,17 @@ public class PlatformImpl implements RuntimePlatformApi {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
-                log.severe(e.getMessage());
-            }
-            if (! containerClient.isContainerAlive(agentContainerId)) {
-                errorMessage = "Container failed to start.";
-                break;
+                log.error(e.getMessage());
             }
         }
 
         // if we reach this point, container did not start in time or does not provide /info route
-        log.warning("Stopping Container. " + errorMessage);
+        log.warn("Stopping Container. {}", errorMessage);
         try {
             containerClient.stopContainer(agentContainerId);
             userDetailsService.removeUser(agentContainerId);
         } catch (Exception e) {
-            log.warning("Failed to stop container: " + e.getMessage());
+            log.warn("Failed to stop container: {}", e.getMessage());
         }
         throw new IOException(errorMessage);
     }
@@ -363,17 +369,9 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public boolean removeContainer(String containerId) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
-        if (config.enableAuth) {
-            // If request user does not have user profile, throw FORBIDDEN exception
-            UserDetails details = userDetailsService.loadUserByUsername(jwtUtil.getCurrentRequestUser());
-            if (details == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-            // TODO Not sure if this is the right place to handle custom Http responses
-            //  Might need to implement more custom error handling
-            // If user is neither admin nor owner of container, throw FORBIDDEN exception
-            if (details.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals(Role.ADMIN.role())) &&
-                    !details.getUsername().equals(container.getOwner())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-            }
+        if (config.requireAuth && ! getUser().equals(config.platformAdminUser) && ! userDetailsService.isAdminOrSelf(container.getOwner())) {
+            // ignore if userToken == null; this is only the case iff the platform is about to shut down
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
         if (container == null) return false;
         runningContainers.remove(containerId);
@@ -381,7 +379,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         validators.remove(containerId);
         userDetailsService.removeUser(containerId);
         containerClient.stopContainer(containerId);
-        notifyConnectedPlatforms();
+        userDetailsService.removeContainerToken(getUser(), containerId);
         return true;
     }
 
@@ -390,37 +388,31 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     @Override
-    public boolean connectPlatform(LoginConnection loginConnection) throws IOException {
-        String url = normalizeString(loginConnection.getUrl());
+    public boolean connectPlatform(ConnectionRequest connect) throws IOException {
+        String url = normalizeString(connect.getUrl());
         checkUrl(url);
         if (url.equals(config.getOwnBaseUrl()) || connectedPlatforms.containsKey(url)) {
             return false;
-        } else if (pendingConnections.contains(url)) {
-            // callback from remote platform following our own request for connection
-            return true;
-        } else {
-            if (loginConnection.getUsername() != null) {
-                // with auth, unidirectional
-                var token = getPlatformClient(url).login(new Login(loginConnection.getUsername(), loginConnection.getPassword()));
-                var info = getPlatformClient(url, token).getPlatformInfo();
-                connectedPlatforms.put(url, info);
-                tokens.put(url, token);
-            } else {
-                // without auth, bidirectional
-                try {
-                    var info = getPlatformClient(url).getPlatformInfo();
-                    url = info.getBaseUrl();
-                    pendingConnections.add(url);
-                    if (getPlatformClient(url).connectPlatform(new LoginConnection(null, null, config.getOwnBaseUrl()))) {
-                        connectedPlatforms.put(url, info);
-                    }
-                } finally {
-                    // also remove from pending in case client.post fails
-                    pendingConnections.remove(url);
-                }
-            }
-            return true;
         }
+        // try to get info (with token, if given)
+        var token = connect.getToken();
+        var client = getPlatformClient(url, token);
+        var info = client.getPlatformInfo();
+        // ask other platform to connect back to self?
+        if (connect.isConnectBack()) {
+            var ownUrl = config.getOwnBaseUrl();
+            var ownToken = config.requireAuth ? jwtUtil.generateToken(url, Duration.ofDays(7)) : null;
+            var owner = getUser();
+            userDetailsService.createTempSubUser(url, owner);
+            client.connectPlatform(new ConnectionRequest(ownUrl, false, ownToken));
+        }
+        // use websocket to connect to updates
+        openConnectionWebsocket(url, token);
+
+        // store connection if all the above steps succeeded
+        connectedPlatforms.put(url, info);
+        tokens.put(url, token);
+        return true;
     }
 
     @Override
@@ -429,16 +421,24 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public boolean disconnectPlatform(String url) throws IOException {
-        url = normalizeString(url);
+    public boolean disconnectPlatform(ConnectionRequest disconnect) throws IOException {
+        var url = normalizeString(disconnect.getUrl());
         checkUrl(url);
-        if (connectedPlatforms.remove(url) != null) {
-            if (tokens.containsKey(url)) {
-                tokens.remove(url);
-            } else {
-                getPlatformClient(url).disconnectPlatform(config.getOwnBaseUrl());
+        if (connectedPlatforms.containsKey(url)) {
+            connectedPlatforms.remove(url);
+            tokens.remove(url);
+            userDetailsService.removeUser(url);
+            if (connectionWebsockets.containsKey(url)) {
+                var ws = connectionWebsockets.remove(url);
+                ws.sendClose(1000, "disconnected");
             }
-            log.info(String.format("Disconnected from %s", url));
+            // disconnect other?
+            if (disconnect.isConnectBack()) {
+                var client = getPlatformClient(url, disconnect.getToken());
+                var ownUrl = config.getOwnBaseUrl();
+                client.disconnectPlatform(new ConnectionRequest(ownUrl, false, null));
+            }
+            log.info("Disconnected from {}", url);
             return true;
         }
         return false;
@@ -457,10 +457,9 @@ public class PlatformImpl implements RuntimePlatformApi {
             containerInfo.setConnectivity(runningContainers.get(containerId).getConnectivity());
             runningContainers.put(containerId, containerInfo);
             validators.put(containerId, new ArgumentValidator(containerInfo.getImage()));
-            notifyConnectedPlatforms();
             return true;
         } catch (IOException e) {
-            log.warning(String.format("Container did not respond: %s; removing...", containerId));
+            log.warn("Container did not respond: {}; removing...", containerId);
             runningContainers.remove(containerId);
             return false;
         }
@@ -471,7 +470,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         platformUrl = normalizeString(platformUrl);
         checkUrl(platformUrl);
         if (platformUrl.equals(config.getOwnBaseUrl())) {
-            log.warning("Cannot request update for self.");
+            log.warn("Cannot request update for self.");
             return false;
         }
         if (!connectedPlatforms.containsKey(platformUrl)) {
@@ -484,7 +483,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             connectedPlatforms.put(platformUrl, platformInfo);
             return true;
         } catch (IOException e) {
-            log.warning(String.format("Platform did not respond: %s; removing...", platformUrl));
+            log.warn("Platform did not respond: {}; removing...", platformUrl);
             connectedPlatforms.remove(platformUrl);
             return false;
         }
@@ -495,22 +494,77 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     /**
-     * Whenever there is a change in this platform's Agent Containers (added, removed, or updated),
-     * call the /notify route of all connected Runtime Platforms, so they can pull the updated /info
-     *
-     * TODO this method is called when something about the containers changes... can we make this
-     *      asynchronous (without too much fuzz) so it does not block those other calls?
+     * Get the logged-in user from the user token in auth context, or default user if no auth.
+     * The default-user is only relevant for container-login if no auth is enabled and only used
+     * to associate the container logins with.
      */
-    private void notifyConnectedPlatforms() {
-        // TODO with connect not being bidirectional, this does not really make sense anymore
-        //  adapt to possible new /subscribe route, or change entirely?
-        for (String platformUrl : connectedPlatforms.keySet()) {
-            var client = getPlatformClient(platformUrl);
-            try {
-                client.notifyUpdatePlatform(config.getOwnBaseUrl());
-            } catch (IOException e) {
-                log.warning("Failed to forward update to Platform " + platformUrl);
+    private String getUser() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        var token = auth != null ? (String) auth.getCredentials() : null;
+        if (token != null && ! token.isEmpty()) {
+            return jwtUtil.getUsernameFromToken(token);
+        } else if (! config.requireAuth){
+            return config.platformAdminUser;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Create Websocket connection and associate it with the connected platform's URL, to be closed when disconnected
+     */
+    private void openConnectionWebsocket(String url, String token) {
+        try {
+            var res = WebSocketConnector.subscribe(url, token, "/containers", msg -> notifyUpdatePlatform(url));
+            connectionWebsockets.put(url, res.get());
+        } catch (ExecutionException | InterruptedException e) {
+            log.warn("Failed to establish websocket connection to {}", url);
+        }
+    }
+
+    /**
+     * Iterate over the provided ClientMatch stream, applying the given processor to all that are a full match.
+     * The result of the first successful processor is returned.
+     *
+     * @param clientMatches The stream of ClientMatch objects.
+     * @param callback A function that is applied to all eligible matches. Is allowed to throw IOException.
+     * @param failOnNoMatch If true, throw a NoSuchElementException in case no client matched the requirements.
+     * @return The result of the first successful processor function.
+     * @throws NoSuchElementException In case no client matched the requirements
+     * @throws IllegalArgumentException when a client matched the requirements but had mismatched action arguments.
+     * @throws IOException In case all matching clients fail with this exception type.
+     */
+    private <T> T iterateClientMatches(
+            Stream<ClientMatch> clientMatches,
+            ThrowingFunction<ClientMatch, T> callback,
+            boolean failOnNoMatch
+    ) throws NoSuchElementException, IllegalArgumentException, IOException {
+        ClientMatch mismatchedParamsClient = null;
+        IOException lastException = null;
+
+        for (ClientMatch match: (Iterable<? extends ClientMatch>) clientMatches::iterator) {
+            if (match.isFullMatch()) {
+                try {
+                    return callback.apply(match);
+                } catch (IOException e) {
+                    log.warn("Exception from container", e);
+                    lastException = e;
+                }
+            } else if (match.isParamsMismatch()) {
+                mismatchedParamsClient = match;
             }
+        }
+
+        if (lastException != null) {
+            throw lastException;
+        }
+        if (mismatchedParamsClient != null) {
+            throw new IllegalArgumentException(String.format("Provided arguments %s do not match action parameters.", mismatchedParamsClient.actionArgs));
+        }
+        if (failOnNoMatch) {
+            throw new NoSuchElementException("Requested resource not found.");
+        } else {
+            return null;
         }
     }
 
@@ -595,11 +649,13 @@ public class PlatformImpl implements RuntimePlatformApi {
         }
     }
 
-    /**
-     * Creates a random String of length 24 containing upper and lower case characters and numbers
-     */
-    private String generateRandomPwd() {
-        return RandomStringUtils.random(24, true, true);
+    protected void testSelfConnection() throws Exception {
+        var token = config.requireAuth ?
+                userDetailsService.generateTokenForUser(config.platformAdminUser, config.platformAdminPwd) : null;
+        var info = new ApiProxy(config.getOwnBaseUrl(), null, token).withTimeout(5000).getPlatformInfo();
+        if (! Objects.equals(platformId, info.getPlatformId())) {
+            throw new IllegalArgumentException("Mismatched Platform ID");
+        }
     }
 
     /**
@@ -610,17 +666,22 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
     private class ClientMatch {
 
+        // the values that have to match (null being "any")
         private final String containerId;
         private final String agentId;
         private final String actionName;
         private final Map<String, JsonNode> actionArgs;
         private final String streamName;
 
+        // whether the above values match
         private boolean containerMatch;
         private boolean agentMatch;
         private boolean actionMatch;
         private boolean paramsMatch;
         private boolean streamMatch;
+
+        // the actual containerId this client is using, or null for platform client
+        private String actualContainerId = null;
 
         @Getter
         private ApiProxy client = null;
@@ -645,6 +706,7 @@ public class PlatformImpl implements RuntimePlatformApi {
          * Check if the given container fulfills the matching parameters.
          */
         public ClientMatch makeContainerMatch(AgentContainer container, ApiProxy client) {
+            this.actualContainerId = container.getContainerId();
             if (client != null) {
                 this.client = client;
             }
@@ -723,6 +785,20 @@ public class PlatformImpl implements RuntimePlatformApi {
                 }
             }
             return streamMatch;
+        }
+
+        public ApiProxy getClientForUser() {
+            // redirect to another platform
+            if (actualContainerId == null) {
+                return client;
+            }
+            var containerLoginToken = userDetailsService.getContainerToken(getUser(), actualContainerId);
+            // not logged in to container
+            if (containerLoginToken == null) {
+                return client;
+            }
+            // get ApiProxy with additional container login token header
+            return client.withExtraHeaders(Map.of(AgentContainerApi.HEADER_TOKEN, containerLoginToken));
         }
     }
 

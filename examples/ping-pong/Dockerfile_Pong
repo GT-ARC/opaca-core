@@ -1,6 +1,4 @@
-# Build as `docker build -t sample-agent-container-image .`
-FROM openjdk:19-slim
+# Build as `docker build -t pong-container-image .`
+FROM ibm-semeru-runtimes:open-21-jdk
 ADD ./target/appassembler/ /app
-
-# use this to create pong-container: docker build -t pong-container-image .
 ENTRYPOINT ["/app/bin/main-kt", "pong"]

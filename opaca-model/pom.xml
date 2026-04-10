@@ -5,18 +5,17 @@
 	<parent>
 		<groupId>de.gtarc.opaca</groupId>
 		<artifactId>opaca-parent</artifactId>
-		<version>0.3-SNAPSHOT</version>
+		<version>0.5-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>opaca-model</artifactId>
-	<version>0.3-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<dependencies>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
-			<version>1.18.36</version>
+			<version>${lombok.version}</version>
 		</dependency>
 
 		<dependency>

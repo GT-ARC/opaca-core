@@ -2,7 +2,7 @@
 
 # OPACA: An Open, Language- and Platform-Independent API for Containerized Agents
 
-Copyright 2022-2024 GT-ARC & DAI-Labor, TU Berlin
+Copyright 2022-2026 GT-ARC & DAI-Labor, TU Berlin
 
 * Main Contributors: Tobias Küster and Benjamin Acar
 * Further contributions by: Oskar Kupke, Robert Strehlow
@@ -12,6 +12,7 @@ This (https://github.com/gt-arc/opaca-core/) is the public repository of the OPA
 See the end of this Readme for publication about the OPACA Framework and API.
 
 Note: The working title of OPACA was 'JIAC++'. Some references to the old name may still be found in the code and documentation.
+
 
 ## Prototype and Reference Implementation
 
@@ -68,7 +69,7 @@ The OPACA framework has been written in **Java** and **Kotlin** and uses Apache 
 
 See [Execution Environments](doc/environments.md) for more information on different ways to execute the platform and agent containers.
 
-Note: The Runtime Platform requires Java version 17 or higher.
+**Important:** At the moment, the OPACA Agent Container reference implementation is using an older version of Kotlin, which is not compatible with Java 25. We suggest using **Java 21**. If you are limited to Java 25, you can still build and run the OPACA model and Runtime Platform, but you have to comment the `opaca-container` and `examples` modules from the main `pom.xml` file's `<modules>` list.
 
 
 ## Environment Variables (Runtime Platform)
@@ -84,7 +85,8 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 * `SESSION_POLICY` (default: "shutdown") How to behave when the platform is shut down and restarted. See [Session](doc/session.md) for details.
 * `DEFAULT_IMAGE_DIRECTORY` (default: null) The runtime platform will try to read any JSON files from this directory containing Agent Container Image descriptions and auto-deploy those to the platform when it starts.
 * `EVENT_HISTORY_SIZE` (default: 50) The maximum number of entries in the event history. Note that most events generate more than one entry.
-* `ALWAYS_PULL_IMAGES` (default: false) Whether to always pull new versions of container images, even if the image is already present. Note that this may cause problems if images are only present locally (e.g. for testing).
+* `ALWAYS_PULL_IMAGES` (default: false) Whether to always pull new versions of container images, even if the image is already present. Note that this may cause problems if images are only present locally (e.g. for testing). Can be overridden for individual containers using the `pull` parameter on `POST /containers`.
+* `LOG_LEVEL` (default: info) Log level to use for all OPACA-Logs (Spring Boot logs are handled differently to reduce noise). Logs go to console and file `opaca-platform.log`.
 
 ### Image Registry Credentials
 * `REGISTRY_SEPARATOR` (default: ";") Separator for the below attributes for registry credentials.
@@ -101,8 +103,8 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 * `KUBERNETES_CONFIG` (default: "~/.kube/config") Alternative location for Kubernetes config.
 
 ### Security & Authentication
-* `ENABLE_AUTH` (default: false) Whether to require token-based authentication on all routes; see [Authentication](doc/auth.md) for details.
-* `SECRET` (default: null) The secret used to encrypt and decrypt the JWT tokens used for authentication.
+* `REQUIRE_AUTH` (default: false) Whether to require token-based authentication on most routes; see [Authentication](doc/auth.md) for details.
+* `SECRET` (default: null) The secret used to encrypt and decrypt the JWT tokens used for authentication, needed for logging in as a user.
 * `PLATFORM_ADMIN_USER` (default: admin) Name of the "admin" user
 * `PLATFORM_ADMIN_PWD` (default: "") Password of the "admin" user
 
@@ -120,10 +122,10 @@ See the [API docs](doc/api.md) for Environment Variables passed from the Runtime
 
 This section is about distributing releases to the `dai-open` and `dai-open-snapshot` repositories (see `pom.xml` for details). This is necessary so that others can use the modules as libraries without having to check out the repository and build it locally.
 
-New SNAPSHOT releases are deployed by CI each time a new commit is pushed to the main branch (usually by a merge request). Those a deployed to the `dai-open-snapshot` repository. New non-SNAPSHOT releases are created manually and deployed to `dai-open` every time there is a significant change (preferably _before_ that change is merged) or when a larger number of smaller changes have accumulated, by the following steps:
+New SNAPSHOT releases are deployed by CI each time a new commit is pushed to the main branch (usually by a merge request). Those are deployed to the `dai-open-snapshot` repository. New non-SNAPSHOT releases are created manually and deployed to `dai-open` every time there is a significant change (preferably _before_ that change is merged) or when a larger number of smaller changes have accumulated, by the following steps:
 
 * increment the version numbers in _all_ `pom.xml` files to the next release version, e.g. change `X.Y-SNAPSHOT` to `X.Y` (both the `version` and `parent.version`, and don't forget the examples)
-* rename the current `X.Y-SNAPSHOT` sections in the changelog file to `X.Y`
+* rename the current `X.Y Snapshot` sections in the changelog file to `X.Y Release`
 * run `mvn deploy` in the repository root (for this step, you will need the appropriate credentials in your `~/.m2/settings.xml`)
 * make a Git commit and `git tag` it as `vX.Y`
 * increment the version numbers from `X.Y` to `X.Y+1-SNAPSHOT` (or, for very significant changes, `X+1.0-SNAPSHOT`)
@@ -141,8 +143,16 @@ In addition, the different `examples` also have Dockerfiles, and building the `s
 
 The CI of the public GitHub repository will create a new Docker image each time the main branch or a tag is pushed and publish them in the https://github.com/orgs/GT-ARC/packages package registry.
 
-Note that in order to run the OPACA Runtime Platform in Docker, the container has to be [properly configured](doc/environments.md).
+Note that in order to run the OPACA Runtime Platform in Docker, the container has to be [properly configured](doc/environments.md). We suggest using Docker Compose to run the platform with all required parameters (see compose file in the `opaca-platform` directory). Alternatively, use this template to fire up an OPACA platform in Docker:
 
+```
+docker container run \
+  -p 8000:8000 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e PUBLIC_URL=http://<YOUR_IP>:8000 \
+  -e PLATFORM_ENVIRONMENT=DOCKER \
+  ghcr.io/gt-arc/opaca/opaca-platform:<VERSION>
+```
 
 ## Additional Information
 

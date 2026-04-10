@@ -7,17 +7,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import de.gtarc.opaca.model.ErrorResponse;
 import de.gtarc.opaca.model.Event;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.*;
 import lombok.extern.java.Log;
 
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -27,6 +23,7 @@ import java.util.stream.Collectors;
  * properties that are required for that, and logging certain requests in the OPACA Event History.
  */
 @Log
+@RequiredArgsConstructor
 @AllArgsConstructor
 public class RestHelper {
 
@@ -36,25 +33,16 @@ public class RestHelper {
 
     public final String baseUrl;
 
-    public final String senderId;
+    public String senderId = null;
 
-    public final String token;
+    public String token = null;
 
-    public final Integer timeout;
+    public Integer timeout = null;
 
-    public final Encoding encoding;
+    public Encoding encoding = Encoding.JSON;
 
-    public RestHelper(String baseUrl) {
-        this(baseUrl, null, null, null, Encoding.JSON);
-    }
+    public Map<String, String> extraHeaders = new HashMap<>();
 
-    public RestHelper(String baseUrl, String senderId, String token) {
-        this(baseUrl, senderId, token, null, Encoding.JSON);
-    }
-
-    public RestHelper(String baseUrl, String token, Integer timeout) {
-        this(baseUrl, null, token, timeout, Encoding.JSON);
-    }
 
     public static final ObjectMapper mapper = JsonMapper.builder()
             .findAndAddModules().build();
@@ -175,6 +163,9 @@ public class RestHelper {
         if (token != null && ! token.isEmpty()) {
             connection.setRequestProperty("Authorization", "Bearer " + token);
         }
+        for (String key : extraHeaders.keySet()) {
+            connection.setRequestProperty(key, extraHeaders.get(key));
+        }
         if (timeout != null && timeout > 0) {
             connection.setConnectTimeout(timeout);
         }
@@ -216,7 +207,7 @@ public class RestHelper {
         try {
             var nestedError = mapper.readValue(response, ErrorResponse.class);
             return new RequestException(message, nestedError);
-        } catch (JsonProcessingException e) {
+        } catch (IllegalArgumentException | JsonProcessingException e) {
             var nestedError = new ErrorResponse(connection.getResponseCode(), response, null);
             return new RequestException(message, nestedError);
         }

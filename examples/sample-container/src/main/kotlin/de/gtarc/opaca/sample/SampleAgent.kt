@@ -2,8 +2,7 @@ package de.gtarc.opaca.sample
 
 import de.dailab.jiacvi.behaviour.act
 import de.gtarc.opaca.api.AgentContainerApi
-import de.gtarc.opaca.container.AbstractContainerizedAgent
-import de.gtarc.opaca.container.OpacaException
+import de.gtarc.opaca.container.*
 import de.gtarc.opaca.model.Message
 import de.gtarc.opaca.model.Parameter
 import de.gtarc.opaca.model.Event
@@ -11,7 +10,7 @@ import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.nio.charset.Charset
 
-class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
+class SampleAgent(name: String, val loginHandler: LoginHandler<String>): AbstractContainerizedAgent(name=name) {
 
     private var lastMessage: Any? = null
     private var lastBroadcast: Any? = null
@@ -23,10 +22,13 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             "message" to Parameter("string", true),
             "sleep_seconds" to Parameter("integer", true)
         ), Parameter("string")) {
-            actionDoThis(it["message"]!!.asText(), it["sleep_seconds"]!!.asInt())
+            actionDoThis(it.parameters["message"]!!.asText(), it.parameters["sleep_seconds"]!!.asInt())
         }
         addAction("GetInfo", mapOf(), Parameter("object", true)) {
             actionGetInfo()
+        }
+        addAction("OutboundInvokeTest", mapOf("agentId" to Parameter("string")), Parameter("string")) {
+            actionTestOutbound(it.parameters["agentId"]!!.asText())
         }
         addAction("GetEnv", mapOf(), Parameter("object", true)) {
             actionGetEnv()
@@ -35,7 +37,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             "x" to Parameter("integer", true),
             "y" to Parameter("integer", true)
         ), Parameter("integer")) {
-            actionAdd(it["x"]!!.asInt(), it["y"]!!.asInt())
+            actionAdd(it.parameters["x"]!!.asInt(), it.parameters["y"]!!.asInt())
         }
         addAction("Fail", mapOf(), null) {
             actionFail()
@@ -44,12 +46,12 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             "name" to Parameter("string", true),
             "notify" to Parameter("boolean", false)
         ), null) {
-            createAction(it["name"]!!.asText(), it["notify"]?.asBoolean() ?: true)
+            createAction(it.parameters["name"]!!.asText(), it.parameters["notify"]?.asBoolean() ?: true)
         }
         addAction("SpawnAgent", mapOf(
             "name" to Parameter("string", true)
         ), null) {
-            spawnAgent(it["name"]!!.asText())
+            spawnAgent(it.parameters["name"]!!.asText())
         }
         addAction("Deregister", mapOf(), null) {
             deregister(false)
@@ -58,7 +60,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         addAction("ErrorTest", mapOf(
             "hint" to Parameter("string", true)
         ), Parameter("string")) {
-            actionErrorTest(it["hint"]!!.asText())
+            actionErrorTest(it.parameters["hint"]!!.asText())
         }
         addAction("ValidatorTest", mapOf(
             "car" to Parameter("Car", true),
@@ -67,11 +69,19 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
             "decimal" to Parameter("number", false),
             "desk" to Parameter("Desk", false)
         ), Parameter("string")) {
-            val carText = "Parameter \"car\": ${it["car"]!!.asText()}"
-            val listText = "Parameter \"listOfLists\"${it["listOfLists"]!!.asText()}"
+            val carText = "Parameter \"car\": ${it.parameters["car"]!!.asText()}"
+            val listText = "Parameter \"listOfLists\"${it.parameters["listOfLists"]!!.asText()}"
             val result = "ValidatorTest:\n$carText\n$listText"
             print(result)
             result
+        }
+        addAction("LoginTest", mapOf(), Parameter("string")) {
+            val token = it.loginToken
+            when {
+                token == null -> "Not logged in"
+                loginHandler.get(token) != null -> "Logged in as ${loginHandler.get(token)}"
+                else -> "Unknown token: $token"
+            }
         }
 
         addStreamPost("PostStream", this::actionPostStream)
@@ -102,7 +112,6 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     }
 
     private fun actionPostStream(inputStream: ByteArray) {
-        // TODO shouldn't this get an InputStream as input, and not a ByteArray?
         val content = ByteArrayInputStream(inputStream).reader().readText()
         lastPostedStream = content
     }
@@ -113,6 +122,13 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         Thread.sleep(1000 * sleepSeconds.toLong())
         log.info("done waiting")
         return "Action 'DoThis' of $name called with message=$message and sleep_seconds=$sleepSeconds"
+    }
+
+    private fun actionTestOutbound(agentId: String): String {
+        // Just call another action using "outbound" invoke, testing communication from container to parent platform.
+        // It can go to another agent on the same platform; the important bit is that it's routed through the platform.
+        val res = sendOutboundInvoke("Add", agentId, mapOf("x" to 42, "y" to 23), Int::class.java)
+        return "Result of outbound Invoke Add(42, 23): $res"
     }
 
     private fun actionAdd(x: Int, y: Int) = x + y
@@ -130,7 +146,8 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
         Pair(AgentContainerApi.ENV_CONTAINER_ID, System.getenv(AgentContainerApi.ENV_CONTAINER_ID)),
         Pair(AgentContainerApi.ENV_PLATFORM_URL, System.getenv(AgentContainerApi.ENV_PLATFORM_URL)),
         Pair(AgentContainerApi.ENV_OWNER, System.getenv(AgentContainerApi.ENV_OWNER)),
-        Pair(AgentContainerApi.ENV_TOKEN, System.getenv(AgentContainerApi.ENV_TOKEN))
+        Pair(AgentContainerApi.ENV_TOKEN, System.getenv(AgentContainerApi.ENV_TOKEN)),
+        Pair(AgentContainerApi.ENV_PORT_MAPPING, System.getenv(AgentContainerApi.ENV_PORT_MAPPING))
     )
 
     private fun actionGetEnv() = System.getenv()
@@ -143,7 +160,7 @@ class SampleAgent(name: String): AbstractContainerizedAgent(name=name) {
     }
 
     private fun spawnAgent(name: String) {
-        system.spawnAgent(SampleAgent(name))
+        system.spawnAgent(SampleAgent(name, loginHandler))
     }
 
     private fun actionErrorTest(hint: String): String {

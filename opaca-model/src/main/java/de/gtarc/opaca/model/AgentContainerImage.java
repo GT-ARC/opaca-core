@@ -45,6 +45,9 @@ public class AgentContainerImage {
     /** provider of the container, e.g. institute or researcher */
     String provider;
 
+    /** URL to this image's repository (public, if any, or private), website, or other source for more information */
+    String url;
+
     // OPTIONAL attributes for API port (if not default) and extra ports (if any)
 
     /** the port where the container provides the OPACA API; by default this is 8082 but another may be used */
@@ -58,7 +61,7 @@ public class AgentContainerImage {
     @NonNull
     List<ImageParameter> parameters = List.of();
 
-    /** custom type definitions using json schema, maps schema title to schema */
+    /** custom type definitions using JSON Schema, maps schema title to schema */
     @NonNull
     Map<String, JsonNode> definitions = Map.of();
 
