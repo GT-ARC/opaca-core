@@ -40,6 +40,13 @@
 			<version>${springBoot.version}</version>
 		</dependency>
 
+		<!-- for User Management -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-mongodb</artifactId>
+			<version>${springBoot.version}</version>
+		</dependency>
+
 		<!-- needed for Swagger Web UI -->
 		<dependency>
 			<groupId>org.springdoc</groupId>
@@ -61,13 +68,6 @@
 			<groupId>com.networknt</groupId>
 			<artifactId>json-schema-validator</artifactId>
 			<version>1.5.5</version>
-		</dependency>
-
-		<!-- User Management -->
-		<dependency>
-			<groupId>org.mongodb</groupId>
-			<artifactId>mongodb-driver-sync</artifactId>
-			<version>4.11.1</version>
 		</dependency>
 
 		<!-- Docker API for Java -->
