@@ -39,7 +39,14 @@
 			<artifactId>spring-boot-starter-websocket</artifactId>
 			<version>${springBoot.version}</version>
 		</dependency>
-		
+
+		<!-- needed for Swagger Web UI -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.8.16</version>
+		</dependency>
+
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-impl</artifactId>
@@ -49,12 +56,6 @@
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-jackson</artifactId>
 			<version>0.13.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springdoc</groupId>
-			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-			<version>2.2.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.networknt</groupId>
