@@ -4,6 +4,7 @@
 
 * added `url` field to container image description
 * added `defaultValue` to action parameter description
+* compatibility with Java 25
 
 
 ## 0.4 Release
