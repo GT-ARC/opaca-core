@@ -12,7 +12,7 @@
 	<packaging>jar</packaging>
 
 	<properties>
-		<springBoot.version>3.2.3</springBoot.version>
+		<springBoot.version>3.5.13</springBoot.version>
 	</properties>
 
 	<dependencies>
@@ -42,24 +42,19 @@
 		
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
-			<artifactId>jjwt</artifactId>
-			<version>0.9.1</version>
+			<artifactId>jjwt-impl</artifactId>
+			<version>0.13.0</version>
 		</dependency>
 		<dependency>
-			<groupId>jakarta.xml.bind</groupId>
-			<artifactId>jakarta.xml.bind-api</artifactId>
-			<version>4.0.2</version>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-jackson</artifactId>
+			<version>0.13.0</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>2.2.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.httpcomponents.client5</groupId>
-			<artifactId>httpclient5</artifactId>
-			<version>5.2.1</version>
 		</dependency>
 		<dependency>
 			<groupId>com.networknt</groupId>
@@ -78,12 +73,12 @@
 		<dependency>
 			<groupId>com.github.docker-java</groupId>
 			<artifactId>docker-java-core</artifactId>
-			<version>3.4.2</version>
+			<version>3.7.1</version>
 		</dependency>
 		<dependency>
 			<groupId>com.github.docker-java</groupId>
 			<artifactId>docker-java-transport-httpclient5</artifactId>
-			<version>3.4.2</version>
+			<version>3.7.1</version>
 		</dependency>
 
 		<!-- Kubernetes API for Java -->
