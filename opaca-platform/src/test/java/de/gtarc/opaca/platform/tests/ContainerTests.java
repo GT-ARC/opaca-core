@@ -45,7 +45,7 @@ public class ContainerTests {
     @BeforeClass
     public static void setupPlatform() throws Exception {
         platform = SpringApplication.run(Application.class,
-                "--security.secret=no-auth-but-needed-for-creating-users",
+                "--security.secret=noAuthButNeededForCreatingUsersAlsoHasToHaveSomeMinLength",
                 "--server.port=" + PLATFORM_PORT);
         containerId = postSampleContainer(PLATFORM_URL);
         checkInvariantStatic();

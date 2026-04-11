@@ -38,7 +38,7 @@ public class UserTests {
     public static void setupPlatform() throws Exception {
         platformA = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT,
                 "--security.requireAuth=true",
-                "--security.secret=top-secret-key-for-unit-testing",
+                "--security.secret=topSecretPseudoKeyForUnitTestingAlsoHasToHaveSomeMinLength",
                 "--platform_admin_user=admin", "--platform_admin_pwd=12345",
                 "--db_embed=" + USE_EMBEDDED_DB);
 
