@@ -1,7 +1,6 @@
 # using shared Shell runner with Java 21
 variables:
   JAVA_HOME: "/usr/lib/jvm/temurin-21-jdk-amd64"
-  DOCKER_SECURITY_OPT: seccomp=unconfined # quick fix for docker problems (should update docker in CI instead!)
 default:
   tags:
     - shared
