@@ -1,6 +1,6 @@
-# using shared Shell runner with Java 17
+# using shared Shell runner with Java 21
 variables:
-  JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
+  JAVA_HOME: "/usr/lib/jvm/temurin-21-jdk-amd64"
 default:
   tags:
     - shared
@@ -13,6 +13,8 @@ stages:
 mvn-build:
   stage: build
   script:
+    - java --version
+    - echo $JAVA_HOME
     - mvn package -DskipTests
     - docker build -t sample-agent-container-image examples/sample-container/
 
