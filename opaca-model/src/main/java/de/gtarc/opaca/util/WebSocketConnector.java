@@ -33,7 +33,7 @@ public class WebSocketConnector {
         };
  
         var builder = HttpClient.newHttpClient().newWebSocketBuilder();
-        if (token != null) {
+        if (token != null && ! token.isEmpty()) {
             builder.header("Authorization", "Bearer " + token);
         }
         return builder.buildAsync(endpoint, listener);

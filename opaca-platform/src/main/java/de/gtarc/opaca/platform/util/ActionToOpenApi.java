@@ -99,6 +99,7 @@ public class ActionToOpenApi {
                             .requestBody(requestBody)
                             .responses(new ApiResponses().addApiResponse("200", response200).addApiResponse("default", responseDefault))
                             .description(action.getDescription())
+                            .tags(List.of(agent.getAgentId()))
                             .operationId(container.getContainerId() + ";" + agent.getAgentId() + ";" + action.getName())
                             .addParametersItem(new io.swagger.v3.oas.models.parameters.Parameter().$ref("#/components/parameters/timeoutParam"))
                             .addParametersItem(new io.swagger.v3.oas.models.parameters.Parameter().$ref("#/components/parameters/containerIdParam"))

@@ -4,6 +4,7 @@
 
 * replaced custom simple UserManagement with proper Keycloak integration 
 * added `url` field to container image description
+* compatibility with Java 25
 
 
 ## 0.4 Release

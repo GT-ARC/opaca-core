@@ -21,13 +21,14 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
+        <lombok.version>1.18.42</lombok.version>
     </properties>
 
     <modules>
         <module>opaca-model</module>
-        <module>opaca-container</module>
         <module>opaca-platform</module>
+        <module>opaca-container</module>
         <module>examples</module>
     </modules>
 
@@ -41,6 +42,13 @@
                     <parameters>true</parameters>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
         </plugins>

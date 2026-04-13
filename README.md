@@ -13,6 +13,7 @@ See the end of this Readme for publication about the OPACA Framework and API.
 
 Note: The working title of OPACA was 'JIAC++'. Some references to the old name may still be found in the code and documentation.
 
+
 ## Prototype and Reference Implementation
 
 This module provides a first prototype for the "OPACA" API, as well as a reference implementation in Java and an example container. OPACA stands for "Open, Language- and Platform-Independent API for Containerized Agents".
@@ -68,7 +69,7 @@ The OPACA framework has been written in **Java** and **Kotlin** and uses Apache 
 
 See [Execution Environments](doc/environments.md) for more information on different ways to execute the platform and agent containers.
 
-Note: The Runtime Platform requires Java version 17 or higher.
+**Important:** At the moment, the OPACA Agent Container reference implementation is using an older version of Kotlin, which is not compatible with Java 25. We suggest using **Java 21**. If you are limited to Java 25, you can still build and run the OPACA model and Runtime Platform, but you have to comment the `opaca-container` and `examples` modules from the main `pom.xml` file's `<modules>` list.
 
 
 ## Environment Variables (Runtime Platform)
