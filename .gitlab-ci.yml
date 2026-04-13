@@ -13,8 +13,6 @@ stages:
 mvn-build:
   stage: build
   script:
-    - java --version
-    - echo $JAVA_HOME
     - mvn package -DskipTests
     - docker build -t sample-agent-container-image examples/sample-container/
 
