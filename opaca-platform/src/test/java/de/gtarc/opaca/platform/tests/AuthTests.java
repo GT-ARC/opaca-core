@@ -53,12 +53,12 @@ public class AuthTests {
     public static void setupPlatform() {
         platformA = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_A_PORT,
                 "--default_image_directory=./default-test-images", "--security.requireAuth=true",
-                "--security.secret=top-secret-key-for-unit-testing",
+                "--security.secret=topSecretPseudoKeyForUnitTestingAlsoHasToHaveSomeMinLength",
                 "--platform_admin_user=testUser", "--platform_admin_pwd=testPwd",
                 "--db_embed=true");
         platformB = SpringApplication.run(Application.class, "--server.port=" + PLATFORM_B_PORT,
                 "--default_image_directory=./default-test-images", "--security.requireAuth=true",
-                "--security.secret=top-secret-key-for-unit-testing",
+                "--security.secret=topSecretPseudoKeyForUnitTestingAlsoHasToHaveSomeMinLength",
                 "--platform_admin_user=testUser", "--platform_admin_pwd=testPwd",
                 "--db_embed=true");
     }

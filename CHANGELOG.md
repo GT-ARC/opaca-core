@@ -3,6 +3,7 @@
 ## 0.5 Snapshot
 
 * added `url` field to container image description
+* compatibility with Java 25
 
 
 ## 0.4 Release
