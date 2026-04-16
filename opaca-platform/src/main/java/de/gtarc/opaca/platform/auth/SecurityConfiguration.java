@@ -74,7 +74,6 @@ public class SecurityConfiguration {
      * in order to access the specified routes. The swagger ui routes, along with "/login"
      * and "/error", are always permitted.
      */
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(CsrfConfigurer::disable);
@@ -128,6 +127,11 @@ public class SecurityConfiguration {
     }
 
     public class JwtRequestFilter extends OncePerRequestFilter {
+
+        @Override
+        protected boolean shouldNotFilterAsyncDispatch() {
+            return false; // fix missing auth on (async) streaming routes
+        }
 
         @Override
         protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
