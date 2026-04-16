@@ -10,6 +10,7 @@ import de.gtarc.opaca.util.RestHelper.RequestException;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -304,7 +305,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@RequestMapping(value="/containers", method=RequestMethod.POST)
 	@Operation(summary="Start a new Agent Container on this platform", tags={"containers"})
 	public String addContainer(
-			@RequestBody PostAgentContainer container,
+			@Valid @RequestBody PostAgentContainer container,
 			@RequestParam(required = false, defaultValue = "-1") int timeout
 	) throws IOException {
 		log.info("POST /containers {}", container);

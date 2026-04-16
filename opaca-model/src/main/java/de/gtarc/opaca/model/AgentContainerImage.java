@@ -2,6 +2,7 @@ package de.gtarc.opaca.model;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.AgentContainerApi;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,7 +21,7 @@ public class AgentContainerImage {
     // REQUIRED attributes for starting a container
 
     /** full path of the (Docker) Container, including repository and version */
-    @NonNull
+    @NotNull
     String imageName;
 
     /** list of required features, e.g. available agents, actions, or platform features */
