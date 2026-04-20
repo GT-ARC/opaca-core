@@ -1,7 +1,6 @@
 package de.gtarc.opaca.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -25,15 +24,12 @@ import java.util.Map;
 public class User {
 
     /** name of the user */
-    @NotNull
     String username;
 
     /** plain-text password for POST, then stored as password-hash in the database */
-    @NotNull
     String password;
 
     /** role of the user, used to determine which routes are allowed */
-    @NotNull
     Role role;
 
     /** list of privileges (currently not really used...) */
