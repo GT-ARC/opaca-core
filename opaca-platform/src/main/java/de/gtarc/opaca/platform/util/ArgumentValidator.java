@@ -40,7 +40,7 @@ public class ArgumentValidator {
             var argument = arguments.get(name);
             var type = parameters.get(name).getType();
             var items = parameters.get(name).getItems();
-            var optional = ! parameters.get(name).getRequired();
+            var optional = ! parameters.get(name).isRequired();
             if (! isArgumentValid(argument, type, optional, items)) return false;
         }
 
@@ -49,7 +49,7 @@ public class ArgumentValidator {
 
     private boolean isAnyArgumentMissing(Map<String, Parameter> parameters, Map<String, JsonNode> arguments) {
         return parameters.entrySet().stream()
-                .anyMatch(entry -> entry.getValue().getRequired() && ! arguments.containsKey(entry.getKey()));
+                .anyMatch(entry -> entry.getValue().isRequired() && ! arguments.containsKey(entry.getKey()));
     }
 
     private boolean isAnyArgumentRedundant(Map<String, Parameter> parameters, Map<String, JsonNode> arguments) {

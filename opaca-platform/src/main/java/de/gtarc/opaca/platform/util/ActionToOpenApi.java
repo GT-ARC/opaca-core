@@ -77,7 +77,7 @@ public class ActionToOpenApi {
                     List<String> requiredList = new ArrayList<>();
                     for (var parameter : action.getParameters().entrySet()) {
                         requestBodySchema.addProperty(parameter.getKey(), schemaFromParameter(parameter.getValue()));
-                        if (parameter.getValue().getRequired()) {
+                        if (parameter.getValue().isRequired()) {
                             requiredList.add(parameter.getKey());
                         }
                     }

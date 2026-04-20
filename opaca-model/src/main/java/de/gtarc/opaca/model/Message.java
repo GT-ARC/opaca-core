@@ -1,6 +1,7 @@
 package de.gtarc.opaca.model;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 public class Message {
 
     /** the actual payload of the message */
+    @NotNull
     JsonNode payload;
 
     /** URL of REST service where to post replies; optional; for inter/intra platform
