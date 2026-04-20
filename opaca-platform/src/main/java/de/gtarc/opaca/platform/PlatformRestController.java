@@ -19,6 +19,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
@@ -107,6 +108,13 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 		return makeErrorResponse(HttpStatus.BAD_REQUEST, e, null);
 	}
 
+	@ExceptionHandler(MethodArgumentNotValidException.class)
+	@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+	public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException e) {
+		log.warn(e.getMessage()); // jakarta not-null validation failed
+		return makeErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, e, null);
+	}
+
 	private ResponseEntity<ErrorResponse> makeErrorResponse(HttpStatus statusCode, Exception error, ErrorResponse nestedError) {
 		var content = new ErrorResponse(statusCode.value(), error.getMessage(), nestedError != null ? nestedError : ErrorResponse.from(error.getCause()));
 		return ResponseEntity.status(statusCode).body(content);
@@ -131,7 +139,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@RequestMapping(value="/login", method=RequestMethod.POST)
 	@Operation(summary="Login with username and password", tags={"authentication"})
 	public String login(
-			@RequestBody Login loginParams
+			@Valid @RequestBody Login loginParams
 	) throws IOException {
 		log.info("POST /login {}", loginParams);
 		return implementation.platformLogin(loginParams);
@@ -184,7 +192,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@RequestMapping(value="/agents", method=RequestMethod.GET)
 	@Operation(summary="Get List of Agents of all Agent Containers on this Platform", tags={"agents"})
 	public List<AgentDescription> getAgents(
-		@RequestParam(required = false, defaultValue = "false") boolean includeConnected
+			@RequestParam(required = false, defaultValue = "false") boolean includeConnected
 	) throws IOException {
 		log.info("GET /agents");
 		return includeConnected ? implementation.getAllAgents() : implementation.getAgents();
@@ -203,7 +211,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@Operation(summary="Send message to an Agent", tags={"agents"})
 	public void send(
 			@PathVariable String agentId,
-			@RequestBody Message message,
+			@Valid @RequestBody Message message,
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
@@ -215,7 +223,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@Operation(summary="Send broadcast message to all agents in all containers", tags={"agents"})
 	public void broadcast(
 			@PathVariable String channel,
-			@RequestBody Message message,
+			@Valid @RequestBody Message message,
 			@RequestParam(required = false) String containerId,
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
@@ -315,7 +323,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@RequestMapping(value="/containers", method=RequestMethod.PUT)
 	@Operation(summary="Start a new Agent Container on this platform, replacing an existing container of the same image", tags={"containers"})
 	public String updateContainer(
-			@RequestBody PostAgentContainer container,
+			@Valid @RequestBody PostAgentContainer container,
 			@RequestParam(required = false, defaultValue = "-1") int timeout
 	) throws IOException {
 		log.info("PUT /containers {}", container);
@@ -352,7 +360,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@Operation(summary="Login with username and password at given container", tags={"containers"})
 	public String containerLogin(
 			@PathVariable String containerId,
-			@RequestBody Login loginParams
+			@Valid @RequestBody Login loginParams
 	) throws IOException {
 		log.info("POST /containers/login/{} {}", containerId, loginParams);
 		return implementation.containerLogin(containerId, loginParams);
@@ -375,7 +383,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@Operation(summary="Establish connection to another Runtime Platform; " +
 			"return false if platform already connected", tags={"connections"})
 	public boolean connectPlatform(
-			@RequestBody ConnectionRequest loginConnection
+			@Valid @RequestBody ConnectionRequest loginConnection
 	) throws IOException {
 		log.info("POST /connections {}", loginConnection.getUrl());
 		return implementation.connectPlatform(loginConnection);
@@ -391,7 +399,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@RequestMapping(value="/connections", method=RequestMethod.DELETE)
 	@Operation(summary="Remove connection to another Runtime Platform", tags={"connections"})
 	public boolean disconnectPlatform(
-			@RequestBody ConnectionRequest disconnect
+			@Valid @RequestBody ConnectionRequest disconnect
 	) throws IOException {
 		log.info("DELETE /connections {}", disconnect);
 		return implementation.disconnectPlatform(disconnect);

@@ -69,7 +69,7 @@ public class AgentContainerImage {
     @NotNull
     Map<String, String> definitionsByUrl = Map.of();
 
-    @Data
+    @Data @AllArgsConstructor @NoArgsConstructor
     public static class PortDescription {
 
         /** the protocol that is served via this port */
