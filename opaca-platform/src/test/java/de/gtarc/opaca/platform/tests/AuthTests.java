@@ -15,6 +15,9 @@ import org.junit.runners.MethodSorters;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -149,6 +152,39 @@ public class AuthTests {
         var connectivity = ((Map<String, Object>) res.get("connectivity"));
         containerIP = String.format("%s:%s", connectivity.get("publicUrl"), connectivity.get("apiPortMapping"));
     }
+
+    // Test basic Invoke & Stream stuff with Auth (analogous to basic Container tests)
+
+    @Test
+    public void test04InvokeAction() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "POST", "/invoke/GetInfo", Map.of(), token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    @Test
+    public void test04GetStream() throws Exception {
+        var con = requestWithToken(PLATFORM_A, "GET", "/stream/GetStream", null, token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+        var inputStream = con.getInputStream();
+        var bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+        var response = bufferedReader.readLine();
+        Assert.assertEquals("{\"key\":\"value\"}", response);
+    }
+
+    @Test
+    public void test04PostStream() throws Exception {
+        String jsonInput = "{\n  \"key\": \"value\"\n}";
+        byte[] jsonData = jsonInput.getBytes(StandardCharsets.UTF_8);
+        var responseCode = streamRequestWithToken(PLATFORM_A, "POST", "/stream/PostStream/sample1", jsonData, token_A);
+        Assert.assertEquals(200, responseCode);
+
+        var con = requestWithToken(PLATFORM_A, "POST", "/invoke/GetInfo/sample1", Map.of(), token_A);
+        Assert.assertEquals(200, con.getResponseCode());
+        var res = result(con, Map.class);
+        Assert.assertEquals(jsonInput, res.get("lastPostedStream"));
+    }
+
+    // Test more complex stuff, Auto-Notify etc.
 
     @Test
     public void test04GetContainerToken() throws Exception {
