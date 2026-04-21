@@ -17,12 +17,12 @@ class RoomBookingAgent : AbstractContainerizedAgent(
 ) {
 
     override fun setupAgent() {
-        addAction("GetUserBookings", mapOf(), Parameter("array", true, ArrayItems("object", null))) {
+        addAction("GetUserBookings", mapOf(), Parameter("array", true, null, ArrayItems("object", null))) {
             getUserBookings()
         }
         addAction("GetLocationBookings", mapOf(
             "location" to Parameter("string")
-        ), Parameter("array", true, ArrayItems("object", null))) {
+        ), Parameter("array", true, null, ArrayItems("object", null))) {
             getLocationBookings(it.parameters["location"]!!.asText())
         }
     }

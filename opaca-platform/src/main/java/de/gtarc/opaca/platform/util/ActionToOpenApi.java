@@ -145,7 +145,7 @@ public class ActionToOpenApi {
             return new ObjectSchema().nullable(true);
         }
 
-        return switch (parameter.getType()) {
+        var result = switch (parameter.getType()) {
             case "string" -> new StringSchema();
             case "number" -> new NumberSchema();
             case "integer" -> new IntegerSchema();
@@ -154,6 +154,11 @@ public class ActionToOpenApi {
             case "array" -> new ArraySchema().items(schemaFromParameter(toParameter(parameter.getItems())));
             default -> new Schema<>().$ref("#/components/schemas/" + parameter.getType());
         };
+        if (parameter.getDefaultValue() != null) {
+            // if default is not compatible, this just silently fail and skips the assignment
+            result.setDefault(parameter.getDefaultValue());
+        }
+        return result;
     }
 
     private static io.swagger.v3.oas.models.parameters.Parameter makeQueryParam(String name, String description, Schema<?> schema) {
@@ -168,7 +173,7 @@ public class ActionToOpenApi {
 
     private static Parameter toParameter(ArrayItems itemsParam) {
         if (itemsParam == null) return null;
-        return new Parameter(itemsParam.getType(), false, itemsParam.getItems());
+        return new Parameter(itemsParam.getType(), false, null, itemsParam.getItems());
     }
 
 }

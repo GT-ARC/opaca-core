@@ -20,17 +20,24 @@ public class Parameter {
     /** whether the parameter is required; if it's not, the default may be determined by the action itself */
     Boolean required = true;
 
+    /** default value for the parameter; ignored if required, otherwise optional, should be of given type */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    Object defaultValue = null;
+
     /** if type is 'array', this is the type of the array's items */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     ArrayItems items = null;
 
+    /** short-hand for a required parameter */
     public Parameter(String type) {
         this.type = type;
     }
 
-    public Parameter(String type, Boolean required) {
+    /** short-hand for an optional parameter, with or without default */
+    public Parameter(String type, Object defaultValue) {
         this.type = type;
-        this.required = required;
+        this.required = false;
+        this.defaultValue = defaultValue;
     }
 
     @Data @AllArgsConstructor @NoArgsConstructor

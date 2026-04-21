@@ -30,12 +30,12 @@ class HomeAssistantAgent: AbstractContainerizedAgent(
     )
 
     override fun setupAgent() {
-        addAction("GetSensorsList", "Get list of all devices with 'multisensor' in their name. Those include the different sub-sensors of the multisensors, each including the main sensor's ID in their name as well as what they measure.", mapOf(), Parameter("array", true, Parameter.ArrayItems("string", null))) {
+        addAction("GetSensorsList", "Get list of all devices with 'multisensor' in their name. Those include the different sub-sensors of the multisensors, each including the main sensor's ID in their name as well as what they measure.", mapOf(), Parameter("array", true, null, Parameter.ArrayItems("string", null))) {
             actionGetMultisensors()
         }
         addAction("GetSensorId", "Get sensor ID corresponding to a given room. Room name does not have to be a perfect match.", mapOf(
             "room" to Parameter("string")
-        ), Parameter("string", false)) { 
+        ), Parameter("string", null)) {
             getSensorFromRoomHint(it.parameters["room"]!!.asText())
         }
         addAction("GetTemperature", "Get temperature value for a given sensor", mapOf(

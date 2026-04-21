@@ -171,4 +171,8 @@ docker container run \
 
 ## Publications
 
-* B. Acar et al., "OPACA: Toward an Open, Language- and Platform-Independent API for Containerized Agents," in IEEE Access, vol. 12, pp. 10012-10022, 2024, doi: [10.1109/ACCESS.2024.3353613](https://doi.org/10.1109/ACCESS.2024.3353613).
+* B. Acar, T. Küster, O. Kupke, R. Strehlow, M. Guerreiro Augusto, F. Sivrikaya and S. Albayrak, "OPACA: Toward an Open, Language- and Platform-Independent API for Containerized Agents," in IEEE Access, vol. 12, pp. 10012-10022, 2024, doi: [10.1109/ACCESS.2024.3353613](https://doi.org/10.1109/ACCESS.2024.3353613).
+
+* B. Acar, M. Berger, M. Guerreiro Augusto, T. Küster, F. Sivrikaya and S. Albayrak, "An Agent-Based Data Acquisition Pipeline for Image Data," in IEEE Access, vol. 12, pp. 102440-102448, 2024, doi: [10.1109/ACCESS.2024.3431429](https://ieeexplore.ieee.org/document/10604859).
+
+* R. Strehlow, T. Küster, O. Kupke, B. Llanque Kurps, F. Sivrikaya and S. Albayrak, "SAGE: Tool-Augmented LLM Task Solving Strategies in Scalable Multi-Agent Environments," 2026, arXiv eprint: [2601.09750](https://arxiv.org/abs/2601.09750)

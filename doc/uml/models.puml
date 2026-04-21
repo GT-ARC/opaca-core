@@ -6,21 +6,25 @@ hide circle
 
 
 class RuntimePlatform {
+    platformId: string
     baseUrl: URL
     provides: string[]
     connections: URL[]
+    runningSince: datetime
 }
 RuntimePlatform *- "*" AgentContainer: containers
 
 
 class PostAgentContainer {
     arguments: {string: string}
+    pull: boolean
     clientConfig: {string: any}
 }
 PostAgentContainer *-- AgentContainerImage: image
 
 class AgentContainer {
     containerId: string
+    owner: string
     runningSince: datetime
     arguments: {string: string}
 }
@@ -37,12 +41,15 @@ Connectivity *-- "*" PortDescription: extraPortMappings
 
 class AgentContainerImage {
     name: string
+    version: string
     description: string
     provider: string
+    url: URL
     imageName: string
     requires: string[]
     provides: string[]
     apiPort: integer
+    definitions: {string, JSON}
 }
 AgentContainerImage *-- "*" PortDescription: extraPorts
 AgentContainerImage *-- "*" ImageParameter: parameters
@@ -65,16 +72,36 @@ class ImageParameter {
 class AgentDescription {
     agentId: string
     agentType: string
+    description: string
 }
 AgentDescription *-- "*" Action: actions
+AgentDescription *-- "*" Stream: streams
 
+class Stream {
+    name: string
+    description: string
+    mode: GET|POST
+}
 
 class Action {
     name: string
-    paramTypes: {string: Parameter}
-    resultType: Parameter
+    description: string
+    parameters: {string: Parameter}
+    result: Parameter
 }
-' actually, the attributes are called "parameters" and "result", but adding "types" might be clearer
+Action --> "*" Parameter: parameters
+
+class Parameter {
+    type: string
+    required: boolean
+    defaultValue: any
+}
+Parameter *-right- "*" ArrayItems: items
+
+class ArrayItems {
+    type: string
+}
+ArrayItems *-- "*" ArrayItems: items
 
 class Message {
     payload: json

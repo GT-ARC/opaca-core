@@ -19,23 +19,23 @@ class SampleAgent(name: String, val loginHandler: LoginHandler<String>): Abstrac
 
     override fun setupAgent() {
         addAction("DoThis", mapOf(
-            "message" to Parameter("string", true),
-            "sleep_seconds" to Parameter("integer", true)
+            "message" to Parameter("string"),
+            "sleep_seconds" to Parameter("integer")
         ), Parameter("string")) {
             actionDoThis(it.parameters["message"]!!.asText(), it.parameters["sleep_seconds"]!!.asInt())
         }
-        addAction("GetInfo", mapOf(), Parameter("object", true)) {
+        addAction("GetInfo", mapOf(), Parameter("object")) {
             actionGetInfo()
         }
         addAction("OutboundInvokeTest", mapOf("agentId" to Parameter("string")), Parameter("string")) {
             actionTestOutbound(it.parameters["agentId"]!!.asText())
         }
-        addAction("GetEnv", mapOf(), Parameter("object", true)) {
+        addAction("GetEnv", mapOf(), Parameter("object")) {
             actionGetEnv()
         }
         addAction("Add", mapOf(
-            "x" to Parameter("integer", true),
-            "y" to Parameter("integer", true)
+            "x" to Parameter("integer"),
+            "y" to Parameter("integer")
         ), Parameter("integer")) {
             actionAdd(it.parameters["x"]!!.asInt(), it.parameters["y"]!!.asInt())
         }
@@ -43,13 +43,13 @@ class SampleAgent(name: String, val loginHandler: LoginHandler<String>): Abstrac
             actionFail()
         }
         addAction("CreateAction", mapOf(
-            "name" to Parameter("string", true),
-            "notify" to Parameter("boolean", false)
+            "name" to Parameter("string"),
+            "notify" to Parameter("boolean", true)
         ), null) {
             createAction(it.parameters["name"]!!.asText(), it.parameters["notify"]?.asBoolean() ?: true)
         }
         addAction("SpawnAgent", mapOf(
-            "name" to Parameter("string", true)
+            "name" to Parameter("string")
         ), null) {
             spawnAgent(it.parameters["name"]!!.asText())
         }
@@ -58,16 +58,16 @@ class SampleAgent(name: String, val loginHandler: LoginHandler<String>): Abstrac
             stop()
         }
         addAction("ErrorTest", mapOf(
-            "hint" to Parameter("string", true)
+            "hint" to Parameter("string")
         ), Parameter("string")) {
             actionErrorTest(it.parameters["hint"]!!.asText())
         }
         addAction("ValidatorTest", mapOf(
-            "car" to Parameter("Car", true),
-            "listOfLists" to Parameter("array", true,
+            "car" to Parameter("Car"),
+            "listOfLists" to Parameter("array", true, null,
                 Parameter.ArrayItems("array", Parameter.ArrayItems("integer", null))),
-            "decimal" to Parameter("number", false),
-            "desk" to Parameter("Desk", false)
+            "decimal" to Parameter("number", 3.14),
+            "desk" to Parameter("Desk", null)
         ), Parameter("string")) {
             val carText = "Parameter \"car\": ${it.parameters["car"]!!.asText()}"
             val listText = "Parameter \"listOfLists\"${it.parameters["listOfLists"]!!.asText()}"
