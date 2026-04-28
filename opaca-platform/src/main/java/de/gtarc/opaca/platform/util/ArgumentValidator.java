@@ -20,7 +20,7 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class ArgumentValidator {
 
-    protected static final JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
+    protected static final JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
 
     /** model definitions */
     private final Map<String, JsonSchema> definitions;
