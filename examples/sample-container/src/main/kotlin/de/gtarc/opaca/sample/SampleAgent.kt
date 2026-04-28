@@ -69,8 +69,8 @@ class SampleAgent(name: String, val loginHandler: LoginHandler<String>): Abstrac
             "decimal" to Parameter("number", 3.14),
             "desk" to Parameter("Desk", null)
         ), Parameter("string")) {
-            val carText = "Parameter \"car\": ${it.parameters["car"]!!.asText()}"
-            val listText = "Parameter \"listOfLists\"${it.parameters["listOfLists"]!!.asText()}"
+            val carText = "Parameter \"car\": ${it.parameters["car"]!!}"
+            val listText = "Parameter \"listOfLists\"${it.parameters["listOfLists"]!!}"
             val result = "ValidatorTest:\n$carText\n$listText"
             print(result)
             result
