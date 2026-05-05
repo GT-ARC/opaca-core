@@ -1,7 +1,7 @@
 {
   "imageName": "sample-agent-container-image",
 
-  "requires": ["sample-requirement"],
+  "requires": [],
   "provides": ["sample-provision"],
 
   "name": "Sample OPACA Agent Container",

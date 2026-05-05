@@ -249,7 +249,6 @@ public class PlatformTests {
     @Test
     public void testDeployMissingRequirement() throws Exception {
         var image = getSampleContainerImage();
-        // "sample-requirement" is defined in sample-agent-container-image, but only checked if in post-container
         image.getImage().setRequires(List.of("sample-requirement"));
 
         var con = request(PLATFORM_A_URL, "POST", "/containers", image);

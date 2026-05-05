@@ -1,7 +1,7 @@
 {
   "imageName": "ping-container-image",
 
-  "requires": ["pong"],
+  "requires": ["image:pong-container-image"],
   "provides": [],
 
   "name": "Ping Pong Example Agent Container - Ping Side",
