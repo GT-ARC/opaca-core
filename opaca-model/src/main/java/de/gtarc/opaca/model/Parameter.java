@@ -2,10 +2,11 @@ package de.gtarc.opaca.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 
 /**
  * Describes parameters of an Action
@@ -14,11 +15,11 @@ import lombok.NonNull;
 public class Parameter {
 
     /** the type name; either a primitive, or 'array', or defined in definitions or definitionsByUrl of image */
-    @NonNull
+    @NotNull
     String type;
 
     /** whether the parameter is required; if it's not, the default may be determined by the action itself */
-    Boolean required = true;
+    boolean required = true;
 
     /** default value for the parameter; ignored if required, otherwise optional, should be of given type */
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -26,6 +27,7 @@ public class Parameter {
 
     /** if type is 'array', this is the type of the array's items */
     @JsonInclude(JsonInclude.Include.NON_NULL)
+    @Valid
     ArrayItems items = null;
 
     /** short-hand for a required parameter */
@@ -42,13 +44,12 @@ public class Parameter {
 
     @Data @AllArgsConstructor @NoArgsConstructor
     public static class ArrayItems {
-        @NonNull
+        @NotNull
         String type;
 
         @JsonInclude(JsonInclude.Include.NON_NULL)
+        @Valid
         ArrayItems items = null;
     }
 
 }
-
-

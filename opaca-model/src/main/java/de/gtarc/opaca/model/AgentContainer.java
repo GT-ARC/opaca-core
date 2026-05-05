@@ -1,10 +1,11 @@
 package de.gtarc.opaca.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -17,44 +18,45 @@ import java.util.Map;
 public class AgentContainer {
 
     /** ID of the container; does not necessarily have to be the Docker Container ID */
-    @NonNull
+    @NotNull
     String containerId;
 
     /** the Image this container was started from */
-    @NonNull
+    @NotNull @Valid
     AgentContainerImage image;
 
     /** Map of Arguments given to the AgentContainer for the Parameters of the Image */
-    @NonNull
+    @NotNull
     Map<String, String> arguments = Map.of();
 
     /** list of agents running on this container; this might change during its life-time */
-    @NonNull
+    @NotNull @Valid
     List<AgentDescription> agents = List.of();
 
     /** User who started the container; Gives this user special privileges on a container */
     String owner;
 
     /** when the container was started */
-    @NonNull
+    @NotNull
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "Z")
     ZonedDateTime runningSince;
 
     /** connectivity information; NOTE: this is not set by the AgentContainer itself, but by the RuntimePlatform! */
+    @Valid
     Connectivity connectivity;
 
     @Data @AllArgsConstructor @NoArgsConstructor
     public static class Connectivity {
 
         /** this container's public URL (e.g. the URL of the Runtime Platform, Docker Host, or Kubernetes Node */
-        @NonNull
+        @NotNull
         String publicUrl;
 
         /** where the port where the container provides the OPACA API is mapped to */
         int apiPortMapping;
 
         /** where additional ports exposed by the container are mapped to */
-        @NonNull
+        @NotNull @Valid
         Map<Integer, AgentContainerImage.PortDescription> extraPortMappings = Map.of();
 
     }
