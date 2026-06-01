@@ -1,9 +1,10 @@
 package de.gtarc.opaca.model;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 
 import java.util.List;
 
@@ -14,7 +15,7 @@ import java.util.List;
 public class AgentDescription {
 
     /** ID of the agent, should be globally unique, e.g. a UUID */
-    @NonNull
+    @NotNull
     String agentId;
 
     /** name/type of the agent, e.g. "VehicleAgent" or similar */
@@ -24,11 +25,11 @@ public class AgentDescription {
     String description;
 
     /** list of actions provided by this agent, if any */
-    @NonNull
+    @NotNull @Valid
     List<Action> actions = List.of();
 
     /** list of endpoints for sending or receiving streaming data */
-    @NonNull
+    @NotNull @Valid
     List<Stream> streams = List.of();
 
 }

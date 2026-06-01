@@ -32,11 +32,11 @@ public class SecurityConfiguration {
     private PlatformConfig config;
 
     private final String[] noAuthRoutes = {
-            "/v2/api-docs",
+            "/v3/api-docs",
+            "/v3/api-docs/**",
             "/swagger-resources",
             "/swagger-resources/**",
             "/swagger-ui/**",
-            "/v3/api-docs/**",
             "/login",
             "/error",
             "/configuration/ui",
@@ -95,5 +95,4 @@ public class SecurityConfiguration {
                 """);
         return roleHierarchy;
     }
-
 }

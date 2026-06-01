@@ -20,7 +20,7 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class ArgumentValidator {
 
-    protected static final JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
+    protected static final JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
 
     /** model definitions */
     private final Map<String, JsonSchema> definitions;
@@ -40,7 +40,7 @@ public class ArgumentValidator {
             var argument = arguments.get(name);
             var type = parameters.get(name).getType();
             var items = parameters.get(name).getItems();
-            var optional = ! parameters.get(name).getRequired();
+            var optional = ! parameters.get(name).isRequired();
             if (! isArgumentValid(argument, type, optional, items)) return false;
         }
 
@@ -49,7 +49,7 @@ public class ArgumentValidator {
 
     private boolean isAnyArgumentMissing(Map<String, Parameter> parameters, Map<String, JsonNode> arguments) {
         return parameters.entrySet().stream()
-                .anyMatch(entry -> entry.getValue().getRequired() && ! arguments.containsKey(entry.getKey()));
+                .anyMatch(entry -> entry.getValue().isRequired() && ! arguments.containsKey(entry.getKey()));
     }
 
     private boolean isAnyArgumentRedundant(Map<String, Parameter> parameters, Map<String, JsonNode> arguments) {

@@ -1,5 +1,6 @@
 package de.gtarc.opaca.model;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 /**
@@ -10,7 +11,7 @@ import lombok.*;
 public class ConnectionRequest {
 
     /** URL of another platform to connect to */
-    @NonNull
+    @NotNull
     String url;
 
     /** whether to request the other platform to connect back to self */

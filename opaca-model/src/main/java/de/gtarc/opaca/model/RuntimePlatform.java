@@ -1,10 +1,11 @@
 package de.gtarc.opaca.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -16,27 +17,27 @@ import java.util.List;
 public class RuntimePlatform {
 
     /** ID of the platform;  */
-    @NonNull
+    @NotNull
     String platformId;
 
     /** the external base URL where to reach this platform */
-    @NonNull
+    @NotNull
     String baseUrl;
 
     /** Agent Containers managed by this platform */
-    @NonNull
+    @NotNull @Valid
     List<AgentContainer> containers = List.of();
 
     /** List of capabilities this platform provides, e.g. "gpu-support"; format to be specified */
-    @NonNull
+    @NotNull
     List<String> provides = List.of();
 
     /** List of base URLs of other platforms this platform is connected with */
-    @NonNull
+    @NotNull
     List<String> connections = List.of();
 
     /** when the platform was started */
-    @NonNull
+    @NotNull
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "Z")
     ZonedDateTime runningSince;
 

@@ -132,7 +132,7 @@ class ServletAgent: AbstractContainerizedAgent(
     override fun setupAgent() {
         addAction("ShowMessage", mapOf(
             "message" to Parameter("string"),
-            "seconds" to Parameter("integer", false)
+            "seconds" to Parameter("integer", -1)
         ), null) {
             actionShowMessage(it.parameters["message"]!!.asText(), (it.parameters["seconds"]?.asInt() ?: -1))
         }

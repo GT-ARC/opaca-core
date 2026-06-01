@@ -21,23 +21,23 @@ class DeskBookingAgent: AbstractContainerizedAgent(
     override fun setupAgent() {
 
         addAction("GetRooms", mapOf(
-        ), Parameter("array", true, ArrayItems("string", null))) {
+        ), Parameter("array", true, null, ArrayItems("string", null))) {
             actionGetRooms()
         }
         addAction("GetDesks", mapOf(
-            "room" to Parameter("string", true)
-        ), Parameter("array", true, ArrayItems("integer", null))) {
+            "room" to Parameter("string")
+        ), Parameter("array", true, null, ArrayItems("integer", null))) {
             actionGetDesks(it.parameters["room"]!!.asText())
         }
         addAction("IsFree", mapOf(
-            "room" to Parameter("string", true),
-            "desk" to Parameter("integer", true)
+            "room" to Parameter("string"),
+            "desk" to Parameter("integer")
         ), Parameter("boolean")) {
             actionIsFree(it.parameters["room"]!!.asText(), it.parameters["desk"]!!.asInt())
         }
         addAction("BookDesk", mapOf(
-            "room" to Parameter("string", true),
-            "desk" to Parameter("integer", true)
+            "room" to Parameter("string"),
+            "desk" to Parameter("integer")
         ), Parameter("boolean")) {
             actionBookDesk(it.parameters["room"]!!.asText(), it.parameters["desk"]!!.asInt())
         }

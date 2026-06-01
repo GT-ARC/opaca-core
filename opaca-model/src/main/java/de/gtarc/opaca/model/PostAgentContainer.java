@@ -2,10 +2,11 @@ package de.gtarc.opaca.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 
 import java.util.Map;
 
@@ -23,11 +24,11 @@ public class PostAgentContainer {
     }
 
     /** the Image this container will be started from */
-    @NonNull
+    @NotNull @Valid
     AgentContainerImage image;
 
     /** Map of Arguments given to the AgentContainer for the Parameters of the Image */
-    @NonNull
+    @NotNull
     Map<String, String> arguments = Map.of();
 
     /** whether to pull the image, by default using global "always-pull" policy if null;
@@ -35,6 +36,7 @@ public class PostAgentContainer {
     Boolean pull = null;
 
     /** optional configuration for container client */
+    @Valid
     ClientConfig clientConfig;
 
 

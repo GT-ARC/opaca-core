@@ -12,9 +12,9 @@ class PongAgent: AbstractContainerizedAgent(name="pong-agent-${Random.nextInt()}
 
     override fun setupAgent() {
         addAction("PongAction", mapOf(
-            "request" to Parameter("integer", true),
-            "offer" to Parameter("integer", true)
-        ), Parameter("string", true)) {
+            "request" to Parameter("integer"),
+            "offer" to Parameter("integer")
+        ), Parameter("string")) {
             pongAction(it.parameters["request"]!!.asInt(), it.parameters["offer"]!!.asInt())
         }
     }

@@ -2,10 +2,11 @@ package de.gtarc.opaca.model;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.AgentContainerApi;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 
 import java.util.List;
 import java.util.Map;
@@ -20,15 +21,15 @@ public class AgentContainerImage {
     // REQUIRED attributes for starting a container
 
     /** full path of the (Docker) Container, including repository and version */
-    @NonNull
+    @NotNull
     String imageName;
 
     /** list of required features, e.g. available agents, actions, or platform features */
-    @NonNull
+    @NotNull
     List<String> requires = List.of();
 
     /** special features provided by this container */
-    @NonNull
+    @NotNull
     List<String> provides = List.of();
 
     // OPTIONAL attributes for description of the container (e.g. in a repository, or of the container itself)
@@ -54,24 +55,25 @@ public class AgentContainerImage {
     int apiPort = AgentContainerApi.DEFAULT_PORT;
 
     /** additional ports exposed by the container and the protocols and services those provide */
-    @NonNull
+    @NotNull @Valid
     Map<Integer, PortDescription> extraPorts = Map.of();
 
     /** additional parameters that get handed down to the container as environment variables */
-    @NonNull
+    @NotNull @Valid
     List<ImageParameter> parameters = List.of();
 
     /** custom type definitions using JSON Schema, maps schema title to schema */
-    @NonNull
+    @NotNull
     Map<String, JsonNode> definitions = Map.of();
 
-    @NonNull
+    @NotNull
     Map<String, String> definitionsByUrl = Map.of();
 
     @Data @AllArgsConstructor @NoArgsConstructor
     public static class PortDescription {
 
         /** the protocol that is served via this port */
+        @NotNull
         String protocol;
 
         /** human-readable description of the service */
@@ -82,8 +84,10 @@ public class AgentContainerImage {
     @Data @AllArgsConstructor @NoArgsConstructor
     public static class ImageParameter {
 
+        @NotNull
         String name;
 
+        @NotNull
         String type;
 
         boolean required = false;

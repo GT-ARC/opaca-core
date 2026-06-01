@@ -15,6 +15,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -167,6 +168,45 @@ public class PlatformTests {
     }
 
     /**
+     * test the automatic request model validation, especially Jakarta not-null checks, incl. in nested objects;
+     * this only exemplarily tests this for some attributes for one route, just to check that the used libraries
+     * and annotations do what they should; it does not test every possible validation problem.
+     */
+    @Test
+    public void testPostInvalidNullArgs() throws Exception {
+        var body = new HashMap<String, Map<String, Object>>();
+        // missing image
+        var con = request(PLATFORM_A_URL, "POST", "/containers", body);
+        Assert.assertEquals(422, con.getResponseCode());
+        // image set, but null
+        body.put("image", null);
+        con = request(PLATFORM_A_URL, "POST", "/containers", body);
+        Assert.assertEquals(422, con.getResponseCode());
+        // image set, but no imageName
+        body.put("image", new HashMap<>());
+        con = request(PLATFORM_A_URL, "POST", "/containers", body);
+        Assert.assertEquals(422, con.getResponseCode());
+        // image set, imageName set, but null
+        body.get("image").put("imageName", null);
+        con = request(PLATFORM_A_URL, "POST", "/containers", body);
+        Assert.assertEquals(422, con.getResponseCode());
+        // image set, imageName set, requires set to null
+        body.get("image").put("imageName", "does-not-exist");
+        body.get("image").put("requires", null);
+        con = request(PLATFORM_A_URL, "POST", "/containers", body);
+        Assert.assertEquals(422, con.getResponseCode());
+        // image set, imageName set, requires as default, unknown attribute
+        body.get("image").remove("requires");
+        body.get("image").put("unknown", null);
+        con = request(PLATFORM_A_URL, "POST", "/containers", body);
+        Assert.assertEquals(422, con.getResponseCode());
+        // no more validation errors (but unknown image)
+        body.get("image").remove("unknown");
+        con = request(PLATFORM_A_URL, "POST", "/containers", body);
+        Assert.assertEquals(404, con.getResponseCode());
+    }
+
+    /**
      * update container
      */
     @Test
@@ -243,7 +283,6 @@ public class PlatformTests {
     @Test
     public void testDeployMissingRequirement() throws Exception {
         var image = getSampleContainerImage();
-        // "sample-requirement" is defined in sample-agent-container-image, but only checked if in post-container
         image.getImage().setRequires(List.of("sample-requirement"));
 
         var con = request(PLATFORM_A_URL, "POST", "/containers", image);
