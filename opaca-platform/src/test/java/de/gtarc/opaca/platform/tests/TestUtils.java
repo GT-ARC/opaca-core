@@ -36,9 +36,10 @@ public class TestUtils {
      * @param defaultImages Whether to use the default-test-images directory.
      * @param requireAuth Whether to require authentication (will also require Keycloak)
      * @param useKeycloak Whether to use Keycloak (does not require auth)
+     * @param keycloakPort Port where Keycloak is running, if it is used
      * @return application context, to be closed when tests are done.
      */
-    public static ConfigurableApplicationContext startPlatform(int port, boolean defaultImages, boolean requireAuth, boolean useKeycloak) {
+    public static ConfigurableApplicationContext startPlatform(int port, boolean defaultImages, boolean requireAuth, boolean useKeycloak, int keycloakPort) {
         List<String> parameters = new ArrayList<>();
         parameters.add("--server.port=" + port);
         if (defaultImages) {
@@ -48,7 +49,7 @@ public class TestUtils {
             parameters.add("--opaca.security.requireAuth=true");
         }
         if (useKeycloak || requireAuth) {
-            var keycloak = "http://" + getOwnIP() + ":9000/realms/opaca";
+            var keycloak = String.format("http://%s:%d/realms/opaca", getOwnIP(), keycloakPort);
             parameters.add("--opaca.security.kc_issuer_uri=" + keycloak);
             parameters.add("--opaca.security.kc_clientid=opaca-rp");
             parameters.add("--opaca.security.kc_admin=admin");

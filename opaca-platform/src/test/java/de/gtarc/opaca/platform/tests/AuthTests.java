@@ -1,7 +1,6 @@
 package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.model.*;
-import de.gtarc.opaca.platform.Application;
 import de.gtarc.opaca.util.WebSocketConnector;
 
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
@@ -10,7 +9,6 @@ import org.junit.*;
 import org.junit.rules.TestName;
 import org.junit.runners.MethodSorters;
 
-import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.BufferedReader;
@@ -48,14 +46,16 @@ public class AuthTests {
 
     @BeforeClass
     public static void setupPlatform() {
-        platformA = startPlatform(PLATFORM_A_PORT, true, true, true);
-        platformB = startPlatform(PLATFORM_B_PORT, true, true, true);
+        int kcPort = KeycloakTestUtil.startKeycloak();
+        platformA = startPlatform(PLATFORM_A_PORT, true, true, true, kcPort);
+        platformB = startPlatform(PLATFORM_B_PORT, true, true, true, kcPort);
     }
 
     @AfterClass
     public static void stopPlatform() {
         platformA.close();
         platformB.close();
+        KeycloakTestUtil.stopKeycloak();
     }
 
     @Rule
