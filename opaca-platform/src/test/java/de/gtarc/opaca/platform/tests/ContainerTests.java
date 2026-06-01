@@ -2,14 +2,12 @@ package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.*;
-import de.gtarc.opaca.platform.Application;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.junit.*;
 import org.junit.rules.TestName;
-import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.BufferedReader;
@@ -44,7 +42,8 @@ public class ContainerTests {
 
     @BeforeClass
     public static void setupPlatform() throws Exception {
-        platform = TestUtils.startPlatform(PLATFORM_PORT, false, false, true);
+        var kcPort = KeycloakTestUtil.startKeycloak();
+        platform = TestUtils.startPlatform(PLATFORM_PORT, false, false, true, kcPort);
         containerId = postSampleContainer(PLATFORM_URL);
         checkInvariantStatic();
     }
@@ -52,6 +51,7 @@ public class ContainerTests {
     @AfterClass
     public static void stopPlatform() {
         platform.close();
+        KeycloakTestUtil.stopKeycloak();
     }
 
     @Rule
