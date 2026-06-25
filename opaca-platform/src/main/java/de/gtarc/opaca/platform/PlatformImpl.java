@@ -362,6 +362,11 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
+    public List<AgentContainer> getAllContainers() {
+        return connectedPlatforms.values().stream().flatMap(rp -> rp.getContainers().stream()).toList();
+    }
+
+    @Override
     public AgentContainer getContainer(String containerId) {
         return runningContainers.get(containerId);
     }

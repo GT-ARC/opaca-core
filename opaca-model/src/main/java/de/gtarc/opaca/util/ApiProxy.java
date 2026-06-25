@@ -173,6 +173,11 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
+    public List<AgentContainer> getAllContainers() throws IOException {
+        return client.get("/containers?includeConnected=true", new TypeReference<>(){});
+    }
+
+    @Override
     public AgentContainer getContainer(String containerId) throws IOException {
         var path = String.format("/containers/%s", containerId);
         return client.get(path, AgentContainer.class);

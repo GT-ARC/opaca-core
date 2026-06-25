@@ -23,7 +23,6 @@ public interface RuntimePlatformApi extends CommonApi {
      */
     RuntimePlatform getPlatformInfo() throws IOException;
 
-    
     /**
      * Complementary to {@link CommonApi#getAgents()}: Get list of Agents running in this Runtime Platform
      * or connected platforms, i.e. the entire list of agents and their actions that can be reached by
@@ -145,6 +144,16 @@ public interface RuntimePlatformApi extends CommonApi {
      * @return List of all running containers
      */
     List<AgentContainer> getContainers() throws IOException;
+
+    /**
+     * Complementary to {@link #getContainers()}: Get list of all Agent Containers running in this Runtime Platform
+     * or connected platforms, i.e. the entire list of agent containers whose actions are reachable via this platform.
+     *
+     * REST: GET /containers?includeConnected=true
+     *
+     * @return List of agent containers running on this or on connected platforms
+     */
+    List<AgentContainer> getAllContainers() throws IOException;
 
     /**
      * Get description of a single Agent Container
