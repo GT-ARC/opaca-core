@@ -142,10 +142,11 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * output: `[ Event ]`
 * errors: none
 
-### `GET /containers`
+### `GET /containers?includeConnected={true|false}`
 
 * get list of agent containers currently running on this platform
 * input: none
+  * includeConnected: (optional, default `false`) `true/false`, whether to include containers of connected platforms
 * output: `[ AgentContainer ]`
 * errors: none
 
