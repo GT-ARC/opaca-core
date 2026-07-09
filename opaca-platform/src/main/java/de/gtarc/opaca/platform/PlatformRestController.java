@@ -325,9 +325,11 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 
 	@GetMapping("/containers")
 	@Operation(summary="Get all Agent Containers running on this platform", tags={"containers"})
-	public List<AgentContainer> getContainers() throws IOException {
+	public List<AgentContainer> getContainers(
+			@RequestParam(required = false, defaultValue = "false") boolean includeConnected
+	) throws IOException {
 		log.info("GET /containers");
-		return implementation.getContainers();
+		return includeConnected ? implementation.getAllContainers() : implementation.getContainers();
 	}
 
 	@GetMapping("/containers/{containerId}")

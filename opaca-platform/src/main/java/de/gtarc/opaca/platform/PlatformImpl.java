@@ -350,7 +350,12 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     @Override
     public List<AgentContainer> getContainers() {
-        return List.copyOf(runningContainers.values());
+        return streamContainers(false).toList();
+    }
+
+    @Override
+    public List<AgentContainer> getAllContainers() {
+        return streamContainers(true).toList();
     }
 
     @Override
@@ -570,11 +575,14 @@ public class PlatformImpl implements RuntimePlatformApi {
      * Get Stream of all Agents on this platform or on this and connected platforms.
      */
     private Stream<AgentDescription> streamAgents(boolean includeConnected) {
-        var containers = includeConnected ? Stream.concat(
+        return streamContainers(includeConnected).flatMap(c -> c.getAgents().stream());
+    }
+
+    private Stream<AgentContainer> streamContainers(boolean includeConnected) {
+        return includeConnected ? Stream.concat(
                 runningContainers.values().stream(),
                 connectedPlatforms.values().stream().flatMap(rp -> rp.getContainers().stream())
-            ) : runningContainers.values().stream();
-        return containers.flatMap(c -> c.getAgents().stream());
+        ) : runningContainers.values().stream();
     }
 
     private ApiProxy getContainerClient(String containerId) {

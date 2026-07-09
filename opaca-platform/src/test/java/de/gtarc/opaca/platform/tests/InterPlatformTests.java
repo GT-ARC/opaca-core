@@ -81,9 +81,31 @@ public class InterPlatformTests {
         con = request(PLATFORM_B_URL, "GET", "/agents", null);
         res = result(con, List.class);
         Assert.assertEquals(0, res.size());
+        con = request(PLATFORM_A_URL, "GET", "/agents?includeConnected=true", null);
+        res = result(con, List.class);
+        Assert.assertEquals(2, res.size());
         con = request(PLATFORM_B_URL, "GET", "/agents?includeConnected=true", null);
         res = result(con, List.class);
         Assert.assertEquals(2, res.size());
+    }
+
+    /**
+     * call get-containers with or without "includeConnected" parameter
+     */
+    @Test
+    public void testGetContainers() throws Exception {
+        var con = request(PLATFORM_A_URL, "GET", "/containers", null);
+        var res = result(con, List.class);
+        Assert.assertEquals(1, res.size());
+        con = request(PLATFORM_B_URL, "GET", "/containers", null);
+        res = result(con, List.class);
+        Assert.assertEquals(0, res.size());
+        con = request(PLATFORM_A_URL, "GET", "/containers?includeConnected=true", null);
+        res = result(con, List.class);
+        Assert.assertEquals(1, res.size());
+        con = request(PLATFORM_B_URL, "GET", "/containers?includeConnected=true", null);
+        res = result(con, List.class);
+        Assert.assertEquals(1, res.size());
     }
 
     /**
