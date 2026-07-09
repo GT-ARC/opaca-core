@@ -10,11 +10,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * API for both, Agent Containers and Runtime Platform. In fact, those are primarily the
- * Agent Container functions, but separated here, since the Agent Container will also have
- * a specific "info" route.
+ * API for both, Agent Containers and Runtime Platform. These are the "core" routes of the OPACA API, allowing
+ * agents to expose their abilities, and other agents or containers to use them. They are primarily implemented
+ * by the OPACA Agent Containers, and proxies by the OPACA Runtime Platform.
  */
-public interface CommonApi {
+public interface AgentsApi {
 
     /**
      * Get list of Agents running in this Agent Container.

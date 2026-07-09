@@ -6,11 +6,16 @@ import de.gtarc.opaca.model.Login;
 import java.io.IOException;
 
 /**
- * Agent-Container-specific additions on top of the Common API. Basically, this is just
- * a single route for retrieving information on the container. The Runtime Platform has
- * the same route, but with different return type.
+ * Full API that has to be provided by OPACA Agent Containers. This includes all of the common Agents API,
+ * as well as some Agent Container specific routes, that are not present (or are present, but in different form)
+ * on the OPACA Runtime Platform.
+ *
+ * It also included the names of the different Environment Variables that are passed to the OPACA Agent Container
+ * when it is started by the Runtime Platform.
  */
-public interface AgentContainerApi extends CommonApi{
+public interface AgentContainerApi extends AgentsApi {
+
+    // ENVIRONMENT VARIABLES
 
     /** name of env var holding the container ID */
     String ENV_CONTAINER_ID = "CONTAINER_ID";
@@ -30,10 +35,17 @@ public interface AgentContainerApi extends CommonApi{
     /** which ports on the host the container's ports are mapped to, in the format "containerPort1:hostPort1,..." */
     String ENV_PORT_MAPPING = "PORT_MAPPING";
 
+
+    // OTHER CONSTANTS
+
     /** HTTP header in which the container login token is stored (see {@link #containerLogin(Login)}) */
     String HEADER_TOKEN = "ContainerLoginToken";
 
+    /** port where the container's REST API is expected */
     int DEFAULT_PORT = 8082;
+
+
+    // AGENT CONTAINER ROUTES, in addition to those defined in AgentsApi
 
     /**
      * Get information on the container, to be called by the Runtime Platform after start
