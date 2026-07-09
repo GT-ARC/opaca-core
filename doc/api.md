@@ -228,7 +228,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * output: Token
 * errors: 403 if user is not registered
 
-### `POST /containers/login{containerId}`
+### `POST /containers/login/{containerId}`
 
 * login as current user at given container with container-specific credentials
 * input: 
@@ -236,7 +236,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
   * password
 * output: Token
 
-### `POST /containers/logout{containerId}`
+### `POST /containers/logout/{containerId}`
 
 * logout from given container
 * output: previously logged in?
