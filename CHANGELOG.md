@@ -1,8 +1,13 @@
 # CHANGELOG
 
+## 0.6 Snapshot
+
+* replaced custom simple UserManagement with proper Keycloak integration
+* big refactoring, splitting up PlatformImpl into different services 
+
+
 ## 0.5 Snapshot
 
-* replaced custom simple UserManagement with proper Keycloak integration 
 * added `url` field to container image description
 * added `defaultValue` to action parameter description
 * added `includeConnected` parameter to `GET /containers` route, analogous to `GET /agents` and others
