@@ -11,7 +11,7 @@ import de.gtarc.opaca.util.WebSocketConnector;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.net.http.WebSocket;
@@ -25,7 +25,7 @@ import java.util.concurrent.ExecutionException;
  * Implementation of ConnectionsApi, responsible for managing connected OPACA Runtime Platforms.
  */
 @Log4j2
-@Component
+@Service
 public class ConnectionsService implements ConnectionsApi {
 
     @Autowired
@@ -40,14 +40,6 @@ public class ConnectionsService implements ConnectionsApi {
     /** open websockets to connected platforms to receive notifications on changes */
     private final Map<String, WebSocket> connectionWebsockets = new HashMap<>();
 
-    @PostConstruct
-    public void initialize() {
-        // reconnect to platforms from a previous session, if any
-        //  TODO shouldn't this be behind session-policy-check?
-        for (var url : sessionData.connectedPlatforms.keySet()) {
-            openConnectionWebsocket(url);
-        }
-    }
 
     /*
      * API ROUTES
@@ -143,7 +135,7 @@ public class ConnectionsService implements ConnectionsApi {
     /**
      * Create a Websocket connection and associate it with the connected platform's URL, to be closed when disconnected
      */
-    private void openConnectionWebsocket(String url) {
+    public void openConnectionWebsocket(String url) {
         try {
             var token = authUtils.getPlatformToken();
             var res = WebSocketConnector.subscribe(url, token, "/containers", msg -> notifyUpdatePlatform(url));

@@ -15,7 +15,7 @@ import java.util.Set;
  * Filter for pre- and postprocessing requests. Can be used for generating Events for the
  * History, for uniform logging, or for outright rejecting certain requests.
  */
-@Service @NoArgsConstructor
+@Service
 public class EventsFilter implements Filter {
 
     @Autowired

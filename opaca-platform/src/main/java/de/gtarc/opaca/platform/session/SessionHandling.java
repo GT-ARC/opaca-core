@@ -24,29 +24,26 @@ import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.PostAgentContainer;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import de.gtarc.opaca.util.RestHelper;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.PlatformConfig.SessionPolicy;
+import org.springframework.stereotype.Service;
 
 /**
  * Class responsible for Session handling. Load SessionData from a JSON file when the platform is
- * started and save it to that file when it is stopped (depending on policy).
+ * started and save it to that file when it is stopped (depending on policy). Also call startup-
+ * and shutdown routines of different other services where the order of execution matters.
  */
-@Component
+@Service
 @Log4j2
-public class Session {
+public class SessionHandling {
 
 	@Autowired
 	private PlatformConfig config;
 
     @Autowired
     private SessionData data;
-
-    // TODO cyclic autowires... is this a problem?
-    //  certainly not pretty... split up this class and distribute to the individual services?
-    //  problem: preDestroy of SessionData would have to be executed FIRST, how to ensure this?
 
     @Autowired
     private ContainersService containersService;
@@ -70,7 +67,9 @@ public class Session {
         if (config.sessionPolicy == SessionPolicy.RESTART) {
             restartContainers();
         }
-        // TODO what about connections? connected-platforms info is restored, but might be outdated
+        if (config.sessionPolicy != SessionPolicy.SHUTDOWN) {
+            reconnectPlatforms();
+        }
     }
 
     @PreDestroy
@@ -174,6 +173,14 @@ public class Session {
             } catch (Exception e) {
                 log.warn("Exception stopping container {}: {}", container.getContainerId(), e.getMessage());
             }
+        }
+    }
+
+    private void reconnectPlatforms() {
+        log.info("Reconnecting to other Platforms...");
+        for (var url : data.connectedPlatforms.keySet()) {
+            // TODO use proper ConnectRequests here, like for restarting Containers? or drop this entirely?
+            connectionsService.openConnectionWebsocket(url);
         }
     }
 

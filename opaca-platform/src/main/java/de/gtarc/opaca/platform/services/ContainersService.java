@@ -19,7 +19,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
@@ -29,7 +29,7 @@ import java.util.*;
  * Implementation of ContainerApi, responsible for starting and stopping OPACA Agent Containers.
  */
 @Log4j2
-@Component
+@Service
 public class ContainersService implements ContainersApi {
 
     @Autowired
@@ -67,16 +67,8 @@ public class ContainersService implements ContainersApi {
             log.fatal("Invalid environment specified");
             System.exit(1);
         }
-        // test resolving own base URL and print the result
-        log.info("Own Base URL: {}", config.getOwnBaseUrl());
-
         this.containerClient.initialize(config, sessionData);
         this.containerClient.testConnectivity();
-
-        for (var containerId : sessionData.runningContainers.keySet()) {
-            var image = sessionData.runningContainers.get(containerId).getImage();
-            validators.put(containerId, new ArgumentValidator(image));
-        }
     }
 
     /*
@@ -258,9 +250,10 @@ public class ContainersService implements ContainersApi {
     }
 
     protected ArgumentValidator getValidator(AgentContainer container) {
-        return validators.containsKey(container.getContainerId())
-                ? validators.get(container.getContainerId())
-                : new ArgumentValidator(container.getImage());
+        if (! validators.containsKey(container.getContainerId())) {
+            validators.put(container.getContainerId(), new ArgumentValidator(container.getImage()));
+        }
+        return validators.get(container.getContainerId());
     }
 
     private void checkConfig(PostAgentContainer request) {

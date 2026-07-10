@@ -11,7 +11,7 @@ import de.gtarc.opaca.util.ApiProxy;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,7 +25,7 @@ import java.util.stream.Stream;
  * Implementation of AgentsApi, responsible for forwarding API calls to the respective Agent Containers.
  */
 @Log4j2
-@Component
+@Service
 public class AgentsService implements AgentsApi {
 
     @Autowired

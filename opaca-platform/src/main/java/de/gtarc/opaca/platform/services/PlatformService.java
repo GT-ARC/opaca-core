@@ -10,7 +10,7 @@ import de.gtarc.opaca.util.EventHistory;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.ZoneId;
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
  * and events history. Also provides some helper methods used by other services.
  */
 @Log4j2
-@Component
+@Service
 public class PlatformService implements PlatformApi {
 
     @Autowired
@@ -88,6 +88,7 @@ public class PlatformService implements PlatformApi {
      */
 
     public void testSelfConnection() throws Exception {
+        log.info("Own Base URL: {}", config.getOwnBaseUrl());
         var token = authUtils.getPlatformToken();
         var info = new ApiProxy(config.getOwnBaseUrl(), null, token).withTimeout(5000).getPlatformInfo();
         if (! Objects.equals(authUtils.platformId, info.getPlatformId())) {
