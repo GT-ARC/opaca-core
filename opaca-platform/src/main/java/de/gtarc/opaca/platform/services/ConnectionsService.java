@@ -5,6 +5,7 @@ import de.gtarc.opaca.model.ConnectionRequest;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.auth.AuthUtils;
 import de.gtarc.opaca.platform.session.SessionData;
+import de.gtarc.opaca.platform.util.Utils;
 import de.gtarc.opaca.util.ApiProxy;
 import de.gtarc.opaca.util.WebSocketConnector;
 import jakarta.annotation.PostConstruct;
@@ -51,8 +52,8 @@ public class ConnectionsService implements ConnectionsApi {
 
     @Override
     public boolean connectPlatform(ConnectionRequest connect) throws IOException {
-        String url = normalizeString(connect.getUrl());
-        checkUrl(url);
+        String url = Utils.normalizeString(connect.getUrl());
+        Utils.checkUrl(url);
         if (url.equals(config.getOwnBaseUrl()) || sessionData.connectedPlatforms.containsKey(url)) {
             return false;
         }
@@ -80,8 +81,8 @@ public class ConnectionsService implements ConnectionsApi {
 
     @Override
     public boolean disconnectPlatform(ConnectionRequest disconnect) throws IOException {
-        var url = normalizeString(disconnect.getUrl());
-        checkUrl(url);
+        var url = Utils.normalizeString(disconnect.getUrl());
+        Utils.checkUrl(url);
         if (sessionData.connectedPlatforms.containsKey(url)) {
             sessionData.connectedPlatforms.remove(url);
             if (connectionWebsockets.containsKey(url)) {
@@ -102,8 +103,8 @@ public class ConnectionsService implements ConnectionsApi {
 
     @Override
     public boolean notifyUpdatePlatform(String platformUrl) {
-        platformUrl = normalizeString(platformUrl);
-        checkUrl(platformUrl);
+        platformUrl = Utils.normalizeString(platformUrl);
+        Utils.checkUrl(platformUrl);
         if (platformUrl.equals(config.getOwnBaseUrl())) {
             log.warn("Cannot request update for self.");
             return false;
@@ -146,21 +147,6 @@ public class ConnectionsService implements ConnectionsApi {
             connectionWebsockets.put(url, res.get());
         } catch (ExecutionException | InterruptedException e) {
             log.warn("Failed to establish websocket connection to {}", url);
-        }
-    }
-
-    /**
-     * string payload may or may not be enclosed in quotes -> normalize
-     */
-    private String normalizeString(String string) {
-        return string.trim().replaceAll("^\"|\"$", "");
-    }
-
-    private void checkUrl(String url) {
-        try {
-            new URI(url).toURL();
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid URL: " + e.getMessage());
         }
     }
 

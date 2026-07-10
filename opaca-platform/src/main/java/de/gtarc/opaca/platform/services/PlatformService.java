@@ -110,7 +110,7 @@ public class PlatformService implements PlatformApi {
         provisions.add("config:require-auth=" + config.get("requireAuth"));
 
         // from containers, agents, actions
-        for (AgentContainer container : getPlatformInfo().getContainers()) {
+        for (AgentContainer container : sessionData.runningContainers.values()) {
             provisions.add("image:" + container.getImage().getImageName());
             provisions.addAll(container.getImage().getProvides());
             for (AgentDescription agent : container.getAgents()) {

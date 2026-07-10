@@ -13,6 +13,7 @@ import de.gtarc.opaca.platform.containerclient.DockerClient;
 import de.gtarc.opaca.platform.containerclient.KubernetesClient;
 import de.gtarc.opaca.platform.session.SessionData;
 import de.gtarc.opaca.platform.util.ArgumentValidator;
+import de.gtarc.opaca.platform.util.Utils;
 import de.gtarc.opaca.util.ApiProxy;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.log4j.Log4j2;
@@ -40,10 +41,15 @@ public class ContainersService implements ContainersApi {
     @Autowired
     private PlatformService platformService;
 
-
+    /** client to the container management API (Docker or Kubernetes) */
     private ContainerClient containerClient;
 
+    /** Map of validators for validating action argument types for each container */
+    private final Map<String, ArgumentValidator> validators = new HashMap<>();
 
+    /*
+     * LIFE CYCLE
+     */
 
     @PostConstruct
     public void initialize() {
@@ -194,7 +200,7 @@ public class ContainersService implements ContainersApi {
 
     @Override
     public boolean notifyUpdateContainer(String containerId) {
-        containerId = normalizeString(containerId);
+        containerId = Utils.normalizeString(containerId);
         if (! sessionData.runningContainers.containsKey(containerId)) {
             var msg = String.format("Container did not exist: %s", containerId);
             throw new NoSuchElementException(msg);
@@ -248,6 +254,12 @@ public class ContainersService implements ContainersApi {
         return new ApiProxy(url, config.getOwnBaseUrl(), token);
     }
 
+    protected ArgumentValidator getValidator(AgentContainer container) {
+        return validators.containsKey(container.getContainerId())
+                ? validators.get(container.getContainerId())
+                : new ArgumentValidator(container.getImage());
+    }
+
     private void checkConfig(PostAgentContainer request) {
         if (request.getClientConfig() != null && request.getClientConfig().getType() != config.containerEnvironment) {
             throw new IllegalArgumentException(String.format("Client Config %s does not match Container Environment %s",
@@ -261,6 +273,19 @@ public class ContainersService implements ContainersApi {
             throw new IllegalArgumentException(String.format("Container Image has unsatisfied Requirements: %s",
                     failedRequirements));
         }
+    }
+
+
+
+    /*
+     * TEMP STUFF (this should be changed, maybe dissolve Session entirely and move the bits to the individual services?
+     */
+
+    /** internal flag; set to true on shutdown to allow stopping containers without necessary credentials */
+    private boolean isShuttingDown = false;
+
+    public void setIsShuttingDown() {
+        this.isShuttingDown = true;
     }
 
 }

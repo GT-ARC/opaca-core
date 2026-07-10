@@ -14,16 +14,15 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import de.gtarc.opaca.model.ConnectionRequest;
+import de.gtarc.opaca.platform.services.ConnectionsService;
+import de.gtarc.opaca.platform.services.ContainersService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 
 import com.google.common.base.Strings;
 import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.PostAgentContainer;
-import de.gtarc.opaca.platform.PlatformImpl;
 import lombok.extern.log4j.Log4j2;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -39,8 +38,6 @@ import de.gtarc.opaca.platform.PlatformConfig.SessionPolicy;
 @Log4j2
 public class Session {
 
-    Logger logger = LoggerFactory.getLogger(Session.class);
-
 	@Autowired
 	private PlatformConfig config;
 
@@ -48,7 +45,10 @@ public class Session {
     private SessionData data;
 
     @Autowired
-    private PlatformImpl implementation;
+    private ContainersService containersService;
+
+    @Autowired
+    private ConnectionsService connectionsService;
 
 
     private static final Path filePath = Paths.get(System.getProperty("user.dir"), "Session.json");
@@ -71,7 +71,7 @@ public class Session {
 
     @PreDestroy
     private void teardownPolicy() throws IOException {
-        implementation.setIsShuttingDown();
+        containersService.setIsShuttingDown();
         if (config.sessionPolicy != SessionPolicy.SHUTDOWN) {
             saveToFile();
         }
@@ -138,7 +138,7 @@ public class Session {
             log.info("Auto-deploying {}", file);
             try {
                 var container = RestHelper.mapper.readValue(file, PostAgentContainer.class);
-                implementation.addContainer(container, -1); // TODO restore user token
+                containersService.addContainer(container, -1); // TODO restore user token
             } catch (Exception e) {
                 log.error("Failed to load image specified in file {}: {}", file, e);
             }
@@ -155,7 +155,7 @@ public class Session {
         data.reset();
         for (PostAgentContainer postContainer : startedContainers) {
             try {
-                implementation.addContainer(postContainer, -1); // TODO restore user token
+                containersService.addContainer(postContainer, -1); // TODO restore user token
             } catch (IOException e) {
                 log.warn("Exception restarting container: {}", e.getMessage());
             }
@@ -164,9 +164,9 @@ public class Session {
 
     private void stopRunningContainers() {
         log.info("Stopping Running Containers...");
-        for (AgentContainer container : implementation.getContainers()) {
+        for (AgentContainer container : containersService.getContainers()) {
             try {
-                implementation.removeContainer(container.getContainerId());
+                containersService.removeContainer(container.getContainerId());
             } catch (Exception e) {
                 log.warn("Exception stopping container {}: {}", container.getContainerId(), e.getMessage());
             }
@@ -175,9 +175,9 @@ public class Session {
 
     private void disconnectPlatforms() {
         log.info("Disconnecting from other Platforms...");
-        for (String url : implementation.getConnections()) {
+        for (String url : connectionsService.getConnections()) {
             try {
-                implementation.disconnectPlatform(new ConnectionRequest(url, false, null));
+                connectionsService.disconnectPlatform(new ConnectionRequest(url, false, null));
             } catch (Exception e) {
                 log.warn("Exception disconnecting from {}: {}", url, e.getMessage());
             }
