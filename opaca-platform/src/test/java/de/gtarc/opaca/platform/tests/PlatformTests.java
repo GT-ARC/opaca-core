@@ -190,7 +190,7 @@ public class PlatformTests {
         body.get("image").put("imageName", null);
         con = request(PLATFORM_A_URL, "POST", "/containers", body);
         Assert.assertEquals(422, con.getResponseCode());
-        // image set, imageName set, requires set to null
+        // image set, imageName set, required set to null
         body.get("image").put("imageName", "does-not-exist");
         body.get("image").put("requires", null);
         con = request(PLATFORM_A_URL, "POST", "/containers", body);

@@ -81,7 +81,7 @@ public class KubernetesClient extends AbstractContainerClient {
 
         this.namespace = config.kubernetesNamespace;
         this.auth = loadKubernetesSecrets();
-        this.pods = sessionData.pods;
+        this.pods = sessionData.kubernetesPods;
     }
 
     @Override

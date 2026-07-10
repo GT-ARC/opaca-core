@@ -18,6 +18,10 @@ import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Implementation of PlatformApi, responsible for providing basic platform info, platform login,
+ * and events history. Also provides some helper methods used by other services.
+ */
 @Log4j2
 @Component
 public class PlatformService implements PlatformApi {
@@ -30,7 +34,6 @@ public class PlatformService implements PlatformApi {
 
     @Autowired
     private AuthUtils authUtils;
-
 
     /** when the platform was started */
     private final ZonedDateTime startedAt = ZonedDateTime.now(ZoneId.of("Z"));
@@ -62,7 +65,7 @@ public class PlatformService implements PlatformApi {
     }
 
     @Override
-    public String platformLogin(Login loginParams) throws IOException {
+    public String platformLogin(Login loginParams) {
         try {
             return authUtils.getTokenForUser(loginParams.getUsername(), loginParams.getPassword());
         } catch (IOException e) {
@@ -136,6 +139,5 @@ public class PlatformService implements PlatformApi {
         //  later this could be extended to e.g. check for a minimum CUDA version or similar
         return image.getRequires().stream().filter(x -> ! provisions.contains(x)).collect(Collectors.toSet());
     }
-
 
 }

@@ -30,12 +30,12 @@ public class Parameter {
     @Valid
     ArrayItems items = null;
 
-    /** short-hand for a required parameter */
+    /** shorthand for a required parameter */
     public Parameter(String type) {
         this.type = type;
     }
 
-    /** short-hand for an optional parameter, with or without default */
+    /** shorthand for an optional parameter, with or without default */
     public Parameter(String type, Object defaultValue) {
         this.type = type;
         this.required = false;

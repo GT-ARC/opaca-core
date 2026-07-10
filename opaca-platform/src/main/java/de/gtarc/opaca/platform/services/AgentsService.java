@@ -21,6 +21,9 @@ import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Implementation of AgentsApi, responsible for forwarding API calls to the respective Agent Containers.
+ */
 @Log4j2
 @Component
 public class AgentsService implements AgentsApi {
@@ -189,7 +192,7 @@ public class AgentsService implements AgentsApi {
     /**
      * This class retains information about the matching process for container and platform clients.
      * This information can then be queried to get information about the point of failure in the
-     * matching process, e.g. to check if a client did not match due to missing the action, or due
+     * matching process, e.g., to check if a client did not match due to missing the action, or due
      * to mismatched action arguments, etc.
      */
     private class ClientMatch {
@@ -208,7 +211,7 @@ public class AgentsService implements AgentsApi {
         private boolean paramsMatch;
         private boolean streamMatch;
 
-        // the actual containerId this client is using, or null for platform client
+        // the actual containerId this client is using, or null for a platform client
         private String actualContainerId = null;
 
         @Getter
@@ -323,7 +326,7 @@ public class AgentsService implements AgentsApi {
             if (containerLoginToken == null) {
                 return client;
             }
-            // get ApiProxy with additional container login token header
+            // get ApiProxy with the required container login token header
             return client.withExtraHeaders(Map.of(AgentContainerApi.HEADER_TOKEN, containerLoginToken));
         }
     }

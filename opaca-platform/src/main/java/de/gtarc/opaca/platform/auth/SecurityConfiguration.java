@@ -19,7 +19,7 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * The SecurityConfiguration class is a configuration class for enabling and configuring authentication for the Spring
  * application. The users are managed and JWTs are created by KeyCloak. Users have access to different routes based on
- * their roles. The roles and their hierarchy has to be defined in Keycloak; see Documentation (auth.md) for details.
+ * their roles. The roles and their hierarchy have to be defined in Keycloak; see Documentation (auth.md) for details.
  */
 @Configuration
 @EnableWebSecurity

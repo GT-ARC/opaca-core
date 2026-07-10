@@ -31,8 +31,8 @@ import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.PlatformConfig.SessionPolicy;
 
 /**
- * Class responsible for Session handling. Load SessionData from JSON file when platform is
- * started, and save it to that file when it is stopped (depending on policy).
+ * Class responsible for Session handling. Load SessionData from a JSON file when the platform is
+ * started and save it to that file when it is stopped (depending on policy).
  */
 @Component
 @Log4j2
@@ -43,6 +43,10 @@ public class Session {
 
     @Autowired
     private SessionData data;
+
+    // TODO cyclic autowires... is this a problem?
+    //  certainly not pretty... split up this class and distribute to the individual services?
+    //  problem: preDestroy of SessionData would have to be executed FIRST, how to ensure this?
 
     @Autowired
     private ContainersService containersService;
@@ -70,7 +74,7 @@ public class Session {
     }
 
     @PreDestroy
-    private void teardownPolicy() throws IOException {
+    private void teardownPolicy() {
         containersService.setIsShuttingDown();
         if (config.sessionPolicy != SessionPolicy.SHUTDOWN) {
             saveToFile();
@@ -91,14 +95,14 @@ public class Session {
         if (filePath.toFile().exists()) {
             try {
                 String content = Files.readString(filePath);
-                SessionData lastdata = RestHelper.readObject(content, SessionData.class);
+                SessionData lastData = RestHelper.readObject(content, SessionData.class);
 
                 this.data.reset();
-                this.data.runningContainers.putAll(lastdata.runningContainers);
-                this.data.startContainerRequests.putAll(lastdata.startContainerRequests);
-                this.data.connectedPlatforms.putAll(lastdata.connectedPlatforms);
-                this.data.dockerContainers.putAll(lastdata.dockerContainers);
-                this.data.usedPorts.addAll(lastdata.usedPorts);
+                this.data.runningContainers.putAll(lastData.runningContainers);
+                this.data.startContainerRequests.putAll(lastData.startContainerRequests);
+                this.data.connectedPlatforms.putAll(lastData.connectedPlatforms);
+                this.data.dockerContainers.putAll(lastData.dockerContainers);
+                this.data.usedPorts.addAll(lastData.usedPorts);
     
             } catch (IOException e) {
                 log.error("Could not load Session data", e);

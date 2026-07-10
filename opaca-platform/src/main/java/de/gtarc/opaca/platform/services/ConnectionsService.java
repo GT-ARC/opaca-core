@@ -14,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.http.WebSocket;
 import java.util.HashMap;
 import java.util.List;
@@ -22,6 +21,9 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 
+/**
+ * Implementation of ConnectionsApi, responsible for managing connected OPACA Runtime Platforms.
+ */
 @Log4j2
 @Component
 public class ConnectionsService implements ConnectionsApi {
@@ -35,12 +37,13 @@ public class ConnectionsService implements ConnectionsApi {
     @Autowired
     private AuthUtils authUtils;
 
-    /** open websockets to connected platforms, to receive notifications on changes */
+    /** open websockets to connected platforms to receive notifications on changes */
     private final Map<String, WebSocket> connectionWebsockets = new HashMap<>();
 
     @PostConstruct
     public void initialize() {
-        // reconnect to platforms from previous session, if any
+        // reconnect to platforms from a previous session, if any
+        //  TODO shouldn't this be behind session-policy-check?
         for (var url : sessionData.connectedPlatforms.keySet()) {
             openConnectionWebsocket(url);
         }
@@ -61,7 +64,7 @@ public class ConnectionsService implements ConnectionsApi {
         var token = connect.getToken() != null ? connect.getToken() : authUtils.getPlatformToken();
         var client = getPlatformProxy(url, token);
         var info = client.getPlatformInfo();
-        // ask other platform to connect back to self?
+        // ask the other platform to connect back to self?
         if (connect.isConnectBack()) {
             var ownUrl = config.getOwnBaseUrl();
             client.connectPlatform(new ConnectionRequest(ownUrl, false, null));
@@ -138,7 +141,7 @@ public class ConnectionsService implements ConnectionsApi {
     }
 
     /**
-     * Create Websocket connection and associate it with the connected platform's URL, to be closed when disconnected
+     * Create a Websocket connection and associate it with the connected platform's URL, to be closed when disconnected
      */
     private void openConnectionWebsocket(String url) {
         try {

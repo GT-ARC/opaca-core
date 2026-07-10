@@ -25,6 +25,9 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.IOException;
 import java.util.*;
 
+/**
+ * Implementation of ContainerApi, responsible for starting and stopping OPACA Agent Containers.
+ */
 @Log4j2
 @Component
 public class ContainersService implements ContainersApi {
@@ -53,7 +56,7 @@ public class ContainersService implements ContainersApi {
 
     @PostConstruct
     public void initialize() {
-        // initialize container client based on environment
+        // initialize the container client based on the environment
         if (config.containerEnvironment == PostAgentContainer.ContainerEnvironment.DOCKER) {
             log.info("Using Docker on host {}", config.remoteDockerHost);
             this.containerClient = new DockerClient();
@@ -64,7 +67,7 @@ public class ContainersService implements ContainersApi {
             log.fatal("Invalid environment specified");
             System.exit(1);
         }
-        // test resolving own base URL and print result
+        // test resolving own base URL and print the result
         log.info("Own Base URL: {}", config.getOwnBaseUrl());
 
         this.containerClient.initialize(config, sessionData);
@@ -94,7 +97,7 @@ public class ContainersService implements ContainersApi {
             env.put(AgentContainerApi.ENV_CLIENT_SECRET, clientSecret);
         }
 
-        // start container... this may raise an Exception, or returns the connectivity info
+        // start the container... this may raise an Exception, or returns the connectivity info
         AgentContainer.Connectivity connectivity;
         try {
             connectivity = containerClient.startContainer(agentContainerId, postContainer, env);
@@ -103,12 +106,12 @@ public class ContainersService implements ContainersApi {
             throw e;
         }
 
-        // wait until container is up and running...
+        // wait until the container is up and running...
         var containerTimeout = System.currentTimeMillis() + (timeout > 0 ? timeout : config.containerTimeoutSec) * 1000L;
         var client = getContainerProxy(agentContainerId);
         String errorMessage = "Container did not respond with /info in time.";
         while (System.currentTimeMillis() < containerTimeout) {
-            // check whether container is still starting or alive at all
+            // check whether the container is still starting or alive at all
             if (! containerClient.isContainerAlive(agentContainerId)) {
                 errorMessage = "Container failed to start.";
                 break;
@@ -133,7 +136,7 @@ public class ContainersService implements ContainersApi {
                 errorMessage = "Container returned malformed /info: " + e.getMessage();
                 break;
             } catch (IOException e) {
-                // this is normal... waiting for container to start and provide services
+                // this is normal... waiting for the container to start and provide services
             }
             try {
                 Thread.sleep(1000);
@@ -142,7 +145,7 @@ public class ContainersService implements ContainersApi {
             }
         }
 
-        // if we reach this point, container did not start in time or does not provide /info route
+        // if we reach this point, the container did not start in time or does not provide /info route
         log.warn("Stopping Container. {}", errorMessage);
         try {
             containerClient.stopContainer(agentContainerId);
@@ -160,7 +163,7 @@ public class ContainersService implements ContainersApi {
                 .toList();
         switch (matchingContainers.size()) {
             case 1: {
-                var oldContainer = matchingContainers.get(0);
+                var oldContainer = matchingContainers.getFirst();
                 removeContainer(oldContainer.getContainerId());
                 return addContainer(container, timeout);
             }
@@ -278,7 +281,7 @@ public class ContainersService implements ContainersApi {
 
 
     /*
-     * TEMP STUFF (this should be changed, maybe dissolve Session entirely and move the bits to the individual services?
+     * TODO TEMP STUFF (this should be changed, maybe dissolve Session entirely and move the bits to the individual services)?
      */
 
     /** internal flag; set to true on shutdown to allow stopping containers without necessary credentials */
