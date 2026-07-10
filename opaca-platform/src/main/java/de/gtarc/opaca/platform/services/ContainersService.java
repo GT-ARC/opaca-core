@@ -50,6 +50,9 @@ public class ContainersService implements ContainersApi {
     /** Map of validators for validating action argument types for each container */
     private final Map<String, ArgumentValidator> validators = new HashMap<>();
 
+    /** internal flag; set to true on shutdown to allow stopping containers without necessary credentials */
+    private boolean isShuttingDown = false;
+
     /*
      * LIFE CYCLE
      */
@@ -270,15 +273,6 @@ public class ContainersService implements ContainersApi {
                     failedRequirements));
         }
     }
-
-
-
-    /*
-     * TODO TEMP STUFF (this should be changed, maybe dissolve Session entirely and move the bits to the individual services)?
-     */
-
-    /** internal flag; set to true on shutdown to allow stopping containers without necessary credentials */
-    private boolean isShuttingDown = false;
 
     public void setIsShuttingDown() {
         this.isShuttingDown = true;
