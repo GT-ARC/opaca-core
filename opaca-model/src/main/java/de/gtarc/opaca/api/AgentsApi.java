@@ -17,7 +17,7 @@ import java.util.Map;
 public interface AgentsApi {
 
     /**
-     * Get list of Agents running in this Agent Container.
+     * Get the list of Agents running in this Agent Container.
      *
      * REST: GET /agents
      *
@@ -26,7 +26,7 @@ public interface AgentsApi {
     List<AgentDescription> getAgents() throws IOException;
 
     /**
-     * Get description of one specific Agent
+     * Get the description of one specific Agent
      *
      * REST: GET /agents/{id}
      *
@@ -36,7 +36,7 @@ public interface AgentsApi {
     AgentDescription getAgent(String agentId) throws IOException;
 
     /**
-     * Send message to a single agent in the container.
+     * Send a message to a single agent in the container.
      *
      * REST: POST /send/{id}?containerId={containerId}&forward={true|false}`
      *
@@ -48,7 +48,7 @@ public interface AgentsApi {
     void send(String agentId, Message message, String containerId, boolean forward) throws IOException;
 
     /**
-     * Send message to a group of agents, or channel.
+     * Send a message to a group of agents, or channel.
      *
      * REST: POST /broadcast/{channel}?containerId={containerId}&forward={true|false}`
      *

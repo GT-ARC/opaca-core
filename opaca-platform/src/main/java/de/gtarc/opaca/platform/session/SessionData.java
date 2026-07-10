@@ -1,7 +1,9 @@
 package de.gtarc.opaca.platform.session;
 
 import java.util.*;
+import java.util.stream.Stream;
 
+import de.gtarc.opaca.model.AgentDescription;
 import de.gtarc.opaca.model.PostAgentContainer;
 import de.gtarc.opaca.platform.containerclient.DockerClient;
 import de.gtarc.opaca.platform.containerclient.KubernetesClient;
@@ -37,6 +39,17 @@ public class SessionData {
         this.dockerContainers.clear();
         this.usedPorts.clear();
         this.pods.clear();
+    }
+
+    public Stream<AgentDescription> streamAgents(boolean includeConnected) {
+        return streamContainers(includeConnected).flatMap(c -> c.getAgents().stream());
+    }
+
+    public Stream<AgentContainer> streamContainers(boolean includeConnected) {
+        return includeConnected ? Stream.concat(
+                runningContainers.values().stream(),
+                connectedPlatforms.values().stream().flatMap(rp -> rp.getContainers().stream())
+        ) : runningContainers.values().stream();
     }
 
 }

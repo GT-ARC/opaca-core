@@ -3,6 +3,10 @@ package de.gtarc.opaca.platform;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.model.*;
+import de.gtarc.opaca.platform.services.AgentsService;
+import de.gtarc.opaca.platform.services.ConnectionsService;
+import de.gtarc.opaca.platform.services.ContainersService;
+import de.gtarc.opaca.platform.services.PlatformService;
 import de.gtarc.opaca.platform.util.ActionToOpenApi;
 import de.gtarc.opaca.platform.util.ActionToOpenApi.ActionFormat;
 import de.gtarc.opaca.util.EventHistory;
@@ -44,7 +48,16 @@ import java.util.NoSuchElementException;
 public class PlatformRestController implements ApplicationListener<ApplicationReadyEvent> {
 
 	@Autowired
-	private PlatformImpl implementation;
+	private PlatformService platformService;
+
+	@Autowired
+	private AgentsService agentsService;
+
+	@Autowired
+	private ContainersService containersService;
+
+	@Autowired
+	private ConnectionsService connectionsService;
 
 	@Autowired
 	private PlatformConfig config;
@@ -62,7 +75,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@Override
 	public void onApplicationEvent(@NotNull ApplicationReadyEvent event) {
 		try {
-			implementation.testSelfConnection();
+			platformService.testSelfConnection();
 		} catch (Exception e) {
 			log.fatal("Test-Connection to self at {} failed: {}", config.getOwnBaseUrl(), e.getMessage());
 			System.exit(1);
@@ -142,7 +155,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@Valid @RequestBody Login loginParams
 	) throws IOException {
 		log.info("POST /login {}", loginParams);
-		return implementation.platformLogin(loginParams);
+		return platformService.platformLogin(loginParams);
 	}
 
 	/*
@@ -153,21 +166,21 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@Operation(summary="Get information on this Runtime Platform", tags={"info"})
 	public RuntimePlatform getPlatformInfo() throws IOException {
 		log.info("GET /info");
-		return implementation.getPlatformInfo();
+		return platformService.getPlatformInfo();
 	}
 
 	@GetMapping("/config")
 	@Operation(summary="Get Configuration of this Runtime Platform", tags={"info"})
 	public Map<String, ?> getPlatformConfig() throws IOException {
 		log.info("GET /config");
-		return implementation.getPlatformConfig();
+		return platformService.getPlatformConfig();
 	}
 
 	@GetMapping("/history")
 	@Operation(summary="Get history on this Runtime Platform", tags={"info"})
 	public List<Event> getHistory() throws IOException {
 		log.info("GET /history");
-		return implementation.getHistory();
+		return platformService.getHistory();
 	}
 
 	@GetMapping("v3/api-docs/actions")
@@ -175,7 +188,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	public String getOpenApiActions(
 			@RequestParam(required = false, defaultValue = "JSON") ActionFormat format
 	) throws IOException {
-		return ActionToOpenApi.createOpenApiSchema(implementation.getContainers(), format, config.requireAuth);
+		return ActionToOpenApi.createOpenApiSchema(containersService.getContainers(), format, config.requireAuth);
 	}
 
 	/*
@@ -188,7 +201,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "false") boolean includeConnected
 	) throws IOException {
 		log.info("GET /agents");
-		return includeConnected ? implementation.getAllAgents() : implementation.getAgents();
+		return includeConnected ? platformService.getAllAgents() : agentsService.getAgents();
 	}
 
 	@GetMapping("/agents/{agentId}")
@@ -197,7 +210,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@PathVariable String agentId
 	) throws IOException {
 		log.info("GET /agents/{}", agentId);
-		return implementation.getAgent(agentId);
+		return agentsService.getAgent(agentId);
 	}
 
 	@PostMapping("/send/{agentId}")
@@ -209,7 +222,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info("POST /send/{} {}", agentId, message);
-		implementation.send(agentId, message, containerId, forward);
+		agentsService.send(agentId, message, containerId, forward);
 	}
 
 	@PostMapping("/broadcast/{channel}")
@@ -221,7 +234,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info("POST /broadcast/{} {}", channel, message);
-		implementation.broadcast(channel, message, containerId, forward);
+		agentsService.broadcast(channel, message, containerId, forward);
 	}
 
 	@PostMapping("/invoke/{action}")
@@ -234,7 +247,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info("POST /invoke/{} {}", action, parameters);
-		return implementation.invoke(action, parameters, null, timeout, containerId, forward);
+		return agentsService.invoke(action, parameters, null, timeout, containerId, forward);
 	}
 
 	@PostMapping("/invoke/{action}/{agentId}")
@@ -248,7 +261,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info("POST /invoke/{}/{} {}", action, agentId, parameters);
-		return implementation.invoke(action, parameters, agentId, timeout, containerId, forward);
+		return agentsService.invoke(action, parameters, agentId, timeout, containerId, forward);
 	}
 
 	@GetMapping("/stream/{stream}")
@@ -259,7 +272,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info("GET /stream/{} ", stream);
-		return wrapStream(implementation.getStream(stream, null, containerId, forward));
+		return wrapStream(agentsService.getStream(stream, null, containerId, forward));
 	}
 
 	@GetMapping("/stream/{stream}/{agentId}")
@@ -271,7 +284,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "true") boolean forward
 	) throws IOException {
 		log.info("GET /stream/{}/{}", stream, agentId);
-		return wrapStream(implementation.getStream(stream, agentId, containerId, forward));
+		return wrapStream(agentsService.getStream(stream, agentId, containerId, forward));
 	}
 
 	@PostMapping("/stream/{stream}")
@@ -283,7 +296,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
             @RequestParam(required = false, defaultValue = "true") boolean forward
     ) throws IOException {
         log.info("POST /stream/{} ", stream);
-        implementation.postStream(stream, inputStream, null, containerId, forward);
+		agentsService.postStream(stream, inputStream, null, containerId, forward);
     }
 
 	@PostMapping("/stream/{stream}/{agentId}")
@@ -296,7 +309,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
             @RequestParam(required = false, defaultValue = "true") boolean forward
     ) throws IOException {
         log.info("POST /stream/{}/{}", stream, agentId);
-        implementation.postStream(stream, inputStream, agentId, containerId, forward);
+		agentsService.postStream(stream, inputStream, agentId, containerId, forward);
     }
 
 	/*
@@ -310,7 +323,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "-1") int timeout
 	) throws IOException {
 		log.info("POST /containers {}", container);
-		return implementation.addContainer(container, timeout);
+		return containersService.addContainer(container, timeout);
 	}
 
 	@PutMapping("/containers")
@@ -320,7 +333,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "-1") int timeout
 	) throws IOException {
 		log.info("PUT /containers {}", container);
-		return implementation.updateContainer(container, timeout);
+		return containersService.updateContainer(container, timeout);
 	}
 
 	@GetMapping("/containers")
@@ -329,7 +342,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@RequestParam(required = false, defaultValue = "false") boolean includeConnected
 	) throws IOException {
 		log.info("GET /containers");
-		return includeConnected ? implementation.getAllContainers() : implementation.getContainers();
+		return includeConnected ? platformService.getAllContainers() : containersService.getContainers();
 	}
 
 	@GetMapping("/containers/{containerId}")
@@ -338,7 +351,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@PathVariable String containerId
 	) throws IOException {
 		log.info("GET /containers/{}", containerId);
-		return implementation.getContainer(containerId);
+		return containersService.getContainer(containerId);
 	}
 
 	@DeleteMapping("/containers/{containerId}")
@@ -348,7 +361,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@PathVariable String containerId
 	) throws IOException {
 		log.info("DELETE /containers/{}", containerId);
-		return implementation.removeContainer(containerId);
+		return containersService.removeContainer(containerId);
 	}
 
 	@PostMapping("/containers/login/{containerId}")
@@ -358,7 +371,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@Valid @RequestBody Login loginParams
 	) throws IOException {
 		log.info("POST /containers/login/{} {}", containerId, loginParams);
-		return implementation.containerLogin(containerId, loginParams);
+		return containersService.containerLogin(containerId, loginParams);
 	}
 
 	@PostMapping("/containers/logout/{containerId}")
@@ -367,7 +380,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@PathVariable String containerId
 	) throws IOException {
 		log.info("POST /containers/logout/{}", containerId);
-		return implementation.containerLogout(containerId);
+		return containersService.containerLogout(containerId);
 	}
 
 	/*
@@ -381,14 +394,14 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@Valid @RequestBody ConnectionRequest loginConnection
 	) throws IOException {
 		log.info("POST /connections {}", loginConnection.getUrl());
-		return implementation.connectPlatform(loginConnection);
+		return connectionsService.connectPlatform(loginConnection);
 	}
 
 	@GetMapping("/connections")
 	@Operation(summary="Get list of connected Runtime Platforms", tags={"connections"})
 	public List<String> getConnections() throws IOException {
 		log.info("GET /connections");
-		return implementation.getConnections();
+		return connectionsService.getConnections();
 	}
 
 	@DeleteMapping("/connections")
@@ -397,7 +410,7 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 			@Valid @RequestBody ConnectionRequest disconnect
 	) throws IOException {
 		log.info("DELETE /connections {}", disconnect);
-		return implementation.disconnectPlatform(disconnect);
+		return connectionsService.disconnectPlatform(disconnect);
 	}
 
 	/*
@@ -408,14 +421,14 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 	@Operation(summary="Notify Platform about updates", tags={"containers"})
 	public boolean notifyUpdateContainer(@RequestBody String containerId) throws IOException {
 		log.info("POST /containers/notify {}", containerId);
-		return implementation.notifyUpdateContainer(containerId);
+		return containersService.notifyUpdateContainer(containerId);
 	}
 
 	@PostMapping("/connections/notify")
 	@Operation(summary="Notify Platform about updates", tags={"connections"})
 	public boolean notifyUpdatePlatform(@RequestBody String platformUrl) throws IOException {
 		log.info("POST /connections/notify {}", platformUrl);
-		return implementation.notifyUpdatePlatform(platformUrl);
+		return connectionsService.notifyUpdatePlatform(platformUrl);
 	}
 
 	/*

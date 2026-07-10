@@ -1,6 +1,7 @@
 package de.gtarc.opaca.api;
 
 import de.gtarc.opaca.model.AgentContainer;
+import de.gtarc.opaca.model.Login;
 import de.gtarc.opaca.model.PostAgentContainer;
 
 import java.io.IOException;
@@ -80,5 +81,25 @@ public interface ContainersApi {
      * @return true/false depending on whether the update was successful (false = container not reachable, removed)
      */
     boolean notifyUpdateContainer(String containerId) throws IOException;
+
+    /**
+     * Login to given Agent Container (e.g. so that the container can itself login at some upstream service),
+     * retrieving an access token (if the container provides one) and associating it with the currently logged-in
+     * user and  that container.
+     *
+     * REST: POST /containers/login/{containerId}
+     *
+     * @param containerId ID of the container where to login
+     * @param loginParams username and password for that container to use to log-in at upstream services
+     * @return access token for that container
+     */
+    String containerLogin(String containerId, Login loginParams) throws IOException;
+
+    /**
+     * Log current user out of a previously logged in container.
+     *
+     * REST: POST /containers/logout/{containerId}
+     */
+    boolean containerLogout(String containerId) throws IOException;
 
 }

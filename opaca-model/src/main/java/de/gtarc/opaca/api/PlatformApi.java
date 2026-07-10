@@ -8,7 +8,7 @@ import java.util.Map;
 
 /**
  * Part of the {@link RuntimePlatformApi} concerned with "other" tasks not fitting into the other modules.
- * They are collected here (and not in RuntimePlatformApi itself) so that the different function can be
+ * They are collected here (and not in RuntimePlatformApi itself) so that the different functions can be
  * split up over different implementing classes.
  */
 public interface PlatformApi {
@@ -23,7 +23,7 @@ public interface PlatformApi {
      */
     RuntimePlatform getPlatformInfo() throws IOException;
 
-    /** Get Configuration of this Runtime Platform, e.g. what container backend is used, what container registries are
+    /** Get Configuration of this Runtime Platform, e.g., what container backend is used, what container registries are
      * available, etc. The details of this may vary depending on the implementation and used backend. Make sure not to
      * give away any secret information like passwords!
      *
@@ -34,7 +34,7 @@ public interface PlatformApi {
     Map<String, ?> getPlatformConfig() throws IOException;
 
     /**
-     * Get history of "events" that occurred in this runtime platform
+     * Get the history of "events" that occurred in this runtime platform
      *
      * REST: GET /history
      *
@@ -47,7 +47,7 @@ public interface PlatformApi {
      */
 
     /**
-     * Retrieve Access Token for given user to be passed as header for secured routes.
+     * Retrieve Access Token for the given user to be passed as a header for secured routes.
      *
      * REST: POST /login
      *
@@ -56,33 +56,13 @@ public interface PlatformApi {
      */
     String platformLogin(Login loginParams) throws IOException;
 
-    /**
-     * Login to given Agent Container (e.g. so that the container can itself login at some upstream service),
-     * retrieving an access token (if the container provides one) and associating it with the currently logged-in
-     * user and  that container.
-     *
-     * REST: POST /containers/login/{containerId}
-     *
-     * @param containerId ID of the container where to login
-     * @param loginParams username and password for that container to use to log-in at upstream services
-     * @return access token for that container
-     */
-    String containerLogin(String containerId, Login loginParams) throws IOException;
-
-    /**
-     * Log current user out of a previously logged in container.
-     *
-     * REST: POST /containers/logout/{containerId}
-     */
-    boolean containerLogout(String containerId) throws IOException;
-
     /*
      * CONNECTED PLATFORM FORWARDING
      */
 
     /**
-     * Complementary to {@link AgentsApi#getAgents()}: Get list of Agents running in this Runtime Platform
-     * or connected platforms, i.e. the entire list of agents and their actions that can be reached by
+     * Complementary to {@link AgentsApi#getAgents()}: Get the list of Agents running in this Runtime Platform
+     * or connected platforms, i.e., the entire list of agents and their actions that can be reached by
      * sending a send/invoke/broadcast to this Runtime Platform with query parameter forward=true.
      *
      * REST: GET /agents?includeConnected=true
@@ -92,8 +72,9 @@ public interface PlatformApi {
     List<AgentDescription> getAllAgents() throws IOException;
 
     /**
-     * Complementary to {@link ContainersApi#getContainers()}: Get list of all Agent Containers running in this Runtime Platform
-     * or connected platforms, i.e. the entire list of agent containers whose actions are reachable via this platform.
+     * Complementary to {@link ContainersApi#getContainers()}: Get the list of all Agent Containers running in this
+     * Runtime Platform or connected platforms, i.e., the entire list of agent containers whose actions are reachable
+     * via this platform.
      *
      * REST: GET /containers?includeConnected=true
      *

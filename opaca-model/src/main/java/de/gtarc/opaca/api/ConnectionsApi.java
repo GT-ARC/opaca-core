@@ -16,7 +16,7 @@ public interface ConnectionsApi {
      *
      * REST: POST /connections
      *
-     * @param connect Wrapper for the Platform URL along with token and whether to connect back
+     * @param connect Wrapper for the Platform URL along with an optional token and whether to connect back
      * @return Connection successful?
      */
     boolean connectPlatform(ConnectionRequest connect) throws IOException;
@@ -35,13 +35,13 @@ public interface ConnectionsApi {
      *
      * REST: DELETE /connections
      *
-     * @param disconnect Wrapper for the Platform URL along with token and whether to disconnect back
+     * @param disconnect Wrapper for the Platform URL along with an optional token and whether to disconnect back
      * @return Disconnect successful?
      */
     boolean disconnectPlatform(ConnectionRequest disconnect) throws IOException;
 
     /**
-     * Notify Platform of changes in a connected Platform, triggering an update by calling the /info route.
+     * Notify the Platform of changes in a connected Platform, triggering an update by calling the /info route.
      * Can be called by the platform itself, or by some other entity or the user.
      *
      * REST: POST /connections/notify
