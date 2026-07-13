@@ -92,7 +92,7 @@ public class DockerClient extends AbstractContainerClient {
     }
 
     @Override
-    public AgentContainer.Connectivity startContainer(String containerId, String token, String owner, PostAgentContainer container) throws IOException, NoSuchElementException {
+    public AgentContainer.Connectivity startContainer(String containerId, PostAgentContainer container, Map<String, String> env) throws IOException, NoSuchElementException {
         var image = container.getImage();
         var imageName = image.getImageName();
         var extraPorts = image.getExtraPorts();
@@ -114,7 +114,7 @@ public class DockerClient extends AbstractContainerClient {
 
             log.info("Creating Container...");
             CreateContainerResponse res = dockerClient.createContainerCmd(imageName)
-                    .withEnv(toDockerEnv(buildContainerEnv(containerId, token, owner, image.getParameters(), container.getArguments(), portMap)))
+                    .withEnv(toDockerEnv(buildContainerEnv(containerId, env, image.getParameters(), container.getArguments(), portMap)))
                     .withHostConfig(HostConfig.newHostConfig().withPortBindings(portBindings))
                     .withExposedPorts(portBindings.stream().map(PortBinding::getExposedPort).collect(Collectors.toList()))
                     .exec();

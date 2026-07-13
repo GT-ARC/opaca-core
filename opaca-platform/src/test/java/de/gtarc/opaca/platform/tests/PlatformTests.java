@@ -1,7 +1,6 @@
 package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.model.*;
-import de.gtarc.opaca.platform.Application;
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
 import de.gtarc.opaca.platform.session.Session;
@@ -11,7 +10,6 @@ import io.swagger.v3.parser.core.models.ParseOptions;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import org.junit.*;
 import org.junit.rules.TestName;
-import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.File;
@@ -41,12 +39,8 @@ public class PlatformTests {
 
     @BeforeClass
     public static void setupPlatform() {
-        platformA = SpringApplication.run(Application.class,
-                "--server.port=" + PLATFORM_A_PORT,
-                "--default_image_directory=./default-test-images"
-        );
-        platformB = SpringApplication.run(Application.class,
-                "--server.port=" + PLATFORM_B_PORT);
+        platformA = startPlatform(PLATFORM_A_PORT, true, false, false, -1);
+        platformB = startPlatform(PLATFORM_B_PORT, false, false, false, -1);
     }
 
     @AfterClass

@@ -15,9 +15,6 @@ A -> B: GET /info
 A <-- B: platform-info
 
 group opt [connect back?]
-    group opt [auth enabled?]
-        A -> A: generate token for B
-    end
     A -> B: POST /connect "platform-a"
     A <- B: GET /info
     A --> B: platform-info

@@ -19,7 +19,7 @@ import java.util.Map;
  */
 @Log4j2
 @Configuration
-@ToString(exclude = {"registryPasswords", "platformAdminPwd", "secret"})
+@ToString(exclude = {"registryPasswords", "keycloakAdmin", "keycloakAdminPw"})
 public class PlatformConfig {
 
     // GENERAL SETTINGS
@@ -27,83 +27,75 @@ public class PlatformConfig {
     @Value("${server.port}")
     public int serverPort;
 
-    @Value("${public_url}")
+    @Value("${opaca.public_url}")
     public String publicUrl;
 
-    @Value("${container_environment}")
+    @Value("${opaca.container_environment}")
     public PostAgentContainer.ContainerEnvironment containerEnvironment;
 
-    @Value("${platform_environment}")
+    @Value("${opaca.platform_environment}")
     public PlatformEnvironment platformEnvironment;
 
-    @Value("${session_policy}")
+    @Value("${opaca.session_policy}")
     public SessionPolicy sessionPolicy;
 
-    @Value("${container_timeout_sec}")
+    @Value("${opaca.container_timeout_sec}")
     public int containerTimeoutSec;
 
-    @Value("${default_image_directory}")
+    @Value("${opaca.default_image_directory}")
     public String defaultImageDirectory;
 
-    @Value("${event_history_size}")
+    @Value("${opaca.event_history_size}")
     public int eventHistorySize;
 
-    @Value("${always_pull_images}")
+    @Value("${opaca.always_pull_images}")
     public boolean alwaysPullImages;
 
     // SECURITY & AUTHENTICATION
 
-    @Value("${security.requireAuth}")
-    public Boolean requireAuth;
+    @Value("${opaca.security.requireAuth}")
+    public boolean requireAuth;
 
-    @Value("${security.secret}")
-    public String secret;
+    @Value("${opaca.security.kc_issuer_uri}")
+    public String keycloakIssuerUri;
 
-    @Value("${platform_admin_user}")
-    public String platformAdminUser;
+    @Value("${opaca.security.kc_clientid}")
+    public String keycloakClientId;
 
-    @Value("${platform_admin_pwd}")
-    public String platformAdminPwd;
+    @Value("${opaca.security.kc_admin}")
+    public String keycloakAdmin;
 
-    // USER MANAGEMENT MONGO DB
-
-    @Value("${db_embed}")
-    public Boolean dbEmbed;
-
-    @Value("${db_uri}")
-    public String dbURI;
-
-    @Value("${db_name}")
-    public String dbName;
+    @Value("${opaca.security.kc_admin_pw}")
+    public String keycloakAdminPw;
 
     // IMAGE REGISTRY CREDENTIALS
 
-    @Value("${registry_separator}")
+    @Value("${opaca.registry.separator}")
     public String registrySeparator;
 
-    @Value("${registry_names}")
+    @Value("${opaca.registry.names}")
     public String registryNames;
 
-    @Value("${registry_logins}")
+    @Value("${opaca.registry.logins}")
     public String registryLogins;
 
-    @Value("${registry_passwords}")
+    @Value("${opaca.registry.passwords}")
     public String registryPasswords;
 
     // DOCKER (only for container_environment = "docker"
 
-    @Value("${remote_docker_host}")
+    @Value("${opaca.docker.remote_host}")
     public String remoteDockerHost;
 
-    @Value("${remote_docker_port}")
+    @Value("${opaca.docker.remote_port}")
     public String remoteDockerPort;
 
     // KUBERNETES (only for container_environment = "kubernetes")
 
-    @Value("${kubernetes_namespace}")
+    @Value("${opaca.kubernetes.namespace}")
     public String kubernetesNamespace;
 
-    @Value("${kubernetes_config}")
+    @Value("${opaca.kubernetes.config}")
     public String kubernetesConfig;
 
     // cached value; either publicUrl, if set, or derived from runtime environment and port
@@ -136,8 +128,7 @@ public class PlatformConfig {
         res.put("alwaysPullImages", alwaysPullImages);
         // auth stuff
         res.put("requireAuth", requireAuth);
-        // user management stuff
-        res.put("dbEmbed", dbEmbed);
+        res.put("keycloakIssuerUri", keycloakIssuerUri);
         // image registry stuff
         res.put("registryNames", registryNames);
         // docker & kubernetes stuff
@@ -181,6 +172,10 @@ public class PlatformConfig {
         }
         ownBaseUrl = "http://" + host + ":" + serverPort;
         return ownBaseUrl;
+    }
+
+    public boolean isSet(String val) {
+        return val != null && ! val.isBlank();
     }
 
 }

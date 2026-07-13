@@ -71,6 +71,7 @@ public class Session {
 
     @PreDestroy
     private void teardownPolicy() throws IOException {
+        implementation.setIsShuttingDown();
         if (config.sessionPolicy != SessionPolicy.SHUTDOWN) {
             saveToFile();
         }
@@ -93,13 +94,11 @@ public class Session {
                 SessionData lastdata = RestHelper.readObject(content, SessionData.class);
 
                 this.data.reset();
-                this.data.tokens.putAll(lastdata.tokens);
                 this.data.runningContainers.putAll(lastdata.runningContainers);
                 this.data.startContainerRequests.putAll(lastdata.startContainerRequests);
                 this.data.connectedPlatforms.putAll(lastdata.connectedPlatforms);
                 this.data.dockerContainers.putAll(lastdata.dockerContainers);
                 this.data.usedPorts.addAll(lastdata.usedPorts);
-                this.data.users.putAll(lastdata.users);
     
             } catch (IOException e) {
                 log.error("Could not load Session data", e);

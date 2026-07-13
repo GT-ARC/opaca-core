@@ -4,8 +4,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.api.RuntimePlatformApi;
-import de.gtarc.opaca.platform.auth.JwtUtil;
-import de.gtarc.opaca.platform.user.TokenUserDetailsService;
+import de.gtarc.opaca.platform.auth.AuthUtils;
 import de.gtarc.opaca.platform.containerclient.ContainerClient;
 import de.gtarc.opaca.platform.containerclient.DockerClient;
 import de.gtarc.opaca.platform.containerclient.KubernetesClient;
@@ -21,7 +20,7 @@ import de.gtarc.opaca.util.EventHistory;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
@@ -29,7 +28,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.http.WebSocket;
-import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -60,14 +58,9 @@ public class PlatformImpl implements RuntimePlatformApi {
     private PlatformConfig config;
 
     @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
-    private TokenUserDetailsService userDetailsService;
+    private AuthUtils authUtils;
 
 
-    /** platform's own UUID */
-    private final String platformId = UUID.randomUUID().toString();
 
     /** when the platform was started */
     private final ZonedDateTime startedAt = ZonedDateTime.now(ZoneId.of("Z"));
@@ -77,7 +70,6 @@ public class PlatformImpl implements RuntimePlatformApi {
     /** Currently running Agent Containers, mapping container ID to description */
     private Map<String, AgentContainer> runningContainers;
     private Map<String, PostAgentContainer> startedContainers;
-    private Map<String, String> tokens;
 
     /** Currently connected other Runtime Platforms, mapping URL to description */
     private Map<String, RuntimePlatform> connectedPlatforms;
@@ -88,13 +80,15 @@ public class PlatformImpl implements RuntimePlatformApi {
 
     private final RequirementsChecker requirementsChecker = new RequirementsChecker(this);
 
+    /** internal flag; set to true on shutdown to allow stopping containers without necessary credentials */
+    private boolean isShuttingDown = false;
+
 
     @PostConstruct
     public void initialize() {
         // restore session data
         this.runningContainers = sessionData.runningContainers;
         this.startedContainers = sessionData.startContainerRequests;
-        this.tokens = sessionData.tokens;
         this.connectedPlatforms = sessionData.connectedPlatforms;
         this.connectionWebsockets = new HashMap<>();
 
@@ -106,7 +100,8 @@ public class PlatformImpl implements RuntimePlatformApi {
             log.info("Using Kubernetes with namespace {}", config.kubernetesNamespace);
             this.containerClient = new KubernetesClient();
         } else {
-            throw new IllegalArgumentException("Invalid environment specified");
+            log.fatal("Invalid environment specified");
+            System.exit(1);
         }
         // test resolving own base URL and print result
         log.info("Own Base URL: {}", config.getOwnBaseUrl());
@@ -119,7 +114,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             validators.put(containerId, new ArgumentValidator(image));
         }
         for (var url : connectedPlatforms.keySet()) {
-            openConnectionWebsocket(url, tokens.get(url));
+            openConnectionWebsocket(url);
         }
     }
 
@@ -130,7 +125,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public RuntimePlatform getPlatformInfo() {
         return new RuntimePlatform(
-                platformId,
+                authUtils.platformId,
                 config.getOwnBaseUrl(),
                 List.copyOf(runningContainers.values()),
                 requirementsChecker.getFullPlatformProvisions(),
@@ -150,8 +145,12 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     @Override
-    public String platformLogin(Login loginParams) {
-        return userDetailsService.generateTokenForUser(loginParams.getUsername(), loginParams.getPassword());
+    public String platformLogin(Login loginParams) throws IOException {
+        try {
+            return authUtils.getTokenForUser(loginParams.getUsername(), loginParams.getPassword());
+        } catch (IOException e) {
+            throw new BadCredentialsException(e.getMessage());
+        }
     }
 
     @Override
@@ -160,11 +159,11 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw new NoSuchElementException("Container not found: " + containerId);
         }
         // find matching user and container
-        var user = getUser();
-        var client = getClient(containerId, tokens.get(containerId));
+        var user = authUtils.getRequestUser();
+        var client = getContainerClient(containerId);
         // get container-login-token, associate with user
         String token = client.containerLogin(loginParams);
-        userDetailsService.addContainerToken(user, containerId, token);
+        authUtils.addContainerToken(user, containerId, token);
         return token;
     }
 
@@ -173,17 +172,10 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (! runningContainers.containsKey(containerId)) {
             throw new NoSuchElementException("Container not found: " + containerId);
         }
-        var token = userDetailsService.removeContainerToken(getUser(), containerId);
-        return token != null && getClient(containerId, tokens.get(containerId))
+        var token = authUtils.removeContainerToken(authUtils.getRequestUser(), containerId);
+        return token != null && getContainerClient(containerId)
                     .withExtraHeaders(Map.of(AgentContainerApi.HEADER_TOKEN, token))
                     .containerLogout();
-    }
-
-    @Override
-    public String renewToken() {
-        // if auth is disabled, this produces "Username not found" and thus 403, which is a bit weird but okay...
-        String owner = getUser();
-        return jwtUtil.generateToken(owner, Duration.ofHours(10));
     }
 
     /*
@@ -270,27 +262,27 @@ public class PlatformImpl implements RuntimePlatformApi {
         checkConfig(postContainer);
         checkRequirements(postContainer);
         String agentContainerId = UUID.randomUUID().toString();
-        String token = "";
-        String owner = "";
+        Map<String, String> env = new HashMap<>();
+        env.put(AgentContainerApi.ENV_OWNER, authUtils.getRequestUser());
+        String owner = authUtils.getRequestUser();
         if (config.requireAuth) {
-            token = jwtUtil.generateToken(agentContainerId, Duration.ofHours(24));
-            owner = getUser();
+            var clientSecret = authUtils.createClientAndGetSecret(agentContainerId, "OPACA AC of RP " + authUtils.platformId);
+            env.put(AgentContainerApi.ENV_KEYCLOAK_URL, config.keycloakIssuerUri);
+            env.put(AgentContainerApi.ENV_CLIENT_SECRET, clientSecret);
         }
-        // create user first so the container can immediately talk with the platform
-        userDetailsService.createTempSubUser(agentContainerId, owner);
 
         // start container... this may raise an Exception, or returns the connectivity info
         Connectivity connectivity;
         try {
-            connectivity = containerClient.startContainer(agentContainerId, token, owner, postContainer);
+            connectivity = containerClient.startContainer(agentContainerId, postContainer, env);
         } catch (Exception e) {
-            userDetailsService.removeUser(agentContainerId);
+            authUtils.deleteClient(agentContainerId);
             throw e;
         }
 
         // wait until container is up and running...
         var containerTimeout = System.currentTimeMillis() + (timeout > 0 ? timeout : config.containerTimeoutSec) * 1000L;
-        var client = getClient(agentContainerId, token);
+        var client = getContainerClient(agentContainerId);
         String errorMessage = "Container did not respond with /info in time.";
         while (System.currentTimeMillis() < containerTimeout) {
             // check whether container is still starting or alive at all
@@ -310,7 +302,7 @@ public class PlatformImpl implements RuntimePlatformApi {
                 // register container in different collections
                 runningContainers.put(agentContainerId, container);
                 startedContainers.put(agentContainerId, postContainer);
-                tokens.put(agentContainerId, token);
+                //tokens.put(agentContainerId, token);
                 validators.put(agentContainerId, new ArgumentValidator(container.getImage()));
                 log.info("Container started: {}", agentContainerId);
                 return agentContainerId;
@@ -331,7 +323,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         log.warn("Stopping Container. {}", errorMessage);
         try {
             containerClient.stopContainer(agentContainerId);
-            userDetailsService.removeUser(agentContainerId);
+            authUtils.deleteClient(agentContainerId);
         } catch (Exception e) {
             log.warn("Failed to stop container: {}", e.getMessage());
         }
@@ -374,7 +366,7 @@ public class PlatformImpl implements RuntimePlatformApi {
     @Override
     public boolean removeContainer(String containerId) throws IOException {
         AgentContainer container = runningContainers.get(containerId);
-        if (config.requireAuth && ! getUser().equals(config.platformAdminUser) && ! userDetailsService.isAdminOrSelf(container.getOwner())) {
+        if (config.requireAuth && ! isShuttingDown && ! authUtils.isAdminOrSelf(container.getOwner())) {
             // ignore if userToken == null; this is only the case iff the platform is about to shut down
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
@@ -382,9 +374,8 @@ public class PlatformImpl implements RuntimePlatformApi {
         runningContainers.remove(containerId);
         startedContainers.remove(containerId);
         validators.remove(containerId);
-        userDetailsService.removeUser(containerId);
+        authUtils.deleteClient(containerId);
         containerClient.stopContainer(containerId);
-        userDetailsService.removeContainerToken(getUser(), containerId);
         return true;
     }
 
@@ -400,23 +391,19 @@ public class PlatformImpl implements RuntimePlatformApi {
             return false;
         }
         // try to get info (with token, if given)
-        var token = connect.getToken();
+        var token = connect.getToken() != null ? connect.getToken() : authUtils.getPlatformToken();
         var client = getPlatformClient(url, token);
         var info = client.getPlatformInfo();
         // ask other platform to connect back to self?
         if (connect.isConnectBack()) {
             var ownUrl = config.getOwnBaseUrl();
-            var ownToken = config.requireAuth ? jwtUtil.generateToken(url, Duration.ofDays(7)) : null;
-            var owner = getUser();
-            userDetailsService.createTempSubUser(url, owner);
-            client.connectPlatform(new ConnectionRequest(ownUrl, false, ownToken));
+            client.connectPlatform(new ConnectionRequest(ownUrl, false, null));
         }
         // use websocket to connect to updates
-        openConnectionWebsocket(url, token);
+        openConnectionWebsocket(url);
 
         // store connection if all the above steps succeeded
         connectedPlatforms.put(url, info);
-        tokens.put(url, token);
         return true;
     }
 
@@ -431,15 +418,13 @@ public class PlatformImpl implements RuntimePlatformApi {
         checkUrl(url);
         if (connectedPlatforms.containsKey(url)) {
             connectedPlatforms.remove(url);
-            tokens.remove(url);
-            userDetailsService.removeUser(url);
             if (connectionWebsockets.containsKey(url)) {
                 var ws = connectionWebsockets.remove(url);
                 ws.sendClose(1000, "disconnected");
             }
             // disconnect other?
             if (disconnect.isConnectBack()) {
-                var client = getPlatformClient(url, disconnect.getToken());
+                var client = getPlatformClient(url, authUtils.getPlatformToken());
                 var ownUrl = config.getOwnBaseUrl();
                 client.disconnectPlatform(new ConnectionRequest(ownUrl, false, null));
             }
@@ -457,7 +442,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             throw new NoSuchElementException(msg);
         }
         try {
-            var client = this.getClient(containerId, tokens.get(containerId));
+            var client = getContainerClient(containerId);
             var containerInfo = client.getContainerInfo();
             containerInfo.setConnectivity(runningContainers.get(containerId).getConnectivity());
             runningContainers.put(containerId, containerInfo);
@@ -499,27 +484,11 @@ public class PlatformImpl implements RuntimePlatformApi {
      */
 
     /**
-     * Get the logged-in user from the user token in auth context, or default user if no auth.
-     * The default-user is only relevant for container-login if no auth is enabled and only used
-     * to associate the container logins with.
-     */
-    private String getUser() {
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        var token = auth != null ? (String) auth.getCredentials() : null;
-        if (token != null && ! token.isEmpty()) {
-            return jwtUtil.getUsernameFromToken(token);
-        } else if (! config.requireAuth){
-            return config.platformAdminUser;
-        } else {
-            return null;
-        }
-    }
-
-    /**
      * Create Websocket connection and associate it with the connected platform's URL, to be closed when disconnected
      */
-    private void openConnectionWebsocket(String url, String token) {
+    private void openConnectionWebsocket(String url) {
         try {
+            var token = authUtils.getPlatformToken();
             var res = WebSocketConnector.subscribe(url, token, "/containers", msg -> notifyUpdatePlatform(url));
             connectionWebsockets.put(url, res.get());
         } catch (ExecutionException | InterruptedException e) {
@@ -586,7 +555,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         // var clients = new HashMap<ApiProxy, MatchResult>();
 
         var localMatches = runningContainers.values().stream().map(container -> {
-            var client = getClient(container.getContainerId(), tokens.get(container.getContainerId()));
+            var client = getContainerClient(container.getContainerId());
             return new ClientMatch(containerId, agentId, action, parameters, stream)
                     .makeContainerMatch(container, client);
         });
@@ -594,7 +563,7 @@ public class PlatformImpl implements RuntimePlatformApi {
         if (!includeConnected) return localMatches;
 
         var platformMatches = connectedPlatforms.entrySet().stream().map(entry -> {
-            var client = getPlatformClient(entry.getKey(), tokens.get(entry.getKey()));
+            var client = getPlatformClient(entry.getKey(), authUtils.getPlatformToken());
             return new ClientMatch(containerId, agentId, action, parameters, stream)
                     .makePlatformMatch(entry.getValue(), client);
         });
@@ -616,8 +585,9 @@ public class PlatformImpl implements RuntimePlatformApi {
         ) : runningContainers.values().stream();
     }
 
-    private ApiProxy getClient(String containerId, String token) {
+    private ApiProxy getContainerClient(String containerId) {
         var url = containerClient.getUrl(containerId);
+        String token = authUtils.getPlatformToken();
         return new ApiProxy(url, config.getOwnBaseUrl(), token);
     }
 
@@ -658,12 +628,15 @@ public class PlatformImpl implements RuntimePlatformApi {
     }
 
     protected void testSelfConnection() throws Exception {
-        var token = config.requireAuth ?
-                userDetailsService.generateTokenForUser(config.platformAdminUser, config.platformAdminPwd) : null;
+        var token = authUtils.getPlatformToken();
         var info = new ApiProxy(config.getOwnBaseUrl(), null, token).withTimeout(5000).getPlatformInfo();
-        if (! Objects.equals(platformId, info.getPlatformId())) {
+        if (! Objects.equals(authUtils.platformId, info.getPlatformId())) {
             throw new IllegalArgumentException("Mismatched Platform ID");
         }
+    }
+
+    public void setIsShuttingDown() {
+        this.isShuttingDown = true;
     }
 
     /**
@@ -800,7 +773,7 @@ public class PlatformImpl implements RuntimePlatformApi {
             if (actualContainerId == null) {
                 return client;
             }
-            var containerLoginToken = userDetailsService.getContainerToken(getUser(), actualContainerId);
+            var containerLoginToken = authUtils.getContainerToken(authUtils.getRequestUser(), actualContainerId);
             // not logged in to container
             if (containerLoginToken == null) {
                 return client;

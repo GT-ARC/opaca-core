@@ -95,7 +95,7 @@ public class KubernetesClient extends AbstractContainerClient {
     }
 
     @Override
-    public AgentContainer.Connectivity startContainer(String containerId, String token, String owner, PostAgentContainer container) throws IOException, NoSuchElementException {
+    public AgentContainer.Connectivity startContainer(String containerId, PostAgentContainer container, Map<String, String> env) throws IOException, NoSuchElementException {
         var image = container.getImage();
         var imageName = image.getImageName();
         var registry = imageName.split("/")[0];
@@ -117,7 +117,7 @@ public class KubernetesClient extends AbstractContainerClient {
                                         .ports(List.of(
                                                 new V1ContainerPort().containerPort(image.getApiPort())
                                         ))
-                                        .env(toK8sEnv(buildContainerEnv(containerId, token, owner, image.getParameters(), container.getArguments(), portMap)))
+                                        .env(toK8sEnv(buildContainerEnv(containerId, env, image.getParameters(), container.getArguments(), portMap)))
                         ))
                         .imagePullSecrets(registrySecret == null ? null : List.of(new V1LocalObjectReference().name(registrySecret)))
                 ;

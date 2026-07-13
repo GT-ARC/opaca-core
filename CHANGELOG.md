@@ -2,6 +2,7 @@
 
 ## 0.5 Snapshot
 
+* replaced custom simple UserManagement with proper Keycloak integration 
 * added `url` field to container image description
 * added `defaultValue` to action parameter description
 * added `includeConnected` parameter to `GET /containers` route, analogous to `GET /agents` and others

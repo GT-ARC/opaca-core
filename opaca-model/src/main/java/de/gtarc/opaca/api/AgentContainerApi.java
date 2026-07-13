@@ -18,10 +18,13 @@ public interface AgentContainerApi extends CommonApi{
     /** name of env var holding the parent platform's URL */
     String ENV_PLATFORM_URL = "PLATFORM_URL";
 
-    /** name of env var holding the container's own access token (if auth is enabled, else null/empty) */
-    String ENV_TOKEN = "TOKEN";
+    /** name of env var holding the Keycloak URL incl. the Realm (if auth is enabled, else null/empty) */
+    String ENV_KEYCLOAK_URL = "KEYCLOAK_URL";
 
-    /** name of the user who started the container (if auth is enabled, else null/empty) */
+    /** name of env var holding the container's own Keycloak client-secret (the client-id is the container's own ID) (if auth is enabled, else null/empty) */
+    String ENV_CLIENT_SECRET = "CLIENT_SECRET";
+
+    /** name of the user who started the container, or "anonymous" if no user was logged in */
     String ENV_OWNER = "OWNER";
 
     /** which ports on the host the container's ports are mapped to, in the format "containerPort1:hostPort1,..." */

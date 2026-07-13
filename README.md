@@ -103,15 +103,8 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 * `KUBERNETES_CONFIG` (default: "~/.kube/config") Alternative location for Kubernetes config.
 
 ### Security & Authentication
-* `REQUIRE_AUTH` (default: false) Whether to require token-based authentication on most routes; see [Authentication](doc/auth.md) for details.
-* `SECRET` (default: null) The secret used to encrypt and decrypt the JWT tokens used for authentication, needed for logging in as a user.
-* `PLATFORM_ADMIN_USER` (default: admin) Name of the "admin" user
-* `PLATFORM_ADMIN_PWD` (default: "") Password of the "admin" user
+* Please refer to the section on [Authentication](doc/auth.md) for context and details.
 
-### User Management MongoDB
-* `DB_EMBED` (default: true) Switches between an embedded and external MongoDB.
-* `DB_URI` (default: mongodb://user:pass@localhost:27017/admin) Url of the running MongoDB service. If the platform is running in a container itself, use the name of the container running the Mongo service as a host name (e.g. opaca-data). For further details, click [here](doc/user-management.md#mongodb-docker-container).
-* `DB_NAME` (default: opaca-user-data) Name of the database which will store user-related information. Only available for the external MongoDB.
 
 You can set those properties in the run config in your IDE, via an `.env` file, using `export` on the shell or in a `docker-compose.yml` file. Note that if you have one of those properties in e.g. your `.env` file, and it does not have a value, that may still overwrite the default and set the value to `null` or the empty string.
 
@@ -154,6 +147,11 @@ docker container run \
   ghcr.io/gt-arc/opaca/opaca-platform:<VERSION>
 ```
 
+### Docker Compose
+
+The `opaca-platform` also includes a Docker Compose file, which automatically forwards all relevant Environment Variables from a local `.env` file and also can be used to start the OPACA Runtime Platform along with a Keycloak server for authentication. Use `--profile keycloak` to start the Keycloak server and database along with the OPACA platform. You can use this Docker Compose as a blueprint for your own "all included" setup. If you want to start _only_ Keycloak, e.g. for local testing, you can use the minimal Keycloak setup in the `keycloak` directory.
+
+
 ## Additional Information
 
 * [API Routes and Models](doc/api.md)
@@ -162,7 +160,6 @@ docker container run \
 * [Execution Environments](doc/environments.md)
 * [Session Handling](doc/session.md)
 * [Authentication](doc/auth.md)
-* [User Management](doc/user-management.md)
 * [Parameter Validation](doc/validation.md)
 * [JIAC VI Basics](doc/jiac-vi.md)
 * [Websockets](doc/websockets.md)

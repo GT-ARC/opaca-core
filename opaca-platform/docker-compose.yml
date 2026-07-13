@@ -1,5 +1,3 @@
-version: "3.3"
-
 services:
 
   # THE MAIN OPACA RUNTIME PLATFORM RUNNING IN DOCKER
@@ -9,8 +7,6 @@ services:
     image: opaca-platform
     ports:
       - "8000:8000"
-    depends_on:
-      - opaca-platform-userdb
     # Environment variables with no value after ":" are taken from .env file
     environment:
       # General Settings; NOTE: PUBLIC_URL must be set for PLATFORM_ENVIRONMENT 'DOCKER'!
@@ -26,13 +22,10 @@ services:
       LOG_LEVEL:
       # Security & Authentication
       REQUIRE_AUTH:
-      SECRET:
-      PLATFORM_ADMIN_USER:
-      PLATFORM_ADMIN_PWD:
-      # User Management DB
-      DB_EMBED: false
-      DB_URI: mongodb://user:pass@opaca-platform-userdb:27017/admin
-      DB_NAME: opaca-user-data
+      KC_ISSUER_URI:
+      KC_CLIENT:
+      KC_ADMIN:
+      KC_ADMIN_PW:
       # Image Registry Credentials
       REGISTRY_SEPARATOR:
       REGISTRY_NAMES:
@@ -48,23 +41,36 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
-  # Defines a mongoDB container running alongside the platform container
-  opaca-platform-userdb:
-    image: mongo:7.0.4
-    ports:
-      - "27017:27017"
-    # Use "user" and "pass" as default username:password for the created database
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: user
-      MONGO_INITDB_ROOT_PASSWORD: pass
-    # Use a volume for persistent data storage
-    volumes:
-      - data:/data/db
-      - config:/data/configdb
+  # KEYCLOAK for Authentication (optional)
 
-# Create a volume to persistently store data
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.5.0
+    command: start-dev
+    ports:
+      - "9000:8080"
+    depends_on:
+      - keycloak_db
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: keycloak_db
+      KC_DB_USERNAME: ${KC_DB_USER}
+      KC_DB_PASSWORD: ${KC_DB_PW}
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    profiles:
+      - keycloak
+
+  keycloak_db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: ${KC_DB_USER}
+      POSTGRES_PASSWORD: ${KC_DB_PW}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    profiles:
+      - keycloak
+
 volumes:
-  data:
-    driver: local
-  config:
+  postgres_data:
     driver: local

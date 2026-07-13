@@ -1,14 +1,19 @@
 package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.model.*;
-import de.gtarc.opaca.model.User.Role;
 import de.gtarc.opaca.model.AgentContainerImage.ImageParameter;
+import de.gtarc.opaca.platform.Application;
 import de.gtarc.opaca.util.RestHelper;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.*;
+import java.net.DatagramSocket;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +28,45 @@ public class TestUtils {
      * during CI. When running tests locally, make sure to build the image first, with this name.
      */
     static final String TEST_IMAGE = "sample-agent-container-image";
+
+    /**
+     * Start OPACA Runtime for testing using specific settings.
+     *
+     * @param port The port there the platform should run.
+     * @param defaultImages Whether to use the default-test-images directory.
+     * @param requireAuth Whether to require authentication (will also require Keycloak)
+     * @param useKeycloak Whether to use Keycloak (does not require auth)
+     * @param keycloakPort Port where Keycloak is running, if it is used
+     * @return application context, to be closed when tests are done.
+     */
+    public static ConfigurableApplicationContext startPlatform(int port, boolean defaultImages, boolean requireAuth, boolean useKeycloak, int keycloakPort) {
+        List<String> parameters = new ArrayList<>();
+        parameters.add("--server.port=" + port);
+        if (defaultImages) {
+            parameters.add("--opaca.default_image_directory=./default-test-images");
+        }
+        if (requireAuth) {
+            parameters.add("--opaca.security.requireAuth=true");
+        }
+        if (useKeycloak || requireAuth) {
+            var keycloak = String.format("http://%s:%d/realms/opaca", getOwnIP(), keycloakPort);
+            parameters.add("--opaca.security.kc_issuer_uri=" + keycloak);
+            parameters.add("--opaca.security.kc_clientid=opaca-rp");
+            parameters.add("--opaca.security.kc_admin=admin");
+            parameters.add("--opaca.security.kc_admin_pw=admin");
+            parameters.add("--spring.security.oauth2.resourceserver.jwt.issuer-uri=" + keycloak);
+        }
+        return SpringApplication.run(Application.class, parameters.toArray(String[]::new));
+    }
+
+    public static String getOwnIP() {
+        try (DatagramSocket socket = new DatagramSocket()) {
+            socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
+            return socket.getLocalAddress().getHostAddress();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     /*
      * HELPER METHODS
@@ -157,9 +201,5 @@ public class TestUtils {
             var message = new String(con.getErrorStream().readAllBytes());
             throw new IOException("Failed to connect platforms: " + message);
         }
-    }
-
-    public static User user(String name, String pwd, Role role) {
-        return new User(name, pwd, role, null, Map.of());
     }
 }

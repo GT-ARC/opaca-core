@@ -145,13 +145,6 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 		return implementation.platformLogin(loginParams);
 	}
 
-	@GetMapping("/token")
-	@Operation(summary="Renew token for logged in user.", tags={"authentication"})
-	public String renewToken() throws IOException {
-		log.info("GET /token");
-		return implementation.renewToken();
-	}
-
 	/*
 	 * INFO ROUTES
 	 */

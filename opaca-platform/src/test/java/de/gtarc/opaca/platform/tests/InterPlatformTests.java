@@ -1,10 +1,8 @@
 package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.model.RuntimePlatform;
-import de.gtarc.opaca.platform.Application;
 import org.junit.*;
 import org.junit.rules.TestName;
-import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.util.List;
@@ -33,10 +31,8 @@ public class InterPlatformTests {
 
     @BeforeClass
     public static void setupPlatforms() throws Exception {
-        platformA = SpringApplication.run(Application.class,
-                "--server.port=" + PLATFORM_A_PORT);
-        platformB = SpringApplication.run(Application.class,
-                "--server.port=" + PLATFORM_B_PORT);
+        platformA = TestUtils.startPlatform(PLATFORM_A_PORT, false, false, false, -1);
+        platformB = TestUtils.startPlatform(PLATFORM_B_PORT, false, false, false, -1);
         containerId = postSampleContainer(PLATFORM_A_URL);
         connectPlatforms(PLATFORM_B_URL, PLATFORM_A_URL);
         checkInvariantStatic();

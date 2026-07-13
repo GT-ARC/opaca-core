@@ -9,7 +9,7 @@ import de.gtarc.opaca.model.AgentDescription
 
 data class Register(val description: AgentDescription, val notify: Boolean)
 
-data class Registered(val parentUrl: String?, val containerId: String, val authToken: String?)
+data class Registered(val containerId: String)
 
 data class DeRegister(val agentId: String, val notify: Boolean)
 
@@ -23,7 +23,6 @@ enum class LoginStatus {
 // and its parameters, to be handled by an invoke-ask "respond" handler.
 
 data class Invoke(val name: String, val parameters: Map<String, JsonNode>, val loginToken: String? = null)
-data class RenewToken(val value: String)
 
 data class StreamGet(val name: String)
 data class StreamPost(val name: String, val body: ByteArray)

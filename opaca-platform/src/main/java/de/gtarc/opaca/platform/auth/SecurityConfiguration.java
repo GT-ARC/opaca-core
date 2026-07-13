@@ -1,6 +1,5 @@
 package de.gtarc.opaca.platform.auth;
 
-import de.gtarc.opaca.model.User.Role;
 import de.gtarc.opaca.platform.PlatformConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -8,49 +7,26 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.SignatureException;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.stream.Stream;
 
 /**
  * The SecurityConfiguration class is a configuration class for enabling and configuring authentication for the Spring
- * application. The inner class JwtRequestFilter is the filter that is applied to ensure that only authenticated and
- * authorized users are allowed for requesting the platform.
+ * application. The users are managed and JWTs are created by KeyCloak. Users have access to different routes based on
+ * their roles. The roles and their hierarchy has to be defined in Keycloak; see Documentation (auth.md) for details.
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration {
 
     @Autowired
-    private UserDetailsService myUserDetailsService;
-
-    @Autowired
-    private JwtUtil jwtUtil;
+    private JwtConverter jwtConverter;
 
     @Autowired
     private PlatformConfig config;
@@ -76,120 +52,47 @@ public class SecurityConfiguration {
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(CsrfConfigurer::disable);
-        if (config.requireAuth) {
-            // role-based access control if auth is required
-            http.authorizeHttpRequests((auth) -> auth
+        Customizer<AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry> authPolicy = config.requireAuth
+                // Role-Based Access Control if auth is required
+                ? auth -> auth
                     // some routes, like those related to OpenAPI and login, should work without Authentication
                     // (except for the OpenAPI route giving insight into the agents' actions)
-                    .requestMatchers(HttpMethod.GET, "/v3/api-docs/actions").hasRole(Role.GUEST.name())
+                    .requestMatchers(HttpMethod.GET, "/v3/api-docs/actions").hasRole(AuthUtils.ROLE_GUEST)
                     .requestMatchers(noAuthRoutes).permitAll()
                     // The next block implements the RBAC defined in the user-management docs
-                    // A rule consists of a specific or generic (/**) route, the lowest role level
-                    // to access the route (see role hierarchy), and the optional REST method
-                    // the route is requested with (if none given, all methods are concerned)
-                    .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
-                    .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**", "/users/**").hasRole(Role.GUEST.name())
-                    .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole(Role.USER.name())
-                    .requestMatchers(HttpMethod.POST, "/containers/login/**", "/containers/logout/**").hasRole(Role.USER.name())
-                    .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**", "/stream/**").hasRole(Role.USER.name())
-                    .requestMatchers(HttpMethod.POST, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
-                    .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole(Role.CONTRIBUTOR.name())
-                    .requestMatchers("/connections/**", "/users/**").hasRole(Role.ADMIN.name())
+                    .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**").hasRole(AuthUtils.ROLE_GUEST)
+                    .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole(AuthUtils.ROLE_USER)
+                    .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**", "/stream/**").hasRole(AuthUtils.ROLE_USER)
+                    .requestMatchers(HttpMethod.POST, "/containers/login/**", "/containers/logout/**").hasRole(AuthUtils.ROLE_USER)
+                    .requestMatchers(HttpMethod.POST, "/containers/notify").hasRole(AuthUtils.ROLE_USER)
+                    .requestMatchers(HttpMethod.POST, "/containers/**").hasRole(AuthUtils.ROLE_CONTRIBUTOR)
+                    .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole(AuthUtils.ROLE_CONTRIBUTOR)
+                    .requestMatchers("/connections/notify").hasRole(AuthUtils.ROLE_USER)
+                    .requestMatchers("/connections/**").hasRole(AuthUtils.ROLE_MANAGER)
                     .anyRequest().authenticated()
-            );
-        } else {
-            // permit-all if no auth required (but still enable auth)
-            http.authorizeHttpRequests((auth) -> auth
-                    .anyRequest().permitAll()
-            );
-        }
-        return http
-                .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(new JwtRequestFilter(), UsernamePasswordAuthenticationFilter.class)
-                .build();
-    }
+                // no auth required -> permit all (but still path JWT tokens)
+                : auth -> auth.anyRequest().permitAll();
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
-            throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
+        // no sessions / stateless; no CSRF necessary
+        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        http.csrf(CsrfConfigurer::disable);
+        if (config.isSet(config.keycloakIssuerUri)) {
+            // JWT access tokens using OAuth2/Keycloak
+            http.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtConverter)));
+        }
+        // authorization rules with required-auth and without
+        http.authorizeHttpRequests(authPolicy);
+        return http.build();
     }
 
     @Bean
     public RoleHierarchy roleHierarchy() {
         RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
-        String hierarchy = Role.ADMIN.role() + " > " + Role.CONTRIBUTOR.role() + " \n " +
-                           Role.CONTRIBUTOR.role() + " > " + Role.USER.role() + " \n " +
-                           Role.USER.role() + " > " + Role.GUEST.role();
-        roleHierarchy.setHierarchy(hierarchy);
+        roleHierarchy.setHierarchy("""
+                ROLE_MANAGER > ROLE_CONTRIBUTOR
+                ROLE_CONTRIBUTOR > ROLE_USER
+                ROLE_USER > ROLE_GUEST
+                """);
         return roleHierarchy;
-    }
-
-    public class JwtRequestFilter extends OncePerRequestFilter {
-
-        @Override
-        protected boolean shouldNotFilterAsyncDispatch() {
-            return false; // fix missing auth on (async) streaming routes
-        }
-
-        @Override
-        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
-                throws ServletException, IOException {
-            String requestTokenHeader = request.getHeader("Authorization");
-
-            if (requestTokenHeader != null || uriNeedsAuth(request.getRequestURI())) {
-                String username = null;
-                String jwtToken = null;
-                // get username from token (thus validating that the token was issued from RP)
-                if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
-                    jwtToken = requestTokenHeader.substring(7);
-                    try {
-                        username = jwtUtil.getUsernameFromToken(jwtToken);
-                    } catch (SignatureException | IllegalArgumentException | MalformedJwtException e) {
-                        handleException(response, HttpStatus.UNAUTHORIZED, e.getMessage());
-                    }
-                } else {
-                    handleException(response, HttpStatus.UNAUTHORIZED, "Missing Token.");
-                }
-
-                // check that user (still) exists and set jwtToken in security context holder so impl can access it
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    try {
-                        UserDetails userDetails = myUserDetailsService.loadUserByUsername(username);
-                        if (jwtUtil.validateToken(jwtToken, userDetails)) {
-                            var authToken = new UsernamePasswordAuthenticationToken(userDetails, jwtToken, userDetails.getAuthorities());
-                            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                            SecurityContextHolder.getContext().setAuthentication(authToken);
-                        } else {
-                            handleException(response, HttpStatus.UNAUTHORIZED, "Invalid Token.");
-                        }
-                    } catch (UsernameNotFoundException e) {
-                        handleException(response, HttpStatus.UNAUTHORIZED, "Username not found.");
-                    }
-                }
-            }
-            if (response.getStatus() < 400) {
-                chain.doFilter(request, response);
-            }
-        }
-
-        private void handleException(HttpServletResponse response, HttpStatus status, String message)
-                throws IOException {
-            response.setStatus(status.value());
-            response.setHeader("www-authenticate", "Bearer");
-            response.getWriter().write(message);
-        }
-    }
-
-    /**
-     * Check whether the given request URI needs auth
-     * @param uri The Path-part of the URI (after the port)
-     * @return Whether the URI requires auth
-     */
-    private boolean uriNeedsAuth(String uri) {
-        if (! config.requireAuth) return false;
-        if (uri.startsWith("/v3/api-docs/actions")) return true; // exception from the exceptions...
-        return Stream.of(noAuthRoutes).noneMatch(s -> uri.startsWith(s.replace("**", "")));
     }
 }

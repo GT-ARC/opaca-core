@@ -99,11 +99,6 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         return client.post(path, null, Boolean.class);
     }
 
-    @Override
-    public String renewToken() throws IOException {
-        return client.readStream(client.request("GET", "/token", null));
-    }
-
     // AGENT ROUTES
 
     @Override

@@ -11,7 +11,7 @@ title Authentication to Runtime Platform and Agent Container
 hnote across: platform login
 
 U -> P: /login (usr1, pwd1)
-P -> P: create token
+P -> P: get Keycloak token
 U <-- P: platform-token
 
 hnote across: container login

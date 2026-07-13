@@ -2,14 +2,12 @@ package de.gtarc.opaca.platform.tests;
 
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.*;
-import de.gtarc.opaca.platform.Application;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.junit.*;
 import org.junit.rules.TestName;
-import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.BufferedReader;
@@ -44,9 +42,8 @@ public class ContainerTests {
 
     @BeforeClass
     public static void setupPlatform() throws Exception {
-        platform = SpringApplication.run(Application.class,
-                "--security.secret=noAuthButNeededForCreatingUsersAlsoHasToHaveSomeMinLength",
-                "--server.port=" + PLATFORM_PORT);
+        var kcPort = KeycloakTestUtil.startKeycloak();
+        platform = TestUtils.startPlatform(PLATFORM_PORT, false, false, true, kcPort);
         containerId = postSampleContainer(PLATFORM_URL);
         checkInvariantStatic();
     }
@@ -54,6 +51,7 @@ public class ContainerTests {
     @AfterClass
     public static void stopPlatform() {
         platform.close();
+        KeycloakTestUtil.stopKeycloak();
     }
 
     @Rule
@@ -666,9 +664,7 @@ public class ContainerTests {
      */
     @Test
     public void testContainerLoginNoAuthButUsers() throws Exception {
-        // create two users for testing
-        result(request(PLATFORM_URL, "POST", "/users", user("user1", "12345", User.Role.USER)));
-        result(request(PLATFORM_URL, "POST", "/users", user("user2", "12345", User.Role.USER)));
+        // login as two users for testing
         var token1 = result(request(PLATFORM_URL, "POST", "/login", new Login("user1", "12345")));
         var token2 = result(request(PLATFORM_URL, "POST", "/login", new Login("user2", "12345")));
 
@@ -699,17 +695,6 @@ public class ContainerTests {
         con = requestWithToken(PLATFORM_URL, "POST", "/invoke/LoginTest", Map.of(), token2);
         Assert.assertEquals(200, con.getResponseCode());
         Assert.assertEquals("\"Logged in as container user 2\"", result(con));
-    }
-
-    /**
-     * if auth is disabled, no token should be passed to container
-     */
-    @Test
-    public void testAuthNoToken() throws Exception {
-        var con = request(PLATFORM_URL, "POST", "/invoke/GetInfo", Map.of());
-        Assert.assertEquals(200, con.getResponseCode());
-        var res = result(con, Map.class);
-        Assert.assertEquals("", res.get(AgentContainerApi.ENV_TOKEN));
     }
 
     /**
