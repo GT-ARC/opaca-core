@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.5 Snapshot
+## 0.5 Release
 
 * added `url` field to container image description
 * added `defaultValue` to action parameter description
