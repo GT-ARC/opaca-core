@@ -21,6 +21,9 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.event.EventListener;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import de.gtarc.opaca.platform.event.ContainerChangedEvent;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerResponse;
 
@@ -70,11 +73,19 @@ public class PlatformMcpController {
 
     @Bean
     public RouterFunction<ServerResponse> mcpRouterFunction() {
-        return transportProvider.getRouterFunction()
-                .filter((request, next) -> {
-                    syncTools();
-                    return next.handle(request);
-                });
+        return transportProvider.getRouterFunction();
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void onApplicationReady() {
+        log.info("Application ready, performing initial tool synchronization...");
+        syncTools();
+    }
+
+    @EventListener
+    public void onContainerChanged(ContainerChangedEvent event) {
+        log.info("Received container changed event, syncing tools: {}", event);
+        syncTools();
     }
 
     private synchronized void syncTools() {
