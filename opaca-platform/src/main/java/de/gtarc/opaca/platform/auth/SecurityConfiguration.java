@@ -63,6 +63,7 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**").hasRole(AuthUtils.ROLE_GUEST)
                     .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole(AuthUtils.ROLE_USER)
                     .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**", "/stream/**").hasRole(AuthUtils.ROLE_USER)
+                    .requestMatchers("/mcp", "/mcp/**").hasRole(AuthUtils.ROLE_USER)
                     .requestMatchers(HttpMethod.POST, "/containers/login/**", "/containers/logout/**").hasRole(AuthUtils.ROLE_USER)
                     .requestMatchers(HttpMethod.POST, "/containers/notify").hasRole(AuthUtils.ROLE_USER)
                     .requestMatchers(HttpMethod.POST, "/containers/**").hasRole(AuthUtils.ROLE_CONTRIBUTOR)

@@ -44,6 +44,18 @@
 			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
 		</dependency>
 
+		<!-- MCP -->
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+			<version>2.0.0</version>
+		</dependency>
+		<dependency>
+			<groupId>io.modelcontextprotocol.sdk</groupId>
+			<artifactId>mcp-json-jackson2</artifactId>
+			<version>2.0.0</version>
+		</dependency>
+
 		<!-- for User Management -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -65,6 +77,11 @@
 		</dependency>
 
 		<dependency>
+			<groupId>com.networknt</groupId>
+			<artifactId>json-schema-validator</artifactId>
+			<version>3.0.6</version>
+		</dependency>
+		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-impl</artifactId>
 			<version>0.13.0</version>
@@ -74,11 +91,7 @@
 			<artifactId>jjwt-jackson</artifactId>
 			<version>0.13.0</version>
 		</dependency>
-		<dependency>
-			<groupId>com.networknt</groupId>
-			<artifactId>json-schema-validator</artifactId>
-			<version>1.5.5</version>
-		</dependency>
+
 
 		<!-- Docker API for Java -->
 		<dependency>
