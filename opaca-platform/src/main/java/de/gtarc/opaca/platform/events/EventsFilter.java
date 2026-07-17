@@ -1,10 +1,9 @@
-package de.gtarc.opaca.platform;
+package de.gtarc.opaca.platform.events;
 
 import de.gtarc.opaca.model.Event;
 import de.gtarc.opaca.util.EventHistory;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
-import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import java.io.IOException;

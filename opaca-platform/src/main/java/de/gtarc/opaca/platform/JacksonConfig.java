@@ -11,7 +11,7 @@ import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
  * Jackson Configuration for e.g. resolving Dates and Times, or variants on nested objects.
  */
 @Configuration
-public class JacksonConfiguration {
+public class JacksonConfig {
 
     @Bean
     @Primary
