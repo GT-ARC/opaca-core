@@ -64,11 +64,19 @@ public class AuthUtils {
                 System.exit(1);
             }
             // create client for platform itself
-            try {
-                platformClientSecret = createClientAndGetSecret(platformId, "OPACA RP at " + config.getOwnBaseUrl());
-            } catch (Exception e) {
-                log.fatal("Could not get Platform Client Secret. Is Keycloak running and the realm configured?");
-                System.exit(1);
+            for (int i = 0; i < 10; i++) {
+                try {
+                    platformClientSecret = createClientAndGetSecret(platformId, "OPACA RP at " + config.getOwnBaseUrl());
+                    break;
+                } catch (Exception e) {
+                    if (i < 9) {
+                        log.warn("Could not get Platform Client Secret. Retrying in 5s...");
+                        try { Thread.sleep(5000); } catch (InterruptedException ex) {}
+                    } else {
+                        log.fatal("Could not get Platform Client Secret after 10 tries. Is Keycloak running and the realm configured?");
+                        System.exit(1);
+                    }
+                }
             }
         }
     }
