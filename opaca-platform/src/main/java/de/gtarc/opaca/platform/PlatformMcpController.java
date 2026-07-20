@@ -24,6 +24,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import de.gtarc.opaca.platform.event.ContainerChangedEvent;
+import de.gtarc.opaca.platform.util.ActionToOpenApi;
+import io.swagger.v3.oas.models.media.ObjectSchema;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerResponse;
 
@@ -100,7 +102,7 @@ public class PlatformMcpController {
 
                     if (!registeredTools.contains(toolName)) {
                         try {
-                            Map<String, Object> inputSchema = buildInputSchema(action);
+                            Map<String, Object> inputSchema = buildInputSchema(container, action);
 
                             McpSchema.Tool tool = McpSchema.Tool.builder(toolName, inputSchema)
                                     .description(action.getDescription() != null ? action.getDescription() : "")
@@ -176,94 +178,52 @@ public class PlatformMcpController {
         }
     }
 
-    private Map<String, Object> buildInputSchema(Action action) {
-        Map<String, Object> schema = new HashMap<>();
-        schema.put("type", "object");
-
-        Map<String, Object> properties = new HashMap<>();
-        List<String> required = new ArrayList<>();
-
+    private Map<String, Object> buildInputSchema(AgentContainer container, Action action) {
+        ObjectSchema requestBodySchema = new ObjectSchema();
+        List<String> requiredList = new ArrayList<>();
         if (action.getParameters() != null) {
-            for (Map.Entry<String, Parameter> entry : action.getParameters().entrySet()) {
-                String paramName = entry.getKey();
-                Parameter param = entry.getValue();
-                properties.put(paramName, convertParameterToSchema(param));
-                if (param.isRequired()) {
-                    required.add(paramName);
+            for (var parameter : action.getParameters().entrySet()) {
+                requestBodySchema.addProperty(
+                        parameter.getKey(),
+                        ActionToOpenApi.schemaFromParameter(parameter.getValue(), "#/definitions/"));
+                if (parameter.getValue().isRequired()) {
+                    requiredList.add(parameter.getKey());
                 }
             }
         }
-
-        schema.put("properties", properties);
-        if (!required.isEmpty()) {
-            schema.put("required", required);
+        if (!requiredList.isEmpty()) {
+            requestBodySchema.setRequired(requiredList);
         }
 
-        return schema;
-    }
+        // Convert the Swagger ObjectSchema to Map<String, Object>
+        Map<String, Object> schemaMap = io.swagger.v3.core.util.Json.mapper().convertValue(
+                requestBodySchema,
+                new TypeReference<Map<String, Object>>() {
+                });
 
-    private Map<String, Object> convertParameterToSchema(Parameter parameter) {
-        Map<String, Object> propSchema = new HashMap<>();
-        if (parameter == null || "null".equals(parameter.getType())) {
-            propSchema.put("type", "null");
-            return propSchema;
-        }
+        // Inject custom schema definitions if available in the container image
+        if (container.getImage() != null) {
+            Map<String, Object> definitionsMap = new HashMap<>();
 
-        switch (parameter.getType()) {
-            case "string":
-                propSchema.put("type", "string");
-                break;
-            case "number":
-                propSchema.put("type", "number");
-                break;
-            case "integer":
-                propSchema.put("type", "integer");
-                break;
-            case "boolean":
-                propSchema.put("type", "boolean");
-                break;
-            case "object":
-                propSchema.put("type", "object");
-                break;
-            case "array":
-                propSchema.put("type", "array");
-                if (parameter.getItems() != null) {
-                    propSchema.put("items", convertArrayItemsToSchema(parameter.getItems()));
+            // Add standard custom definitions defined inside image
+            if (container.getImage().getDefinitions() != null) {
+                for (var definition : container.getImage().getDefinitions().entrySet()) {
+                    definitionsMap.put(definition.getKey(), definition.getValue());
                 }
-                break;
-            default:
-                // Custom object reference, default to general object schema
-                propSchema.put("type", "object");
-                break;
-        }
+            }
 
-        if (parameter.getDefaultValue() != null) {
-            propSchema.put("default", parameter.getDefaultValue());
-        }
-
-        return propSchema;
-    }
-
-    private Map<String, Object> convertArrayItemsToSchema(Parameter.ArrayItems items) {
-        Map<String, Object> itemsSchema = new HashMap<>();
-        switch (items.getType()) {
-            case "string":
-            case "number":
-            case "integer":
-            case "boolean":
-            case "object":
-                itemsSchema.put("type", items.getType());
-                break;
-            case "array":
-                itemsSchema.put("type", "array");
-                if (items.getItems() != null) {
-                    itemsSchema.put("items", convertArrayItemsToSchema(items.getItems()));
+            // Add custom definitions by URL as $ref schemas
+            if (container.getImage().getDefinitionsByUrl() != null) {
+                for (var definition : container.getImage().getDefinitionsByUrl().entrySet()) {
+                    definitionsMap.put(definition.getKey(), Map.of("$ref", definition.getValue()));
                 }
-                break;
-            default:
-                itemsSchema.put("type", "object");
-                break;
+            }
+
+            if (!definitionsMap.isEmpty()) {
+                schemaMap.put("definitions", definitionsMap);
+            }
         }
-        return itemsSchema;
+
+        return schemaMap;
     }
 }
