@@ -160,12 +160,24 @@ public class PlatformMcpController {
             // Invoke the existing agent execution logic directly
             JsonNode result = agentsService.invoke(actionName, parameters, agentId, -1, null, true);
 
-            String resultText = result != null ? objectMapper.writeValueAsString(result) : "null";
-            return McpSchema.CallToolResult.builder()
-                    .content(List.of(McpSchema.TextContent.builder(resultText).build()))
-                    .isError(false)
-                    .build();
+            // Prevent double-quoting strings in TextContent
+            String resultText;
+            if (result == null) {
+                resultText = "null";
+            } else if (result.isTextual()) {
+                resultText = result.asText();
+            } else {
+                resultText = objectMapper.writeValueAsString(result);
+            }
+            McpSchema.CallToolResult.Builder builder = McpSchema.CallToolResult.builder()
+                .content(List.of(McpSchema.TextContent.builder(resultText).build()))
+                .isError(false);
 
+            // Only attach structuredContent if result is a valid JSON Object
+            if (result != null && result.isObject()) {
+                builder.structuredContent(result);
+            }
+            return builder.build();
         } catch (Exception e) {
             log.error("Error executing MCP tool: " + request.name(), e);
             return McpSchema.CallToolResult.builder()
