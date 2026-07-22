@@ -198,27 +198,19 @@ public class PlatformMcpController {
                 new TypeReference<Map<String, Object>>() {
                 });
 
-        // Inject custom schema definitions if available in the container image
-        if (container.getImage() != null) {
-            Map<String, Object> definitionsMap = new HashMap<>();
+        // Inject custom schema definitions
+        Map<String, Object> definitionsMap = new HashMap<>();
 
-            // Add standard custom definitions defined inside image
-            if (container.getImage().getDefinitions() != null) {
-                for (var definition : container.getImage().getDefinitions().entrySet()) {
-                    definitionsMap.put(definition.getKey(), definition.getValue());
-                }
-            }
+        // Add standard custom definitions defined inside image
+        definitionsMap.putAll(container.getImage().getDefinitions());
 
-            // Add custom definitions by URL as $ref schemas
-            if (container.getImage().getDefinitionsByUrl() != null) {
-                for (var definition : container.getImage().getDefinitionsByUrl().entrySet()) {
-                    definitionsMap.put(definition.getKey(), Map.of("$ref", definition.getValue()));
-                }
-            }
+        // Add custom definitions by URL as $ref schemas
+        for (var definition : container.getImage().getDefinitionsByUrl().entrySet()) {
+            definitionsMap.put(definition.getKey(), Map.of("$ref", definition.getValue()));
+        }
 
-            if (!definitionsMap.isEmpty()) {
-                schemaMap.put("definitions", definitionsMap);
-            }
+        if (!definitionsMap.isEmpty()) {
+            schemaMap.put("definitions", definitionsMap);
         }
 
         return schemaMap;
