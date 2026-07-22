@@ -15,14 +15,12 @@ import de.gtarc.opaca.model.Parameter;
 import lombok.extern.log4j.Log4j2;
 
 /**
- * Used to validate actual action parameter values against required JSON Schema
- * definition.
+ * Used to validate actual action parameter values against required JSON Schema definition.
  */
 @Log4j2
 public class ArgumentValidator {
 
-    protected static final SchemaRegistry registry = SchemaRegistry
-            .withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
+    protected static final SchemaRegistry registry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
 
     /** model definitions */
     private final Map<String, Schema> definitions;
@@ -35,10 +33,8 @@ public class ArgumentValidator {
     }
 
     public boolean isArgsValid(Map<String, Parameter> parameters, Map<String, JsonNode> arguments) {
-        if (isAnyArgumentMissing(parameters, arguments))
-            return false;
-        if (isAnyArgumentRedundant(parameters, arguments))
-            return false;
+        if (isAnyArgumentMissing(parameters, arguments)) return false;
+        if (isAnyArgumentRedundant(parameters, arguments)) return false;
 
         for (String name : arguments.keySet()) {
             var argument = arguments.get(name);
@@ -62,8 +58,7 @@ public class ArgumentValidator {
     }
 
     private boolean isArgumentValid(JsonNode node, String type, boolean optional, Parameter.ArrayItems items) {
-        if (optional && node.isNull())
-            return true;
+        if (optional && node.isNull()) return true;
         return switch (type) {
             case "integer" -> node.isInt();
             case "number" -> node.isNumber();
@@ -97,14 +92,12 @@ public class ArgumentValidator {
     }
 
     /**
-     * Get Schema corresponding to type. This will lazily fetch and parse
-     * definitions-by-URL and add them to the definitions map.
+     * Get Schema corresponding to type. This will lazily fetch and parse definitions-by-URL
+     * and add them to the definitions map.
      */
     private Schema getSchema(String type) {
-        if (definitions.containsKey(type))
-            return definitions.get(type);
-        if (!definitionsByUrl.containsKey(type))
-            return null;
+        if (definitions.containsKey(type)) return definitions.get(type);
+        if (!definitionsByUrl.containsKey(type)) return null;
         var url = definitionsByUrl.get(type);
         try {
             var schema = registry.getSchema(SchemaLocation.of(url));

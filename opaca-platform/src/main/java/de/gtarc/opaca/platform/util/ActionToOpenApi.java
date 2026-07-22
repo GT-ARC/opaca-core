@@ -18,14 +18,10 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 
 /**
- * Creates an Open-API compliant specification of all the Actions provided by
- * the Agents on this platform,
- * that can be called using the /invoke route. This is complementary to the
- * /api-docs route provided by
- * Swagger itself, which can only provide Open-API specifications for all the
- * "static" services that are
- * part of the OPACA API, but not for the "dynamic" actions that may come and go
- * at runtime.
+ * Creates an Open-API compliant specification of all the Actions provided by the Agents on this platform,
+ * that can be called using the /invoke route. This is complementary to the /api-docs route provided by
+ * Swagger itself, which can only provide Open-API specifications for all the "static" services that are
+ * part of the OPACA API, but not for the "dynamic" actions that may come and go at runtime.
  */
 public class ActionToOpenApi {
 
@@ -37,24 +33,19 @@ public class ActionToOpenApi {
     private final static ObjectMapper mapper = new ObjectMapper();
 
     /**
-     * Create Open-API spec in JSON or YAML format for the actions in the given
-     * Agent Containers. This method
-     * can provide an Open-API spec for all containers on the platform or for
-     * containers for this and connected
-     * platforms, but to stay consistent with other similar OPACA routes like
-     * /agents or /info, only the containers
+     * Create Open-API spec in JSON or YAML format for the actions in the given Agent Containers. This method
+     * can provide an Open-API spec for all containers on the platform or for containers for this and connected
+     * platforms, but to stay consistent with other similar OPACA routes like /agents or /info, only the containers
      * running on the platform itself should be passed.
      * 
-     * @param agentsContainers List of agent containers currently running on this
-     *                         platform
-     * @param format           Whether to return the spec in JSON or YAML format
-     * @param enableAuth       Indicates if platform has authentication enabled
+     * @param agentsContainers List of agent containers currently running on this platform
+     * @param format Whether to return the spec in JSON or YAML format
+     * @param enableAuth Indicates if platform has authentication enabled
      * @return the OpenAPI schema as either JSON or YAML
      */
     public static String createOpenApiSchema(Collection<AgentContainer> agentsContainers, ActionFormat format,
             boolean enableAuth) {
-        // Check for custom definitions in agent container images and add to openapi
-        // components
+        // Check for custom definitions in agent container images and add to openapi components
         // Also check for external definitions by url
         Components components = new Components();
         for (AgentContainerImage images : agentsContainers.stream().map(AgentContainer::getImage).toList()) {
@@ -75,8 +66,7 @@ public class ActionToOpenApi {
                     .bearerFormat("JWT"));
         }
 
-        // Loop through each container and agent to add Paths for each action to the
-        // openapi spec
+        // Loop through each container and agent to add Paths for each action to the openapi spec
         Paths paths = new Paths();
         for (var container : agentsContainers) {
             for (var agent : container.getAgents()) {
@@ -93,34 +83,27 @@ public class ActionToOpenApi {
                     }
                     requestBodySchema.setRequired(requiredList);
                     RequestBody requestBody = new RequestBody()
-                            .content(new Content().addMediaType("application/json",
-                                    new MediaType().schema(requestBodySchema)))
+                            .content(new Content().addMediaType("application/json", new MediaType().schema(requestBodySchema)))
                             .required(true);
 
                     // Responses
                     ApiResponse response200 = new ApiResponse()
                             .description("OK")
-                            .content(new Content().addMediaType("*/*",
-                                    new MediaType().schema(schemaFromParameter(action.getResult()))));
+                            .content(new Content().addMediaType("*/*", new MediaType().schema(schemaFromParameter(action.getResult()))));
                     ApiResponse responseDefault = new ApiResponse()
                             .description("Unexpected error")
-                            .content(new Content().addMediaType("application/json",
-                                    new MediaType().schema(new Schema<>().$ref("#/components/schemas/Error"))));
+                            .content(new Content().addMediaType("application/json", new MediaType().schema(new Schema<>().$ref("#/components/schemas/Error"))));
 
                     // Path Item
                     PathItem pathItem = new PathItem().post(new Operation()
                             .requestBody(requestBody)
-                            .responses(new ApiResponses().addApiResponse("200", response200).addApiResponse("default",
-                                    responseDefault))
+                            .responses(new ApiResponses().addApiResponse("200", response200).addApiResponse("default", responseDefault))
                             .description(action.getDescription())
                             .tags(List.of(agent.getAgentId()))
                             .operationId(container.getContainerId() + ";" + agent.getAgentId() + ";" + action.getName())
-                            .addParametersItem(new io.swagger.v3.oas.models.parameters.Parameter()
-                                    .$ref("#/components/parameters/timeoutParam"))
-                            .addParametersItem(new io.swagger.v3.oas.models.parameters.Parameter()
-                                    .$ref("#/components/parameters/containerIdParam"))
-                            .addParametersItem(new io.swagger.v3.oas.models.parameters.Parameter()
-                                    .$ref("#/components/parameters/forwardParam")));
+                            .addParametersItem(new io.swagger.v3.oas.models.parameters.Parameter().$ref("#/components/parameters/timeoutParam"))
+                            .addParametersItem(new io.swagger.v3.oas.models.parameters.Parameter().$ref("#/components/parameters/containerIdParam"))
+                            .addParametersItem(new io.swagger.v3.oas.models.parameters.Parameter().$ref("#/components/parameters/forwardParam")));
                     paths.addPathItem(String.format("/invoke/%s/%s", action.getName(), agent.getAgentId()), pathItem);
                 }
             }
@@ -176,15 +159,13 @@ public class ActionToOpenApi {
             default -> new Schema<>().$ref(refPrefix + parameter.getType());
         };
         if (parameter.getDefaultValue() != null) {
-            // if default is not compatible, this just silently fail and skips the
-            // assignment
+            // if default is not compatible, this just silently fail and skips the assignment
             result.setDefault(parameter.getDefaultValue());
         }
         return result;
     }
 
-    private static io.swagger.v3.oas.models.parameters.Parameter makeQueryParam(String name, String description,
-            Schema<?> schema) {
+    private static io.swagger.v3.oas.models.parameters.Parameter makeQueryParam(String name, String description, Schema<?> schema) {
         return new io.swagger.v3.oas.models.parameters.Parameter()
                 .name(name)
                 .in("query")
@@ -195,8 +176,7 @@ public class ActionToOpenApi {
     }
 
     public static Parameter toParameter(ArrayItems itemsParam) {
-        if (itemsParam == null)
-            return null;
+        if (itemsParam == null) return null;
         return new Parameter(itemsParam.getType(), false, null, itemsParam.getItems());
     }
 

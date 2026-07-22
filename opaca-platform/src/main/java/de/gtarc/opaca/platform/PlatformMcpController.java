@@ -65,9 +65,7 @@ public class PlatformMcpController {
         // Initialize MCP Sync Server
         mcpServer = McpServer.sync(transportProvider)
                 .serverInfo("opaca-mcp-platform", "0.5")
-                .capabilities(ServerCapabilities.builder()
-                        .tools(true)
-                        .build())
+                .capabilities(ServerCapabilities.builder().tools(true).build())
                 .build();
 
         log.info("Initialized PlatformMcpController with WebMvcStreamableServerTransportProvider.");
@@ -111,8 +109,7 @@ public class PlatformMcpController {
                             McpServerFeatures.SyncToolSpecification toolSpec = McpServerFeatures.SyncToolSpecification
                                     .builder()
                                     .tool(tool)
-                                    .callHandler((exchange, request) -> handleToolCall(agent.getAgentId(),
-                                            action.getName(), request))
+                                    .callHandler((exchange, request) -> handleToolCall(agent.getAgentId(), action.getName(), request))
                                     .build();
 
                             toolsToAdd.add(toolSpec);
