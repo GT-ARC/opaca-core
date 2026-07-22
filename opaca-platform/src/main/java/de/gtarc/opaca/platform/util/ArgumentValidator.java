@@ -19,8 +19,10 @@ import lombok.extern.log4j.Log4j2;
  */
 @Log4j2
 public class ArgumentValidator {
-
-    protected static final SchemaRegistry registry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
+    protected static final SchemaRegistry registry = SchemaRegistry.withDefaultDialect(
+        SpecificationVersion.DRAFT_2020_12,
+        builder -> builder.schemaLoader(schemaLoader -> schemaLoader.fetchRemoteResources())
+    );
 
     /** model definitions */
     private final Map<String, Schema> definitions;
