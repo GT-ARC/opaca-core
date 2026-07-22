@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.AgentDescription;
 import de.gtarc.opaca.model.Action;
-import de.gtarc.opaca.model.Parameter;
 import de.gtarc.opaca.platform.services.AgentsService;
 import de.gtarc.opaca.platform.services.ContainersService;
 import io.modelcontextprotocol.json.jackson2.JacksonMcpJsonMapper;
@@ -23,7 +22,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
-import de.gtarc.opaca.platform.event.ContainerChangedEvent;
 import de.gtarc.opaca.platform.util.ActionToOpenApi;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import org.springframework.web.servlet.function.RouterFunction;
@@ -83,7 +81,7 @@ public class PlatformMcpController {
     }
 
     @EventListener
-    public void onContainerChanged(ContainerChangedEvent event) {
+    public void onContainerChanged(ContainersService.ContainerChangedEvent event) {
         log.info("Received container changed event, syncing tools: {}", event);
         syncTools();
     }

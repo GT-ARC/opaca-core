@@ -16,9 +16,11 @@ import de.gtarc.opaca.platform.util.ArgumentValidator;
 import de.gtarc.opaca.platform.util.Utils;
 import de.gtarc.opaca.util.ApiProxy;
 import jakarta.annotation.PostConstruct;
+import lombok.Getter;
+import lombok.ToString;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import de.gtarc.opaca.platform.event.ContainerChangedEvent;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -285,6 +287,27 @@ public class ContainersService implements ContainersApi {
 
     public void setIsShuttingDown() {
         this.isShuttingDown = true;
+    }
+
+
+    @Getter
+    @ToString
+    public static class ContainerChangedEvent extends ApplicationEvent {
+
+        public enum Type {
+            ADDED,
+            REMOVED,
+            UPDATED
+        }
+
+        private final String containerId;
+        private final Type type;
+
+        public ContainerChangedEvent(Object source, String containerId, Type type) {
+            super(source);
+            this.containerId = containerId;
+            this.type = type;
+        }
     }
 
 }
