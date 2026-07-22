@@ -178,14 +178,12 @@ public class PlatformMcpController {
     private Map<String, Object> buildInputSchema(AgentContainer container, Action action) {
         ObjectSchema requestBodySchema = new ObjectSchema();
         List<String> requiredList = new ArrayList<>();
-        if (action.getParameters() != null) {
-            for (var parameter : action.getParameters().entrySet()) {
-                requestBodySchema.addProperty(
-                        parameter.getKey(),
-                        ActionToOpenApi.schemaFromParameter(parameter.getValue(), "#/definitions/"));
-                if (parameter.getValue().isRequired()) {
-                    requiredList.add(parameter.getKey());
-                }
+        for (var parameter : action.getParameters().entrySet()) {
+            requestBodySchema.addProperty(
+                    parameter.getKey(),
+                    ActionToOpenApi.schemaFromParameter(parameter.getValue(), "#/definitions/"));
+            if (parameter.getValue().isRequired()) {
+                requiredList.add(parameter.getKey());
             }
         }
         if (!requiredList.isEmpty()) {
