@@ -14,32 +14,30 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import de.gtarc.opaca.model.ConnectionRequest;
+import de.gtarc.opaca.platform.services.ConnectionsService;
+import de.gtarc.opaca.platform.services.ContainersService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 
 import com.google.common.base.Strings;
 import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.PostAgentContainer;
-import de.gtarc.opaca.platform.PlatformImpl;
 import lombok.extern.log4j.Log4j2;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import de.gtarc.opaca.util.RestHelper;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.PlatformConfig.SessionPolicy;
+import org.springframework.stereotype.Service;
 
 /**
- * Class responsible for Session handling. Load SessionData from JSON file when platform is
- * started, and save it to that file when it is stopped (depending on policy).
+ * Class responsible for Session handling. Load SessionData from a JSON file when the platform is
+ * started and save it to that file when it is stopped (depending on policy). Also call startup-
+ * and shutdown routines of different other services where the order of execution matters.
  */
-@Component
+@Service
 @Log4j2
-public class Session {
-
-    Logger logger = LoggerFactory.getLogger(Session.class);
+public class SessionHandling {
 
 	@Autowired
 	private PlatformConfig config;
@@ -48,7 +46,10 @@ public class Session {
     private SessionData data;
 
     @Autowired
-    private PlatformImpl implementation;
+    private ContainersService containersService;
+
+    @Autowired
+    private ConnectionsService connectionsService;
 
 
     private static final Path filePath = Paths.get(System.getProperty("user.dir"), "Session.json");
@@ -66,12 +67,14 @@ public class Session {
         if (config.sessionPolicy == SessionPolicy.RESTART) {
             restartContainers();
         }
-        // TODO what about connections? connected-platforms info is restored, but might be outdated
+        if (config.sessionPolicy != SessionPolicy.SHUTDOWN) {
+            reconnectPlatforms();
+        }
     }
 
     @PreDestroy
-    private void teardownPolicy() throws IOException {
-        implementation.setIsShuttingDown();
+    private void teardownPolicy() {
+        containersService.setIsShuttingDown();
         if (config.sessionPolicy != SessionPolicy.SHUTDOWN) {
             saveToFile();
         }
@@ -91,14 +94,14 @@ public class Session {
         if (filePath.toFile().exists()) {
             try {
                 String content = Files.readString(filePath);
-                SessionData lastdata = RestHelper.readObject(content, SessionData.class);
+                SessionData lastData = RestHelper.readObject(content, SessionData.class);
 
                 this.data.reset();
-                this.data.runningContainers.putAll(lastdata.runningContainers);
-                this.data.startContainerRequests.putAll(lastdata.startContainerRequests);
-                this.data.connectedPlatforms.putAll(lastdata.connectedPlatforms);
-                this.data.dockerContainers.putAll(lastdata.dockerContainers);
-                this.data.usedPorts.addAll(lastdata.usedPorts);
+                this.data.runningContainers.putAll(lastData.runningContainers);
+                this.data.startContainerRequests.putAll(lastData.startContainerRequests);
+                this.data.connectedPlatforms.putAll(lastData.connectedPlatforms);
+                this.data.dockerContainers.putAll(lastData.dockerContainers);
+                this.data.usedPorts.addAll(lastData.usedPorts);
     
             } catch (IOException e) {
                 log.error("Could not load Session data", e);
@@ -138,7 +141,7 @@ public class Session {
             log.info("Auto-deploying {}", file);
             try {
                 var container = RestHelper.mapper.readValue(file, PostAgentContainer.class);
-                implementation.addContainer(container, -1); // TODO restore user token
+                containersService.addContainer(container, -1); // TODO restore user token
             } catch (Exception e) {
                 log.error("Failed to load image specified in file {}: {}", file, e);
             }
@@ -155,7 +158,7 @@ public class Session {
         data.reset();
         for (PostAgentContainer postContainer : startedContainers) {
             try {
-                implementation.addContainer(postContainer, -1); // TODO restore user token
+                containersService.addContainer(postContainer, -1); // TODO restore user token
             } catch (IOException e) {
                 log.warn("Exception restarting container: {}", e.getMessage());
             }
@@ -164,20 +167,28 @@ public class Session {
 
     private void stopRunningContainers() {
         log.info("Stopping Running Containers...");
-        for (AgentContainer container : implementation.getContainers()) {
+        for (AgentContainer container : containersService.getContainers()) {
             try {
-                implementation.removeContainer(container.getContainerId());
+                containersService.removeContainer(container.getContainerId());
             } catch (Exception e) {
                 log.warn("Exception stopping container {}: {}", container.getContainerId(), e.getMessage());
             }
         }
     }
 
+    private void reconnectPlatforms() {
+        log.info("Reconnecting to other Platforms...");
+        for (var url : data.connectedPlatforms.keySet()) {
+            // TODO use proper ConnectRequests here, like for restarting Containers? or drop this entirely?
+            connectionsService.openConnectionWebsocket(url);
+        }
+    }
+
     private void disconnectPlatforms() {
         log.info("Disconnecting from other Platforms...");
-        for (String url : implementation.getConnections()) {
+        for (String url : connectionsService.getConnections()) {
             try {
-                implementation.disconnectPlatform(new ConnectionRequest(url, false, null));
+                connectionsService.disconnectPlatform(new ConnectionRequest(url, false, null));
             } catch (Exception e) {
                 log.warn("Exception disconnecting from {}: {}", url, e.getMessage());
             }

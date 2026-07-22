@@ -3,7 +3,7 @@ package de.gtarc.opaca.platform.tests;
 import de.gtarc.opaca.model.*;
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
-import de.gtarc.opaca.platform.session.Session;
+import de.gtarc.opaca.platform.session.SessionHandling;
 import de.gtarc.opaca.util.WebSocketConnector;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.ParseOptions;
@@ -113,13 +113,13 @@ public class PlatformTests {
     }
 
     /**
-     * check if default image is loaded on platform A, then undeploy it to not mess up the following tests
+     * check if default-image is loaded on platform A, then undeploy it to not mess up the following tests
      */
     @Test
     public void testDefaultImage() throws Exception {
-        var session = (Session) platformA.getBean("session");
+        var session = platformA.getBean(SessionHandling.class);
 
-        // create image file
+        // create image-file
         var imageFile = new File("./default-test-images/sample.json");
         if (!imageFile.getParentFile().exists()) imageFile.getParentFile().mkdirs();
         try (var writer = new FileWriter(imageFile)) {
@@ -190,7 +190,7 @@ public class PlatformTests {
         body.get("image").put("imageName", null);
         con = request(PLATFORM_A_URL, "POST", "/containers", body);
         Assert.assertEquals(422, con.getResponseCode());
-        // image set, imageName set, requires set to null
+        // image set, imageName set, required set to null
         body.get("image").put("imageName", "does-not-exist");
         body.get("image").put("requires", null);
         con = request(PLATFORM_A_URL, "POST", "/containers", body);

@@ -3,7 +3,6 @@ package de.gtarc.opaca.container
 import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.util.ApiProxy
 import de.gtarc.opaca.util.KeycloakUtil
-import kotlin.math.log
 
 /**
  * Singleton class providing some helper methods for handling Authentication in the Container. Can also be used as

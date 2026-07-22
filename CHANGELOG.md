@@ -2,7 +2,9 @@
 
 ## 0.6 Snapshot
 
-* replaced custom simple UserManagement with proper Keycloak integration 
+* replaced custom simple UserManagement with proper Keycloak integration
+* big refactoring, splitting up `PlatformImpl` into different services 
+
 
 ## 0.5 Release
 

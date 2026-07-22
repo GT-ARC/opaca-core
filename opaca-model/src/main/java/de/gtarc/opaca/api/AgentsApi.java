@@ -10,14 +10,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * API for both, Agent Containers and Runtime Platform. In fact, those are primarily the
- * Agent Container functions, but separated here, since the Agent Container will also have
- * a specific "info" route.
+ * API for both, Agent Containers and Runtime Platform. These are the "core" routes of the OPACA API, allowing
+ * agents to expose their abilities, and other agents or containers to use them. They are primarily implemented
+ * by the OPACA Agent Containers, and proxies by the OPACA Runtime Platform.
  */
-public interface CommonApi {
+public interface AgentsApi {
 
     /**
-     * Get list of Agents running in this Agent Container.
+     * Get the list of Agents running in this Agent Container.
      *
      * REST: GET /agents
      *
@@ -26,7 +26,7 @@ public interface CommonApi {
     List<AgentDescription> getAgents() throws IOException;
 
     /**
-     * Get description of one specific Agent
+     * Get the description of one specific Agent
      *
      * REST: GET /agents/{id}
      *
@@ -36,7 +36,7 @@ public interface CommonApi {
     AgentDescription getAgent(String agentId) throws IOException;
 
     /**
-     * Send message to a single agent in the container.
+     * Send a message to a single agent in the container.
      *
      * REST: POST /send/{id}?containerId={containerId}&forward={true|false}`
      *
@@ -48,7 +48,7 @@ public interface CommonApi {
     void send(String agentId, Message message, String containerId, boolean forward) throws IOException;
 
     /**
-     * Send message to a group of agents, or channel.
+     * Send a message to a group of agents, or channel.
      *
      * REST: POST /broadcast/{channel}?containerId={containerId}&forward={true|false}`
      *

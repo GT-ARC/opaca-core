@@ -12,7 +12,7 @@ When an Agent Container is started by the Runtime Platform, a number of environm
 * `CONTAINER_ID` The Agent Container's own container ID used to identify the container at the Runtime Platform.
 * `PLATFORM_URL` The URL or IP address where the Agent Container can reach its parent Runtime Platform
 * `KEYCLOAK_URL`: The Keycloak JWT Issuer-URI for acquiring a new access token.
-* `CLIENT_SECRET`: Client-Secret needed for acquiring a new access token (the cient-ID is the container-ID).
+* `CLIENT_SECRET`: Client-Secret needed for acquiring a new access token (the client-ID is the container-ID).
 * `OWNER` The username corresponding to the user who has started the Agent Container. The owner has special permissions to perform actions on his own containers.
 * `PORT_MAPPING` Which ports on the host the container's ports are mapped to, in the format `containerPort1:hostPort1,...`
 

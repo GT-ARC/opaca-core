@@ -4,7 +4,6 @@ import de.gtarc.opaca.model.ErrorResponse
 import de.gtarc.opaca.api.AgentContainerApi
 import de.gtarc.opaca.model.Login
 import de.gtarc.opaca.model.Message
-import de.gtarc.opaca.util.KeycloakUtil
 import de.gtarc.opaca.util.RestHelper
 import io.javalin.Javalin
 import io.javalin.http.Context

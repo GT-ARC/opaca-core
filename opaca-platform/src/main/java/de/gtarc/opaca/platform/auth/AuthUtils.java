@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  * Provides various low-level helper-methods for working with Keycloak, managing clients and access tokens,
  * getting information about the current user, etc.
  * Also for handling Container-Login tokens. This is not really related to Keycloak, but also auth, and is so simple
- * it does not really warrant a separate helper class. Also could be integrated with Keycloak tokens in the future...
+ * it does not really warrant a separate helper class. Could also be integrated with Keycloak tokens in the future...
  */
 @Log4j2
 @Service

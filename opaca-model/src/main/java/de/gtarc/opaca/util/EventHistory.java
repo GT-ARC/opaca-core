@@ -28,7 +28,7 @@ public class EventHistory {
         if (entry != null) {
             events.add(entry);
             while (maxSize >= 0 && events.size() > maxSize) {
-                events.remove(0);
+                events.removeFirst();
             }
         }
     }
