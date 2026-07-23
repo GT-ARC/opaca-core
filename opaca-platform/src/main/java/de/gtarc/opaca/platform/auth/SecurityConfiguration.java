@@ -59,7 +59,7 @@ public class SecurityConfiguration {
                     // (except for the OpenAPI route giving insight into the agents' actions)
                     .requestMatchers(HttpMethod.GET, "/v3/api-docs/actions").hasRole(AuthUtils.ROLE_GUEST)
                     .requestMatchers(noAuthRoutes).permitAll()
-                    // The next block implements the RBAC defined in the user-management docs
+                    // RBAC for the core OPACA routes, as defined in the user-management docs
                     .requestMatchers(HttpMethod.GET, "/info", "/agents/**", "/containers/**").hasRole(AuthUtils.ROLE_GUEST)
                     .requestMatchers(HttpMethod.GET, "/history", "/connections", "/stream/**").hasRole(AuthUtils.ROLE_USER)
                     .requestMatchers(HttpMethod.POST, "/send/**", "/invoke/**", "/broadcast/**", "/stream/**").hasRole(AuthUtils.ROLE_USER)
@@ -69,8 +69,11 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.DELETE, "/containers/**").hasRole(AuthUtils.ROLE_CONTRIBUTOR)
                     .requestMatchers("/connections/notify").hasRole(AuthUtils.ROLE_USER)
                     .requestMatchers("/connections/**").hasRole(AuthUtils.ROLE_MANAGER)
+                    // other, non HTTP/REST routes
+                    .requestMatchers("/mcp").hasRole(AuthUtils.ROLE_USER)
+                    // all require auth (and the above defined minimal roles)
                     .anyRequest().authenticated()
-                // no auth required -> permit all (but still path JWT tokens)
+                // no auth required -> permit all (but still pass JWT tokens)
                 : auth -> auth.anyRequest().permitAll();
 
         // no sessions / stateless; no CSRF necessary

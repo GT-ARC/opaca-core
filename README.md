@@ -157,6 +157,7 @@ The `opaca-platform` also includes a Docker Compose file, which automatically fo
 * [API Routes and Models](doc/api.md)
 * [Reference Implementation](doc/implementation.md)
 * [Protocols](doc/protocols.md)
+* [Model Context Protocol (MCP)](doc/mcp.md)
 * [Execution Environments](doc/environments.md)
 * [Session Handling](doc/session.md)
 * [Authentication](doc/auth.md)

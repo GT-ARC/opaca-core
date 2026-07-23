@@ -44,7 +44,7 @@ public class ActionToOpenApi {
      * @return the OpenAPI schema as either JSON or YAML
      */
     public static String createOpenApiSchema(Collection<AgentContainer> agentsContainers, ActionFormat format,
-                                             boolean enableAuth) {
+            boolean enableAuth) {
         // Check for custom definitions in agent container images and add to openapi components
         // Also check for external definitions by url
         Components components = new Components();
@@ -140,7 +140,11 @@ public class ActionToOpenApi {
         };
     }
 
-    private static Schema<?> schemaFromParameter(Parameter parameter) {
+    public static Schema<?> schemaFromParameter(Parameter parameter) {
+        return schemaFromParameter(parameter, "#/components/schemas/");
+    }
+
+    public static Schema<?> schemaFromParameter(Parameter parameter, String refPrefix) {
         if (parameter == null || parameter.getType().equals("null")) {
             return new ObjectSchema().nullable(true);
         }
@@ -151,8 +155,8 @@ public class ActionToOpenApi {
             case "integer" -> new IntegerSchema();
             case "boolean" -> new BooleanSchema();
             case "object" -> new ObjectSchema();
-            case "array" -> new ArraySchema().items(schemaFromParameter(toParameter(parameter.getItems())));
-            default -> new Schema<>().$ref("#/components/schemas/" + parameter.getType());
+            case "array" -> new ArraySchema().items(schemaFromParameter(toParameter(parameter.getItems()), refPrefix));
+            default -> new Schema<>().$ref(refPrefix + parameter.getType());
         };
         if (parameter.getDefaultValue() != null) {
             // if default is not compatible, this just silently fail and skips the assignment
@@ -171,7 +175,7 @@ public class ActionToOpenApi {
                 .schema(schema);
     }
 
-    private static Parameter toParameter(ArrayItems itemsParam) {
+    public static Parameter toParameter(ArrayItems itemsParam) {
         if (itemsParam == null) return null;
         return new Parameter(itemsParam.getType(), false, null, itemsParam.getItems());
     }

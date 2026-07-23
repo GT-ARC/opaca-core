@@ -10,6 +10,8 @@ import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
 @SpringBootApplication(exclude = {MongoAutoConfiguration.class})
 public class Application {
 
+    public static final String VERSION = "0.6-SNAPSHOT";
+
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
