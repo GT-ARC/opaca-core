@@ -201,10 +201,16 @@ public class AuthTests {
     @Test
     public void test04WebSocketEvents() throws Exception {
         // create web socket listener and collect messages
-        var without_auth = new ArrayList<String>();
-        WebSocketConnector.subscribe(PLATFORM_A, null, "/invoke", without_auth::add);
-        var with_auth = new ArrayList<String>();
-        WebSocketConnector.subscribe(PLATFORM_A, token_A, "/invoke", with_auth::add);
+        var withoutAuth = new ArrayList<String>();
+        WebSocketConnector.subscribe(PLATFORM_A, null, "/invoke", withoutAuth::add);
+
+        var withInsufficientAuth = new ArrayList<String>();
+        var guestToken = getToken("guest", "12345");
+        WebSocketConnector.subscribe(PLATFORM_A, guestToken, "/invoke", withInsufficientAuth::add);
+
+        var withProperAuth = new ArrayList<String>();
+        var userToken = getToken("user1", "12345");
+        WebSocketConnector.subscribe(PLATFORM_A, userToken, "/invoke", withProperAuth::add);
 
         // make sure connection is established first
         Thread.sleep(1000);
@@ -215,8 +221,9 @@ public class AuthTests {
         Thread.sleep(200);
 
         // check that correct events have been received
-        Assert.assertEquals(0, without_auth.size());
-        Assert.assertEquals(1, with_auth.size());
+        Assert.assertEquals(0, withoutAuth.size());
+        Assert.assertEquals(0, withInsufficientAuth.size());
+        Assert.assertEquals(1, withProperAuth.size());
     }
 
 

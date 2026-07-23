@@ -40,6 +40,8 @@ The following table provides an overview of all implemented routes along with th
 | /invoke/**                  |    X    |      X      |  X   |       |
 | /send/**                    |    X    |      X      |  X   |       |
 | /stream/**                  |    X    |      X      |  X   |       |
+| /mcp                        |    X    |      X      |  X   |       |
+| /subscribe                  |    X    |      X      |  X   |       |
 
 *: A contributor can only delete containers which were started by it.
 

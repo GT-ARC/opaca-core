@@ -71,6 +71,7 @@ public class SecurityConfiguration {
                     .requestMatchers("/connections/**").hasRole(AuthUtils.ROLE_MANAGER)
                     // other, non HTTP/REST routes
                     .requestMatchers("/mcp").hasRole(AuthUtils.ROLE_USER)
+                    .requestMatchers("/subscribe").hasRole(AuthUtils.ROLE_USER)
                     // all require auth (and the above defined minimal roles)
                     .anyRequest().authenticated()
                 // no auth required -> permit all (but still pass JWT tokens)
