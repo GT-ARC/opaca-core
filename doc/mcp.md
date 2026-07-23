@@ -42,7 +42,7 @@ The MCP server uses **HTTP Streamable Transport** (Server-Sent Events / SSE) at 
 ## Security & Authentication
 
 Access to `/mcp` endpoints is secured using the standard Spring Security resource server setup configured in `SecurityConfiguration.java`:
-* If security/authentication is enabled on the platform, both the GET and POST requests for the `/mcp` and `/mcp/**` endpoints require authentication and must possess the `ROLE_USER` role (or higher, via role hierarchy like `ROLE_CONTRIBUTOR` or `ROLE_MANAGER`).
+* If security/authentication is enabled on the platform, both the GET and POST requests for the `/mcp` endpoint require authentication and must possess the `ROLE_USER` role (or higher, via role hierarchy like `ROLE_CONTRIBUTOR` or `ROLE_MANAGER`).
 * If security is disabled, all requests are permitted without authentication.
 
 ### How to Authenticate from a Client
@@ -55,7 +55,9 @@ When creating the client's HTTP/SSE transport, use the `.httpRequestCustomizer(.
 ```java
 var transport = HttpClientSseClientTransport.builder("http://localhost:8000")
         .sseEndpoint("/mcp")
-        .httpRequestCustomizer(request -> request.header("Authorization", "Bearer " + jwtToken))
+        .httpRequestCustomizer((builder, method, endpoint, body, context) -> {
+             builder.header("Authorization", "Bearer " + token);
+        })
         .build();
 
 McpSyncClient client = McpClient.sync(transport).build();

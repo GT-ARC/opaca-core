@@ -1,5 +1,6 @@
 package de.gtarc.opaca.platform.tests;
 
+import de.gtarc.opaca.model.Login;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
@@ -28,28 +29,21 @@ public class McpTests {
     private static ConfigurableApplicationContext platform = null;
     private static String containerId = null;
 
-    private McpSyncClient client;
-
     @BeforeClass
     public static void setupPlatform() throws Exception {
-        // Start platform without requiring Keycloak or authentication
-        platform = startPlatform(PORT, false, false, false, 0);
+        // Start platform with authentication
+        int kcPort = KeycloakTestUtil.startKeycloak();
+        platform = startPlatform(PORT, false, true, true, kcPort);
         // Post a real sample agent container to discover its tools
         containerId = postSampleContainer(PLATFORM_URL);
     }
 
     @AfterClass
     public static void stopPlatform() throws Exception {
-        if (containerId != null) {
-            try {
-                request(PLATFORM_URL, "DELETE", "/containers/" + containerId, null);
-            } catch (Exception e) {
-                // Ignore cleanup errors
-            }
-        }
         if (platform != null) {
             platform.close();
         }
+        KeycloakTestUtil.stopKeycloak();
     }
 
     @Rule
@@ -60,21 +54,28 @@ public class McpTests {
         System.out.println(">>> RUNNING TEST McpTests." + testName.getMethodName());
     }
 
-    @Before
-    public void createMcpClient() {
-        HttpClientStreamableHttpTransport transport = HttpClientStreamableHttpTransport.builder(PLATFORM_URL)
-                .endpoint("/mcp")
-                .build();
-
-        client = McpClient.sync(transport)
-                .requestTimeout(Duration.ofSeconds(10))
-                .build();
-
-        client.initialize();
+    @Test
+    public void testMcpAuth() throws Exception {
+        // can not create client without token (unfortunately, the exception is not very specific)
+        Assert.assertThrows(
+                RuntimeException.class,
+                () -> createMcpClient(null)
+        );
+        // can not create client with token with insufficient privileges
+        var badToken = getToken("guest", "12345");
+        Assert.assertThrows(
+                RuntimeException.class,
+                () -> createMcpClient(badToken)
+        );
+        // can create client with proper privileges
+        var goodToken = getToken("user1", "12345");
+        createMcpClient(goodToken);
     }
 
     @Test
     public void testMcpToolsReturned() throws Exception {
+        var token = getToken("user1", "12345");
+        var client = createMcpClient(token);
         // Fetch the registered tools list
         McpSchema.ListToolsResult listResult = client.listTools();
         Assert.assertNotNull(listResult);
@@ -99,6 +100,8 @@ public class McpTests {
 
     @Test
     public void testCallMcpTool() throws Exception {
+        var token = getToken("user1", "12345");
+        var client = createMcpClient(token);
         // Call the sample1__Add tool with parameters x and y
         CallToolRequest request = CallToolRequest.builder("sample1__Add").arguments(Map.of("x", 25, "y", 17)).build();
         CallToolResult result = client.callTool(request);
@@ -119,12 +122,14 @@ public class McpTests {
 
     @Test
     public void testContainerRemovalSyncsTools() throws Exception {
+        var token = getToken("contributor1", "12345");
+        var client = createMcpClient(token);
         // Verify tools are initially present
         List<McpSchema.Tool> toolsBefore = client.listTools().tools();
         Assert.assertTrue(toolsBefore.stream().anyMatch(t -> t.name().equals("sample1__Add")));
 
         // Delete the container to trigger tool removal
-        var deleteResponse = request(PLATFORM_URL, "DELETE", "/containers/" + containerId, null);
+        var deleteResponse = requestWithToken(PLATFORM_URL, "DELETE", "/containers/" + containerId, null, token);
         Assert.assertEquals(200, deleteResponse.getResponseCode());
 
         // A short delay to allow background sync / event processing
@@ -139,5 +144,37 @@ public class McpTests {
         // Redeploy container for cleanup in AfterClass
         containerId = postSampleContainer(PLATFORM_URL);
         Thread.sleep(1000);
+    }
+
+
+    // Helper methods
+
+    private static String getToken(String user, String password) throws Exception {
+        return result(request(PLATFORM_URL, "POST", "/login", new Login(user, password)));
+    }
+
+    private static String postSampleContainer(String url) throws Exception {
+        var token = getToken("contributor1", "12345");
+        var postContainer = getSampleContainerImage();
+        var con = requestWithToken(url, "POST", "/containers", postContainer, token);
+        return result(con);
+    }
+
+    private static McpSyncClient createMcpClient(String token) {
+        HttpClientStreamableHttpTransport transport = HttpClientStreamableHttpTransport.builder(PLATFORM_URL)
+                .endpoint("/mcp")
+                .httpRequestCustomizer((builder, method, endpoint, body, context) -> {
+                    if (token != null) {
+                        builder.header("Authorization", "Bearer " + token);
+                    }
+                })
+                .build();
+
+        var client = McpClient.sync(transport)
+                .requestTimeout(Duration.ofSeconds(10))
+                .build();
+
+        client.initialize();
+        return client;
     }
 }
