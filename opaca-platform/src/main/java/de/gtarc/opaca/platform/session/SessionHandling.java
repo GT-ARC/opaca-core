@@ -16,7 +16,6 @@ import java.util.stream.Stream;
 import de.gtarc.opaca.model.ConnectionRequest;
 import de.gtarc.opaca.platform.services.ConnectionsService;
 import de.gtarc.opaca.platform.services.ContainersService;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 
 import com.google.common.base.Strings;
@@ -28,6 +27,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import de.gtarc.opaca.util.RestHelper;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.PlatformConfig.SessionPolicy;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 /**
@@ -54,8 +55,9 @@ public class SessionHandling {
 
     private static final Path filePath = Paths.get(System.getProperty("user.dir"), "Session.json");
 
-    @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
     private void startupPolicy() {
+        // using ApplicationReadyEvent instead of PostConstruct for different lifecycle phase and not blocking Swagger
         if (config.sessionPolicy != SessionPolicy.SHUTDOWN) {
             loadFromFile();
             ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
