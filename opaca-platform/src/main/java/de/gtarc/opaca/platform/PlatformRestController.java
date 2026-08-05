@@ -16,10 +16,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.extern.log4j.Log4j2;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -45,7 +44,7 @@ import java.util.NoSuchElementException;
 @SecurityRequirement(name = "bearerAuth")
 @CrossOrigin(origins = "*", allowedHeaders = "*",
 		methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS } )
-public class PlatformRestController implements ApplicationListener<ApplicationReadyEvent> {
+public class PlatformRestController {
 
 	@Autowired
 	private PlatformService platformService;
@@ -72,8 +71,8 @@ public class PlatformRestController implements ApplicationListener<ApplicationRe
 		EventHistory.maxSize = config.eventHistorySize;
 	}
 
-	@Override
-	public void onApplicationEvent(@NotNull ApplicationReadyEvent event) {
+	@EventListener(ApplicationReadyEvent.class)
+	public void onApplicationEvent() {
 		try {
 			platformService.testSelfConnection();
 		} catch (Exception e) {
