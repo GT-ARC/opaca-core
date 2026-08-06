@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import de.gtarc.opaca.model.ConnectionRequest;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 
 import com.google.common.base.Strings;
@@ -25,6 +24,8 @@ import lombok.extern.log4j.Log4j2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import de.gtarc.opaca.util.RestHelper;
@@ -53,7 +54,7 @@ public class Session {
 
     private static final Path filePath = Paths.get(System.getProperty("user.dir"), "Session.json");
 
-    @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
     private void startupPolicy() {
         if (config.sessionPolicy != SessionPolicy.SHUTDOWN) {
             loadFromFile();
