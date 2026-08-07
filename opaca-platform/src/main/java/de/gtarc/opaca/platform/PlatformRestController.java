@@ -185,9 +185,10 @@ public class PlatformRestController {
 	@GetMapping("v3/api-docs/actions")
 	@Operation(summary="Get an Open-API compliant list of all agent actions currently available on this Platform", hidden=true)
 	public String getOpenApiActions(
-			@RequestParam(required = false, defaultValue = "JSON") ActionFormat format
+			@RequestParam(required = false, defaultValue = "JSON") ActionFormat format,
+			@RequestParam(required = false, defaultValue = "false") boolean includeConnected
 	) throws IOException {
-		return ActionToOpenApi.createOpenApiSchema(containersService.getContainers(), format, config.requireAuth);
+		return ActionToOpenApi.createOpenApiSchema(getContainers(includeConnected), format, config.requireAuth);
 	}
 
 	/*
