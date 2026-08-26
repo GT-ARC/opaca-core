@@ -2,8 +2,10 @@ package de.gtarc.opaca.platform.util;
 
 import java.util.*;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.model.Parameter.ArrayItems;
 import io.swagger.v3.core.util.Json;
@@ -43,15 +45,20 @@ public class ActionToOpenApi {
      * @param enableAuth Indicates if platform has authentication enabled
      * @return the OpenAPI schema as either JSON or YAML
      */
-    public static String createOpenApiSchema(Collection<AgentContainer> agentsContainers, ActionFormat format,
-            boolean enableAuth) {
+    public static String createOpenApiSchema(
+            Collection<AgentContainer> agentsContainers,
+            ActionFormat format,
+            boolean enableAuth
+    ) {
         // Check for custom definitions in agent container images and add to openapi components
         // Also check for external definitions by url
         Components components = new Components();
         for (AgentContainerImage images : agentsContainers.stream().map(AgentContainer::getImage).toList()) {
             for (var definition : images.getDefinitions().entrySet()) {
-                Schema<?> schema = mapper.convertValue(definition.getValue(), Schema.class);
-                components.addSchemas(definition.getKey(), schema);
+                // Schema<?> schema = mapper.convertValue(definition.getValue(), Schema.class);
+                // components.addSchemas(definition.getKey(), schema);
+                JsonNode node = mapper.valueToTree(definition.getValue());
+                ActionToOpenApi.addSchema(components, definition.getKey(), node);
             }
             for (var definition : images.getDefinitionsByUrl().entrySet()) {
                 Schema<?> schema = new Schema<>().$ref(definition.getValue());
@@ -138,6 +145,53 @@ public class ActionToOpenApi {
             case JSON -> Json.pretty(openAPI);
             case YAML -> Yaml.pretty(openAPI);
         };
+    }
+
+    /**
+     * Move sub-schema defs and rewrite refs, then add the schema
+     * to the OAS components object.
+     */
+    private static void addSchema(Components components, String name, JsonNode node) {
+        if (node.isObject()) {
+            ObjectNode schemaNode = (ObjectNode) node;
+            var inlineDefs = schemaNode.remove("$defs");
+            var nestedComponents = schemaNode.remove("components");
+            var schemas = nestedComponents == null ? null : nestedComponents.get("schemas");
+            moveDefs(components, inlineDefs);
+            moveDefs(components, schemas);
+            rewriteRefs(schemaNode);
+        }
+        components.addSchemas(name, mapper.convertValue(node, Schema.class));
+    }
+
+    /**
+     * Recursively move definitions out of $defs and into components/schemas.
+     */
+    private static void moveDefs(Components components, JsonNode definitions) {
+        if (definitions != null && definitions.isObject()) {
+            definitions.properties().forEach(entry ->
+                    addSchema(components, entry.getKey(), entry.getValue())
+            );
+        }
+    }
+
+    /**
+     * Recursively rewrite all ref-paths containing $defs to components/schemas instead.
+     */
+    private static void rewriteRefs(JsonNode node) {
+        if (node.isObject()) {
+            ObjectNode objectNode = (ObjectNode) node;
+            var ref = objectNode.get("$ref");
+            if (ref != null && ref.isTextual() && ref.textValue().startsWith("#/$defs/")) {
+                var refPath = ref.textValue().substring("#/$defs/".length());
+                objectNode.put("$ref", "#/components/schemas/" + refPath);
+            }
+            objectNode.properties().forEach(field ->
+                    rewriteRefs(field.getValue())
+            );
+        } else if (node.isArray()) {
+            node.forEach(ActionToOpenApi::rewriteRefs);
+        }
     }
 
     public static Schema<?> schemaFromParameter(Parameter parameter) {
