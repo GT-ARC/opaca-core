@@ -8,8 +8,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.model.Parameter.ArrayItems;
-import io.swagger.v3.core.util.Json;
-import io.swagger.v3.core.util.Yaml;
+import io.swagger.v3.core.util.Json31;
+import io.swagger.v3.core.util.Yaml31;
 import io.swagger.v3.oas.models.*;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.*;
@@ -32,7 +32,7 @@ public class ActionToOpenApi {
         YAML
     }
 
-    private final static ObjectMapper mapper = new ObjectMapper();
+    private final static ObjectMapper mapper = Json31.mapper();
 
     /**
      * Create Open-API spec in JSON or YAML format for the actions in the given Agent Containers. This method
@@ -81,7 +81,10 @@ public class ActionToOpenApi {
                     Schema<?> requestBodySchema = new ObjectSchema();
                     List<String> requiredList = new ArrayList<>();
                     for (var parameter : action.getParameters().entrySet()) {
-                        requestBodySchema.addProperty(parameter.getKey(), schemaFromParameter(parameter.getValue()));
+                        requestBodySchema.addProperty(
+                                parameter.getKey(),
+                                schemaFromParameter(parameter.getValue(), components));
+                        );
                         if (parameter.getValue().isRequired()) {
                             requiredList.add(parameter.getKey());
                         }
@@ -92,9 +95,10 @@ public class ActionToOpenApi {
                             .required(true);
 
                     // Responses
+                    var responseMediaType = new MediaType().schema(schemaFromParameter(action.getResult(), components))
                     ApiResponse response200 = new ApiResponse()
                             .description("OK")
-                            .content(new Content().addMediaType("*/*", new MediaType().schema(schemaFromParameter(action.getResult()))));
+                            .content(new Content().addMediaType("*/*", responseMediaType));
                     ApiResponse responseDefault = new ApiResponse()
                             .description("Unexpected error")
                             .content(new Content().addMediaType("application/json", new MediaType().schema(new Schema<>().$ref("#/components/schemas/Error"))));
@@ -131,7 +135,7 @@ public class ActionToOpenApi {
         }
 
         // Merge everything together
-        OpenAPI openAPI = new OpenAPI()
+        OpenAPI openAPI = new OpenAPI(SpecVersion.V31)
                 .info(new Info()
                         .title("Collection of actions provided by the agents running on the OPACA platform")
                         .version("0.2"))
@@ -140,8 +144,8 @@ public class ActionToOpenApi {
                 .components(components);
 
         return switch (format) {
-            case JSON -> Json.pretty(openAPI);
-            case YAML -> Yaml.pretty(openAPI);
+            case JSON -> Json31.pretty(openAPI);
+            case YAML -> Yaml31.pretty(openAPI);
         };
     }
 
@@ -198,8 +202,8 @@ public class ActionToOpenApi {
         }
     }
 
-    public static Schema<?> schemaFromParameter(Parameter parameter) {
-        return schemaFromParameter(parameter, "#/components/schemas/", null);
+    public static Schema<?> schemaFromParameter(Parameter parameter, Components components) {
+        return schemaFromParameter(parameter, "#/components/schemas/", components);
     }
 
     public static Schema<?> schemaFromParameter(Parameter parameter, String refPrefix, Components components) {
