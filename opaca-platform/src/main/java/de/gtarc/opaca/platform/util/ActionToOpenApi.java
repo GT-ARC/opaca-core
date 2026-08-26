@@ -55,10 +55,8 @@ public class ActionToOpenApi {
         Components components = new Components();
         for (AgentContainerImage images : agentsContainers.stream().map(AgentContainer::getImage).toList()) {
             for (var definition : images.getDefinitions().entrySet()) {
-                // Schema<?> schema = mapper.convertValue(definition.getValue(), Schema.class);
-                // components.addSchemas(definition.getKey(), schema);
-                JsonNode node = mapper.valueToTree(definition.getValue());
-                ActionToOpenApi.addSchema(components, definition.getKey(), node);
+                var node = mapper.valueToTree(definition.getValue());
+                addSchema(components, definition.getKey(), node);
             }
             for (var definition : images.getDefinitionsByUrl().entrySet()) {
                 Schema<?> schema = new Schema<>().$ref(definition.getValue());
