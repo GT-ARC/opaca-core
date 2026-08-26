@@ -158,6 +158,12 @@ public class ActionToOpenApi {
             moveDefs(components, inlineDefs);
             moveDefs(components, schemas);
             rewriteRefs(schemaNode);
+            var reference = schemaNode.get("$ref");
+            // make sure a schema's definition isnt replaced by a ref to itself
+            if (schemaNode.size() == 1 && reference != null && reference.isTextual()
+                    && reference.textValue().equals("#/components/schemas/" + name)) {
+                return;
+            }
         }
         components.addSchemas(name, mapper.convertValue(node, Schema.class));
     }
@@ -193,10 +199,10 @@ public class ActionToOpenApi {
     }
 
     public static Schema<?> schemaFromParameter(Parameter parameter) {
-        return schemaFromParameter(parameter, "#/components/schemas/");
+        return schemaFromParameter(parameter, "#/components/schemas/", null);
     }
 
-    public static Schema<?> schemaFromParameter(Parameter parameter, String refPrefix) {
+    public static Schema<?> schemaFromParameter(Parameter parameter, String refPrefix, Components components) {
         if (parameter == null || parameter.getType().equals("null")) {
             return new ObjectSchema().nullable(true);
         }
@@ -207,14 +213,22 @@ public class ActionToOpenApi {
             case "integer" -> new IntegerSchema();
             case "boolean" -> new BooleanSchema();
             case "object" -> new ObjectSchema();
-            case "array" -> new ArraySchema().items(schemaFromParameter(toParameter(parameter.getItems()), refPrefix));
-            default -> new Schema<>().$ref(refPrefix + parameter.getType());
+            case "array" -> new ArraySchema().items(schemaFromParameter(toParameter(parameter.getItems()), refPrefix, components));
+            default -> isKnownSchema(components, parameter.getType())
+                    ? new Schema<>().$ref(refPrefix + parameter.getType())
+                    : new Schema<>();
         };
         if (parameter.getDefaultValue() != null) {
-            // if default is not compatible, this just silently fail and skips the assignment
             result.setDefault(parameter.getDefaultValue());
         }
         return result;
+    }
+
+    private static boolean isKnownSchema(Components components, String name) {
+        if (components == null) return false;
+        var schemas = components.getSchemas();
+        if (schemas == null) return false;
+        return schemas.containsKey(name);
     }
 
     private static io.swagger.v3.oas.models.parameters.Parameter makeQueryParam(String name, String description, Schema<?> schema) {
