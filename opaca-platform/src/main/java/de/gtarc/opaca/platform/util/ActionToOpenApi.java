@@ -1,10 +1,7 @@
 package de.gtarc.opaca.platform.util;
-
 import java.util.*;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.model.Parameter.ArrayItems;
@@ -18,6 +15,7 @@ import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import lombok.extern.log4j.Log4j2;
 
 /**
  * Creates an Open-API compliant specification of all the Actions provided by the Agents on this platform,
@@ -25,6 +23,7 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
  * Swagger itself, which can only provide Open-API specifications for all the "static" services that are
  * part of the OPACA API, but not for the "dynamic" actions that may come and go at runtime.
  */
+@Log4j2
 public class ActionToOpenApi {
 
     public enum ActionFormat {
@@ -83,7 +82,7 @@ public class ActionToOpenApi {
                     for (var parameter : action.getParameters().entrySet()) {
                         requestBodySchema.addProperty(
                                 parameter.getKey(),
-                                schemaFromParameter(parameter.getValue(), components));
+                                schemaFromParameter(parameter.getValue(), components)
                         );
                         if (parameter.getValue().isRequired()) {
                             requiredList.add(parameter.getKey());
@@ -95,7 +94,7 @@ public class ActionToOpenApi {
                             .required(true);
 
                     // Responses
-                    var responseMediaType = new MediaType().schema(schemaFromParameter(action.getResult(), components))
+                    var responseMediaType = new MediaType().schema(schemaFromParameter(action.getResult(), components));
                     ApiResponse response200 = new ApiResponse()
                             .description("OK")
                             .content(new Content().addMediaType("*/*", responseMediaType));
@@ -232,7 +231,11 @@ public class ActionToOpenApi {
         if (components == null) return false;
         var schemas = components.getSchemas();
         if (schemas == null) return false;
-        return schemas.containsKey(name);
+        if (!schemas.containsKey(name)) {
+            log.warn("Unknown schema: {} (known schemas: {})\n", name, schemas.size());
+            return false;
+        }
+        return true;
     }
 
     private static io.swagger.v3.oas.models.parameters.Parameter makeQueryParam(String name, String description, Schema<?> schema) {
