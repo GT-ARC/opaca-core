@@ -22,6 +22,10 @@ import lombok.extern.log4j.Log4j2;
  * that can be called using the /invoke route. This is complementary to the /api-docs route provided by
  * Swagger itself, which can only provide Open-API specifications for all the "static" services that are
  * part of the OPACA API, but not for the "dynamic" actions that may come and go at runtime.
+ * 
+ * All schemas defined across all containers' definitions are put into document-level components/schemas,
+ * and all refs are adjusted accordingly. This is necessary, otherwise pydantic-generated schemas will
+ * have incorrect refs.
  */
 @Log4j2
 public class ActionToOpenApi {
@@ -177,7 +181,7 @@ public class ActionToOpenApi {
     }
 
     /**
-     * Recursively move definitions out of $defs and into components/schemas.
+     * Recursively move definitions out of the individual schemas' $defs and into the document's components.
      */
     private static void moveDefs(Components components, JsonNode definitions) {
         if (definitions != null && definitions.isObject()) {
