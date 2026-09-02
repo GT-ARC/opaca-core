@@ -52,12 +52,17 @@ public class ActionToOpenApi {
         // Check for custom definitions in agent container images and add to openapi components
         // Also check for external definitions by url
         Components components = new Components();
-        for (AgentContainerImage images : agentsContainers.stream().map(AgentContainer::getImage).toList()) {
-            for (var definition : images.getDefinitions().entrySet()) {
-                var node = mapper.valueToTree(definition.getValue());
-                addSchema(components, definition.getKey(), node);
+        for (AgentContainerImage image : agentsContainers.stream().map(AgentContainer::getImage).toList()) {
+            for (var definition : image.getDefinitions().entrySet()) {
+                try {
+                    var node = mapper.valueToTree(definition.getValue());
+                    addSchema(components, definition.getKey(), node);
+                } catch (Exception e) {
+                    log.warn("Failed to add definition {} from image {}: {}",
+                            definition.getKey(), image.getImageName(), e.getMessage());
+                }
             }
-            for (var definition : images.getDefinitionsByUrl().entrySet()) {
+            for (var definition : image.getDefinitionsByUrl().entrySet()) {
                 Schema<?> schema = new Schema<>().$ref(definition.getValue());
                 components.addSchemas(definition.getKey(), schema);
             }
@@ -207,7 +212,9 @@ public class ActionToOpenApi {
 
     public static Schema<?> schemaFromParameter(Parameter parameter, String refPrefix, Components components) {
         if (parameter == null || parameter.getType().equals("null")) {
-            return new ObjectSchema().nullable(true);
+            var schema = new Schema<>();
+            schema.addType("null");
+            return schema;
         }
 
         var result = switch (parameter.getType()) {
@@ -232,7 +239,7 @@ public class ActionToOpenApi {
         var schemas = components.getSchemas();
         if (schemas == null) return false;
         if (!schemas.containsKey(name)) {
-            log.warn("Unknown schema: {} (known schemas: {})\n", name, schemas.size());
+            log.warn("Unknown schema: {} (known schemas: {})\n", name, schemas.keySet());
             return false;
         }
         return true;
