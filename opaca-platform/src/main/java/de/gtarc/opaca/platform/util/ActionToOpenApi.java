@@ -144,6 +144,7 @@ public class ActionToOpenApi {
 
         // Merge everything together
         OpenAPI openAPI = new OpenAPI(SpecVersion.V31)
+                .openapi("3.1.0")
                 .info(new Info()
                         .title("Collection of actions provided by the agents running on the OPACA platform")
                         .version("0.2"))
