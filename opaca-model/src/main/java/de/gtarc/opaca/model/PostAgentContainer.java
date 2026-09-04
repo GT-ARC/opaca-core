@@ -35,6 +35,9 @@ public class PostAgentContainer {
      * exact behavior may differ depending on container-client (Kubernetes or Docker) */
     Boolean pull = null;
 
+    /** whether access to this container is restricted to the user who created it */
+    boolean restricted = false;
+
     /** optional configuration for container client */
     @Valid
     ClientConfig clientConfig;

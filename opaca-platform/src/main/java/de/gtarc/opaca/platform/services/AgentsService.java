@@ -242,7 +242,8 @@ public class AgentsService implements AgentsApi {
                 this.client = client;
             }
             this.validator = containersService.getValidator(container);
-            if (containerId == null || container.getContainerId().equals(containerId)) {
+            if ((containerId == null || this.actualContainerId.equals(containerId))
+                    && containersService.isCurrentUserAllowedToUse(this.actualContainerId)) {
                 containerMatch = true;
                 checkAgentMatch(container);
             }
