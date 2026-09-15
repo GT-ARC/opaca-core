@@ -621,6 +621,46 @@ public class ContainerTests {
         Assert.assertTrue(System.currentTimeMillis() - start < 8 * 1000);
     }
 
+    @Test
+    public void test13RestrictedContainer() throws Exception {
+        var image = getSampleContainerImage();
+        image.setRestricted(true);
+        var token1 = result(request(PLATFORM_URL, "POST", "/login", new Login("contributor1", "12345")));
+        var token2 = result(request(PLATFORM_URL, "POST", "/login", new Login("manager", "12345")));
+
+        // create container
+        var containerId = result(requestWithToken(PLATFORM_URL, "POST", "/containers", image, token1));
+        var withContainer = "?containerId=" + containerId;
+
+        // owner can invoke actions on the container ...
+        var con = requestWithToken(PLATFORM_URL, "POST", "/invoke/GetInfo" + withContainer, Map.of(), token1);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // ... but someone else can't (not even admin)
+        con = requestWithToken(PLATFORM_URL, "POST", "/invoke/GetInfo" + withContainer, Map.of(), token2);
+        Assert.assertEquals(403, con.getResponseCode());
+
+        // non-restricted fallback action can still be used
+        con = requestWithToken(PLATFORM_URL, "POST", "/invoke/GetInfo", Map.of(), token2);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // admin can still stop the container, though
+        con = requestWithToken(PLATFORM_URL, "DELETE", "/containers/" + containerId, image, token2);
+        Assert.assertEquals(200, con.getResponseCode());
+    }
+
+    @Test
+    public void testRestrictedContainerNotLoggedIn() throws Exception {
+        var image = getSampleContainerImage();
+        image.setRestricted(true);
+
+        // create restricted container fails if not logged in
+        var con = request(PLATFORM_URL, "POST", "/containers", image);
+
+        Assert.assertEquals(400, con.getResponseCode());
+        Assert.assertTrue(error(con).message.contains("not logged in"));
+    }
+
     /**
      * Even without platform-auth, container auth should still be possible (and associated with the default admin user)
      */

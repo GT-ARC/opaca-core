@@ -468,30 +468,6 @@ public class AuthTests {
         result(requestWithToken(PLATFORM_A, "DELETE", "/containers/" + newContainerId, image, token1));
     }
 
-    @Test
-    public void test13RestrictedContainer() throws Exception {
-        var image = getSampleContainerImage();
-        image.setRestricted(true);
-        var token1 = getToken("contributor1", "12345");
-        var token2 = getToken("manager", "12345");
-
-        // create container
-        var containerId = result(requestWithToken(PLATFORM_A, "POST", "/containers", image, token1));
-
-        // owner can invoke actions on the container ...
-        var con = requestWithToken(PLATFORM_A, "POST", "/invoke/GetInfo", Map.of(), token1);
-        Assert.assertEquals(200, con.getResponseCode());
-
-        // ... but someone else can't (not even admin)
-        con = requestWithToken(PLATFORM_A, "POST", "/invoke/GetInfo", Map.of(), token2);
-        Assert.assertEquals(404, con.getResponseCode());
-        // TODO this should raise 403, not 404 though...
-
-        // admin can still stop the container, though
-        con = requestWithToken(PLATFORM_A, "DELETE", "/containers/" + containerId, image, token2);
-        Assert.assertEquals(200, con.getResponseCode());
-    }
-
     // Helper methods
 
     private Login createLogin(String username, String password) {
