@@ -100,7 +100,7 @@ public class McpTests {
 
     @Test
     public void testCallMcpTool() throws Exception {
-        var token = getToken("user1", "12345");
+        var token = getToken("contributor1", "12345");
         var client = createMcpClient(token);
         // Call the sample1__Add tool with parameters x and y
         CallToolRequest request = CallToolRequest.builder("sample1__Add").arguments(Map.of("x", 25, "y", 17)).build();
@@ -118,6 +118,16 @@ public class McpTests {
         System.out.println("sample1__Add result: " + text);
         // 25 + 17 = 42
         Assert.assertTrue("Addition result should be 42", text.contains("42"));
+    }
+
+    @Test
+    public void testCallMcpRestrictedAsWrongUser() throws Exception {
+        var token = getToken("user1", "12345");
+        var client = createMcpClient(token);
+        CallToolRequest request = CallToolRequest.builder("sample1__Add").arguments(Map.of("x", 25, "y", 17)).build();
+        CallToolResult result = client.callTool(request);
+        Assert.assertTrue(result.isError());
+        Assert.assertTrue(result.content().toString().contains("restricted to its owner"));
     }
 
     @Test
@@ -158,6 +168,7 @@ public class McpTests {
     private static String postSampleContainer(String url) throws Exception {
         var token = getToken("contributor1", "12345");
         var postContainer = getSampleContainerImage();
+        postContainer.setRestricted(true);
         var con = requestWithToken(url, "POST", "/containers", postContainer, token);
         return result(con);
     }

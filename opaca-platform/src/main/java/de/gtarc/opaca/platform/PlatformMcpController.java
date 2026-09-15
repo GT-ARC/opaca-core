@@ -9,9 +9,11 @@ import de.gtarc.opaca.model.Action;
 import de.gtarc.opaca.platform.services.AgentsService;
 import de.gtarc.opaca.platform.services.ContainersService;
 import io.modelcontextprotocol.json.jackson2.JacksonMcpJsonMapper;
+import io.modelcontextprotocol.common.McpTransportContext;
 import io.modelcontextprotocol.server.McpServer;
 import io.modelcontextprotocol.server.McpServerFeatures;
 import io.modelcontextprotocol.server.McpSyncServer;
+import io.modelcontextprotocol.server.McpSyncServerExchange;
 import org.springframework.ai.mcp.server.webmvc.transport.WebMvcStreamableServerTransportProvider;
 import io.modelcontextprotocol.spec.McpSchema;
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
@@ -26,6 +28,8 @@ import de.gtarc.opaca.platform.util.ActionToOpenApi;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerResponse;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,6 +40,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Log4j2
 @Configuration
 public class PlatformMcpController {
+
+    private static final String SECURITY_CONTEXT = "securityContext";
 
     @Autowired
     private ContainersService containersService;
@@ -57,6 +63,8 @@ public class PlatformMcpController {
         JacksonMcpJsonMapper jsonMapper = new JacksonMcpJsonMapper(objectMapper);
         transportProvider = WebMvcStreamableServerTransportProvider.builder()
                 .jsonMapper(jsonMapper)
+                .contextExtractor(request -> McpTransportContext.create(Map.of(
+                    SECURITY_CONTEXT, SecurityContextHolder.getContext())))
                 .mcpEndpoint("/mcp")
                 .build();
 
@@ -107,7 +115,8 @@ public class PlatformMcpController {
                             McpServerFeatures.SyncToolSpecification toolSpec = McpServerFeatures.SyncToolSpecification
                                     .builder()
                                     .tool(tool)
-                                    .callHandler((exchange, request) -> handleToolCall(agent.getAgentId(), action.getName(), request))
+                                    .callHandler((exchange, request) ->
+                                            handleToolCall(exchange, agent.getAgentId(), action.getName(), request))
                                     .build();
 
                             toolsToAdd.add(toolSpec);
@@ -145,10 +154,13 @@ public class PlatformMcpController {
         }
     }
 
-    private McpSchema.CallToolResult handleToolCall(String agentId, String actionName,
+    private McpSchema.CallToolResult handleToolCall(McpSyncServerExchange exchange, String agentId, String actionName,
             McpSchema.CallToolRequest request) {
         log.info("MCP Tool execution request: agentId={}, actionName={}, arguments={}", agentId, actionName,
                 request.arguments());
+        // temporarily restore Spring security context, which is initially yet, but "forgotten" by the time this runs
+        SecurityContext previousContext = SecurityContextHolder.getContext();
+        SecurityContextHolder.setContext((SecurityContext) exchange.transportContext().get(SECURITY_CONTEXT));
         try {
             Map<String, JsonNode> parameters = objectMapper.convertValue(
                     request.arguments() != null ? request.arguments() : Map.of(),
@@ -182,6 +194,8 @@ public class PlatformMcpController {
                     .content(List.of(McpSchema.TextContent.builder("Error invoking action: " + e.getMessage()).build()))
                     .isError(true)
                     .build();
+        } finally {
+            SecurityContextHolder.setContext(previousContext);
         }
     }
 
