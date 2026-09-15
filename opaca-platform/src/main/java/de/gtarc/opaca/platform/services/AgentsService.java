@@ -133,6 +133,7 @@ public class AgentsService implements AgentsApi {
     ) throws NoSuchElementException, IllegalArgumentException, IOException {
         ClientMatch mismatchedParamsClient = null;
         IOException lastException = null;
+        SecurityException lastSecurityException = null;
 
         for (ClientMatch match: (Iterable<? extends ClientMatch>) clientMatches::iterator) {
             if (match.isFullMatch()) {
@@ -141,6 +142,9 @@ public class AgentsService implements AgentsApi {
                 } catch (IOException e) {
                     log.warn("Exception from container", e);
                     lastException = e;
+                } catch (SecurityException e) {
+                    // tried to access restricted container
+                    lastSecurityException = e;
                 }
             } else if (match.isParamsMismatch()) {
                 mismatchedParamsClient = match;
@@ -149,6 +153,9 @@ public class AgentsService implements AgentsApi {
 
         if (lastException != null) {
             throw lastException;
+        }
+        if (lastSecurityException != null) {
+            throw lastSecurityException;
         }
         if (mismatchedParamsClient != null) {
             throw new IllegalArgumentException(String.format("Provided arguments %s do not match action parameters.", mismatchedParamsClient.actionArgs));
@@ -214,7 +221,6 @@ public class AgentsService implements AgentsApi {
         // the actual containerId this client is using, or null for a platform client
         private String actualContainerId = null;
 
-        @Getter
         private ApiProxy client = null;
 
         private ArgumentValidator validator = null;
@@ -242,8 +248,7 @@ public class AgentsService implements AgentsApi {
                 this.client = client;
             }
             this.validator = containersService.getValidator(container);
-            if ((containerId == null || this.actualContainerId.equals(containerId))
-                    && containersService.isCurrentUserAllowedToUse(this.actualContainerId)) {
+            if ((containerId == null || this.actualContainerId.equals(containerId))) {
                 containerMatch = true;
                 checkAgentMatch(container);
             }
@@ -317,18 +322,25 @@ public class AgentsService implements AgentsApi {
             return streamMatch;
         }
 
+        public ApiProxy getClient() {
+            if (! containersService.isCurrentUserAllowedToUse(this.actualContainerId)) {
+                throw new SecurityException("Requested Container is restricted to its owner.");
+            }
+            return client;
+        }
+
         public ApiProxy getClientForUser() {
             // redirect to another platform
             if (actualContainerId == null) {
-                return client;
+                return getClient();
             }
             var containerLoginToken = authUtils.getContainerToken(authUtils.getRequestUser(), actualContainerId);
             // not logged in to container
             if (containerLoginToken == null) {
-                return client;
+                return getClient();
             }
             // get ApiProxy with the required container login token header
-            return client.withExtraHeaders(Map.of(AgentContainerApi.HEADER_TOKEN, containerLoginToken));
+            return getClient().withExtraHeaders(Map.of(AgentContainerApi.HEADER_TOKEN, containerLoginToken));
         }
     }
 
