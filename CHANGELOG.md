@@ -5,6 +5,7 @@
 * replaced custom simple UserManagement with proper Keycloak integration
 * big refactoring, splitting up `PlatformImpl` into different services 
 * integrated MCP server exposing all agents' actions as tools
+* Agent Containers can be `restricted` so that only their original creators can use them
 
 
 ## 0.5 Release
