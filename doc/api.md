@@ -317,6 +317,7 @@ The OPACA Platform uses Spring Boot, which provides an Open-API compliant descri
     "image": AgentContainerImage,
     "arguments": {...}, // values for AgentContainerImage parameters
     "pull": boolean,
+    "restricted": boolean,
     "clientConfig": {...} // values for Container Client config parameters
 }
 ```

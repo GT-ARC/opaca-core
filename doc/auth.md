@@ -114,3 +114,11 @@ Agent Containers may provide "extra-ports" for e.g. custom web-UIs or for exposi
 The following sequence diagram shows, slightly simplified, how the interaction between user, runtime platform, and agent container takes place. In the arrow labels, `{...}` denotes a path parameter, `(...)` the request body, and `[...]` an HTTP header.
 
 ![Platform- and Container-Authentication](img/container-login.png)
+
+## Restricted Containers
+
+Besides Role-based Access Control and Container-Login, it's also possible to start Agent Containers with the `"restricted": true` parameter. This way, the actions provided by the container may only be used by the user who started the container. Other users can still see the container and its agents and actions in the list of running containers, and users with role `MANAGER` can still stop the container, but all other users -- even `MANAGER` -- will get a `403` error when trying to `/invoke` any of the container's actions or `/send` a message to one of its agents.
+
+Starting a container in "restricted" mode will **fail** if the user is currently not logged in.
+
+**Note:** The check is performed by the Runtime Platform; depending on how the container was started and in what network it is running, users may still be able to invoke actions by calling the respective routes at the container itself, bypassing the Runtime Platform. 
