@@ -94,6 +94,9 @@ public class ContainersService implements ContainersApi {
         checkRequirements(postContainer);
         String agentContainerId = UUID.randomUUID().toString();
         String owner = authUtils.getRequestUser();
+        if (postContainer.isRestricted() && AuthUtils.ANONYMOUS_USER.equals(owner)) {
+            throw new IllegalArgumentException("Container can not be restricted when not logged in.");
+        }
         Map<String, String> env = new HashMap<>();
         env.put(AgentContainerApi.ENV_OWNER, owner);
         if (config.requireAuth) {

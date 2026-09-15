@@ -33,6 +33,8 @@ public class AuthUtils {
     final static String ROLE_USER = "USER";
     final static String ROLE_GUEST = "GUEST";
 
+    public final static String ANONYMOUS_USER = "anonymous";
+
 
     @Autowired
     private PlatformConfig config;
@@ -190,7 +192,7 @@ public class AuthUtils {
         if (auth != null && auth.getCredentials() instanceof Jwt jwt) {
             return jwt.getClaimAsString("preferred_username");
         } else if (! config.requireAuth){
-            return "anonymous";
+            return ANONYMOUS_USER;
         } else {
             return null;
         }
