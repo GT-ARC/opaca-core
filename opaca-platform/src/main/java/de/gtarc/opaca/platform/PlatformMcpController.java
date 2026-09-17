@@ -159,6 +159,7 @@ public class PlatformMcpController {
         log.info("MCP Tool execution request: agentId={}, actionName={}, arguments={}", agentId, actionName,
                 request.arguments());
         // temporarily restore Spring security context, which is initially yet, but "forgotten" by the time this runs
+        // the SecurityContext is thread-local; the change does not leak to a parallel REST call (tested manually)
         SecurityContext previousContext = SecurityContextHolder.getContext();
         SecurityContextHolder.setContext((SecurityContext) exchange.transportContext().get(SECURITY_CONTEXT));
         try {
