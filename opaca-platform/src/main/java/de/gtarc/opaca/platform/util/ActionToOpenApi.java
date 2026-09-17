@@ -1,13 +1,12 @@
 package de.gtarc.opaca.platform.util;
-
 import java.util.*;
-
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.model.Parameter.ArrayItems;
-import io.swagger.v3.core.util.Json;
-import io.swagger.v3.core.util.Yaml;
+import io.swagger.v3.core.util.Json31;
+import io.swagger.v3.core.util.Yaml31;
 import io.swagger.v3.oas.models.*;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.*;
@@ -16,13 +15,19 @@ import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import lombok.extern.log4j.Log4j2;
 
 /**
  * Creates an Open-API compliant specification of all the Actions provided by the Agents on this platform,
  * that can be called using the /invoke route. This is complementary to the /api-docs route provided by
  * Swagger itself, which can only provide Open-API specifications for all the "static" services that are
  * part of the OPACA API, but not for the "dynamic" actions that may come and go at runtime.
+ * 
+ * All schemas defined across all containers' definitions are put into document-level components/schemas,
+ * and all refs are adjusted accordingly. This is necessary, otherwise pydantic-generated schemas will
+ * have incorrect refs.
  */
+@Log4j2
 public class ActionToOpenApi {
 
     public enum ActionFormat {
@@ -30,7 +35,7 @@ public class ActionToOpenApi {
         YAML
     }
 
-    private final static ObjectMapper mapper = new ObjectMapper();
+    private final static ObjectMapper mapper = Json31.mapper();
 
     /**
      * Create Open-API spec in JSON or YAML format for the actions in the given Agent Containers. This method
@@ -43,17 +48,25 @@ public class ActionToOpenApi {
      * @param enableAuth Indicates if platform has authentication enabled
      * @return the OpenAPI schema as either JSON or YAML
      */
-    public static String createOpenApiSchema(Collection<AgentContainer> agentsContainers, ActionFormat format,
-            boolean enableAuth) {
+    public static String createOpenApiSchema(
+            Collection<AgentContainer> agentsContainers,
+            ActionFormat format,
+            boolean enableAuth
+    ) {
         // Check for custom definitions in agent container images and add to openapi components
         // Also check for external definitions by url
         Components components = new Components();
-        for (AgentContainerImage images : agentsContainers.stream().map(AgentContainer::getImage).toList()) {
-            for (var definition : images.getDefinitions().entrySet()) {
-                Schema<?> schema = mapper.convertValue(definition.getValue(), Schema.class);
-                components.addSchemas(definition.getKey(), schema);
+        for (AgentContainerImage image : agentsContainers.stream().map(AgentContainer::getImage).toList()) {
+            for (var definition : image.getDefinitions().entrySet()) {
+                try {
+                    var node = mapper.valueToTree(definition.getValue());
+                    addSchema(components, definition.getKey(), node);
+                } catch (Exception e) {
+                    log.warn("Failed to add definition {} from image {}: {}",
+                            definition.getKey(), image.getImageName(), e.getMessage());
+                }
             }
-            for (var definition : images.getDefinitionsByUrl().entrySet()) {
+            for (var definition : image.getDefinitionsByUrl().entrySet()) {
                 Schema<?> schema = new Schema<>().$ref(definition.getValue());
                 components.addSchemas(definition.getKey(), schema);
             }
@@ -76,7 +89,10 @@ public class ActionToOpenApi {
                     Schema<?> requestBodySchema = new ObjectSchema();
                     List<String> requiredList = new ArrayList<>();
                     for (var parameter : action.getParameters().entrySet()) {
-                        requestBodySchema.addProperty(parameter.getKey(), schemaFromParameter(parameter.getValue()));
+                        requestBodySchema.addProperty(
+                                parameter.getKey(),
+                                schemaFromParameter(parameter.getValue(), components)
+                        );
                         if (parameter.getValue().isRequired()) {
                             requiredList.add(parameter.getKey());
                         }
@@ -87,9 +103,10 @@ public class ActionToOpenApi {
                             .required(true);
 
                     // Responses
+                    var responseMediaType = new MediaType().schema(schemaFromParameter(action.getResult(), components));
                     ApiResponse response200 = new ApiResponse()
                             .description("OK")
-                            .content(new Content().addMediaType("*/*", new MediaType().schema(schemaFromParameter(action.getResult()))));
+                            .content(new Content().addMediaType("*/*", responseMediaType));
                     ApiResponse responseDefault = new ApiResponse()
                             .description("Unexpected error")
                             .content(new Content().addMediaType("application/json", new MediaType().schema(new Schema<>().$ref("#/components/schemas/Error"))));
@@ -126,7 +143,8 @@ public class ActionToOpenApi {
         }
 
         // Merge everything together
-        OpenAPI openAPI = new OpenAPI()
+        OpenAPI openAPI = new OpenAPI(SpecVersion.V31)
+                .openapi("3.1.0")
                 .info(new Info()
                         .title("Collection of actions provided by the agents running on the OPACA platform")
                         .version("0.2"))
@@ -135,18 +153,73 @@ public class ActionToOpenApi {
                 .components(components);
 
         return switch (format) {
-            case JSON -> Json.pretty(openAPI);
-            case YAML -> Yaml.pretty(openAPI);
+            case JSON -> Json31.pretty(openAPI);
+            case YAML -> Yaml31.pretty(openAPI);
         };
     }
 
-    public static Schema<?> schemaFromParameter(Parameter parameter) {
-        return schemaFromParameter(parameter, "#/components/schemas/");
+    /**
+     * Move sub-schema defs and rewrite refs, then add the schema
+     * to the OAS components object.
+     */
+    private static void addSchema(Components components, String name, JsonNode node) {
+        if (node.isObject()) {
+            ObjectNode schemaNode = (ObjectNode) node;
+            var inlineDefs = schemaNode.remove("$defs");
+            var nestedComponents = schemaNode.remove("components");
+            var schemas = nestedComponents == null ? null : nestedComponents.get("schemas");
+            moveDefs(components, inlineDefs);
+            moveDefs(components, schemas);
+            rewriteRefs(schemaNode);
+            var reference = schemaNode.get("$ref");
+            // make sure a schema's definition isnt replaced by a ref to itself
+            if (schemaNode.size() == 1 && reference != null && reference.isTextual()
+                    && reference.textValue().equals("#/components/schemas/" + name)) {
+                return;
+            }
+        }
+        components.addSchemas(name, mapper.convertValue(node, Schema.class));
     }
 
-    public static Schema<?> schemaFromParameter(Parameter parameter, String refPrefix) {
+    /**
+     * Recursively move definitions out of the individual schemas' $defs and into the document's components.
+     */
+    private static void moveDefs(Components components, JsonNode definitions) {
+        if (definitions != null && definitions.isObject()) {
+            definitions.properties().forEach(entry ->
+                    addSchema(components, entry.getKey(), entry.getValue())
+            );
+        }
+    }
+
+    /**
+     * Recursively rewrite all ref-paths containing $defs to components/schemas instead.
+     */
+    private static void rewriteRefs(JsonNode node) {
+        if (node.isObject()) {
+            ObjectNode objectNode = (ObjectNode) node;
+            var ref = objectNode.get("$ref");
+            if (ref != null && ref.isTextual() && ref.textValue().startsWith("#/$defs/")) {
+                var refPath = ref.textValue().substring("#/$defs/".length());
+                objectNode.put("$ref", "#/components/schemas/" + refPath);
+            }
+            objectNode.properties().forEach(field ->
+                    rewriteRefs(field.getValue())
+            );
+        } else if (node.isArray()) {
+            node.forEach(ActionToOpenApi::rewriteRefs);
+        }
+    }
+
+    public static Schema<?> schemaFromParameter(Parameter parameter, Components components) {
+        return schemaFromParameter(parameter, "#/components/schemas/", components);
+    }
+
+    public static Schema<?> schemaFromParameter(Parameter parameter, String refPrefix, Components components) {
         if (parameter == null || parameter.getType().equals("null")) {
-            return new ObjectSchema().nullable(true);
+            var schema = new Schema<>();
+            schema.addType("null");
+            return schema;
         }
 
         var result = switch (parameter.getType()) {
@@ -155,14 +228,26 @@ public class ActionToOpenApi {
             case "integer" -> new IntegerSchema();
             case "boolean" -> new BooleanSchema();
             case "object" -> new ObjectSchema();
-            case "array" -> new ArraySchema().items(schemaFromParameter(toParameter(parameter.getItems()), refPrefix));
-            default -> new Schema<>().$ref(refPrefix + parameter.getType());
+            case "array" -> new ArraySchema().items(schemaFromParameter(toParameter(parameter.getItems()), refPrefix, components));
+            default -> isKnownSchema(components, parameter.getType())
+                    ? new Schema<>().$ref(refPrefix + parameter.getType())
+                    : new Schema<>();
         };
         if (parameter.getDefaultValue() != null) {
-            // if default is not compatible, this just silently fail and skips the assignment
             result.setDefault(parameter.getDefaultValue());
         }
         return result;
+    }
+
+    private static boolean isKnownSchema(Components components, String name) {
+        if (components == null) return false;
+        var schemas = components.getSchemas();
+        if (schemas == null) return false;
+        if (!schemas.containsKey(name)) {
+            log.warn("Unknown schema: {} (known schemas: {})\n", name, schemas.keySet());
+            return false;
+        }
+        return true;
     }
 
     private static io.swagger.v3.oas.models.parameters.Parameter makeQueryParam(String name, String description, Schema<?> schema) {

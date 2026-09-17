@@ -191,7 +191,7 @@ public class PlatformMcpController {
         for (var parameter : action.getParameters().entrySet()) {
             requestBodySchema.addProperty(
                     parameter.getKey(),
-                    ActionToOpenApi.schemaFromParameter(parameter.getValue(), "#/definitions/"));
+                    ActionToOpenApi.schemaFromParameter(parameter.getValue(), "#/definitions/", null));
             if (parameter.getValue().isRequired()) {
                 requiredList.add(parameter.getKey());
             }
