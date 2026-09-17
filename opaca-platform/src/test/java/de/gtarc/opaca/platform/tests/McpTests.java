@@ -156,8 +156,6 @@ public class McpTests {
         Thread.sleep(1000);
     }
 
-    // TODO test auth: no token, token with guest-role, wrong user for restricted container
-
 
     // Helper methods
 
