@@ -32,12 +32,12 @@ public class EventsHandling {
 
     public void addEvent(PlatformEvent event) {
         eventHistory.addEvent(event);
-        // TODO send platform event
+        webSocketHandler.broadcastEvent("platform/" + event.getType().name().toLowerCase(), event);
     }
 
     public void addEvent(BroadcastEvent event) {
         eventHistory.addEvent(event);
-        // TODO send broadcast event
+        webSocketHandler.broadcastEvent("broadcast/" + event.getTopic(), event);
     }
 
 
