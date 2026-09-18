@@ -55,7 +55,7 @@ public abstract class Event {
     public abstract EventType getType();
 
     /** get short description what the event is about, including its type, e.g. "api/invoke" or "broadcast/xyz" */
-    public abstract String getSlug();
+    public abstract String slug();
 
     /**
      * Topics are in form "api/firstRouteSegment", "platform/containers|connections", or "broadcast/topic".
@@ -68,7 +68,7 @@ public abstract class Event {
      */
     public boolean matches(String subscribedTopic) {
         var topic = subscribedTopic.split("/", 2);
-        var slug = this.getSlug().split("/", 2);
+        var slug = this.slug().split("/", 2);
         if (topic[0].equals(slug[0])) {
             if (topic.length == 1) return true;
             if (slug.length == 2) return slug[1].contains(topic[1]);
@@ -108,7 +108,7 @@ public abstract class Event {
         String relatedId;
 
         @Override
-        public String getSlug() {
+        public String slug() {
             String[] routeParts = route.split("\\s+");
             String firstPathSegment = routeParts[1].split("/")[1];
             return "api/" + firstPathSegment;
@@ -138,7 +138,7 @@ public abstract class Event {
         String connectedUrl;
 
         @Override
-        public String getSlug() {
+        public String slug() {
             return "platform/" + type.name().toLowerCase();
         }
     }
@@ -155,7 +155,7 @@ public abstract class Event {
         Message message;
 
         @Override
-        public String getSlug() {
+        public String slug() {
             return "broadcast/" + topic;
         }
     }

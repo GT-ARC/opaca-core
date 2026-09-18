@@ -70,7 +70,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
      * Broadcast event to all clients subscribed to the given topic.
      */
     public void broadcastEvent(Event event) {
-        log.debug("Broadcasting event to topic {}", event.getSlug());
+        log.debug("Broadcasting event to topic {}", event.slug());
         for (WebSocketSession session : sessionTopics.keySet()) {
             if (event.matches(sessionTopics.get(session))) {
                 try {

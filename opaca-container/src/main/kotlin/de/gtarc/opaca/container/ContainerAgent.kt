@@ -81,11 +81,15 @@ class ContainerAgent(
      */
     fun onEvent(message: String) {
         log.debug("WEBSOCKET EVENT: $message")
-        val event = RestHelper.readObject(message, Event::class.java)
-        if (event !is Event.ApiEvent) return;
-        val action = Regex("invoke/(\\w+)").find(event.route)?.groupValues?.get(1)
-        if (action != null) {
-            broker.publish(action, event)
+        try {
+            val event = RestHelper.readObject(message, Event::class.java)
+            if (event !is Event.ApiEvent) return;
+            val action = Regex("invoke/(\\w+)").find(event.route)?.groupValues?.get(1)
+            if (action != null) {
+                broker.publish(action, event)
+            }
+        } catch (e: Exception) {
+            log.error("Could not read websocket Event $message ", e)
         }
     }
 
