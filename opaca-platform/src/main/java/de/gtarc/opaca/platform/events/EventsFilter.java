@@ -19,7 +19,7 @@ import java.util.Set;
 public class EventsFilter implements Filter {
 
     @Autowired
-    private WebSocketConfig webSocketHandler;
+    private EventsHandling eventsHandling;
 
     @Override
     public void init(FilterConfig filterConfig) {}
@@ -35,16 +35,16 @@ public class EventsFilter implements Filter {
             String route = String.format("%s %s", httpRequest.getMethod(), httpRequest.getRequestURI());
             String sender = httpRequest.getHeader(Event.HEADER_SENDER_ID);
             ApiEvent callEvent = createCallEvent(route, sender);
-            addEvent(callEvent);
+            eventsHandling.addEvent(callEvent);
 
             // process the request
             chain.doFilter(request, response);
 
             // create result or error event
             if (httpResponse.getStatus() >= 200 & httpResponse.getStatus() < 300 ) {
-                addEvent(createResultEvent(callEvent));
+                eventsHandling.addEvent(createResultEvent(callEvent));
             } else {
-                addEvent(createErrorEvent(callEvent, httpResponse.getStatus()));
+                eventsHandling.addEvent(createErrorEvent(callEvent, httpResponse.getStatus()));
             }
         } else {
             // just process the request
@@ -61,20 +61,6 @@ public class EventsFilter implements Filter {
         );
         return routes.getOrDefault(request.getMethod(), Set.of()).stream()
                 .anyMatch(r -> request.getRequestURI().startsWith(r));
-    }
-
-    private void addEvent(Event event) {
-        EventHistory.getInstance().addEvent(event);
-
-        if (event instanceof ApiEvent apiEvent) {
-            if (apiEvent.getPhase() == ApiCallPhase.SUCCESS) {
-                String[] routeParts = apiEvent.getRoute().split("\\s+");
-                String firstPathSegment = routeParts[1].split("/")[1];
-                webSocketHandler.broadcastEvent("api/" + firstPathSegment, event);
-            }
-        }
-        // TODO send platform event
-        // TODO send broadcast event
     }
 
     private ApiEvent createCallEvent(String route, String sender) {

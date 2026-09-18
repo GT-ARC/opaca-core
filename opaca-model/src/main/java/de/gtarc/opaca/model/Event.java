@@ -35,8 +35,10 @@ public abstract class Event {
 
     public enum PlatformEventType {
         CONTAINER_ADDED,
+        CONTAINER_UPDATED,
         CONTAINER_REMOVED,
         CONNECTION_ADDED,
+        CONNECTION_UPDATED,
         CONNECTION_REMOVED
     }
 
@@ -84,7 +86,7 @@ public abstract class Event {
         final EventType type = EventType.PLATFORM;
 
         /** what happened on the platform */
-        PlatformEvent event;
+        PlatformEventType event;
 
         /** for container-type events, the ID of the added or removed container */
         String containerId;

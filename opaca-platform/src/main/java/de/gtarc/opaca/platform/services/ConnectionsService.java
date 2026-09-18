@@ -1,6 +1,7 @@
 package de.gtarc.opaca.platform.services;
 
 import de.gtarc.opaca.api.ConnectionsApi;
+import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.ConnectionRequest;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.auth.AuthUtils;
@@ -9,8 +10,12 @@ import de.gtarc.opaca.platform.util.Utils;
 import de.gtarc.opaca.util.ApiProxy;
 import de.gtarc.opaca.util.WebSocketConnector;
 import jakarta.annotation.PostConstruct;
+import lombok.Getter;
+import lombok.ToString;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -30,6 +35,9 @@ public class ConnectionsService implements ConnectionsApi {
 
     @Autowired
     private SessionData sessionData;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     @Autowired
     private PlatformConfig config;
@@ -66,6 +74,7 @@ public class ConnectionsService implements ConnectionsApi {
 
         // store connection if all the above steps succeeded
         sessionData.connectedPlatforms.put(url, info);
+        publishConnectionEvent(url, ConnectionChangedEvent.Type.ADDED);
         return true;
     }
 
@@ -80,6 +89,7 @@ public class ConnectionsService implements ConnectionsApi {
         Utils.checkUrl(url);
         if (sessionData.connectedPlatforms.containsKey(url)) {
             sessionData.connectedPlatforms.remove(url);
+            publishConnectionEvent(url, ConnectionChangedEvent.Type.REMOVED);
             if (connectionWebsockets.containsKey(url)) {
                 var ws = connectionWebsockets.remove(url);
                 ws.sendClose(1000, "disconnected");
@@ -112,10 +122,12 @@ public class ConnectionsService implements ConnectionsApi {
             var client = getPlatformProxy(platformUrl);
             var platformInfo = client.getPlatformInfo();
             sessionData.connectedPlatforms.put(platformUrl, platformInfo);
+            publishConnectionEvent(platformUrl, ConnectionChangedEvent.Type.UPDATED);
             return true;
         } catch (IOException e) {
             log.warn("Platform did not respond: {}; removing...", platformUrl);
             sessionData.connectedPlatforms.remove(platformUrl);
+            publishConnectionEvent(platformUrl, ConnectionChangedEvent.Type.REMOVED);
             return false;
         }
     }
@@ -142,6 +154,31 @@ public class ConnectionsService implements ConnectionsApi {
             connectionWebsockets.put(url, res.get());
         } catch (ExecutionException | InterruptedException e) {
             log.warn("Failed to establish websocket connection to {}", url);
+        }
+    }
+
+
+    private void publishConnectionEvent(String connectionUrl, ConnectionChangedEvent.Type type) {
+        eventPublisher.publishEvent(new ConnectionChangedEvent(this, connectionUrl, type));
+    }
+
+    @Getter
+    @ToString
+    public static class ConnectionChangedEvent extends ApplicationEvent {
+
+        public enum Type {
+            ADDED,
+            REMOVED,
+            UPDATED
+        }
+
+        private final String connectionUrl;
+        private final Type type;
+
+        public ConnectionChangedEvent(Object source, String connectionUrl, Type type) {
+            super(source);
+            this.connectionUrl = connectionUrl;
+            this.type = type;
         }
     }
 
