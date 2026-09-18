@@ -89,8 +89,8 @@ public class PlatformTests {
         // create web socket listener and collect messages
         var invokeMsg = new ArrayList<String>();
         var containerMsg = new ArrayList<String>();
-        WebSocketConnector.subscribe(PLATFORM_A_URL, null, "/invoke", invokeMsg::add);
-        WebSocketConnector.subscribe(PLATFORM_A_URL, null, "/containers", containerMsg::add);
+        WebSocketConnector.subscribe(PLATFORM_A_URL, null, "api/invoke", invokeMsg::add);
+        WebSocketConnector.subscribe(PLATFORM_A_URL, null, "api/containers", containerMsg::add);
 
         // make sure connection is established first
         Thread.sleep(200);

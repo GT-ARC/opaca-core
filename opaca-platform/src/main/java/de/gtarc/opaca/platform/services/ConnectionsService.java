@@ -150,7 +150,7 @@ public class ConnectionsService implements ConnectionsApi {
     public void openConnectionWebsocket(String url) {
         try {
             var token = authUtils.getPlatformToken();
-            var res = WebSocketConnector.subscribe(url, token, "/containers", msg -> notifyUpdatePlatform(url));
+            var res = WebSocketConnector.subscribe(url, token, "api/containers", msg -> notifyUpdatePlatform(url));
             connectionWebsockets.put(url, res.get());
         } catch (ExecutionException | InterruptedException e) {
             log.warn("Failed to establish websocket connection to {}", url);
