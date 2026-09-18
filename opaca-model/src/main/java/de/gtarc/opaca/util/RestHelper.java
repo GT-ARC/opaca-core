@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import de.gtarc.opaca.model.ErrorResponse;
 import de.gtarc.opaca.model.Event;
+import de.gtarc.opaca.model.Event.*;
 import lombok.*;
 import lombok.extern.java.Log;
 
@@ -230,11 +231,12 @@ public class RestHelper {
      */
     private void createForwardEvent(String method, String path) {
         var key = String.format("%s %s", method, path.split("\\?")[0]); // part before the query
-        Optional<Event> related = EventHistory.getInstance().getEvents().stream()
-                .filter(x -> x.getEventType() == Event.EventType.CALL && x.getRoute().equals(key))
+        Optional<ApiEvent> related = EventHistory.getInstance().getEvents().stream()
+                .filter(ApiEvent.class::isInstance).map(ApiEvent.class::cast)
+                .filter(x -> x.getPhase() == ApiCallPhase.CALL && x.getRoute().equals(key))
                 .max(Comparator.comparing(Event::getTimestamp));
         if (related.isPresent()) {
-            Event event = new Event(Event.EventType.FORWARD, null, null, baseUrl, null, related.get().getId());
+            ApiEvent event = new ApiEvent(ApiCallPhase.FORWARD, null, null, baseUrl, null, related.get().getId());
             EventHistory.getInstance().addEvent(event);
         }
     }

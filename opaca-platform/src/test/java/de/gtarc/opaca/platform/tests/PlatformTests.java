@@ -404,10 +404,10 @@ public class PlatformTests {
         var con = request(PLATFORM_A_URL, "GET", "/history", null);
         List<Map<String, Object>> res = result(con, List.class);
         Assert.assertTrue(res.size() >= 4);
-        Assert.assertEquals("CALL", res.get(res.size() - 4).get("eventType"));
+        Assert.assertEquals("CALL", res.get(res.size() - 4).get("phase"));
         Assert.assertEquals(res.get(res.size() - 4).get("id"), res.get(res.size() - 3).get("relatedId"));
         Assert.assertEquals("POST /invoke/UnknownAction", res.get(res.size() - 2).get("route"));
-        Assert.assertEquals("ERROR", res.get(res.size() - 1).get("eventType"));
+        Assert.assertEquals("ERROR", res.get(res.size() - 1).get("phase"));
     }
 
     /**

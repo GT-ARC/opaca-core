@@ -62,7 +62,7 @@ class ContainerAgent(
             log.info("Starting Container Agent...")
             server.start()
             if (subscribeToEvents) {
-                WebSocketConnector.subscribe(runtimePlatformUrl, AuthHelper.getToken(), "/invoke", this::onEvent)
+                WebSocketConnector.subscribe(runtimePlatformUrl, AuthHelper.getToken(), "api/invoke", this::onEvent)
             }
         }.start()
     }
@@ -82,6 +82,7 @@ class ContainerAgent(
     fun onEvent(message: String) {
         log.debug("WEBSOCKET EVENT: $message")
         val event = RestHelper.readObject(message, Event::class.java)
+        if (event !is Event.ApiEvent) return;
         val action = Regex("invoke/(\\w+)").find(event.route)?.groupValues?.get(1)
         if (action != null) {
             broker.publish(action, event)

@@ -1,6 +1,7 @@
 package de.gtarc.opaca.platform.events;
 
 import de.gtarc.opaca.model.Event;
+import de.gtarc.opaca.model.Event.*;
 import de.gtarc.opaca.util.EventHistory;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
@@ -33,7 +34,7 @@ public class EventsFilter implements Filter {
             // create call event
             String route = String.format("%s %s", httpRequest.getMethod(), httpRequest.getRequestURI());
             String sender = httpRequest.getHeader(Event.HEADER_SENDER_ID);
-            Event callEvent = createCallEvent(route, sender);
+            ApiEvent callEvent = createCallEvent(route, sender);
             addEvent(callEvent);
 
             // process the request
@@ -64,24 +65,28 @@ public class EventsFilter implements Filter {
 
     private void addEvent(Event event) {
         EventHistory.getInstance().addEvent(event);
-        if (event.getEventType() == Event.EventType.SUCCESS) {
 
-            String[] routeParts = event.getRoute().split("\\s+");
-            String firstPathSegment = "/" + routeParts[1].split("/")[1];
-            webSocketHandler.broadcastEvent(firstPathSegment, event);
+        if (event instanceof ApiEvent apiEvent) {
+            if (apiEvent.getPhase() == ApiCallPhase.SUCCESS) {
+                String[] routeParts = apiEvent.getRoute().split("\\s+");
+                String firstPathSegment = routeParts[1].split("/")[1];
+                webSocketHandler.broadcastEvent("api/" + firstPathSegment, event);
+            }
         }
+        // TODO send platform event
+        // TODO send broadcast event
     }
 
-    private Event createCallEvent(String route, String sender) {
-        return new Event(Event.EventType.CALL, route, sender, null, null, null);
+    private ApiEvent createCallEvent(String route, String sender) {
+        return new ApiEvent(ApiCallPhase.CALL, route, sender, null, null, null);
     }
 
-    private Event createResultEvent(Event related) {
-        return new Event(Event.EventType.SUCCESS, related.getRoute(), related.getSenderId(), null, null, related.getId());
+    private ApiEvent createResultEvent(ApiEvent related) {
+        return new ApiEvent(ApiCallPhase.SUCCESS, related.getRoute(), related.getSenderId(), null, null, related.getId());
     }
 
-    private Event createErrorEvent(Event related, int status) {
-        return new Event(Event.EventType.ERROR, related.getRoute(), related.getSenderId(), null, status, related.getId());
+    private ApiEvent createErrorEvent(ApiEvent related, int status) {
+        return new ApiEvent(ApiCallPhase.ERROR, related.getRoute(), related.getSenderId(), null, status, related.getId());
     }
 
 }

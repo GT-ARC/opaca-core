@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
 import de.gtarc.opaca.model.Event;
+import de.gtarc.opaca.model.Event.*;
 import de.gtarc.opaca.util.RestHelper;
 
 /**
@@ -71,7 +72,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public void broadcastEvent(String topic, Event event) {
         log.debug("Broadcasting event to topic {}", topic);
         for (WebSocketSession session : sessionTopics.keySet()) {
-            if (topic.equals(sessionTopics.get(session))) {
+            if (matches(sessionTopics.get(session), topic)) {
                 try {
                     log.debug("Sending new message...");
                     send(session, new TextMessage(RestHelper.writeJson(event)));
@@ -80,6 +81,25 @@ public class WebSocketConfig implements WebSocketConfigurer {
                 }
             }
         }
+    }
+
+    /**
+     * Topics are in form "api/firstRouteSegment", "platform/containers|connections", or "broadcast/topic".
+     * Clients can subscribe in the same format, to an event type and optional suffix, e.g.
+     * - "api/invoke" -> subscribe to all (successful) calls to "invoke"
+     * - "platform/containers" -> subscribe to container started and stopped events
+     * - "platform/" or "platform" -> subscribe to any platform events
+     * - "broadcast/topic" -> subscribe to broadcast messages on channel 'topic'
+     * - "broadcast/" or "broadcast" -> subscribe to any broadcast messages
+     */
+    private boolean matches(String subscribedTopic, String eventTopic) {
+        var parts1 = subscribedTopic.split("/", 2);
+        var parts2 = eventTopic.split("/", 2);
+        if (parts1[0].equals(parts2[0])) {
+            if (parts1.length == 1) return true;
+            if (parts2.length == 2) return parts2[1].contains(parts1[1]);
+        }
+        return false;
     }
 
     private void send(WebSocketSession session, WebSocketMessage<?> message) {

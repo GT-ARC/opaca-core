@@ -8,6 +8,13 @@ import java.util.concurrent.CompletionStage;
 
 /**
  * Simple class for connecting to the OPACA "/subscribe" Websocket for a specific topic.
+ *
+ * Topics are in form "api/firstRouteSegment", "platform/containers|connections", or "broadcast/topic", e.g.
+ * - "api/invoke" -> subscribe to all (successful) calls to "invoke"
+ * - "platform/containers" -> subscribe to container started and stopped events
+ * - "platform/" or "platform" -> subscribe to any platform events
+ * - "broadcast/topic" -> subscribe to broadcast messages on channel 'topic'
+ * - "broadcast/" or "broadcast" -> subscribe to any broadcast messages
  */
 public class WebSocketConnector {
 
