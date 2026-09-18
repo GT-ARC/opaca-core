@@ -1,15 +1,15 @@
 package de.gtarc.opaca.platform.services;
 
 import de.gtarc.opaca.api.ConnectionsApi;
-import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.ConnectionRequest;
+import de.gtarc.opaca.model.Event;
+import de.gtarc.opaca.model.Event.*;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.auth.AuthUtils;
 import de.gtarc.opaca.platform.session.SessionData;
 import de.gtarc.opaca.platform.util.Utils;
 import de.gtarc.opaca.util.ApiProxy;
 import de.gtarc.opaca.util.WebSocketConnector;
-import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.log4j.Log4j2;
@@ -74,7 +74,7 @@ public class ConnectionsService implements ConnectionsApi {
 
         // store connection if all the above steps succeeded
         sessionData.connectedPlatforms.put(url, info);
-        publishConnectionEvent(url, ConnectionChangedEvent.Type.ADDED);
+        publishConnectionEvent(url, PlatformEventType.CONNECTION_ADDED);
         return true;
     }
 
@@ -89,7 +89,7 @@ public class ConnectionsService implements ConnectionsApi {
         Utils.checkUrl(url);
         if (sessionData.connectedPlatforms.containsKey(url)) {
             sessionData.connectedPlatforms.remove(url);
-            publishConnectionEvent(url, ConnectionChangedEvent.Type.REMOVED);
+            publishConnectionEvent(url, PlatformEventType.CONNECTION_REMOVED);
             if (connectionWebsockets.containsKey(url)) {
                 var ws = connectionWebsockets.remove(url);
                 ws.sendClose(1000, "disconnected");
@@ -122,12 +122,12 @@ public class ConnectionsService implements ConnectionsApi {
             var client = getPlatformProxy(platformUrl);
             var platformInfo = client.getPlatformInfo();
             sessionData.connectedPlatforms.put(platformUrl, platformInfo);
-            publishConnectionEvent(platformUrl, ConnectionChangedEvent.Type.UPDATED);
+            publishConnectionEvent(platformUrl, PlatformEventType.CONNECTION_UPDATED);
             return true;
         } catch (IOException e) {
             log.warn("Platform did not respond: {}; removing...", platformUrl);
             sessionData.connectedPlatforms.remove(platformUrl);
-            publishConnectionEvent(platformUrl, ConnectionChangedEvent.Type.REMOVED);
+            publishConnectionEvent(platformUrl, PlatformEventType.CONNECTION_REMOVED);
             return false;
         }
     }
@@ -158,27 +158,19 @@ public class ConnectionsService implements ConnectionsApi {
     }
 
 
-    private void publishConnectionEvent(String connectionUrl, ConnectionChangedEvent.Type type) {
-        eventPublisher.publishEvent(new ConnectionChangedEvent(this, connectionUrl, type));
+    private void publishConnectionEvent(String connectionUrl, PlatformEventType type) {
+        var event = new PlatformEvent(type, null, null, connectionUrl);
+        eventPublisher.publishEvent(new ConnectionChangedEvent(this, event));
     }
 
-    @Getter
-    @ToString
+    @Getter @ToString
     public static class ConnectionChangedEvent extends ApplicationEvent {
 
-        public enum Type {
-            ADDED,
-            REMOVED,
-            UPDATED
-        }
+        private final Event.PlatformEvent event;
 
-        private final String connectionUrl;
-        private final Type type;
-
-        public ConnectionChangedEvent(Object source, String connectionUrl, Type type) {
+        public ConnectionChangedEvent(Object source, PlatformEvent event) {
             super(source);
-            this.connectionUrl = connectionUrl;
-            this.type = type;
+            this.event = event;
         }
     }
 

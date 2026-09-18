@@ -43,22 +43,12 @@ public class EventsHandling {
 
     @EventListener
     public void onContainerChanged(ContainersService.ContainerChangedEvent event) {
-        var type = switch (event.getType()) {
-            case ADDED -> PlatformEventType.CONTAINER_ADDED;
-            case UPDATED -> PlatformEventType.CONTAINER_UPDATED;
-            case REMOVED -> PlatformEventType.CONTAINER_REMOVED;
-        };
-        addEvent(new PlatformEvent(type, event.getContainerId(), event.getImageName(), null));
+        addEvent(event.getEvent());
     }
 
     @EventListener
     public void onConnectionChanged(ConnectionsService.ConnectionChangedEvent event) {
-        var type = switch (event.getType()) {
-            case ADDED -> PlatformEventType.CONNECTION_ADDED;
-            case UPDATED -> PlatformEventType.CONNECTION_UPDATED;
-            case REMOVED -> PlatformEventType.CONNECTION_REMOVED;
-        };
-        addEvent(new PlatformEvent(type, null, null, event.getConnectionUrl()));
+        addEvent(event.getEvent());
     }
 
 }
