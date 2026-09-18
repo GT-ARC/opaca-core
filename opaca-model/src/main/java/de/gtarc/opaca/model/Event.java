@@ -54,6 +54,35 @@ public abstract class Event {
     /** the type of event, determines the type of the payload */
     public abstract EventType getType();
 
+    /** get short description what the event is about, including its type, e.g. "api/invoke" or "broadcast/xyz" */
+    public abstract String getSlug();
+
+    /**
+     * Topics are in form "api/firstRouteSegment", "platform/containers|connections", or "broadcast/topic".
+     * Clients can subscribe in the same format, to an event type and optional suffix, e.g.
+     * - "api/invoke" -> subscribe to all (successful) calls to "invoke"
+     * - "platform/containers" -> subscribe to container started and stopped events
+     * - "platform/" or "platform" -> subscribe to any platform events
+     * - "broadcast/topic" -> subscribe to broadcast messages on channel 'topic'
+     * - "broadcast/" or "broadcast" -> subscribe to any broadcast messages
+     */
+    public boolean matches(String subscribedTopic) {
+        var topic = subscribedTopic.split("/", 2);
+        var slug = this.getSlug().split("/", 2);
+        if (topic[0].equals(slug[0])) {
+            if (topic.length == 1) return true;
+            if (slug.length == 2) return slug[1].contains(topic[1]);
+        }
+        return false;
+    }
+
+    /**
+     * whether the event should be broadcast to websocket at all, independent of the subscriber
+     */
+    public boolean shouldBroadcast() {
+        return true;
+    }
+
 
     @Data @AllArgsConstructor @NoArgsConstructor
     @EqualsAndHashCode(callSuper=true) @ToString(callSuper=true)
@@ -78,6 +107,17 @@ public abstract class Event {
         /** optional ID of a different event this event relates to */
         String relatedId;
 
+        @Override
+        public String getSlug() {
+            String[] routeParts = route.split("\\s+");
+            String firstPathSegment = routeParts[1].split("/")[1];
+            return "api/" + firstPathSegment;
+        }
+
+        @Override
+        public boolean shouldBroadcast() {
+            return phase == ApiCallPhase.SUCCESS;
+        }
     }
 
     @Data @AllArgsConstructor @NoArgsConstructor
@@ -97,6 +137,10 @@ public abstract class Event {
         /** for connection-type events, the URL of the (dis)connected other Platform */
         String connectedUrl;
 
+        @Override
+        public String getSlug() {
+            return "platform/" + type.name().toLowerCase();
+        }
     }
 
     @Data @AllArgsConstructor @NoArgsConstructor
@@ -110,5 +154,9 @@ public abstract class Event {
         /** the message sent in the broadcast */
         Message message;
 
+        @Override
+        public String getSlug() {
+            return "broadcast/" + topic;
+        }
     }
 }

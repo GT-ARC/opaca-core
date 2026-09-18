@@ -1,6 +1,6 @@
 package de.gtarc.opaca.platform.events;
 
-import de.gtarc.opaca.model.Event.*;
+import de.gtarc.opaca.model.Event;
 import de.gtarc.opaca.platform.services.ConnectionsService;
 import de.gtarc.opaca.platform.services.ContainersService;
 import de.gtarc.opaca.util.EventHistory;
@@ -21,23 +21,11 @@ public class EventsHandling {
 
     private final EventHistory eventHistory = EventHistory.getInstance();
 
-    public void addEvent(ApiEvent event) {
+    public void addEvent(Event event) {
         eventHistory.addEvent(event);
-        if (event.getPhase() == ApiCallPhase.SUCCESS) {
-            String[] routeParts = event.getRoute().split("\\s+");
-            String firstPathSegment = routeParts[1].split("/")[1];
-            webSocketHandler.broadcastEvent("api/" + firstPathSegment, event);
+        if (event.shouldBroadcast()) {
+            webSocketHandler.broadcastEvent(event);
         }
-    }
-
-    public void addEvent(PlatformEvent event) {
-        eventHistory.addEvent(event);
-        webSocketHandler.broadcastEvent("platform/" + event.getType().name().toLowerCase(), event);
-    }
-
-    public void addEvent(BroadcastEvent event) {
-        eventHistory.addEvent(event);
-        webSocketHandler.broadcastEvent("broadcast/" + event.getTopic(), event);
     }
 
 
