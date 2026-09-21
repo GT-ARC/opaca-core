@@ -74,7 +74,7 @@ public class ConnectionsService implements ConnectionsApi {
 
         // store connection if all the above steps succeeded
         sessionData.connectedPlatforms.put(url, info);
-        publishConnectionEvent(url, PlatformEventType.CONNECTION_ADDED);
+        publishConnectionEvent(url, PlatformEventType.ADDED);
         return true;
     }
 
@@ -89,7 +89,7 @@ public class ConnectionsService implements ConnectionsApi {
         Utils.checkUrl(url);
         if (sessionData.connectedPlatforms.containsKey(url)) {
             sessionData.connectedPlatforms.remove(url);
-            publishConnectionEvent(url, PlatformEventType.CONNECTION_REMOVED);
+            publishConnectionEvent(url, PlatformEventType.REMOVED);
             if (connectionWebsockets.containsKey(url)) {
                 var ws = connectionWebsockets.remove(url);
                 ws.sendClose(1000, "disconnected");
@@ -122,12 +122,12 @@ public class ConnectionsService implements ConnectionsApi {
             var client = getPlatformProxy(platformUrl);
             var platformInfo = client.getPlatformInfo();
             sessionData.connectedPlatforms.put(platformUrl, platformInfo);
-            publishConnectionEvent(platformUrl, PlatformEventType.CONNECTION_UPDATED);
+            publishConnectionEvent(platformUrl, PlatformEventType.UPDATED);
             return true;
         } catch (IOException e) {
             log.warn("Platform did not respond: {}; removing...", platformUrl);
             sessionData.connectedPlatforms.remove(platformUrl);
-            publishConnectionEvent(platformUrl, PlatformEventType.CONNECTION_REMOVED);
+            publishConnectionEvent(platformUrl, PlatformEventType.REMOVED);
             return false;
         }
     }
@@ -159,16 +159,16 @@ public class ConnectionsService implements ConnectionsApi {
 
 
     private void publishConnectionEvent(String connectionUrl, PlatformEventType type) {
-        var event = new PlatformEvent(type, null, null, connectionUrl);
+        var event = new ConnectionEvent(type, connectionUrl);
         eventPublisher.publishEvent(new ConnectionChangedEvent(this, event));
     }
 
     @Getter @ToString
     public static class ConnectionChangedEvent extends ApplicationEvent {
 
-        private final Event.PlatformEvent event;
+        private final Event.ConnectionEvent event;
 
-        public ConnectionChangedEvent(Object source, PlatformEvent event) {
+        public ConnectionChangedEvent(Object source, ConnectionEvent event) {
             super(source);
             this.event = event;
         }

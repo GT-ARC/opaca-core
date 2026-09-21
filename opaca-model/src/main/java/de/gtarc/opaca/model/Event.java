@@ -15,14 +15,16 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes(value = {
         @JsonSubTypes.Type(value=Event.ApiEvent.class, name="API"),
-        @JsonSubTypes.Type(value=Event.PlatformEvent.class, name="PLATFORM"),
+        @JsonSubTypes.Type(value=Event.ContainerEvent.class, name="CONTAINER"),
+        @JsonSubTypes.Type(value=Event.ConnectionEvent.class, name="CONNECTION"),
         @JsonSubTypes.Type(value=Event.BroadcastEvent.class, name="BROADCAST"),
 })
 public abstract class Event {
 
     public enum EventType {
         API,
-        PLATFORM,
+        CONTAINER,
+        CONNECTION,
         BROADCAST
     }
 
@@ -34,12 +36,9 @@ public abstract class Event {
     }
 
     public enum PlatformEventType {
-        CONTAINER_ADDED,
-        CONTAINER_UPDATED,
-        CONTAINER_REMOVED,
-        CONNECTION_ADDED,
-        CONNECTION_UPDATED,
-        CONNECTION_REMOVED
+        ADDED,
+        UPDATED,
+        REMOVED
     }
 
     public static final String HEADER_SENDER_ID = "sender-id";
@@ -122,8 +121,8 @@ public abstract class Event {
 
     @Data @AllArgsConstructor @NoArgsConstructor
     @EqualsAndHashCode(callSuper=true) @ToString(callSuper=true)
-    public static class PlatformEvent extends Event {
-        final EventType type = EventType.PLATFORM;
+    public static class ContainerEvent extends Event {
+        final EventType type = EventType.CONTAINER;
 
         /** what happened on the platform */
         PlatformEventType event;
@@ -134,12 +133,27 @@ public abstract class Event {
         /** for container-type events, the name of the image of the added or removed container */
         String imageName;
 
+        @Override
+        public String slug() {
+            return "platform/" + type.name().toLowerCase();
+        }
+    }
+
+
+    @Data @AllArgsConstructor @NoArgsConstructor
+    @EqualsAndHashCode(callSuper=true) @ToString(callSuper=true)
+    public static class ConnectionEvent extends Event {
+        final EventType type = EventType.CONNECTION;
+
+        /** what happened on the platform */
+        PlatformEventType event;
+
         /** for connection-type events, the URL of the (dis)connected other Platform */
         String connectedUrl;
 
         @Override
         public String slug() {
-            return "platform/" + type.name().toLowerCase();
+            return "connection/" + type.name().toLowerCase();
         }
     }
 
