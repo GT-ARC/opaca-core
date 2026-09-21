@@ -85,7 +85,7 @@ public class PlatformTests {
      * themselves are not important here and do not even have to succeed...
      */
     @Test
-    public void testWebSocketEvents() throws Exception {
+    public void testWebSocketApiEvents() throws Exception {
         // create web socket listener and collect messages
         var invokeMsg = new ArrayList<String>();
         var containerMsg = new ArrayList<String>();
@@ -137,6 +137,7 @@ public class PlatformTests {
     /**
      * deploy sample container
      */
+    @SuppressWarnings({"unchecked"})
     @Test
     public void testDeployAndUndeploy() throws Exception {
         // deploy
@@ -155,6 +156,18 @@ public class PlatformTests {
         con = request(PLATFORM_A_URL, "GET", "/containers", null);
         var lst2 = result(con, List.class);
         Assert.assertEquals(0, lst2.size());
+
+        // test container events with id and image
+        con = request(PLATFORM_A_URL, "GET", "/history?filter=container", null);
+        List<Map<String, Object>> events = result(con, List.class);
+        Assert.assertTrue(events.stream().anyMatch(e ->
+                "ADDED".equals(e.get("event")) &&
+                containerId.equals(e.get("containerId")) &&
+                image.getImage().getImageName().equals(e.get("imageName"))));
+        Assert.assertTrue(events.stream().anyMatch(e ->
+                "REMOVED".equals(e.get("event")) &&
+                containerId.equals(e.get("containerId")) &&
+                image.getImage().getImageName().equals(e.get("imageName"))));
     }
 
     /**
@@ -441,6 +454,7 @@ public class PlatformTests {
     /**
      * connect to second platform, check that both are connected, then disconnect again
      */
+    @SuppressWarnings({"unchecked"})
     @Test
     public void testConnectAndDisconnect() throws Exception {
         var platformABaseUrl = getBaseUrl(PLATFORM_A_URL);
@@ -475,6 +489,16 @@ public class PlatformTests {
         con = request(PLATFORM_B_URL, "GET", "/connections", null);
         lst2 = result(con, List.class);
         Assert.assertTrue(lst2.isEmpty());
+
+        // test connect events with url
+        con = request(PLATFORM_B_URL, "GET", "/history?filter=connection", null);
+        List<Map<String, Object>> events = result(con, List.class);
+        Assert.assertTrue(events.stream().anyMatch(e ->
+                "ADDED".equals(e.get("event")) &&
+                platformABaseUrl.equals(e.get("connectedUrl"))));
+        Assert.assertTrue(events.stream().anyMatch(e ->
+                "REMOVED".equals(e.get("event")) &&
+                platformABaseUrl.equals(e.get("connectedUrl"))));
     }
 
     @Test
