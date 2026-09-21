@@ -236,7 +236,7 @@ public class RestHelper {
                 .filter(x -> x.getPhase() == ApiCallPhase.CALL && x.getRoute().equals(key))
                 .max(Comparator.comparing(Event::getTimestamp));
         if (related.isPresent()) {
-            ApiEvent event = new ApiEvent(ApiCallPhase.FORWARD, null, null, baseUrl, null, related.get().getId());
+            ApiEvent event = new ApiEvent(ApiCallPhase.FORWARD, related.get().getRoute(), null, baseUrl, null, related.get().getId());
             EventHistory.getInstance().addEvent(event);
         }
     }

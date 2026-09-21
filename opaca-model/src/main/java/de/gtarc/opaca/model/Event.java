@@ -135,7 +135,7 @@ public abstract class Event {
 
         @Override
         public String slug() {
-            return "platform/" + type.name().toLowerCase();
+            return "container/" + type.name().toLowerCase();
         }
     }
 
