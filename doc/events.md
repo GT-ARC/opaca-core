@@ -14,7 +14,7 @@ While this is most useful for e.g. external monitoring tools, an AgentContainer 
 
 ## Platform Events
 
-<!-- TODO not sure yet if I will split those up into two types yet, update then -->
+Platform Events come in two types: Container- and Connection-Events. They are generated whenever a container or connections is added, removed, or updated, respectively. They include the container-id and image-name, or connection-url, allowing clients to react appropriately to the event. In order to subscribe to platform events, `/subscribe` to their type followed by the action, e.g. `container/added`, or `connection/updated`. 
 
 
 ## Broadcast Events
@@ -24,4 +24,50 @@ Whenever the `/broadcast` route is called, an analogous `BroadcastEvent` is gene
 
 ## Events Model
 
-<!-- TODO -->
+### API-Event
+```
+{
+    "type": "API",
+    "id": uuid,
+    "timestamp": long,
+    "phase": "CALL"|"FORWARD"|"SUCCESS"|"ERROR",
+    "route": str,       # HTTP method and full route 
+    "senderId": str,    # CALL, is source if AC
+    "receiver": str,    # only FORWARD
+    "statusCode": int,  # only ERROR
+    "relatedId": uuid   # all except CALL
+}
+```
+
+### Platform-Events
+```
+{
+    "type": "CONTAINER",
+    "id": uuid,
+    "timestamp": long,
+    "event": "ADDED"|"UPDATED"|"REMOVED",
+    "containerId": str,
+    "imageName": str
+}
+```
+
+```
+{
+    "type": "CONNECTION",
+    "id": uuid,
+    "timestamp": long,
+    "event": "ADDED"|"UPDATED"|"REMOVED",
+    "connectedUrl": str
+}
+```
+
+### Broadcast-Event
+```
+{
+    "type": "BROADCAST",
+    "id": uuid,
+    "timestamp": long,
+    "topic": str,
+    "message": Message # see api.md
+}
+```
