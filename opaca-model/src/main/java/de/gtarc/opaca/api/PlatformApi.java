@@ -38,9 +38,10 @@ public interface PlatformApi {
      *
      * REST: GET /history
      *
+     * @param filter Optional query parameter, accepting same format as /subscribe route
      * @return list of recent events, most-recent last
      */
-    List<Event> getHistory() throws IOException;
+    List<Event> getHistory(String filter) throws IOException;
 
     /*
      * AUTHENTICATION

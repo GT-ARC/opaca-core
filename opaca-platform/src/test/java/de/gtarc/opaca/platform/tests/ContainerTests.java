@@ -1,8 +1,11 @@
 package de.gtarc.opaca.platform.tests;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.*;
 
+import de.gtarc.opaca.util.RestHelper;
+import de.gtarc.opaca.util.WebSocketConnector;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,6 +19,7 @@ import java.io.InputStreamReader;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -376,6 +380,32 @@ public class ContainerTests {
         Assert.assertEquals(200, con.getResponseCode());
         var res = result(con, Map.class);
         Assert.assertEquals("testBroadcast", res.get("lastBroadcast"));
+    }
+
+    /**
+     * test that /broadcast generates a BroadcastEvent that can be received via Websocket
+     */
+    @Test
+    public void testWebSocketApiEvents() throws Exception {
+        // create web socket listener and collect messages
+        var events = new ArrayList<String>();
+        WebSocketConnector.subscribe(PLATFORM_URL, null, "broadcast/topic", events::add);
+
+        // make sure connection is established first
+        Thread.sleep(200);
+
+        // send test broadcast as in prev test
+        var message = Map.of("payload", "testBroadcast", "replyTo", "doesnotmatter");
+        var con = request(PLATFORM_URL, "POST", "/broadcast/topic", message);
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // check that the correct event has been received
+        Thread.sleep(200);
+        Assert.assertEquals(1, events.size());
+        JsonNode event = RestHelper.readJson(events.get(0));
+        Assert.assertEquals("BROADCAST", event.get("type").asText());
+        Assert.assertEquals("topic", event.get("topic").asText());
+        Assert.assertEquals("testBroadcast", event.get("message").get("payload").asText());
     }
 
     /**

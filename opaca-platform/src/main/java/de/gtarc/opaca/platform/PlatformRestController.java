@@ -177,9 +177,11 @@ public class PlatformRestController {
 
 	@GetMapping("/history")
 	@Operation(summary="Get history on this Runtime Platform", tags={"info"})
-	public List<Event> getHistory() throws IOException {
+	public List<Event> getHistory(
+			@RequestParam(required = false) String filter
+	) throws IOException {
 		log.info("GET /history");
-		return platformService.getHistory();
+		return platformService.getHistory(filter);
 	}
 
 	@GetMapping("v3/api-docs/actions")

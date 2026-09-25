@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
 import de.gtarc.opaca.model.Event;
+import de.gtarc.opaca.model.Event.*;
 import de.gtarc.opaca.util.RestHelper;
 
 /**
@@ -68,10 +69,10 @@ public class WebSocketConfig implements WebSocketConfigurer {
     /**
      * Broadcast event to all clients subscribed to the given topic.
      */
-    public void broadcastEvent(String topic, Event event) {
-        log.debug("Broadcasting event to topic {}", topic);
+    public void broadcastEvent(Event event) {
+        log.debug("Broadcasting event to topic {}", event.slug());
         for (WebSocketSession session : sessionTopics.keySet()) {
-            if (topic.equals(sessionTopics.get(session))) {
+            if (event.matches(sessionTopics.get(session))) {
                 try {
                     log.debug("Sending new message...");
                     send(session, new TextMessage(RestHelper.writeJson(event)));

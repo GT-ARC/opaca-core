@@ -60,8 +60,14 @@ public class PlatformService implements PlatformApi {
     }
 
     @Override
-    public List<Event> getHistory() {
-        return EventHistory.getInstance().getEvents();
+    public List<Event> getHistory(String filter) {
+        if (filter == null) {
+            return EventHistory.getInstance().getEvents();
+        } else {
+            return EventHistory.getInstance().getEvents().stream()
+                    .filter(e -> e.matches(filter))
+                    .collect(Collectors.toList());
+        }
     }
 
     @Override

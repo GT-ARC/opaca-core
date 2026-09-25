@@ -59,8 +59,9 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     }
 
     @Override
-    public List<Event> getHistory() throws IOException {
-        return client.get("/history", new TypeReference<>(){});
+    public List<Event> getHistory(String filter) throws IOException {
+        var query = buildQuery(Map.of("filter", filter));
+        return client.get("/history?" + query, new TypeReference<>(){});
     }
 
     @Override
