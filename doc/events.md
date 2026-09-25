@@ -2,7 +2,7 @@
 
 Besides the [OPACA API](api.md), the Runtime Platform also provides a Websocket under the `/subscribe` route. By connecting to that websocket, clients can subscribe to different events (the same Events that can be retrieved using the API's `/history` route), which are generated whenever a route is called on the OPACA platform or on other occasions. This can be used e.g. by external tools to monitor service invocations, or to get notified about containers being added to or removed from the platform.
 
-After connecting to the `/subscribe` endpoint, the client is expected to send a single string, being the type of events to subscribe to. Please refer to the [WebSocketConnector.java](../opaca-model/src/main/java/de/gtarc/opaca/util/WebSocketConnector.java) for a reference client implementation.
+After connecting to the `/subscribe` endpoint, the client is expected to send a single string that indicates the type of events to subscribe to. Please refer to the [WebSocketConnector.java](../opaca-model/src/main/java/de/gtarc/opaca/util/WebSocketConnector.java) for a reference client implementation.
 
 ## API Events
 

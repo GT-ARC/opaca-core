@@ -66,8 +66,8 @@ public abstract class Event {
      * - "broadcast/" or "broadcast" -> subscribe to any broadcast messages
      */
     public boolean matches(String subscribedTopic) {
-        var topic = subscribedTopic.split("/", 2);
-        var slug = this.slug().split("/", 2);
+        var topic = subscribedTopic.toLowerCase().split("/", 2);
+        var slug = this.slug().toLowerCase().split("/", 2);
         if (topic[0].equals(slug[0])) {
             if (topic.length == 1) return true;
             if (slug.length == 2) return slug[1].contains(topic[1]);
