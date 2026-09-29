@@ -127,6 +127,13 @@ public class PlatformRestController {
 		return makeErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, e, null);
 	}
 
+	@ExceptionHandler(SecurityException.class)
+	@ResponseStatus(HttpStatus.FORBIDDEN)
+	public ResponseEntity<ErrorResponse> handleSecurityExceptions(SecurityException e) {
+		log.warn(e.getMessage()); // custom OPACA security handling only, e.g. Restricted Container; not Spring-Security
+		return makeErrorResponse(HttpStatus.FORBIDDEN, e, null);
+	}
+
 	private ResponseEntity<ErrorResponse> makeErrorResponse(HttpStatus statusCode, Exception error, ErrorResponse nestedError) {
 		var content = new ErrorResponse(statusCode.value(), error.getMessage(), nestedError != null ? nestedError : ErrorResponse.from(error.getCause()));
 		return ResponseEntity.status(statusCode).body(content);

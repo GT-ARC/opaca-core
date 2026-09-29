@@ -6,6 +6,7 @@
 * big refactoring, splitting up `PlatformImpl` into different services 
 * integrated MCP server exposing all agents' actions as tools
 * extended events mechanism to produce more meaningful platform and broadcast events
+* Agent Containers can be `restricted` so that only their original creators can use them
 
 
 ## 0.5 Release

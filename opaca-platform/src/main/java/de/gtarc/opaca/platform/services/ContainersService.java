@@ -58,6 +58,9 @@ public class ContainersService implements ContainersApi {
     /** Map of validators for validating action argument types for each container */
     private final Map<String, ArgumentValidator> validators = new HashMap<>();
 
+    /** Maps container-id to owner for restricted containers */
+    private final Map<String, String> restrictedContainers = new HashMap<>();
+
     /** internal flag; set to true on shutdown to allow stopping containers without necessary credentials */
     private boolean isShuttingDown = false;
 
@@ -91,9 +94,12 @@ public class ContainersService implements ContainersApi {
         checkConfig(postContainer);
         checkRequirements(postContainer);
         String agentContainerId = UUID.randomUUID().toString();
-        Map<String, String> env = new HashMap<>();
-        env.put(AgentContainerApi.ENV_OWNER, authUtils.getRequestUser());
         String owner = authUtils.getRequestUser();
+        if (postContainer.isRestricted() && AuthUtils.ANONYMOUS_USER.equals(owner)) {
+            throw new IllegalArgumentException("Container can not be restricted when not logged in.");
+        }
+        Map<String, String> env = new HashMap<>();
+        env.put(AgentContainerApi.ENV_OWNER, owner);
         if (config.requireAuth) {
             var clientSecret = authUtils.createClientAndGetSecret(agentContainerId, "OPACA AC of RP " + authUtils.platformId);
             env.put(AgentContainerApi.ENV_KEYCLOAK_URL, config.keycloakIssuerUri);
@@ -131,8 +137,10 @@ public class ContainersService implements ContainersApi {
                 // register container in different collections
                 sessionData.runningContainers.put(agentContainerId, container);
                 sessionData.startContainerRequests.put(agentContainerId, postContainer);
-                //tokens.put(agentContainerId, token);
                 validators.put(agentContainerId, new ArgumentValidator(container.getImage()));
+                if (postContainer.isRestricted()) {
+                    restrictedContainers.put(agentContainerId, owner);
+                }
                 log.info("Container started: {}", agentContainerId);
                 publishContainerEvent(container, PlatformEventType.ADDED);
                 return agentContainerId;
@@ -200,6 +208,7 @@ public class ContainersService implements ContainersApi {
         sessionData.runningContainers.remove(containerId);
         sessionData.startContainerRequests.remove(containerId);
         validators.remove(containerId);
+        restrictedContainers.remove(containerId);;
         authUtils.deleteClient(containerId);
         containerClient.stopContainer(containerId);
         publishContainerEvent(container, PlatformEventType.REMOVED);
@@ -257,6 +266,14 @@ public class ContainersService implements ContainersApi {
     /*
      * HELPER METHODS
      */
+
+    protected boolean isCurrentUserAllowedToUse(String containerId) {
+        if (restrictedContainers.containsKey(containerId)) {
+            var owner = restrictedContainers.get(containerId);
+            return Objects.equals(owner, authUtils.getRequestUser());
+        }
+        return true;
+    }
 
     protected ApiProxy getContainerProxy(String containerId) {
         var url = containerClient.getUrl(containerId);
