@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.api.ContainersApi;
 import de.gtarc.opaca.model.AgentContainer;
+import de.gtarc.opaca.model.Event.*;
 import de.gtarc.opaca.model.Login;
 import de.gtarc.opaca.model.PostAgentContainer;
 import de.gtarc.opaca.platform.PlatformConfig;
@@ -141,7 +142,7 @@ public class ContainersService implements ContainersApi {
                     restrictedContainers.put(agentContainerId, owner);
                 }
                 log.info("Container started: {}", agentContainerId);
-                eventPublisher.publishEvent(new ContainerChangedEvent(this, agentContainerId, ContainerChangedEvent.Type.ADDED));
+                publishContainerEvent(container, PlatformEventType.ADDED);
                 return agentContainerId;
             } catch (JsonMappingException e) {
                 errorMessage = "Container returned malformed /info: " + e.getMessage();
@@ -210,7 +211,7 @@ public class ContainersService implements ContainersApi {
         restrictedContainers.remove(containerId);;
         authUtils.deleteClient(containerId);
         containerClient.stopContainer(containerId);
-        eventPublisher.publishEvent(new ContainerChangedEvent(this, containerId, ContainerChangedEvent.Type.REMOVED));
+        publishContainerEvent(container, PlatformEventType.REMOVED);
         return true;
     }
 
@@ -227,12 +228,12 @@ public class ContainersService implements ContainersApi {
             containerInfo.setConnectivity(sessionData.runningContainers.get(containerId).getConnectivity());
             sessionData.runningContainers.put(containerId, containerInfo);
             validators.put(containerId, new ArgumentValidator(containerInfo.getImage()));
-            eventPublisher.publishEvent(new ContainerChangedEvent(this, containerId, ContainerChangedEvent.Type.UPDATED));
+            publishContainerEvent(containerInfo, PlatformEventType.UPDATED);
             return true;
         } catch (IOException e) {
             log.warn("Container did not respond: {}; removing...", containerId);
-            sessionData.runningContainers.remove(containerId);
-            eventPublisher.publishEvent(new ContainerChangedEvent(this, containerId, ContainerChangedEvent.Type.REMOVED));
+            var container = sessionData.runningContainers.remove(containerId);
+            publishContainerEvent(container, PlatformEventType.REMOVED);
             return false;
         }
     }
@@ -307,23 +308,19 @@ public class ContainersService implements ContainersApi {
     }
 
 
-    @Getter
-    @ToString
+    private void publishContainerEvent(AgentContainer container, PlatformEventType type) {
+        var event = new ContainerEvent(type, container.getContainerId(), container.getImage().getImageName());
+        eventPublisher.publishEvent(new ContainerChangedEvent(this, event));
+    }
+
+    @Getter @ToString
     public static class ContainerChangedEvent extends ApplicationEvent {
 
-        public enum Type {
-            ADDED,
-            REMOVED,
-            UPDATED
-        }
+        private final ContainerEvent event;
 
-        private final String containerId;
-        private final Type type;
-
-        public ContainerChangedEvent(Object source, String containerId, Type type) {
+        public ContainerChangedEvent(Object source, ContainerEvent event) {
             super(source);
-            this.containerId = containerId;
-            this.type = type;
+            this.event = event;
         }
     }
 

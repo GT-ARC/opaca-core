@@ -163,7 +163,7 @@ The `opaca-platform` also includes a Docker Compose file, which automatically fo
 * [Authentication](doc/auth.md)
 * [Parameter Validation](doc/validation.md)
 * [JIAC VI Basics](doc/jiac-vi.md)
-* [Websockets](doc/websockets.md)
+* [Websocket Events](doc/events.md)
 * [Requirements & Provisions](doc/container-requirements.md)
 
 

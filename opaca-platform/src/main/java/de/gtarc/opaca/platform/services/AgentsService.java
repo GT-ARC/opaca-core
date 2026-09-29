@@ -5,6 +5,7 @@ import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.api.AgentsApi;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.platform.auth.AuthUtils;
+import de.gtarc.opaca.platform.events.EventsHandling;
 import de.gtarc.opaca.platform.session.SessionData;
 import de.gtarc.opaca.platform.util.ArgumentValidator;
 import de.gtarc.opaca.util.ApiProxy;
@@ -30,6 +31,9 @@ public class AgentsService implements AgentsApi {
 
     @Autowired
     private SessionData sessionData;
+
+    @Autowired
+    private EventsHandling eventsHandling;
 
     @Autowired
     private AuthUtils authUtils;
@@ -78,6 +82,7 @@ public class AgentsService implements AgentsApi {
                 },
                 false
         );
+        eventsHandling.addEvent(new Event.BroadcastEvent(channel, message));
     }
 
     @Override

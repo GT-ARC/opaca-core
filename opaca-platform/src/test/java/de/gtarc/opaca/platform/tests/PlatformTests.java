@@ -85,12 +85,12 @@ public class PlatformTests {
      * themselves are not important here and do not even have to succeed...
      */
     @Test
-    public void testWebSocketEvents() throws Exception {
+    public void testWebSocketApiEvents() throws Exception {
         // create web socket listener and collect messages
         var invokeMsg = new ArrayList<String>();
         var containerMsg = new ArrayList<String>();
-        WebSocketConnector.subscribe(PLATFORM_A_URL, null, "/invoke", invokeMsg::add);
-        WebSocketConnector.subscribe(PLATFORM_A_URL, null, "/containers", containerMsg::add);
+        WebSocketConnector.subscribe(PLATFORM_A_URL, null, "api/invoke", invokeMsg::add);
+        WebSocketConnector.subscribe(PLATFORM_A_URL, null, "api/containers", containerMsg::add);
 
         // make sure connection is established first
         Thread.sleep(200);
@@ -137,6 +137,7 @@ public class PlatformTests {
     /**
      * deploy sample container
      */
+    @SuppressWarnings({"unchecked"})
     @Test
     public void testDeployAndUndeploy() throws Exception {
         // deploy
@@ -155,6 +156,18 @@ public class PlatformTests {
         con = request(PLATFORM_A_URL, "GET", "/containers", null);
         var lst2 = result(con, List.class);
         Assert.assertEquals(0, lst2.size());
+
+        // test container events with id and image
+        con = request(PLATFORM_A_URL, "GET", "/history?filter=container", null);
+        List<Map<String, Object>> events = result(con, List.class);
+        Assert.assertTrue(events.stream().anyMatch(e ->
+                "ADDED".equals(e.get("event")) &&
+                containerId.equals(e.get("containerId")) &&
+                image.getImage().getImageName().equals(e.get("imageName"))));
+        Assert.assertTrue(events.stream().anyMatch(e ->
+                "REMOVED".equals(e.get("event")) &&
+                containerId.equals(e.get("containerId")) &&
+                image.getImage().getImageName().equals(e.get("imageName"))));
     }
 
     /**
@@ -404,10 +417,10 @@ public class PlatformTests {
         var con = request(PLATFORM_A_URL, "GET", "/history", null);
         List<Map<String, Object>> res = result(con, List.class);
         Assert.assertTrue(res.size() >= 4);
-        Assert.assertEquals("CALL", res.get(res.size() - 4).get("eventType"));
+        Assert.assertEquals("CALL", res.get(res.size() - 4).get("phase"));
         Assert.assertEquals(res.get(res.size() - 4).get("id"), res.get(res.size() - 3).get("relatedId"));
         Assert.assertEquals("POST /invoke/UnknownAction", res.get(res.size() - 2).get("route"));
-        Assert.assertEquals("ERROR", res.get(res.size() - 1).get("eventType"));
+        Assert.assertEquals("ERROR", res.get(res.size() - 1).get("phase"));
     }
 
     /**
@@ -441,6 +454,7 @@ public class PlatformTests {
     /**
      * connect to second platform, check that both are connected, then disconnect again
      */
+    @SuppressWarnings({"unchecked"})
     @Test
     public void testConnectAndDisconnect() throws Exception {
         var platformABaseUrl = getBaseUrl(PLATFORM_A_URL);
@@ -475,6 +489,16 @@ public class PlatformTests {
         con = request(PLATFORM_B_URL, "GET", "/connections", null);
         lst2 = result(con, List.class);
         Assert.assertTrue(lst2.isEmpty());
+
+        // test connect events with url
+        con = request(PLATFORM_B_URL, "GET", "/history?filter=connection", null);
+        List<Map<String, Object>> events = result(con, List.class);
+        Assert.assertTrue(events.stream().anyMatch(e ->
+                "ADDED".equals(e.get("event")) &&
+                platformABaseUrl.equals(e.get("connectedUrl"))));
+        Assert.assertTrue(events.stream().anyMatch(e ->
+                "REMOVED".equals(e.get("event")) &&
+                platformABaseUrl.equals(e.get("connectedUrl"))));
     }
 
     @Test
