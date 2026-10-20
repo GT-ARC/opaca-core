@@ -3,10 +3,7 @@ package de.gtarc.opaca.platform;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.model.*;
-import de.gtarc.opaca.platform.services.AgentsService;
-import de.gtarc.opaca.platform.services.ConnectionsService;
-import de.gtarc.opaca.platform.services.ContainersService;
-import de.gtarc.opaca.platform.services.PlatformService;
+import de.gtarc.opaca.platform.services.*;
 import de.gtarc.opaca.platform.util.ActionToOpenApi;
 import de.gtarc.opaca.platform.util.ActionToOpenApi.ActionFormat;
 import de.gtarc.opaca.util.EventHistory;
@@ -57,6 +54,9 @@ public class PlatformRestController {
 
 	@Autowired
 	private ConnectionsService connectionsService;
+
+	@Autowired
+	private LLMService  llmService;
 
 	@Autowired
 	private PlatformConfig config;
@@ -198,6 +198,16 @@ public class PlatformRestController {
 			@RequestParam(required = false, defaultValue = "false") boolean includeConnected
 	) throws IOException {
 		return ActionToOpenApi.createOpenApiSchema(getContainers(includeConnected), format, config.requireAuth);
+	}
+
+	/*
+	 * LLM ROUTES
+	 */
+
+	@PostMapping("/query")
+	@Operation(summary="Send message to integrated LLM Agent (requires configured API key)", tags={"llm"})
+	public String query(String message) throws IOException {
+		return llmService.query(message);
 	}
 
 	/*

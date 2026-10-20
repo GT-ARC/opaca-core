@@ -98,6 +98,15 @@ public class PlatformConfig {
     @Value("${opaca.kubernetes.config}")
     public String kubernetesConfig;
 
+    // LLM SUPPORT
+
+    @Value("${opaca.llm.apikey}")
+    public String llmApiKey;
+
+    @Value("${opaca.llm.modelname}")
+    public String llmModelName;
+
+
     // cached value; either publicUrl, if set, or derived from runtime environment and port
     private String ownBaseUrl = null;
 
