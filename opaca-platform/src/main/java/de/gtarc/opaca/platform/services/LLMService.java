@@ -5,6 +5,8 @@ import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.util.RestHelper;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import dev.langchain4j.memory.ChatMemory;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.service.AiServices;
@@ -34,14 +36,19 @@ public class LLMService {
 
     private ChatModel model = null;
 
+    private ChatMemory memory;
+
     @PostConstruct
     private void initialize() {
         try {
             this.model = OpenAiChatModel.builder()
                     .apiKey(config.llmApiKey)
                     .modelName(config.llmModelName)
-                    .strictTools(true)
+                    //.strictTools(true) // problem with "generic" invoke tool
+                    .logRequests(true)
+                    .logResponses(true)
                     .build();
+            this.memory = MessageWindowChatMemory.withMaxMessages(5); // for testing, later make user specific
             log.info("Successfully initialized Chat Model for " + config.llmModelName);
         } catch (Exception e) {
             log.warn("Could not initialize LLM Assistant", e);
@@ -59,9 +66,11 @@ public class LLMService {
                 .chatModel(model)
                 .systemMessage(getSystemPrompt())
                 .tools(new AssistantTools())
-                .maxToolCallingRoundTrips(3)
+                .maxToolCallingRoundTrips(3) // for testing, increase later
+                .chatMemory(memory) // for testing, later make user specific
                 .build();
         return assistant.chat(message);
+        // TODO handle max iteration error
     }
 
     private String getSystemPrompt() throws IOException {
@@ -74,6 +83,9 @@ public class LLMService {
                 Following is the full list of Agents and their actions, as JSON:
                 
                 %s
+                
+                Always use exactly the actions and parameters as provided in the list. If the list is empty, just
+                tell the user that there are currently no actions. Never invent actions that are not there.
                 """.formatted(actionsJson);
     }
 
@@ -94,19 +106,9 @@ public class LLMService {
     class AssistantTools {
 
         @Tool
-        Object invoke(
-                @P("The name of the action to invoke")
-                String actionName,
-                @P("Mapping of Parameter names to values (JSON)")
-                Map<String, String> parameters
-        ) throws IOException {
-            System.out.println("PARAMETERS " + parameters);
-            var mappedParameters = new HashMap<String, JsonNode>();
-            for (String key : parameters.keySet()) {
-                mappedParameters.put(key, RestHelper.readJson(parameters.get(key)));
-            }
-            System.out.println("MAPPED PARAMETERS " + mappedParameters);
-            return agentsService.invoke(actionName, mappedParameters, null, 10, null, false);
+        Object invoke(String actionName, Map<String, JsonNode> parameters) throws IOException {
+            log.info("LLM called Tool '{}' with {}", actionName, parameters);
+            return agentsService.invoke(actionName, parameters, null, 10, null, false);
         }
 
     }
