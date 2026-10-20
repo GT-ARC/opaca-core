@@ -3,7 +3,6 @@ package de.gtarc.opaca.platform.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.util.RestHelper;
-import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -11,13 +10,14 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.*;
+import lombok.Data;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -44,6 +44,7 @@ public class LLMService {
             this.model = OpenAiChatModel.builder()
                     .apiKey(config.llmApiKey)
                     .modelName(config.llmModelName)
+                    .strictJsonSchema(true) // for response schema including tool calls
                     //.strictTools(true) // problem with "generic" invoke tool
                     .logRequests(true)
                     .logResponses(true)
@@ -58,7 +59,7 @@ public class LLMService {
     /**
      * TODO docs
      */
-    public String query(String message) throws IOException {
+    public Object query(String message) throws IOException {
         if (model == null) {
             throw new IllegalArgumentException("LLM Assistant not initialized");
         }
@@ -70,7 +71,7 @@ public class LLMService {
                 .chatMemory(memory) // for testing, later make user specific
                 .build();
         return assistant.chat(message);
-        // TODO handle max iteration error
+        // TODO handle max iterations and other errors
     }
 
     private String getSystemPrompt() throws IOException {
@@ -95,8 +96,24 @@ public class LLMService {
      * complex multi-parameter prompt template and return a complex, non-string result...
      */
     interface Assistant {
-        String chat(String query);
+
+        Response chat(String query);
+
+
+        @Data
+        class Response {
+            String response;
+            List<CalledAction> actionInvocations;
+
+            @Data
+            static class CalledAction {
+                String action;
+                Map<String, Object> parameters;
+                Object result;
+            }
+        }
     }
+
 
     /**
      * The Tools the Assistant has access to. The tools are automatically executed by LangChain4J and results are

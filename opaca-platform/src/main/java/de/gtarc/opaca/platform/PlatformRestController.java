@@ -206,7 +206,7 @@ public class PlatformRestController {
 
 	@PostMapping("/query")
 	@Operation(summary="Send message to integrated LLM Agent (requires configured API key)", tags={"llm"})
-	public String query(String message) throws IOException {
+	public Object query(String message) throws IOException {
 		return llmService.query(message);
 	}
 
