@@ -100,11 +100,17 @@ public class PlatformConfig {
 
     // LLM SUPPORT
 
-    @Value("${opaca.llm.apikey}")
+    @Value("${opaca.llm.api_key}")
     public String llmApiKey;
 
-    @Value("${opaca.llm.modelname}")
+    @Value("${opaca.llm.model_name}")
     public String llmModelName;
+
+    @Value("${opaca.llm.memory_window}")
+    public int llmMemoryWindow;
+
+    @Value("${opaca.llm.max_action_iters}")
+    public int llmMaxActionIterations;
 
 
     // cached value; either publicUrl, if set, or derived from runtime environment and port

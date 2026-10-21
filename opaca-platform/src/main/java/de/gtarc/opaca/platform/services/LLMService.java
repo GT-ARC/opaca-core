@@ -23,7 +23,12 @@ import java.util.Map;
 
 
 /**
- * TODO docs
+ * LLM Chat Assistant service for OPACA based on LangChain4J. The basic LLM-loop (tool selection, calling, evaluation
+ * of the result and iteration) are handled by LangChain, as well as memory management. This is meant as a lightweight
+ * LLM integration and no full-blown chat assistant like SAGE. There is one chat with a rolling/windowed chat history
+ * per logged-in user (or for all anonymous users). The agent has access to the actions of all the agents running in
+ * containers on this platform, but not to actions of connected platforms, or to the OPACA API itself (e.g. for adding
+ * new containers).
  */
 @Log4j2
 @Service
@@ -48,56 +53,35 @@ public class LLMService {
             ChatModel model = OpenAiChatModel.builder()
                     .apiKey(config.llmApiKey)
                     .modelName(config.llmModelName)
-                    //.strictJsonSchema(true) // for response schema including tool calls
-                    //.strictTools(true) // problem with "generic" invoke tool
-                    //.logRequests(true)
-                    //.logResponses(true)
                     .build();
             this.assistant = AiServices.builder(Assistant.class)
                     .chatModel(model)
-                    .systemMessageProvider(id -> getSystemPrompt())
-                    // make parameter? includes both sides, also intermediate?
-                    .chatMemoryProvider(id -> MessageWindowChatMemory.withMaxMessages(10))
+                    .chatMemoryProvider(id -> MessageWindowChatMemory.withMaxMessages(config.llmMemoryWindow))
                     .tools(new AssistantTools())
-                    .maxToolCallingRoundTrips(3) // for testing, increase later
+                    .maxToolCallingRoundTrips(config.llmMaxActionIterations)
                     .build();
-            log.info("Successfully initialized Chat Assistant for model " + config.llmModelName);
+            log.info("Successfully initialized Chat Assistant for model {}", config.llmModelName);
         } catch (Exception e) {
             log.warn("Could not initialize LLM Assistant", e);
         }
     }
 
     /**
-     * TODO docs
+     * Forward the user query to the LLM assistant. All the heavy lifting, like tool calls and evaluations, are done
+     * by LangChain. Constructs and returns a complex result with a few additional information (like the called tools)
+     * in addition to the actual LLM response.
      */
-    public Object query(String message) throws IOException {
+    public QueryResponse query(String message) throws IOException {
         if (assistant == null) {
             throw new IllegalArgumentException("LLM Assistant not initialized");
         }
         String userName = authUtils.getRequestUser();
-        System.out.println("USER " + userName);
-        Result<String> res = assistant.chat(userName, message);
-        System.out.println(res);
-
-        return new Response(res.content(), res.toolExecutions().stream().map(t ->
-                new Response.CalledAction(t.request().name(), t.request().arguments(), t.result())).toList());
+        String actions = getActionsJson();
+        Result<String> res = assistant.chat(userName, message, actions);
+        return new QueryResponse(res.content(), res.toolExecutions().stream().map(t ->
+                new QueryResponse.CalledAction(t.request().name(), t.request().arguments(), t.result())).toList());
         // TODO Response is a bit redundant, but Result is a bit much... what to include in the result exactly
         // TODO handle max iterations and other errors
-    }
-
-    private String getSystemPrompt() {
-        return """
-                You are the integrated LLM Assistant of the OPACA Runtime Platform. You have access to different
-                'Agents', situated in 'Agent Containers', each providing different 'Actions'. You can call those
-                actions with appropriate parameters given the "invoke" tool.
-                
-                Following is the full list of Agents and their actions, as JSON:
-                
-                %s
-                
-                Always use exactly the actions and parameters as provided in the list. If the list is empty, just
-                tell the user that there are currently no actions. Never invent actions that are not there.
-                """.formatted(getActionsJson());
     }
 
     private String getActionsJson() {
@@ -114,22 +98,24 @@ public class LLMService {
      */
     interface Assistant {
 
-        Result<String> chat(@MemoryId String id, @UserMessage String query);
+        @SystemMessage("""
+                You are the integrated LLM Assistant of the OPACA Runtime Platform. You have access to different
+                'Agents', situated in 'Agent Containers', each providing different 'Actions'. You can call those
+                actions with appropriate parameters given the "invoke" tool.
+                
+                Following is the full list of Agents and their actions, as JSON:
+                
+                {{actionsJson}}
+                
+                Always use exactly the actions and parameters as provided in the list. If the list is empty, just
+                tell the user that there are currently no actions. Never invent actions that are not there.
+                """)
+        Result<String> chat(
+                @MemoryId String id,
+                @UserMessage String query,
+                @V("actionsJson") String actionsJson
+        );
 
-    }
-
-
-    @Data @AllArgsConstructor
-    static class Response {
-        String response;
-        List<CalledAction> actionInvocations;
-
-        @Data @AllArgsConstructor
-        static class CalledAction {
-            String action;
-            String parameters;
-            Object result;
-        }
     }
 
 
@@ -146,6 +132,29 @@ public class LLMService {
             return agentsService.invoke(actionName, parameters, null, 10, null, false);
         }
 
+    }
+
+
+    /**
+     * Wrapper for Query Response. This is still WIP and might change. Until then, it's put here,
+     * later should be moved to model package, and the /query route be made "official API"...
+     */
+    @Data @AllArgsConstructor
+    public static class QueryResponse {
+
+        String response;
+
+        List<CalledAction> actionInvocations;
+
+        @Data @AllArgsConstructor
+        static class CalledAction {
+
+            String action;
+
+            String parameters;
+
+            Object result;
+        }
     }
 
 }
