@@ -10,6 +10,8 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.*;
+import dev.langchain4j.service.tool.ToolArgumentsErrorHandler;
+import dev.langchain4j.service.tool.ToolExecutionErrorHandler;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.log4j.Log4j2;
@@ -58,6 +60,8 @@ public class LLMService {
                     .chatModel(model)
                     .chatMemoryProvider(id -> MessageWindowChatMemory.withMaxMessages(config.llmMemoryWindow))
                     .tools(new AssistantTools())
+                    .toolArgumentsErrorHandler(ToolArgumentsErrorHandler.failInvocation())
+                    .toolExecutionErrorHandler(ToolExecutionErrorHandler.sendExceptionMessageToLlm())
                     .maxToolCallingRoundTrips(config.llmMaxActionIterations)
                     .build();
             log.info("Successfully initialized Chat Assistant for model {}", config.llmModelName);
