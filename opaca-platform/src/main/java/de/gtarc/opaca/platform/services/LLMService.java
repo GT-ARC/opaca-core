@@ -2,14 +2,15 @@ package de.gtarc.opaca.platform.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.platform.PlatformConfig;
+import de.gtarc.opaca.platform.auth.AuthUtils;
 import de.gtarc.opaca.util.RestHelper;
 import dev.langchain4j.agent.tool.Tool;
-import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,23 +35,33 @@ public class LLMService {
     @Autowired
     private AgentsService agentsService;
 
-    private ChatModel model = null;
+    @Autowired
+    private AuthUtils authUtils;
 
-    private ChatMemory memory;
+
+    /** the LangChain chat assistant */
+    private Assistant assistant = null;
 
     @PostConstruct
     private void initialize() {
         try {
-            this.model = OpenAiChatModel.builder()
+            ChatModel model = OpenAiChatModel.builder()
                     .apiKey(config.llmApiKey)
                     .modelName(config.llmModelName)
-                    .strictJsonSchema(true) // for response schema including tool calls
+                    //.strictJsonSchema(true) // for response schema including tool calls
                     //.strictTools(true) // problem with "generic" invoke tool
-                    .logRequests(true)
-                    .logResponses(true)
+                    //.logRequests(true)
+                    //.logResponses(true)
                     .build();
-            this.memory = MessageWindowChatMemory.withMaxMessages(5); // for testing, later make user specific
-            log.info("Successfully initialized Chat Model for " + config.llmModelName);
+            this.assistant = AiServices.builder(Assistant.class)
+                    .chatModel(model)
+                    .systemMessageProvider(id -> getSystemPrompt())
+                    // make parameter? includes both sides, also intermediate?
+                    .chatMemoryProvider(id -> MessageWindowChatMemory.withMaxMessages(10))
+                    .tools(new AssistantTools())
+                    .maxToolCallingRoundTrips(3) // for testing, increase later
+                    .build();
+            log.info("Successfully initialized Chat Assistant for model " + config.llmModelName);
         } catch (Exception e) {
             log.warn("Could not initialize LLM Assistant", e);
         }
@@ -60,22 +71,21 @@ public class LLMService {
      * TODO docs
      */
     public Object query(String message) throws IOException {
-        if (model == null) {
+        if (assistant == null) {
             throw new IllegalArgumentException("LLM Assistant not initialized");
         }
-        var assistant = AiServices.builder(Assistant.class)
-                .chatModel(model)
-                .systemMessage(getSystemPrompt())
-                .tools(new AssistantTools())
-                .maxToolCallingRoundTrips(3) // for testing, increase later
-                .chatMemory(memory) // for testing, later make user specific
-                .build();
-        return assistant.chat(message);
+        String userName = authUtils.getRequestUser();
+        System.out.println("USER " + userName);
+        Result<String> res = assistant.chat(userName, message);
+        System.out.println(res);
+
+        return new Response(res.content(), res.toolExecutions().stream().map(t ->
+                new Response.CalledAction(t.request().name(), t.request().arguments(), t.result())).toList());
+        // TODO Response is a bit redundant, but Result is a bit much... what to include in the result exactly
         // TODO handle max iterations and other errors
     }
 
-    private String getSystemPrompt() throws IOException {
-        var actionsJson = RestHelper.writeJson(agentsService.getAgents());
+    private String getSystemPrompt() {
         return """
                 You are the integrated LLM Assistant of the OPACA Runtime Platform. You have access to different
                 'Agents', situated in 'Agent Containers', each providing different 'Actions'. You can call those
@@ -87,9 +97,16 @@ public class LLMService {
                 
                 Always use exactly the actions and parameters as provided in the list. If the list is empty, just
                 tell the user that there are currently no actions. Never invent actions that are not there.
-                """.formatted(actionsJson);
+                """.formatted(getActionsJson());
     }
 
+    private String getActionsJson() {
+        try {
+            return RestHelper.writeJson(agentsService.getAgents());
+        } catch (IOException e) {
+            return "(failed to fetch actions)";
+        }
+    }
 
     /**
      * Interface of the Assistant. In the simplest form, this is just String -> String, but it could also take a more
@@ -97,20 +114,21 @@ public class LLMService {
      */
     interface Assistant {
 
-        Response chat(String query);
+        Result<String> chat(@MemoryId String id, @UserMessage String query);
+
+    }
 
 
-        @Data
-        class Response {
-            String response;
-            List<CalledAction> actionInvocations;
+    @Data @AllArgsConstructor
+    static class Response {
+        String response;
+        List<CalledAction> actionInvocations;
 
-            @Data
-            static class CalledAction {
-                String action;
-                Map<String, Object> parameters;
-                Object result;
-            }
+        @Data @AllArgsConstructor
+        static class CalledAction {
+            String action;
+            String parameters;
+            Object result;
         }
     }
 
