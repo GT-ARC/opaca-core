@@ -4,9 +4,13 @@ import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.services.LLMService;
 import org.a2aproject.sdk.server.AgentCardCacheMetadata;
 import org.a2aproject.sdk.server.PublicAgentCard;
+import org.a2aproject.sdk.server.ServerCallContext;
 import org.a2aproject.sdk.server.agentexecution.AgentExecutor;
 import org.a2aproject.sdk.server.agentexecution.RequestContext;
 import org.a2aproject.sdk.server.auth.TaskAuthorizationProvider;
+import org.a2aproject.sdk.server.auth.TaskOperation;
+import org.a2aproject.sdk.server.auth.User;
+import org.a2aproject.sdk.server.config.A2AConfigProvider;
 import org.a2aproject.sdk.server.events.InMemoryQueueManager;
 import org.a2aproject.sdk.server.events.MainEventBus;
 import org.a2aproject.sdk.server.events.MainEventBusProcessor;
@@ -17,13 +21,18 @@ import org.a2aproject.sdk.server.tasks.AgentEmitter;
 import org.a2aproject.sdk.server.tasks.InMemoryTaskStore;
 import org.a2aproject.sdk.server.tasks.PushNotificationSender;
 import org.a2aproject.sdk.spec.*;
+import org.a2aproject.sdk.spec.InternalError;
 import org.a2aproject.sdk.transport.rest.handler.RestHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -39,77 +48,13 @@ class A2aConfiguration {
 
 
     @Bean
-    InMemoryTaskStore a2aTaskStore() {
-        return new InMemoryTaskStore();
-    }
-
-    @Bean
-    MainEventBus a2aMainEventBus() {
-        return new MainEventBus();
-    }
-
-    @Bean
-    QueueManager a2aQueueManager(InMemoryTaskStore taskStore, MainEventBus mainEventBus) {
-        return new InMemoryQueueManager(taskStore, mainEventBus);
-    }
-
-    @Bean(destroyMethod = "close")
-    ExecutorService a2aExecutor() {
-        return Executors.newVirtualThreadPerTaskExecutor();
-    }
-
-    @Bean
-    PushNotificationSender a2aPushNotificationSender() {
-        return (event, taskSnapshot) -> {};
-    }
-
-    @Bean
-    MainEventBusProcessor a2aMainEventBusProcessor(
-            MainEventBus eventBus,
-            InMemoryTaskStore taskStore,
-            PushNotificationSender pushSender,
-            QueueManager queueManager) {
-        return new MainEventBusProcessor(eventBus, taskStore, pushSender, queueManager);
-    }
-
-    @Bean
-    RequestHandler a2aRequestHandler(
-            AgentExecutor agentExecutor,
-            InMemoryTaskStore taskStore,
-            QueueManager queueManager,
-            MainEventBusProcessor eventProcessor,
-            ExecutorService a2aExecutor,
-            TaskAuthorizationProvider taskAuthorizationProvider) {
-        return DefaultRequestHandler.builder()
-                .agentExecutor(agentExecutor)
-                .taskStore(taskStore)
-                .queueManager(queueManager)
-                .mainEventBusProcessor(eventProcessor)
-                .executor(a2aExecutor)
-                .eventConsumerExecutor(a2aExecutor)
-                .authorizationProvider(taskAuthorizationProvider)
-                .pushNotificationsEnabled(false)
-                .build();
-    }
-
-    @Bean
-    RestHandler a2aRestHandler(
-            AgentCard agentCard,
-            AgentCardCacheMetadata cardCacheMetadata,
-            RequestHandler requestHandler,
-            ExecutorService a2aExecutor) {
-        return new RestHandler(agentCard, cardCacheMetadata, requestHandler, a2aExecutor);
-    }
-
-
-    @Bean
     AgentCard agentCard() {
         String a2aBaseUrl = config.getOwnBaseUrl() + "/a2a";
         return AgentCard.builder()
                 .name("OPACA Agent")
                 .description("")
                 .supportedInterfaces(List.of(
-                        new AgentInterface(TransportProtocol.JSONRPC.asString(), a2aBaseUrl)
+                        new AgentInterface(TransportProtocol.HTTP_JSON.asString(), a2aBaseUrl)
                 ))
                 .version("1.0.0")
                 .capabilities(AgentCapabilities.builder()
@@ -160,6 +105,6 @@ class A2aConfiguration {
                 .filter(TextPart.class::isInstance)
                 .map(TextPart.class::cast)
                 .map(TextPart::text)
-                .collect(Collectors.joining());
+                .collect(Collectors.joining("\n\n"));
     }
 }
