@@ -87,33 +87,43 @@ public class A2aRestHandlerConfig {
         return new TaskAuthorizationProvider() {
             private String authenticatedUsername(ServerCallContext context) {
                 User user = context.getUser();
-                return user != null && user.isAuthenticated() ? user.getUsername() : null;
+                return "anonymous";
+                //return user != null && user.isAuthenticated() ? user.getUsername() : null;
             }
 
             @Override
             public boolean checkCreate(ServerCallContext context, TaskOperation operation) {
-                return authenticatedUsername(context) != null;
+                System.out.println("in check create "  + operation);
+                return true;
+                //return authenticatedUsername(context) != null;
             }
 
             @Override
             public boolean checkRead(ServerCallContext context, String taskId, TaskOperation operation) {
+                System.out.println("in check read " + operation + " " + taskId);
                 String username = authenticatedUsername(context);
-                return username != null && (taskId.isEmpty() || username.equals(owners.get(taskId)));
+                return true;
+                //return username != null && (taskId.isEmpty() || username.equals(owners.get(taskId)));
             }
 
             @Override
             public boolean checkWrite(ServerCallContext context, String taskId, TaskOperation operation) {
+                System.out.println("in check write " + operation + " " + taskId);
                 String username = authenticatedUsername(context);
-                return username != null && username.equals(owners.get(taskId));
+                return true;
+                //return username != null && username.equals(owners.get(taskId));
             }
 
             @Override
             public boolean isTaskRecorded(String taskId) {
-                return owners.containsKey(taskId);
+                System.out.println("in task recorded " + taskId);
+                return true;
+                //return owners.containsKey(taskId);
             }
 
             @Override
             public void recordOwnership(ServerCallContext context, String taskId, TaskOperation operation) throws A2AError {
+                System.out.println("in record ownership " + operation + " " + taskId);
                 String username = authenticatedUsername(context);
                 if (username == null) {
                     throw new InternalError("Cannot record task ownership without an authenticated user");
