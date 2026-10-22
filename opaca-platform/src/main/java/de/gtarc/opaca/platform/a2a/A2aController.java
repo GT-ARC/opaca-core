@@ -14,6 +14,7 @@ import org.a2aproject.sdk.server.auth.User;
 import org.a2aproject.sdk.server.extensions.A2AExtensions;
 import org.a2aproject.sdk.spec.A2AMethods;
 import org.a2aproject.sdk.spec.AgentCard;
+import org.a2aproject.sdk.spec.Message;
 import org.a2aproject.sdk.spec.TransportProtocol;
 import org.a2aproject.sdk.transport.rest.context.RestContextKeys;
 import org.a2aproject.sdk.transport.rest.handler.RestHandler;
@@ -24,6 +25,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import de.gtarc.opaca.platform.auth.AuthUtils;
@@ -31,9 +33,6 @@ import de.gtarc.opaca.platform.auth.AuthUtils;
 
 @RestController 
 class A2aController {
-
-    @Autowired
-    private A2aConfiguration a2aConfig;
 
     @Autowired
     private RestHandler restHandler;
@@ -54,11 +53,29 @@ class A2aController {
     @PostMapping(path="/a2a/message:send", consumes=MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<?> send(
             @RequestBody String body,
+            @RequestHeader(name = A2AHeaders.A2A_VERSION, required = false) String a2aVersion,
             HttpServletRequest request,
-            Authentication authentication) {
+            Authentication authentication) throws JsonProcessingException {
+        /*
+        {
+          "message": {
+            "messageId": "test-message-001",
+            "role": "ROLE_USER",
+            "parts": [
+              {
+                "text": "Hello! What actions can you perform?"
+              }
+            ]
+          }
+        }
+         */
         ServerCallContext context = createSendContext(request, authentication);
-        var res = restHandler.sendMessage(context, null, body);
-        return ResponseEntity.ok(res.toString());
+        String user = authUtils.getRequestUser();
+        var res = restHandler.sendMessage(context, user, body);
+        return ResponseEntity.status(res.getStatusCode())
+                .contentType(MediaType.parseMediaType(res.getContentType()))
+                .headers(headers -> res.getHeaders().forEach(headers::add))
+                .body(res.getBody());
     }
 
     private ServerCallContext createSendContext(HttpServletRequest request, Authentication authentication) {
