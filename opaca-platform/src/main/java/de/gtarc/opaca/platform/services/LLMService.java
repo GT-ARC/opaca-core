@@ -75,7 +75,7 @@ public class LLMService {
      * by LangChain. Constructs and returns a complex result with a few additional information (like the called tools)
      * in addition to the actual LLM response.
      */
-    public QueryResponse query(String message) throws IOException {
+    public QueryResponse query(String message) {
         if (assistant == null) {
             throw new IllegalArgumentException("LLM Assistant not initialized");
         }
