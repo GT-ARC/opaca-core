@@ -55,9 +55,26 @@
 			<artifactId>langchain4j</artifactId>
 			<version>1.22.0</version>
 		</dependency>
+		<!--
 		<dependency>
 			<groupId>org.a2aproject.sdk</groupId>
 			<artifactId>a2a-java-sdk-reference-rest</artifactId>
+			<version>1.4.0.Final</version>
+		</dependency>
+		-->
+		<dependency>
+			<groupId>org.a2aproject.sdk</groupId>
+			<artifactId>a2a-java-sdk-transport-rest</artifactId>
+			<version>1.4.0.Final</version>
+		</dependency>
+		<dependency>
+			<groupId>org.a2aproject.sdk</groupId>
+			<artifactId>a2a-java-sdk-server-common</artifactId>
+			<version>1.4.0.Final</version>
+		</dependency>
+		<dependency>
+			<groupId>org.a2aproject.sdk</groupId>
+			<artifactId>a2a-java-sdk-jsonrpc-common</artifactId>
 			<version>1.4.0.Final</version>
 		</dependency>
 
