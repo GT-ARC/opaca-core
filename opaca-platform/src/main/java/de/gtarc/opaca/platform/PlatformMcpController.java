@@ -14,6 +14,7 @@ import io.modelcontextprotocol.server.McpServer;
 import io.modelcontextprotocol.server.McpServerFeatures;
 import io.modelcontextprotocol.server.McpSyncServer;
 import io.modelcontextprotocol.server.McpSyncServerExchange;
+import io.swagger.v3.core.util.Json;
 import org.springframework.ai.mcp.server.webmvc.transport.WebMvcStreamableServerTransportProvider;
 import io.modelcontextprotocol.spec.McpSchema;
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
@@ -190,7 +191,7 @@ public class PlatformMcpController {
             }
             return builder.build();
         } catch (Exception e) {
-            log.error("Error executing MCP tool: " + request.name(), e);
+            log.error("Error executing MCP tool {}", request.name(), e);
             return McpSchema.CallToolResult.builder()
                     .content(List.of(McpSchema.TextContent.builder("Error invoking action: " + e.getMessage()).build()))
                     .isError(true)
@@ -216,23 +217,14 @@ public class PlatformMcpController {
         }
 
         // Convert the Swagger ObjectSchema to Map<String, Object>
-        Map<String, Object> schemaMap = io.swagger.v3.core.util.Json.mapper().convertValue(
-                requestBodySchema,
-                new TypeReference<Map<String, Object>>() {
-                });
+        Map<String, Object> schemaMap = Json.mapper().convertValue(requestBodySchema, new TypeReference<>() {});
 
         // Inject custom schema definitions
-        Map<String, Object> definitionsMap = new HashMap<>();
-
-        // Add standard custom definitions defined inside image
-        definitionsMap.putAll(container.getImage().getDefinitions());
-
-        // Add custom definitions by URL as $ref schemas
+        Map<String, Object> definitionsMap = new HashMap<>(container.getImage().getDefinitions());
         for (var definition : container.getImage().getDefinitionsByUrl().entrySet()) {
             definitionsMap.put(definition.getKey(), Map.of("$ref", definition.getValue()));
         }
-
-        if (!definitionsMap.isEmpty()) {
+        if (! definitionsMap.isEmpty()) {
             schemaMap.put("definitions", definitionsMap);
         }
 
