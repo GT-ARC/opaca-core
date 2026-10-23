@@ -158,7 +158,7 @@ public class PlatformConfig {
         // LLM stuff
         if (llmModelName != null && llmApiKey != null) {
             res.put("llmModelName", llmModelName);
-            res.put("llmApiKey", llmApiKey.substring(0, 8) + "...");
+            res.put("llmApiKey", llmApiKey.replaceAll("(?<=^.{3}).*(?=.{4}$)", "..."));
         }
         return res;
     }
