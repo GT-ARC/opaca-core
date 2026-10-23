@@ -3,6 +3,8 @@ package de.gtarc.opaca.platform.a2a;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.auth.AuthUtils;
 import de.gtarc.opaca.platform.services.LLMService;
+
+import org.a2aproject.sdk.server.ServerCallContext;
 import org.a2aproject.sdk.server.agentexecution.AgentExecutor;
 import org.a2aproject.sdk.server.agentexecution.RequestContext;
 import org.a2aproject.sdk.server.tasks.AgentEmitter;
@@ -98,7 +100,8 @@ class A2aConfiguration {
             @Override
             public void execute(RequestContext context, AgentEmitter agentEmitter) throws A2AError {
                 String userMessage = extractTextFromMessage(context.getMessage());
-                LLMService.QueryResponse response = llmService.query(userMessage);
+                String userName = extractUserNameFromContext(context.getCallContext());
+                LLMService.QueryResponse response = llmService.query(userMessage, userName);
                 agentEmitter.sendMessage(response.getResponse());
             }
 
@@ -107,6 +110,12 @@ class A2aConfiguration {
                 throw new UnsupportedOperationError();
             }
         };
+    }
+
+    private String extractUserNameFromContext(ServerCallContext callContext) {
+        var user = callContext == null ? null : callContext.getUser();
+        return user != null && user.isAuthenticated()
+                ? user.getUsername() : AuthUtils.ANONYMOUS_USER;
     }
 
     private String extractTextFromMessage(Message message) {

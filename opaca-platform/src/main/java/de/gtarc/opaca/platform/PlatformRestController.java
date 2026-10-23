@@ -3,6 +3,7 @@ package de.gtarc.opaca.platform;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.model.*;
+import de.gtarc.opaca.platform.auth.AuthUtils;
 import de.gtarc.opaca.platform.services.*;
 import de.gtarc.opaca.platform.util.ActionToOpenApi;
 import de.gtarc.opaca.platform.util.ActionToOpenApi.ActionFormat;
@@ -60,6 +61,9 @@ public class PlatformRestController {
 
 	@Autowired
 	private PlatformConfig config;
+
+	@Autowired
+    AuthUtils authUtils;
 
 
 	/*
@@ -207,7 +211,7 @@ public class PlatformRestController {
 	@PostMapping("/query")
 	@Operation(summary="Send message to integrated LLM Agent (requires configured API key)", tags={"llm"})
 	public Object query(String message) throws IOException {
-		return llmService.query(message);
+		return llmService.query(message, authUtils.getRequestUser());
 	}
 
 	/*
