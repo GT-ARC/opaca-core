@@ -7,6 +7,7 @@
 * integrated MCP server exposing all agents' actions as tools
 * extended events mechanism to produce more meaningful platform and broadcast events
 * Agent Containers can be `restricted` so that only their original creators can use them
+* added `/query` route for LLM-based interaction with the platform's agents and action
 
 
 ## 0.5 Release
