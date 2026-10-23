@@ -7,6 +7,7 @@ import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.AgentDescription;
 import de.gtarc.opaca.model.Action;
 import de.gtarc.opaca.platform.services.AgentsService;
+import de.gtarc.opaca.platform.util.ActionToOpenApi;
 import de.gtarc.opaca.platform.services.ContainersService;
 import io.modelcontextprotocol.json.jackson2.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.common.McpTransportContext;
@@ -14,19 +15,18 @@ import io.modelcontextprotocol.server.McpServer;
 import io.modelcontextprotocol.server.McpServerFeatures;
 import io.modelcontextprotocol.server.McpSyncServer;
 import io.modelcontextprotocol.server.McpSyncServerExchange;
-import io.swagger.v3.core.util.Json;
-import org.springframework.ai.mcp.server.webmvc.transport.WebMvcStreamableServerTransportProvider;
 import io.modelcontextprotocol.spec.McpSchema;
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
+import io.swagger.v3.core.util.Json;
+import io.swagger.v3.oas.models.media.ObjectSchema;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.ai.mcp.server.webmvc.transport.WebMvcStreamableServerTransportProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
-import de.gtarc.opaca.platform.util.ActionToOpenApi;
-import io.swagger.v3.oas.models.media.ObjectSchema;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerResponse;
 import org.springframework.security.core.context.SecurityContext;
@@ -157,19 +157,15 @@ public class PlatformMcpController {
 
     private McpSchema.CallToolResult handleToolCall(McpSyncServerExchange exchange, String agentId, String actionName,
             McpSchema.CallToolRequest request) {
-        log.info("MCP Tool execution request: agentId={}, actionName={}, arguments={}", agentId, actionName,
-                request.arguments());
+        var args = request.arguments();
+        log.info("MCP Tool execution request: agentId={}, actionName={}, arguments={}", agentId, actionName, args);
         // temporarily restore Spring security context, which is initially set, but "forgotten" by the time this runs;
         // the SecurityContext is thread-local, thus the change does not leak to a parallel REST call (tested manually)
         SecurityContext previousContext = SecurityContextHolder.getContext();
         SecurityContextHolder.setContext((SecurityContext) exchange.transportContext().get(SECURITY_CONTEXT));
         try {
-            Map<String, JsonNode> parameters = objectMapper.convertValue(
-                    request.arguments() != null ? request.arguments() : Map.of(),
-                    new TypeReference<Map<String, JsonNode>>() {
-                    });
-
             // Invoke the existing agent execution logic directly
+            Map<String, JsonNode> parameters = objectMapper.convertValue(args != null ? args : Map.of(), new TypeReference<>() {});
             JsonNode result = agentsService.invoke(actionName, parameters, agentId, -1, null, true);
 
             // Prevent double-quoting strings in TextContent
@@ -220,9 +216,12 @@ public class PlatformMcpController {
         Map<String, Object> schemaMap = Json.mapper().convertValue(requestBodySchema, new TypeReference<>() {});
 
         // Inject custom schema definitions
-        Map<String, Object> definitionsMap = new HashMap<>(container.getImage().getDefinitions());
-        for (var definition : container.getImage().getDefinitionsByUrl().entrySet()) {
-            definitionsMap.put(definition.getKey(), Map.of("$ref", definition.getValue()));
+        Map<String, Object> definitionsMap = new HashMap<>();
+        for (var def : container.getImage().getDefinitions().entrySet()) {
+            definitionsMap.put(def.getKey(), Json.mapper().convertValue(def.getValue(), new TypeReference<>() {}));
+        }
+        for (var def : container.getImage().getDefinitionsByUrl().entrySet()) {
+            definitionsMap.put(def.getKey(), Map.of("$ref", def.getValue()));
         }
         if (! definitionsMap.isEmpty()) {
             schemaMap.put("definitions", definitionsMap);
