@@ -90,7 +90,7 @@ public class PlatformMcpController {
 
     @EventListener
     public void onContainerChanged(ContainersService.ContainerChangedEvent event) {
-        log.info("Received container changed event, syncing tools: {}", event);
+        log.info("Received container changed event, syncing tools.");
         syncTools();
     }
 
@@ -121,7 +121,7 @@ public class PlatformMcpController {
 
                             toolsToAdd.add(toolSpec);
                         } catch (Exception e) {
-                            log.error("Failed to build MCP tool specification for: " + toolName, e);
+                            log.error("Failed to build MCP tool specification for {}", toolName, e);
                         }
                     }
                 }
@@ -149,7 +149,7 @@ public class PlatformMcpController {
         }
 
         if (changed) {
-            log.info("Sync MCP Tools: registered " + registeredTools.size() + " tools. Active: " + registeredTools);
+            log.info("Sync MCP Tools: registered {} tools.", registeredTools.size());
             mcpServer.notifyToolsListChanged();
         }
     }
