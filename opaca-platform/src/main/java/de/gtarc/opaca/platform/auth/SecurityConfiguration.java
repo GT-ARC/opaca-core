@@ -37,12 +37,13 @@ public class SecurityConfiguration {
             "/swagger-resources",
             "/swagger-resources/**",
             "/swagger-ui/**",
+            "/swagger-ui.html",
             "/login",
             "/error",
             "/configuration/ui",
             "/configuration/security",
-            "/swagger-ui.html",
-            "/webjars/**"
+            "/webjars/**",
+            "/.well-known/agent-card.json"
     };
 
     /**
@@ -71,6 +72,7 @@ public class SecurityConfiguration {
                     .requestMatchers("/connections/**").hasRole(AuthUtils.ROLE_MANAGER)
                     // other, non HTTP/REST routes
                     .requestMatchers("/mcp").hasRole(AuthUtils.ROLE_USER)
+                    .requestMatchers("/a2a/**").hasRole(AuthUtils.ROLE_USER)
                     .requestMatchers("/subscribe").hasRole(AuthUtils.ROLE_USER)
                     // all require auth (and the above defined minimal roles)
                     .anyRequest().authenticated()

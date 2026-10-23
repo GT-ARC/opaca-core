@@ -1,6 +1,8 @@
 package de.gtarc.opaca.platform.a2a;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.log4j.Log4j2;
 
 import java.util.*;
 
@@ -31,7 +33,9 @@ import org.springframework.web.bind.annotation.RestController;
 import de.gtarc.opaca.platform.auth.AuthUtils;
 
 
-@RestController 
+@Log4j2 
+@RestController
+@SecurityRequirement(name = "bearerAuth")
 class A2aController {
 
     @Autowired
@@ -54,8 +58,7 @@ class A2aController {
     ResponseEntity<?> send(
             @RequestBody String body,
             @RequestHeader(name = A2AHeaders.A2A_VERSION, required = false) String a2aVersion,
-            HttpServletRequest request,
-            Authentication authentication) throws JsonProcessingException {
+            HttpServletRequest request) throws JsonProcessingException {
         /*
         {
           "message": {
@@ -69,7 +72,7 @@ class A2aController {
           }
         }
          */
-        ServerCallContext context = createSendContext(request, authentication);
+        ServerCallContext context = createSendContext(request);
         String user = authUtils.getRequestUser();
         var res = restHandler.sendMessage(context, user, body);
         return ResponseEntity.status(res.getStatusCode())
@@ -78,15 +81,17 @@ class A2aController {
                 .body(res.getBody());
     }
 
-    private ServerCallContext createSendContext(HttpServletRequest request, Authentication authentication) {
+    private ServerCallContext createSendContext(HttpServletRequest request) {
         var userName = authUtils.getRequestUser();
+        System.out.println("username: " + userName);
         User user = userName.equals(AuthUtils.ANONYMOUS_USER)
-                ? UnauthenticatedUser.INSTANCE : new AuthenticatedUser(authentication.getName());
+                ? UnauthenticatedUser.INSTANCE : new AuthenticatedUser(userName);
 
         Map<String, String> headers = new HashMap<>();
         Enumeration<String> headerNames = request.getHeaderNames();
         if (headerNames != null) {
             for (String name : Collections.list(headerNames)) {
+                System.out.println("HEADER " + name + ": " + request.getHeader(name));
                 headers.put(name, request.getHeader(name));
             }
         }

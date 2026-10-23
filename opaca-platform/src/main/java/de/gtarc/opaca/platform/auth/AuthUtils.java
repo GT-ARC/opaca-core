@@ -51,13 +51,13 @@ public class AuthUtils {
      * requests to deployed Agent Containers or connected Platforms.
      */
     @PostConstruct
-    private void startup() throws IOException {
+    private void startup() {
         // some basic config consistency checks
-        if (config.requireAuth && ! config.isSet(config.keycloakIssuerUri)) {
+        if (authRequired() && ! authEnabled()) {
             log.fatal("Keycloak URL must be given if Authentication is required.");
             System.exit(1);
         }
-        if (config.isSet(config.keycloakIssuerUri)) {
+        if (authEnabled()) {
             if (! (config.isSet(config.keycloakClientId) &&
                     config.isSet(config.keycloakAdmin) &&
                     config.isSet(config.keycloakAdminPw)
@@ -73,7 +73,7 @@ public class AuthUtils {
                 } catch (Exception e) {
                     if (i < 9) {
                         log.warn("Could not get Platform Client Secret. Retrying in 5s...");
-                        try { Thread.sleep(5000); } catch (InterruptedException ex) {}
+                        try { Thread.sleep(5000); } catch (InterruptedException ignore) {}
                     } else {
                         log.fatal("Could not get Platform Client Secret after 10 tries. Is Keycloak running and the realm configured?");
                         System.exit(1);
@@ -81,6 +81,14 @@ public class AuthUtils {
                 }
             }
         }
+    }
+
+    public boolean authRequired() {
+        return config.requireAuth;
+    }
+
+    public boolean authEnabled() {
+        return config.isSet(config.keycloakIssuerUri);
     }
 
     /**
@@ -114,7 +122,7 @@ public class AuthUtils {
      * Get JWT for Keycloak user, used in the /login route.
      */
     public String getTokenForUser(String username, String password) throws IOException {
-        if (config.keycloakIssuerUri == null) {
+        if (! authEnabled()) {
             throw new IllegalArgumentException("Login not possible: Keycloak is not configured!");
         }
         return KeycloakUtil.getTokenForUser(config.keycloakIssuerUri, config.keycloakClientId, username, password);
@@ -166,7 +174,7 @@ public class AuthUtils {
      * Delete temporary client, e.g. when removing containers again or stopping the platform.
      */
     public boolean deleteClient(String clientId) throws IOException {
-        if (config.keycloakIssuerUri == null) return false;
+        if (! authEnabled()) return false;
         try (var keycloak = keycloakClient()) {
             var client = keycloak.realm(getRealm()).clients().findByClientId(clientId).stream().findAny();
             if (client.isPresent()) {
@@ -191,7 +199,7 @@ public class AuthUtils {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getCredentials() instanceof Jwt jwt) {
             return jwt.getClaimAsString("preferred_username");
-        } else if (! config.requireAuth){
+        } else if (! authRequired()){
             return ANONYMOUS_USER;
         } else {
             return null;
@@ -204,7 +212,7 @@ public class AuthUtils {
         if (auth != null && auth.getCredentials() instanceof Jwt jwt) {
             var roles = (List<String>) jwt.getClaimAsMap("realm_access").get("roles");
             return roles.stream().filter(x -> x.toUpperCase().equals(x)).collect(Collectors.toSet());
-        } else if (! config.requireAuth){
+        } else if (! authRequired()){
             return Set.of(ROLE_MANAGER, ROLE_CONTRIBUTOR, ROLE_USER, ROLE_GUEST);
         } else {
             return Set.of();
