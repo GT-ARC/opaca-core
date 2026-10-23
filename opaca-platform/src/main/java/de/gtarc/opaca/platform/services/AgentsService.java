@@ -9,7 +9,6 @@ import de.gtarc.opaca.platform.events.EventsHandling;
 import de.gtarc.opaca.platform.session.SessionData;
 import de.gtarc.opaca.platform.util.ArgumentValidator;
 import de.gtarc.opaca.util.ApiProxy;
-import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

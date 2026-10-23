@@ -4,7 +4,6 @@ import de.gtarc.opaca.model.Event;
 import de.gtarc.opaca.platform.services.ConnectionsService;
 import de.gtarc.opaca.platform.services.ContainersService;
 import de.gtarc.opaca.util.EventHistory;
-import jakarta.servlet.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
