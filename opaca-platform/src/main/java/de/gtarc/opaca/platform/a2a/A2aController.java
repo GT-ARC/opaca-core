@@ -51,7 +51,7 @@ class A2aController {
     @GetMapping("/.well-known/agent-card.json")
     ResponseEntity<?> card() throws JsonProcessingException {
         var json = JsonUtil.toJson(agentCard);
-        return ResponseEntity.ok(json);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(json);
     }
 
     @PostMapping(path="/a2a/message:send", consumes=MediaType.APPLICATION_JSON_VALUE)

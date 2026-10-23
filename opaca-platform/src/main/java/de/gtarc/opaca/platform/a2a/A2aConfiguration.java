@@ -39,9 +39,9 @@ class A2aConfiguration {
                 .description("")
                 .version("1.0.0")
                 .supportedInterfaces(List.of(
-                        new AgentInterface(TransportProtocol.HTTP_JSON.asString(), a2aBaseUrl),
-                        new AgentInterface(TransportProtocol.HTTP_JSON.asString(), a2aBaseUrl, null, "0.3")
+                        new AgentInterface(TransportProtocol.HTTP_JSON.asString(), a2aBaseUrl)
                 ))
+                .preferredTransport(TransportProtocol.HTTP_JSON.asString())
                 .securitySchemes(getSecuritySchemes())
                 .securityRequirements(getSecurityRequirements())
                 .capabilities(AgentCapabilities.builder()
