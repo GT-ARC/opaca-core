@@ -35,7 +35,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import de.gtarc.opaca.platform.auth.AuthUtils;
 
-
+/**
+ * Rest-Controller for A2A Agent Card and Send route.
+ * The library is originally intended for Quarkus, and using it with Spring Boot requires some extra steps.
+ */
 @Log4j2 
 @RestController
 @SecurityRequirement(name = "bearerAuth")
@@ -87,9 +90,11 @@ class A2aController {
                 .body(res.getBody());
     }
 
+    /**
+     * Convert Http Request to A2A Context
+     */
     private ServerCallContext createSendContext(HttpServletRequest request) {
         var userName = authUtils.getRequestUser();
-        System.out.println("username: " + userName);
         User user = userName.equals(AuthUtils.ANONYMOUS_USER)
                 ? UnauthenticatedUser.INSTANCE : new AuthenticatedUser(userName);
 
@@ -97,7 +102,6 @@ class A2aController {
         Enumeration<String> headerNames = request.getHeaderNames();
         if (headerNames != null) {
             for (String name : Collections.list(headerNames)) {
-                System.out.println("HEADER " + name + ": " + request.getHeader(name));
                 headers.put(name, request.getHeader(name));
             }
         }

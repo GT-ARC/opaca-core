@@ -18,6 +18,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * The core A2A logic, defining the Agent Card and how requests are forwarded to the LLM Service.
+ * At the moment, this only allows for plain synchronous messages; no streaming, no asynchronous messages,
+ * no tasks, etc. All those might be added later.
+ *
+ * The A2A library is originally intended for Quarkus. There, this class alone (or something like it) would be
+ * enough to enable A2A. Using it with Spring Boot requires some extra steps, see other classes in this package.
+ */
 @Configuration
 class A2aConfiguration {
 

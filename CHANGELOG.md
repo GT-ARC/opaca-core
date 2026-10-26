@@ -7,6 +7,7 @@
 * integrated MCP server exposing all agents' actions as tools
 * extended events mechanism to produce more meaningful platform and broadcast events
 * Agent Containers can be `restricted` so that only their original creators can use them
+* partial support for Agent-to-Agent protocol (A2A)
 
 
 ## 0.5 Release

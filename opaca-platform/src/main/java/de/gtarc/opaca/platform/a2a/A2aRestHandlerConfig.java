@@ -11,7 +11,6 @@ import org.a2aproject.sdk.server.events.MainEventBus;
 import org.a2aproject.sdk.server.events.MainEventBusProcessor;
 import org.a2aproject.sdk.server.requesthandlers.DefaultRequestHandler;
 import org.a2aproject.sdk.server.tasks.InMemoryTaskStore;
-import org.a2aproject.sdk.server.tasks.PushNotificationSender;
 import org.a2aproject.sdk.spec.A2AError;
 import org.a2aproject.sdk.spec.AgentCard;
 import org.a2aproject.sdk.spec.InternalError;
@@ -26,6 +25,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * Autowires together a RestHandler for A2A.
+ * The library is originally intended for Quarkus, and using it with Spring Boot requires some extra steps.
+ */
 @Configuration
 public class A2aRestHandlerConfig {
 
@@ -77,6 +80,9 @@ public class A2aRestHandlerConfig {
         return new RestHandler(agentCard, agentCardCacheMetadata, requestHandler, a2aExecutor);
     }
 
+    /**
+     * This class is still WIP. It's meant to check that only the users who created a task can access it later.
+     */
     private TaskAuthorizationProvider createAuthorizationProvider() {
         Map<String, String> owners = new ConcurrentHashMap<>();
 
