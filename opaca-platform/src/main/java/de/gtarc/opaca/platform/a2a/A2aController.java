@@ -55,6 +55,7 @@ class A2aController {
 
 
     @GetMapping("/.well-known/agent-card.json")
+    @Operation(tags = {"a2a"})
     ResponseEntity<?> card() throws JsonProcessingException {
         var json = JsonUtil.toJson(agentCard);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(json);
@@ -63,6 +64,7 @@ class A2aController {
     @PostMapping(path = "/a2a/message:send", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
             summary = "Sends a message to the A2A agent and returns the task response.",
+            tags = {"a2a"},
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     content = @Content(
                             schema = @Schema(implementation = MessageSendParams.class),
