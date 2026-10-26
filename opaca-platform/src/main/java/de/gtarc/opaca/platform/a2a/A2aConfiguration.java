@@ -39,15 +39,17 @@ class A2aConfiguration {
     private AuthUtils authUtils;
 
 
+    /**
+     * PART 1: The agent card. Tells other LLM what this agent can do, and how to talk to it.
+     */
     @Bean
-    AgentCard agentCard() {
-        String a2aBaseUrl = config.getOwnBaseUrl() + "/a2a";
+    public AgentCard agentCard() {
         return AgentCard.builder()
                 .name("OPACA Agent")
                 .description("")
                 .version("1.0.0")
                 .supportedInterfaces(List.of(
-                        new AgentInterface(TransportProtocol.HTTP_JSON.asString(), a2aBaseUrl)
+                        new AgentInterface(TransportProtocol.HTTP_JSON.asString(), config.getOwnBaseUrl() + "/a2a")
                 ))
                 .preferredTransport(TransportProtocol.HTTP_JSON.asString())
                 .securitySchemes(getSecuritySchemes())
@@ -76,9 +78,7 @@ class A2aConfiguration {
 
     private Map<String, SecurityScheme> getSecuritySchemes() {
         if (authUtils.authEnabled()) {
-            return Map.of(
-                    "bearer", HTTPAuthSecurityScheme.builder().scheme("bearer").bearerFormat("JWT").build()
-            );
+            return Map.of("bearer", HTTPAuthSecurityScheme.builder().scheme("bearer").bearerFormat("JWT").build());
         } else {
             return null;
         }
@@ -86,23 +86,20 @@ class A2aConfiguration {
 
     private List<SecurityRequirement> getSecurityRequirements() {
         if (authUtils.authEnabled()) {
-            if (authUtils.authRequired()) {
-                return List.of(
-                        SecurityRequirement.builder().scheme("bearer", List.of()).build()
-                );
-            } else {
-                return List.of(
-                        SecurityRequirement.builder().scheme("bearer", List.of()).build(),
-                        SecurityRequirement.builder().build()
-                );
-            }
+            var bearerSchema = SecurityRequirement.builder().scheme("bearer", List.of()).build();
+            return authUtils.authRequired()
+                    ? List.of(bearerSchema)
+                    : List.of(bearerSchema, SecurityRequirement.builder().build());
         } else {
             return null;
         }
     }
 
+    /**
+     * PART 2: The executor. Takes A2A requests from the RestHandler and executes them in various ways.
+     */
     @Bean
-    AgentExecutor agentExecutor() {
+    public AgentExecutor agentExecutor() {
         return new AgentExecutor() {
 
             @Override
