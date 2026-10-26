@@ -9,12 +9,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Primary;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.stream.Collectors;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static de.gtarc.opaca.platform.tests.TestUtils.*;
 
@@ -67,69 +64,18 @@ public class A2ATests {
      */
     @Test
     public void testSendMessage() throws Exception {
-        String body = "{\n"
-                + "  \"message\": {\n"
-                + "    \"messageId\": \"test-message-001\",\n"
-                + "    \"role\": \"ROLE_USER\",\n"
-                + "    \"parts\": [\n"
-                + "      {\n"
-                + "        \"text\": \"What actions can you perform?\"\n"
-                + "      }\n"
-                + "    ]\n"
-                + "  }\n"
-                + "}";
-
-        HttpURLConnection con = (HttpURLConnection) new URI(PLATFORM_URL + "/a2a/message:send").toURL().openConnection();
-        con.setRequestMethod("POST");
-        con.setRequestProperty("Content-Type", "application/json");
-        con.setRequestProperty("A2A-Version", "1.0");
-        con.setDoOutput(true);
-        con.connect();
-
-        try (var os = con.getOutputStream()) {
-            os.write(body.getBytes(StandardCharsets.UTF_8));
-        }
-
+        var body = Map.of(
+                "message", Map.of(
+                        "messageId", "test-message-001",
+                        "role", "ROLE_USER",
+                        "parts", List.of(Map.of(
+                                "text", "What actions can you perform?"
+                        ))
+                ));
+        var header = Map.of("A2A-Version", "1.0");
+        var con = requestWithHeader(PLATFORM_URL, "POST","/a2a/message:send", body, header);
         Assert.assertEquals(200, con.getResponseCode());
-        String response = new BufferedReader(new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8))
-                .lines().collect(Collectors.joining("\n"));
-
-        Assert.assertTrue("Response should contain taskId", response.contains("\"taskId\""));
-        Assert.assertTrue("Response should contain mock answer", response.contains("Mock LLM response"));
-    }
-
-    /**
-     * Test sending a message with a different messageId to verify the A2A task handling
-     * creates a separate task for each message.
-     */
-    @Test
-    public void testSendMessageDifferentId() throws Exception {
-        String body = "{\n"
-                + "  \"message\": {\n"
-                + "    \"messageId\": \"test-message-002\",\n"
-                + "    \"role\": \"ROLE_USER\",\n"
-                + "    \"parts\": [\n"
-                + "      {\n"
-                + "        \"text\": \"Hello\"\n"
-                + "      }\n"
-                + "    ]\n"
-                + "  }\n"
-                + "}";
-
-        HttpURLConnection con = (HttpURLConnection) new URI(PLATFORM_URL + "/a2a/message:send").toURL().openConnection();
-        con.setRequestMethod("POST");
-        con.setRequestProperty("Content-Type", "application/json");
-        con.setRequestProperty("A2A-Version", "1.0");
-        con.setDoOutput(true);
-        con.connect();
-
-        try (var os = con.getOutputStream()) {
-            os.write(body.getBytes(StandardCharsets.UTF_8));
-        }
-
-        Assert.assertEquals(200, con.getResponseCode());
-        String response = new BufferedReader(new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8))
-                .lines().collect(Collectors.joining("\n"));
+        String response = result(con);
         Assert.assertTrue("Response should contain taskId", response.contains("\"taskId\""));
         Assert.assertTrue("Response should contain mock answer", response.contains("Mock LLM response"));
     }
@@ -161,7 +107,7 @@ public class A2ATests {
             return new LLMService() {
                 @Override
                 public QueryResponse query(String message, String userName) {
-                    return new QueryResponse("Mock LLM response to: " + message, java.util.Collections.emptyList());
+                    return new QueryResponse("Mock LLM response to: " + message, Collections.emptyList());
                 }
             };
         }
