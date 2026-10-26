@@ -19,7 +19,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
 import de.gtarc.opaca.model.Event;
-import de.gtarc.opaca.model.Event.*;
 import de.gtarc.opaca.util.RestHelper;
 
 /**
