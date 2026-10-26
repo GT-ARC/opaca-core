@@ -1,5 +1,9 @@
 package de.gtarc.opaca.platform.a2a;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.log4j.Log4j2;
@@ -16,14 +20,13 @@ import org.a2aproject.sdk.server.auth.User;
 import org.a2aproject.sdk.server.extensions.A2AExtensions;
 import org.a2aproject.sdk.spec.A2AMethods;
 import org.a2aproject.sdk.spec.AgentCard;
-import org.a2aproject.sdk.spec.Message;
+import org.a2aproject.sdk.spec.MessageSendParams;
 import org.a2aproject.sdk.spec.TransportProtocol;
 import org.a2aproject.sdk.transport.rest.context.RestContextKeys;
 import org.a2aproject.sdk.transport.rest.handler.RestHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -54,24 +57,27 @@ class A2aController {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(json);
     }
 
-    @PostMapping(path="/a2a/message:send", consumes=MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(path = "/a2a/message:send", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Sends a message to the A2A agent and returns the task response.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(
+                            schema = @Schema(implementation = MessageSendParams.class),
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject("""
+                                    {
+                                        "message": {
+                                            "messageId": "test-message-001",
+                                            "role": "ROLE_USER",
+                                            "parts": [{"text": "Hello! What actions can you perform?"}]
+                                        }
+                                    }
+                                    """)
+    )))
     ResponseEntity<?> send(
             @RequestBody String body,
-            @RequestHeader(name = A2AHeaders.A2A_VERSION, required = false) String a2aVersion,
-            HttpServletRequest request) throws JsonProcessingException {
-        /*
-        {
-          "message": {
-            "messageId": "test-message-001",
-            "role": "ROLE_USER",
-            "parts": [
-              {
-                "text": "Hello! What actions can you perform?"
-              }
-            ]
-          }
-        }
-         */
+            @RequestHeader(name=A2AHeaders.A2A_VERSION, required=false, defaultValue="1.0") String a2aVersion,
+            HttpServletRequest request) {
         ServerCallContext context = createSendContext(request);
         String user = authUtils.getRequestUser();
         var res = restHandler.sendMessage(context, user, body);
