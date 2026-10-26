@@ -118,8 +118,7 @@ public class DockerClient extends AbstractContainerClient {
                     .withHostConfig(HostConfig.newHostConfig().withPortBindings(portBindings))
                     .withExposedPorts(portBindings.stream().map(PortBinding::getExposedPort).collect(Collectors.toList()))
                     .exec();
-
-            log.info("Result: {}", res);
+            log.info("Docker Container ID: {}...", res.getId().substring(0, 12));
 
             log.info("Starting Container...");
             dockerClient.startContainerCmd(res.getId()).exec();

@@ -2,7 +2,6 @@ package de.gtarc.opaca.platform.events;
 
 import de.gtarc.opaca.model.Event;
 import de.gtarc.opaca.model.Event.*;
-import de.gtarc.opaca.util.EventHistory;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import org.springframework.stereotype.Service;

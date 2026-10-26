@@ -19,7 +19,7 @@ import java.util.Map;
  */
 @Log4j2
 @Configuration
-@ToString(exclude = {"registryPasswords", "keycloakAdmin", "keycloakAdminPw"})
+@ToString(exclude = {"registryPasswords", "keycloakAdmin", "keycloakAdminPw", "llmApiKey"})
 public class PlatformConfig {
 
     // GENERAL SETTINGS
@@ -154,6 +154,11 @@ public class PlatformConfig {
         if (containerEnvironment == PostAgentContainer.ContainerEnvironment.KUBERNETES) {
             res.put("kubernetesNamespace", kubernetesNamespace);
             res.put("kubernetesConfig", kubernetesConfig);
+        }
+        // LLM stuff
+        if (llmModelName != null && llmApiKey != null) {
+            res.put("llmModelName", llmModelName);
+            res.put("llmApiKey", llmApiKey.replaceAll("(?<=^.{3}).*(?=.{4}$)", "..."));
         }
         return res;
     }

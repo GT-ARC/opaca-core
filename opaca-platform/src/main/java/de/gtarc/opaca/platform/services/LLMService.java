@@ -75,19 +75,14 @@ public class LLMService {
         if (assistant == null) {
             throw new IllegalArgumentException("LLM Assistant not initialized");
         }
-        String actions = getActionsJson();
-        Result<String> res = assistant.chat(userName, message, actions);
-        return new QueryResponse(res.content(), res.toolExecutions().stream().map(t ->
-                new QueryResponse.CalledAction(t.request().name(), t.request().arguments(), t.result())).toList());
-        // TODO Response is a bit redundant, but Result is a bit much... what to include in the result exactly
-        // TODO handle max iterations and other errors
-    }
-
-    private String getActionsJson() {
         try {
-            return RestHelper.writeJson(agentsService.getAgents());
-        } catch (IOException e) {
-            return "(failed to fetch actions)";
+            String actions = RestHelper.writeJson(agentsService.getAgents());
+            Result<String> res = assistant.chat(userName, message, actions);
+            return new QueryResponse(res.content(), res.toolExecutions().stream().map(t ->
+                    new QueryResponse.CalledAction(t.request().name(), t.request().arguments(), t.result())).toList());
+        } catch (Exception e) {
+            log.warn("LLM Assistant failed.", e);
+            return new QueryResponse("ERROR: " + e.getMessage(), null);
         }
     }
 

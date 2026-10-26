@@ -105,6 +105,9 @@ The values in the `PlatformConfig` file are read from the `application.propertie
 ### Security & Authentication
 * Please refer to the section on [Authentication](doc/auth.md) for context and details.
 
+### LLM-Support
+* Please refer to the section on [LLM-Support](doc/llm.md) for context and details.
+
 
 You can set those properties in the run config in your IDE, via an `.env` file, using `export` on the shell or in a `docker-compose.yml` file. Note that if you have one of those properties in e.g. your `.env` file, and it does not have a value, that may still overwrite the default and set the value to `null` or the empty string.
 

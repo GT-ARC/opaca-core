@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 
 import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.RuntimePlatform;
-import lombok.Data;
 
 /**
  * Class aggregating all Session data of the Runtime Platform, to be stored to and loaded from
