@@ -11,17 +11,14 @@ import org.a2aproject.sdk.server.events.MainEventBus;
 import org.a2aproject.sdk.server.events.MainEventBusProcessor;
 import org.a2aproject.sdk.server.requesthandlers.DefaultRequestHandler;
 import org.a2aproject.sdk.server.tasks.InMemoryTaskStore;
-import org.a2aproject.sdk.spec.A2AError;
 import org.a2aproject.sdk.spec.AgentCard;
-import org.a2aproject.sdk.spec.InternalError;
 import org.a2aproject.sdk.transport.rest.handler.RestHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -41,8 +38,7 @@ public class A2aRestHandlerConfig {
     RestHandler a2aRestHandler(
             AgentCard agentCard,
             AgentExecutor agentExecutor,
-            ExecutorService a2aExecutor,
-            Environment environment) {
+            ExecutorService a2aExecutor) {
 
         // Wire up the A2A infrastructure components inline
         var taskStore = new InMemoryTaskStore();
@@ -51,19 +47,12 @@ public class A2aRestHandlerConfig {
         var eventProcessor = new MainEventBusProcessor(eventBus, taskStore,
                 (event, taskSnapshot) -> {}, queueManager);
 
-        var configProvider = new A2AConfigProvider() {
-            @Override
-            public String getValue(String name) {
-                return environment.getRequiredProperty(name);
-            }
-
-            @Override
-            public Optional<String> getOptionalValue(String name) {
-                return Optional.ofNullable(environment.getProperty(name));
-            }
+        // No-op config provider: AgentCardCacheMetadata only reads "a2a.agent-card.cache.max-age"
+        // and falls back to 3600 if not set, so returning empty is sufficient.
+        A2AConfigProvider configProvider = new A2AConfigProvider() {
+            @Override public String getValue(String name) { throw new IllegalArgumentException(name); }
+            @Override public Optional<String> getOptionalValue(String name) { return Optional.empty(); }
         };
-
-        var authorizationProvider = createAuthorizationProvider();
 
         var requestHandler = DefaultRequestHandler.builder()
                 .agentExecutor(agentExecutor)
@@ -72,7 +61,7 @@ public class A2aRestHandlerConfig {
                 .mainEventBusProcessor(eventProcessor)
                 .executor(a2aExecutor)
                 .eventConsumerExecutor(a2aExecutor)
-                .authorizationProvider(authorizationProvider)
+                .authorizationProvider(new TaskAuthorizationProviderImpl())
                 .pushNotificationsEnabled(false)
                 .build();
 
@@ -81,49 +70,46 @@ public class A2aRestHandlerConfig {
     }
 
     /**
-     * This class is still WIP. It's meant to check that only the users who created a task can access it later.
+     * Simple in-memory task authorization provider that tracks task ownership by user.
+     * Only the user who created a task can read or write to it.
+     * Based on the sample implementation from the A2A SDK documentation.
      */
-    private TaskAuthorizationProvider createAuthorizationProvider() {
-        Map<String, String> owners = new ConcurrentHashMap<>();
+    private static class TaskAuthorizationProviderImpl implements TaskAuthorizationProvider {
+        private final ConcurrentMap<String, String> ownershipStore = new ConcurrentHashMap<>();
 
-        return new TaskAuthorizationProvider() {
-            private String authenticatedUsername(ServerCallContext context) {
-                return "anonymous";
-            }
+        @Override
+        public boolean checkRead(ServerCallContext context, String taskId, TaskOperation operation) {
+            return isOwner(context, taskId);
+        }
 
-            @Override
-            public boolean checkCreate(ServerCallContext context, TaskOperation operation) {
-                System.out.println("in check create " + operation);
-                return true;
-            }
+        @Override
+        public boolean checkWrite(ServerCallContext context, String taskId, TaskOperation operation) {
+            return isOwner(context, taskId);
+        }
 
-            @Override
-            public boolean checkRead(ServerCallContext context, String taskId, TaskOperation operation) {
-                System.out.println("in check read " + operation + " " + taskId);
-                return true;
-            }
+        @Override
+        public boolean checkCreate(ServerCallContext context, TaskOperation operation) {
+            // Allow any user (authenticated or not) to create a task
+            return true;
+        }
 
-            @Override
-            public boolean checkWrite(ServerCallContext context, String taskId, TaskOperation operation) {
-                System.out.println("in check write " + operation + " " + taskId);
-                return true;
-            }
+        @Override
+        public boolean isTaskRecorded(String taskId) {
+            return ownershipStore.containsKey(taskId);
+        }
 
-            @Override
-            public boolean isTaskRecorded(String taskId) {
-                System.out.println("in task recorded " + taskId);
-                return true;
+        @Override
+        public void recordOwnership(ServerCallContext context, String taskId, TaskOperation operation) {
+            var user = context.getUser();
+            if (user.isAuthenticated()) {
+                ownershipStore.putIfAbsent(taskId, user.getUsername());
             }
+        }
 
-            @Override
-            public void recordOwnership(ServerCallContext context, String taskId, TaskOperation operation) throws A2AError {
-                System.out.println("in record ownership " + operation + " " + taskId);
-                String username = authenticatedUsername(context);
-                if (username == null) {
-                    throw new InternalError("Cannot record task ownership without an authenticated user");
-                }
-                owners.putIfAbsent(taskId, username);
-            }
-        };
+        private boolean isOwner(ServerCallContext context, String taskId) {
+            // allow access if task was created by unauthenticated user or same user
+            String owner = ownershipStore.get(taskId);
+            return owner == null || owner.equals(context.getUser().getUsername());
+        }
     }
 }
