@@ -655,8 +655,8 @@ public class ContainerTests {
     public void test13RestrictedContainer() throws Exception {
         var image = getSampleContainerImage();
         image.setRestricted(true);
-        var token1 = result(request(PLATFORM_URL, "POST", "/login", new Login("contributor1", "12345")));
-        var token2 = result(request(PLATFORM_URL, "POST", "/login", new Login("manager", "12345")));
+        var token1 = getToken(PLATFORM_URL, "contributor1", "12345");
+        var token2 = getToken(PLATFORM_URL,"manager", "12345");
 
         // create container
         var containerId = result(requestWithToken(PLATFORM_URL, "POST", "/containers", image, token1));
@@ -735,8 +735,8 @@ public class ContainerTests {
     @Test
     public void testContainerLoginNoAuthButUsers() throws Exception {
         // login as two users for testing
-        var token1 = result(request(PLATFORM_URL, "POST", "/login", new Login("user1", "12345")));
-        var token2 = result(request(PLATFORM_URL, "POST", "/login", new Login("user2", "12345")));
+        var token1 = getToken(PLATFORM_URL, "user1", "12345");
+        var token2 = getToken(PLATFORM_URL, "user2", "12345");
 
         // login to container as both users
         result(requestWithToken(PLATFORM_URL, "POST", "/containers/login/" + containerId, new Login("container user 1", ""), token1));
