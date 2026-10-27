@@ -19,7 +19,7 @@ import java.util.Map;
  */
 @Log4j2
 @Configuration
-@ToString(exclude = {"registryPasswords", "keycloakAdmin", "keycloakAdminPw"})
+@ToString(exclude = {"registryPasswords", "keycloakAdmin", "keycloakAdminPw", "llmApiKey"})
 public class PlatformConfig {
 
     // GENERAL SETTINGS
@@ -98,6 +98,21 @@ public class PlatformConfig {
     @Value("${opaca.kubernetes.config}")
     public String kubernetesConfig;
 
+    // LLM SUPPORT
+
+    @Value("${opaca.llm.api_key}")
+    public String llmApiKey;
+
+    @Value("${opaca.llm.model_name}")
+    public String llmModelName;
+
+    @Value("${opaca.llm.memory_window}")
+    public int llmMemoryWindow;
+
+    @Value("${opaca.llm.max_action_iters}")
+    public int llmMaxActionIterations;
+
+
     // cached value; either publicUrl, if set, or derived from runtime environment and port
     private String ownBaseUrl = null;
 
@@ -139,6 +154,11 @@ public class PlatformConfig {
         if (containerEnvironment == PostAgentContainer.ContainerEnvironment.KUBERNETES) {
             res.put("kubernetesNamespace", kubernetesNamespace);
             res.put("kubernetesConfig", kubernetesConfig);
+        }
+        // LLM stuff
+        if (llmModelName != null && llmApiKey != null) {
+            res.put("llmModelName", llmModelName);
+            res.put("llmApiKey", llmApiKey.replaceAll("(?<=^.{3}).*(?=.{4}$)", "..."));
         }
         return res;
     }
