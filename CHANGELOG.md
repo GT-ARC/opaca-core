@@ -8,6 +8,7 @@
 * extended events mechanism to produce more meaningful platform and broadcast events
 * Agent Containers can be `restricted` so that only their original creators can use them
 * added `/query` route for LLM-based interaction with the platform's agents and action
+* partial support for Agent-to-Agent protocol (A2A)
 
 
 ## 0.5 Release

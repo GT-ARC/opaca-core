@@ -2,7 +2,6 @@ package de.gtarc.opaca.platform.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.platform.PlatformConfig;
-import de.gtarc.opaca.platform.auth.AuthUtils;
 import de.gtarc.opaca.util.RestHelper;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -42,9 +41,6 @@ public class LLMService {
     @Autowired
     private AgentsService agentsService;
 
-    @Autowired
-    private AuthUtils authUtils;
-
 
     /** the LangChain chat assistant */
     private Assistant assistant = null;
@@ -75,12 +71,11 @@ public class LLMService {
      * by LangChain. Constructs and returns a complex result with a few additional information (like the called tools)
      * in addition to the actual LLM response.
      */
-    public QueryResponse query(String message) {
+    public QueryResponse query(String message, String userName) {
         if (assistant == null) {
             throw new IllegalArgumentException("LLM Assistant not initialized");
         }
         try {
-            String userName = authUtils.getRequestUser();
             String actions = RestHelper.writeJson(agentsService.getAgents());
             Result<String> res = assistant.chat(userName, message, actions);
             return new QueryResponse(res.content(), res.toolExecutions().stream().map(t ->

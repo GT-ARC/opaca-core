@@ -108,13 +108,13 @@ public class TestUtils {
     }
 
 
-    public static int streamRequest(String baseUrl, String method, String path, byte[] payload) throws Exception {
-        return streamRequestWithToken(baseUrl, method, path, payload, null);
+    public static int streamRequest(String host, String method, String path, byte[] payload) throws Exception {
+        return streamRequestWithToken(host, method, path, payload, null);
     }
 
     // this is NOT using RestHelper since we are also interested in the exact HTTP Return Code
-    public static int streamRequestWithToken(String baseUrl, String method, String path, byte[] payload, String token) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URI(baseUrl + path).toURL().openConnection();
+    public static int streamRequestWithToken(String host, String method, String path, byte[] payload, String token) throws Exception {
+        HttpURLConnection connection = (HttpURLConnection) new URI(host + path).toURL().openConnection();
         connection.setRequestMethod(method);
         connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
         if (token != null) {
@@ -139,13 +139,18 @@ public class TestUtils {
         return connection.getResponseCode();
     }
 
-    // this is NOT using RestHelper since we are also interested in the exact HTTP Return Code
     public static HttpURLConnection requestWithToken(String host, String method, String path, Object payload, String token) throws Exception {
+        Map<String, String> header = token != null ? Map.of("Authorization", "Bearer " + token) : Map.of();
+        return requestWithHeader(host, method, path, payload, header);
+    }
+
+    // this is NOT using RestHelper since we are also interested in the exact HTTP Return Code
+    public static HttpURLConnection requestWithHeader(String host, String method, String path, Object payload, Map<String, String> headers) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URI(host + path).toURL().openConnection();
         connection.setRequestMethod(method);
 
-        if (token != null) {
-            connection.setRequestProperty("Authorization", "Bearer " + token);
+        for (Map.Entry<String, String> header : headers.entrySet()) {
+            connection.setRequestProperty(header.getKey(), header.getValue());
         }
 
         if (payload != null) {

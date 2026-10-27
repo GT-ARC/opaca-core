@@ -13,7 +13,6 @@ The LLM support is still work in progress. We are planning to extend it in vario
 * improved action handling
 * support for more LLM providers (currently, only OpenAI is supported)
 * support for scheduling tasks for later, recurring tasks, or long-running background tasks
-* support for the Agent-2-Agent protocol for interaction with other agentic systems
 
 
 ## Configuration and Environment Variables
@@ -24,3 +23,17 @@ LLM-Support is configured using a number of environment variables that can be pa
 * `LLM_API_KEY`: The API Key for the LLM, has to match the model, e.g. for OpenAI; if missing, no chat assistant is available (default: empty)
 * `LLM_MEMORY_WINDOW`: How many messages are retained in the chat assistants memory; includes both the user's and the assistant's messages (default: 10)
 * `LLM_MAX_ACTION_ITERS`: Max number of tool calling iterations the LLM will perform before "giving up" (default: 5)
+
+
+## Interaction
+
+### A2A Support
+
+The OPACA platform supports the A2A protocol. The Agent-card can be found at `/.well-known/agent-card.json` and messages can be sent to `/a2a/message:send`. Internally, they delegate to the above described `/query` method.
+
+Note that A2A support in OPACA is still work in progress. It allows sending synchronous messages to the agent and receiving a response. More advanced parts of the protocol are not yet fully supported.
+
+
+### MCP Support
+
+The actions of all agents running on the OPACA platform are provided as MCP tools and can be used by other LLM. This will _not_ invoke the LLM running on this platform (or require it to run in the frist place) but call the corresponding action directly, as if calling the `/invoke` route. Please see the [docs on the MCP integration](mcp.md) for details.

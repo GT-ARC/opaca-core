@@ -55,6 +55,27 @@
 			<artifactId>langchain4j</artifactId>
 			<version>1.22.0</version>
 		</dependency>
+		<!-- A2A (just the relevant bits without all the Quarkus dependencies) -->
+		<dependency>
+			<groupId>org.a2aproject.sdk</groupId>
+			<artifactId>a2a-java-sdk-transport-rest</artifactId>
+			<version>1.4.0.Final</version>
+		</dependency>
+		<dependency>
+			<groupId>org.a2aproject.sdk</groupId>
+			<artifactId>a2a-java-sdk-server-common</artifactId>
+			<version>1.4.0.Final</version>
+		</dependency>
+		<dependency>
+			<groupId>org.a2aproject.sdk</groupId>
+			<artifactId>a2a-java-sdk-jsonrpc-common</artifactId>
+			<version>1.4.0.Final</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.protobuf</groupId>
+			<artifactId>protobuf-java</artifactId>
+			<version>4.35.0</version> <!-- overrule old version in kubernetes lib -->
+		</dependency>
 
 		<!-- MCP -->
 		<dependency>
