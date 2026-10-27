@@ -2,6 +2,7 @@ package de.gtarc.opaca.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.jwk.source.RemoteJWKSet;
@@ -10,6 +11,7 @@ import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
 import com.nimbusds.jwt.proc.DefaultJWTProcessor;
+import de.gtarc.opaca.model.TokenPair;
 
 import java.io.IOException;
 import java.net.URI;
@@ -30,14 +32,23 @@ public class KeycloakUtil {
     /**
      * Call getToken with payload for User login
      */
-    public static String getTokenForUser(String keycloakUrlAndRealm, String clientId, String username, String password) throws IOException {
+    public static TokenPair getTokenForUser(String keycloakUrlAndRealm, String clientId, String username, String password) throws IOException {
         var data = Map.of(
                 "grant_type", "password",
                 "client_id", clientId,
                 "username", username,
                 "password", password
         );
-        return getToken(keycloakUrlAndRealm, data);
+        return getTokens(keycloakUrlAndRealm, data);
+    }
+
+    public static TokenPair refreshToken(String keycloakUrlAndRealm, String clientId, String refreshToken) throws IOException {
+        var data = Map.of(
+                "grant_type", "refresh_token",
+                "client_id", clientId,
+                "refresh_token", refreshToken
+        );
+        return getTokens(keycloakUrlAndRealm, data);
     }
 
     /**
@@ -49,10 +60,10 @@ public class KeycloakUtil {
                 "client_id", clientId,
                 "client_secret", clientSecret
         );
-        return getToken(keycloakUrlAndRealm, data);
+        return getTokens(keycloakUrlAndRealm, data).getAccessToken();
     }
 
-    private static String getToken(String keycloakUrlAndRealm, Map<String, String> data) throws IOException {
+    private static TokenPair getTokens(String keycloakUrlAndRealm, Map<String, String> data) throws IOException {
         String form = data.entrySet().stream()
                 .map(e -> e.getKey() + "=" + e.getValue())
                 .collect(Collectors.joining("&"));
@@ -67,7 +78,10 @@ public class KeycloakUtil {
             );
             JsonNode body = new ObjectMapper().readTree(response.body());
             if (response.statusCode() == 200) {
-                return body.get("access_token").asText();
+                return new TokenPair(
+                        body.get("access_token").asText(),
+                        body.optional("refresh_token").map(JsonNode::asText).orElse(null)
+                );
             } else {
                 throw new IOException(String.format("Login failed (%s): %s", response.statusCode(), body.get("error_description").asText()));
             }

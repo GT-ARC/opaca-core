@@ -1,5 +1,6 @@
 package de.gtarc.opaca.platform.auth;
 
+import de.gtarc.opaca.model.TokenPair;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.util.KeycloakUtil;
 import jakarta.annotation.PostConstruct;
@@ -121,11 +122,18 @@ public class AuthUtils {
     /**
      * Get JWT for Keycloak user, used in the /login route.
      */
-    public String getTokenForUser(String username, String password) throws IOException {
+    public TokenPair getTokenForUser(String username, String password) throws IOException {
         if (! authEnabled()) {
             throw new IllegalArgumentException("Login not possible: Keycloak is not configured!");
         }
         return KeycloakUtil.getTokenForUser(config.keycloakIssuerUri, config.keycloakClientId, username, password);
+    }
+
+    public TokenPair renewToken(String refreshToken) throws IOException {
+        if (! authEnabled()) {
+            throw new IllegalArgumentException("Login not possible: Keycloak is not configured!");
+        }
+        return KeycloakUtil.refreshToken(config.keycloakIssuerUri, config.keycloakClientId, refreshToken);
     }
 
     /**

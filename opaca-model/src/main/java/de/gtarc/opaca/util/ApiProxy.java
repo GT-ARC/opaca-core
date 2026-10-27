@@ -41,6 +41,8 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
         return this;
     }
 
+    // TODO add "withRenewStrategy" getting callback for token-renewal using refresh-token or client-id/secret in function closure
+
     // INFO ROUTES
 
     @Override
@@ -72,9 +74,14 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     // AUTHENTICATION
 
     @Override
-    public String platformLogin(Login loginParams) throws IOException {
-        // token should be raw string
-        return client.readStream(client.request("POST", "/login", loginParams));
+    public TokenPair platformLogin(Login loginParams) throws IOException {
+        return client.post("/login", loginParams, TokenPair.class);
+    }
+
+    @Override
+    public TokenPair renewToken(String refreshToken) throws IOException {
+        var body = Map.of("refreshToken", refreshToken);
+        return client.post("/login/renew", body, TokenPair.class);
     }
 
     @Override
