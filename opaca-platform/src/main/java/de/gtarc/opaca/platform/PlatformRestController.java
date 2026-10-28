@@ -171,10 +171,10 @@ public class PlatformRestController {
 	@PostMapping("/login/renew")
 	@Operation(summary="Use Refresh Token to get new Access Token", tags={"authentication"})
 	public TokenPair renew(
-			@RequestBody String refreshToken
+			@Valid @RequestBody Login.Renew renew
 	) throws IOException {
 		log.info("POST /login/renew");
-		return platformService.renewToken(refreshToken);
+		return platformService.renewToken(renew.getRefreshToken());
 	}
 
 	/*

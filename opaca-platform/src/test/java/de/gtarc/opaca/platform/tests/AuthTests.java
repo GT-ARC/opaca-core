@@ -116,6 +116,24 @@ public class AuthTests {
     }
 
     @Test
+    public void test02TokenRenewal() throws Exception {
+        // get access token and refresh token, access token is valid
+        var con = request(PLATFORM_A, "POST", "/login", new Login("user1", "12345"));
+        var res1 = result(con, TokenPair.class);
+        con = requestWithToken(PLATFORM_A, "GET", "/info", null, res1.getAccessToken());
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // refresh token, new access token works
+        con = request(PLATFORM_A, "POST", "/login/renew", Map.of("refreshToken", res1.getRefreshToken()));
+        var res2 = result(con, TokenPair.class);
+        con = requestWithToken(PLATFORM_A, "GET", "/info", null, res2.getAccessToken());
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // NOTE: Whether the first access-token and refresh-token can still be used after the
+        // refresh token was used is a Keycloak setting and thus intentionally not tested here.
+    }
+
+    @Test
     public void test02WithWrongToken() throws Exception {
         var invalidToken = "wrong-token";
         var con = requestWithToken(PLATFORM_A, "GET", "/info", null, invalidToken);
