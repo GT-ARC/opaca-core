@@ -15,7 +15,6 @@ import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -44,8 +43,6 @@ public class RestHelper {
     public Encoding encoding = Encoding.JSON;
 
     public Map<String, String> extraHeaders = new HashMap<>();
-
-    public Supplier<String> refreshTokenCallback = null;
 
     public static final ObjectMapper mapper = JsonMapper.builder()
             .findAndAddModules().build();
@@ -128,12 +125,12 @@ public class RestHelper {
                 byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
                 connection.setDoOutput(true);
                 connection.setFixedLengthStreamingMode(bytes.length);
-                tryConnect(connection);
+                connection.connect();
                 try (OutputStream os = connection.getOutputStream()) {
                     os.write(bytes);
                 }
             } else {
-                tryConnect(connection);
+                connection.connect();
             }
             
             createForwardEvent(method, path);
@@ -153,7 +150,7 @@ public class RestHelper {
     }
 
     /**
-     * Create connection for given method and path with all the necessary properties and headers.
+     * Create the connection for a given method and path with all the necessary properties and headers.
      */
     private HttpURLConnection createConnection(String method, String path, List<HttpCookie> cookies) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl + path).toURL().openConnection();
@@ -180,29 +177,6 @@ public class RestHelper {
         }
 
         return  connection;
-    }
-
-    /**
-     * Connect the given HTTP connection. If the response is 401 and a refresh token callback is configured,
-     * invoke the callback to get a new token, update the Authorization header in-place, and reconnect once.
-     */
-    private void tryConnect(HttpURLConnection connection) throws IOException {
-        connection.connect();
-
-        if (connection.getResponseCode() == HttpURLConnection.HTTP_UNAUTHORIZED && refreshTokenCallback != null) {
-            // Consume the error stream
-            readStream(connection.getErrorStream());
-            connection.disconnect();
-
-            log.info("Received 401 - refreshing token via callback");
-            String newToken = refreshTokenCallback.get();
-            if (newToken != null && !newToken.isEmpty()) {
-                this.token = newToken;
-                // Update the Authorization header in-place and reconnect
-                connection.setRequestProperty("Authorization", "Bearer " + newToken);
-                connection.connect();
-            }
-        }
     }
 
     public static JsonNode readJson(String json) throws IOException {
