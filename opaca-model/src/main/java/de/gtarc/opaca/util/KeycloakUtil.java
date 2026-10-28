@@ -21,6 +21,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Date;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -90,13 +91,19 @@ public class KeycloakUtil {
         }
     }
 
+
+    private static final Map<String, JWKSource<SecurityContext>> cachedSources = new ConcurrentHashMap<>();
+
     /**
      * Validate the given token, by trying to process it using the given Keycloak URL, then
      * checking the expiration date. Returns Map of the token's claims.
      */
     public static Map<String, Object> validateToken(String keycloakUrlAndRealm, String token) throws IOException {
         String jwksUri = keycloakUrlAndRealm + "/protocol/openid-connect/certs";
-        JWKSource<SecurityContext> keySource = new RemoteJWKSet<>(new URL(jwksUri));
+        if (! cachedSources.containsKey(jwksUri)) {
+            cachedSources.put(jwksUri, new RemoteJWKSet(URI.create(jwksUri).toURL()));
+        }
+        JWKSource<SecurityContext> keySource = cachedSources.get(jwksUri);
 
         ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
         jwtProcessor.setJWSKeySelector(new JWSVerificationKeySelector<>(JWSAlgorithm.RS256, keySource));
