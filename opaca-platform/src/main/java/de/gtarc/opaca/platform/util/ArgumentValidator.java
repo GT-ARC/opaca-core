@@ -65,7 +65,7 @@ public class ArgumentValidator {
             case "integer" -> node.isInt();
             case "number" -> node.isNumber();
             case "boolean" -> node.isBoolean();
-            case "string" -> node.isTextual();
+            case "string" -> node.isString();
             case "null" -> node.isNull();
             case "array" -> isValidList(node, items);
             default -> isValidObject(node, type);

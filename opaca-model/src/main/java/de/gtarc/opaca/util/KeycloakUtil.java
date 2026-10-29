@@ -92,7 +92,7 @@ public class KeycloakUtil {
         if (clients == null || clients.isEmpty()) {
             return false;
         }
-        rest.delete("/admin/realms/" + realm + "/clients/" + clients.get(0).get("id").asText(), null, null);
+        rest.delete("/admin/realms/" + realm + "/clients/" + clients.get(0).get("id").asString(), null, null);
         return true;
     }
 
@@ -119,7 +119,7 @@ public class KeycloakUtil {
             if (response.statusCode() == 200) {
                 return body.get("access_token").asText();
             } else {
-                throw new IOException(String.format("Login failed (%s): %s", response.statusCode(), body.get("error_description").asText()));
+                throw new IOException(String.format("Login failed (%s): %s", response.statusCode(), body.get("error_description").asString()));
             }
         } catch (InterruptedException e) {
             throw new IOException("Login failed: Interrupted");

@@ -97,10 +97,10 @@ public class PlatformRestController {
 	}
 
 	@ExceptionHandler(value=JacksonException.class)
-	@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+	@ResponseStatus(HttpStatus.UNPROCESSABLE_CONTENT)
 	public ResponseEntity<ErrorResponse> handleJsonException(JacksonException e) {
 		log.warn(e.getMessage());  // user error
-		return makeErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, e, null);
+		return makeErrorResponse(HttpStatus.UNPROCESSABLE_CONTENT, e, null);
 	}
 
 	@ExceptionHandler(value=RequestException.class)
@@ -129,10 +129,10 @@ public class PlatformRestController {
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
-	@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+	@ResponseStatus(HttpStatus.UNPROCESSABLE_CONTENT)
 	public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException e) {
 		log.warn(e.getMessage()); // jakarta not-null validation failed
-		return makeErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, e, null);
+		return makeErrorResponse(HttpStatus.UNPROCESSABLE_CONTENT, e, null);
 	}
 
 	@ExceptionHandler(SecurityException.class)

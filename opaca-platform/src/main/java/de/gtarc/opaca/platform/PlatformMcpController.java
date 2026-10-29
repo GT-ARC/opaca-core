@@ -172,8 +172,8 @@ public class PlatformMcpController {
             String resultText;
             if (result == null) {
                 resultText = "null";
-            } else if (result.isTextual()) {
-                resultText = result.asText();
+            } else if (result.isString()) {
+                resultText = result.asString();
             } else {
                 resultText = objectMapper.writeValueAsString(result);
             }
