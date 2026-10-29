@@ -1,6 +1,5 @@
 package de.gtarc.opaca.model;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -38,7 +37,6 @@ public class AgentContainer {
 
     /** when the container was started */
     @NotNull
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "Z")
     ZonedDateTime runningSince;
 
     /** connectivity information; NOTE: this is not set by the AgentContainer itself, but by the RuntimePlatform! */

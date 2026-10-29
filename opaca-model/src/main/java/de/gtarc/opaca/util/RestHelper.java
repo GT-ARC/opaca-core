@@ -6,7 +6,6 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.MapperFeature;
-import tools.jackson.databind.cfg.DateTimeFeature;
 import tools.jackson.databind.json.JsonMapper;
 import de.gtarc.opaca.model.ErrorResponse;
 import de.gtarc.opaca.model.Event;
@@ -49,13 +48,11 @@ public class RestHelper {
 
 
     /**
-     * Shared Jackson 3 mapper. Jackson 3 changed some defaults (dates and durations as ISO strings, properties sorted
-     * alphabetically); these are set back to the Jackson 2 behavior to keep the JSON wire format unchanged.
+     * Shared Jackson 3 mapper. Dates and durations are written as ISO-8601 strings (the Jackson 3 default).
+     * Some other Jackson 3 defaults (alphabetical property sorting etc.) are set back to the Jackson 2 behavior.
      */
     public static final JsonMapper mapper = JsonMapper.builder()
             .findAndAddModules()
-            .enable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
-            .enable(DateTimeFeature.WRITE_DURATIONS_AS_TIMESTAMPS)
             .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
             .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
             .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
