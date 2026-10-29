@@ -13,3 +13,4 @@ Session.json
 *.iws
 runner-log.txt
 .venv
+.junie

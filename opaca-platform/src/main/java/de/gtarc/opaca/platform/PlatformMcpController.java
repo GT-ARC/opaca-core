@@ -212,13 +212,15 @@ public class PlatformMcpController {
             requestBodySchema.setRequired(requiredList);
         }
 
-        // Convert the Swagger ObjectSchema to Map<String, Object>
-        Map<String, Object> schemaMap = Json.mapper().convertValue(requestBodySchema, new TypeReference<>() {});
+        // Convert the Swagger ObjectSchema to Map<String, Object>; swagger-core is still Jackson 2 based,
+        // so this is the boundary: everything else (e.g. the definitions) is handled using Jackson 3
+        @SuppressWarnings("unchecked")
+        Map<String, Object> schemaMap = Json.mapper().convertValue(requestBodySchema, Map.class);
 
         // Inject custom schema definitions
         Map<String, Object> definitionsMap = new HashMap<>();
         for (var def : container.getImage().getDefinitions().entrySet()) {
-            definitionsMap.put(def.getKey(), Json.mapper().convertValue(def.getValue(), new TypeReference<>() {}));
+            definitionsMap.put(def.getKey(), objectMapper.convertValue(def.getValue(), new TypeReference<Map<String, Object>>() {}));
         }
         for (var def : container.getImage().getDefinitionsByUrl().entrySet()) {
             definitionsMap.put(def.getKey(), Map.of("$ref", def.getValue()));

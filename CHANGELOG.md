@@ -9,6 +9,8 @@
 * Agent Containers can be `restricted` so that only their original creators can use them
 * added `/query` route for LLM-based interaction with the platform's agents and action
 * partial support for Agent-to-Agent protocol (A2A)
+* upgraded to Spring Boot 4.1 (Spring Framework 7, Spring Security 7, springdoc 3) and Java-side Jackson 3 (`tools.jackson`) for platform, model and container
+* removed or replaced not or barely used dependencies (jjwt, Guava, commons-lang3, keycloak-admin)
 
 
 ## 0.5 Release
