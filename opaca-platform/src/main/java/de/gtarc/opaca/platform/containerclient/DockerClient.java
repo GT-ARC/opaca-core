@@ -19,6 +19,7 @@ import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.platform.session.SessionData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
 import java.io.IOException;
@@ -47,8 +48,7 @@ public class DockerClient extends AbstractContainerClient {
     private Map<String, AuthConfig> auth;
 
 
-    @Data
-    @AllArgsConstructor
+    @Data @NoArgsConstructor @AllArgsConstructor
     public static class DockerContainerInfo {
         String containerId;
         AgentContainer.Connectivity connectivity;
