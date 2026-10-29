@@ -1,7 +1,7 @@
 package de.gtarc.opaca.platform;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.platform.auth.AuthUtils;
 import de.gtarc.opaca.platform.services.*;
@@ -96,9 +96,9 @@ public class PlatformRestController {
 		return makeErrorResponse(HttpStatus.NOT_FOUND, e, null);
 	}
 
-	@ExceptionHandler(value=JsonProcessingException.class)
+	@ExceptionHandler(value=JacksonException.class)
 	@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
-	public ResponseEntity<ErrorResponse> handleJsonException(JsonProcessingException e) {
+	public ResponseEntity<ErrorResponse> handleJsonException(JacksonException e) {
 		log.warn(e.getMessage());  // user error
 		return makeErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, e, null);
 	}
@@ -113,6 +113,10 @@ public class PlatformRestController {
 	@ExceptionHandler(value=IOException.class)
 	@ResponseStatus(HttpStatus.BAD_GATEWAY)
 	public ResponseEntity<ErrorResponse> handleIoException(IOException e) {
+		if (e.getCause() instanceof JacksonException) {
+			// malformed JSON, wrapped by the RestHelper
+			return handleJsonException((JacksonException) e.getCause());
+		}
 		log.error(e.getMessage());  // should not happen (but can also be user error)
 		return makeErrorResponse(HttpStatus.BAD_GATEWAY, e, null);
 	}

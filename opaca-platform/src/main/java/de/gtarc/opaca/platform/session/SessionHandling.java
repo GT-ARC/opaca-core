@@ -18,7 +18,6 @@ import de.gtarc.opaca.platform.services.ConnectionsService;
 import de.gtarc.opaca.platform.services.ContainersService;
 import jakarta.annotation.PreDestroy;
 
-import com.google.common.base.Strings;
 import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.PostAgentContainer;
 import lombok.extern.log4j.Log4j2;
@@ -125,7 +124,7 @@ public class SessionHandling {
      */
 
     public List<File> readDefaultImages() {
-        if (Strings.isNullOrEmpty(config.defaultImageDirectory)) return List.of();
+        if (! config.isSet(config.defaultImageDirectory)) return List.of();
         try (Stream<Path> paths = Files.list(Path.of(config.defaultImageDirectory))) {
             return paths
                     .map(Path::toFile)

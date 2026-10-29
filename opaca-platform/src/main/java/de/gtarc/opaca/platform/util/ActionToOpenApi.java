@@ -59,7 +59,8 @@ public class ActionToOpenApi {
         for (AgentContainerImage image : agentsContainers.stream().map(AgentContainer::getImage).toList()) {
             for (var definition : image.getDefinitions().entrySet()) {
                 try {
-                    var node = mapper.valueToTree(definition.getValue());
+                    // definitions are Jackson 3 nodes, but swagger-core is still Jackson 2 based: convert via JSON string
+                    var node = mapper.readTree(definition.getValue().toString());
                     addSchema(components, definition.getKey(), node);
                 } catch (Exception e) {
                     log.warn("Failed to add definition {} from image {}: {}",

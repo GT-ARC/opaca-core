@@ -13,7 +13,7 @@ public class ConfigLoader {
      */
     public static AgentContainerImage loadContainerImageFromResources(String path) throws IOException {
         InputStream is = ConfigLoader.class.getResourceAsStream(path);
-        return RestHelper.mapper.readValue(is, AgentContainerImage.class);
+        return RestHelper.readObject(is, AgentContainerImage.class);
     }
 
 }

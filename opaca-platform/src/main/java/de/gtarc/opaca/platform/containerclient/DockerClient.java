@@ -12,7 +12,6 @@ import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
-import com.google.common.base.Strings;
 import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.AgentContainerImage;
 import de.gtarc.opaca.model.PostAgentContainer;
@@ -21,7 +20,6 @@ import de.gtarc.opaca.platform.session.SessionData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.log4j.Log4j2;
-import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -176,7 +174,7 @@ public class DockerClient extends AbstractContainerClient {
 
     @Override
     protected String getContainerBaseUrl() {
-        return Strings.isNullOrEmpty(config.remoteDockerHost)
+        return ! config.isSet(config.remoteDockerHost)
                 ? config.getOwnBaseUrl().replaceAll(":\\d+$", "")
                 : String.format("http://%s", config.remoteDockerHost);
     }
@@ -225,13 +223,13 @@ public class DockerClient extends AbstractContainerClient {
 
     private String getLocalDockerHost() {
         // Just differentiates between Windows and others for now
-        return SystemUtils.IS_OS_WINDOWS
+        return System.getProperty("os.name", "").startsWith("Windows")
                 ? "npipe:////./pipe/docker_engine"
                 : "unix:///var/run/docker.sock";
     }
 
     private String getDockerHost() {
-        return Strings.isNullOrEmpty(config.remoteDockerHost)
+        return ! config.isSet(config.remoteDockerHost)
                 ? getLocalDockerHost()
                 : String.format("tcp://%s:%s", config.remoteDockerHost, config.remoteDockerPort);
     }

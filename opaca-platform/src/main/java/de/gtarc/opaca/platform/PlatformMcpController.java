@@ -1,15 +1,15 @@
 package de.gtarc.opaca.platform;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.AgentDescription;
 import de.gtarc.opaca.model.Action;
 import de.gtarc.opaca.platform.services.AgentsService;
 import de.gtarc.opaca.platform.util.ActionToOpenApi;
 import de.gtarc.opaca.platform.services.ContainersService;
-import io.modelcontextprotocol.json.jackson2.JacksonMcpJsonMapper;
+import io.modelcontextprotocol.json.jackson3.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.common.McpTransportContext;
 import io.modelcontextprotocol.server.McpServer;
 import io.modelcontextprotocol.server.McpServerFeatures;
@@ -51,7 +51,7 @@ public class PlatformMcpController {
     private AgentsService agentsService;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private JsonMapper objectMapper;
 
     private McpSyncServer mcpServer;
     private WebMvcStreamableServerTransportProvider transportProvider;

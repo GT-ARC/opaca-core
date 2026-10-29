@@ -1,6 +1,6 @@
 package de.gtarc.opaca.platform.services;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.util.RestHelper;
 import dev.langchain4j.agent.tool.Tool;
@@ -17,7 +17,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;

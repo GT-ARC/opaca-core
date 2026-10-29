@@ -1,6 +1,6 @@
 package de.gtarc.opaca.platform.tests;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.*;
 

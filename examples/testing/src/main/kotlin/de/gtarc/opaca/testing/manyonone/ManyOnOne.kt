@@ -11,7 +11,7 @@ import de.gtarc.opaca.util.RestHelper
 import de.gtarc.opaca.model.AgentContainerImage
 import de.gtarc.opaca.model.Parameter
 import java.time.Duration
-import com.fasterxml.jackson.databind.JsonNode
+import tools.jackson.databind.JsonNode
 
 /*
  * BACKGROUND: There was a hard to reproduce error (#108) where sometimes an action would be executed,

@@ -1,7 +1,6 @@
 package de.gtarc.opaca.platform.events;
 
 import lombok.extern.log4j.Log4j2;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
@@ -46,20 +45,20 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public class WebSocketHandler extends TextWebSocketHandler {
 
         @Override
-        public void afterConnectionEstablished(@NotNull WebSocketSession session) {
+        public void afterConnectionEstablished(WebSocketSession session) {
             executorService.scheduleAtFixedRate(() -> send(session, new PingMessage()), 0, 10, TimeUnit.SECONDS);
             log.info("New WebSocket Connection established");
         }
 
         @Override
-        protected void handleTextMessage(@NotNull WebSocketSession session, TextMessage message) {
+        protected void handleTextMessage(WebSocketSession session, TextMessage message) {
             String topic = message.getPayload();
             sessionTopics.put(session, topic);
             log.info("New subscription for topic {}", topic);
         }
 
         @Override
-        public void afterConnectionClosed(@NotNull WebSocketSession session, @NotNull CloseStatus status) {
+        public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
             sessionTopics.remove(session);
             log.info("Websocket connection closed");
         }

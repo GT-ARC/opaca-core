@@ -1,6 +1,6 @@
 package de.gtarc.opaca.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.AgentContainerApi;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;

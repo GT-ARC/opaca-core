@@ -1,6 +1,6 @@
 package de.gtarc.opaca.platform.services;
 
-import com.fasterxml.jackson.databind.JsonMappingException;
+import tools.jackson.databind.DatabindException;
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.api.ContainersApi;
 import de.gtarc.opaca.model.AgentContainer;
@@ -144,11 +144,12 @@ public class ContainersService implements ContainersApi {
                 log.info("Container started: {}", agentContainerId);
                 publishContainerEvent(container, PlatformEventType.ADDED);
                 return agentContainerId;
-            } catch (JsonMappingException e) {
-                errorMessage = "Container returned malformed /info: " + e.getMessage();
-                break;
             } catch (IOException e) {
-                // this is normal... waiting for the container to start and provide services
+                if (e.getCause() instanceof DatabindException) {
+                    errorMessage = "Container returned malformed /info: " + e.getMessage();
+                    break;
+                }
+                // otherwise this is normal... waiting for the container to start and provide services
             }
             try {
                 Thread.sleep(1000);
