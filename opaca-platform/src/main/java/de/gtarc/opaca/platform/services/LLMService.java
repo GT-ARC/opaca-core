@@ -21,6 +21,7 @@ import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 
 /**
@@ -121,9 +122,12 @@ public class LLMService {
     class AssistantTools {
 
         @Tool
-        Object invoke(String actionName, Map<String, JsonNode> parameters) throws IOException {
+        Object invoke(String actionName, Map<String, Object> parameters) throws IOException {
             log.info("LLM called Tool '{}' with {}", actionName, parameters);
-            return agentsService.invoke(actionName, parameters, null, 10, null, false);
+            var paramsAsJson = parameters.entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey,
+                            e -> RestHelper.mapper.convertValue(e.getValue(), JsonNode.class)));
+            return agentsService.invoke(actionName, paramsAsJson, null, 10, null, false);
         }
 
     }
