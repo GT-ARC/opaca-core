@@ -55,6 +55,8 @@ public class RestHelper {
             .findAndAddModules()
             .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
             .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+            // final fields without setters (e.g. 'id' and 'timestamp' of Event) must still be settable when deserializing
+            .enable(MapperFeature.ALLOW_FINAL_FIELDS_AS_MUTATORS)
             .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
             // do not use the Lombok all-args constructors (Jackson 3 auto-detects them), as that would drop the field defaults
             .changeDefaultVisibility(v -> v.withCreatorVisibility(JsonAutoDetect.Visibility.NONE))

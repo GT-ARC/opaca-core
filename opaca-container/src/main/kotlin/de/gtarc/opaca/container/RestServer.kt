@@ -116,8 +116,10 @@ class RestServerJavalin(val impl: ContainerAgent, val port: Int) {
  */
 object OpacaJsonMapper : JsonMapper {
 
+    // like Javalin's own JavalinJackson, Strings are passed through unchanged (treated as already being JSON/plain text),
+    // otherwise e.g. the login token would be returned with surrounding quotes
     override fun toJsonString(obj: Any, type: Type): String =
-        RestHelper.mapper.writeValueAsString(obj)
+        if (obj is String) obj else RestHelper.mapper.writeValueAsString(obj)
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : Any> fromJsonString(json: String, targetType: Type): T =
