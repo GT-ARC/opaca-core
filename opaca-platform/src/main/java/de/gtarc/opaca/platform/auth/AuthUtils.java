@@ -5,9 +5,6 @@ import de.gtarc.opaca.util.KeycloakUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.log4j.Log4j2;
-import org.keycloak.admin.client.Keycloak;
-import org.keycloak.admin.client.KeycloakBuilder;
-import org.keycloak.representations.idm.ClientRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -105,20 +102,6 @@ public class AuthUtils {
      */
 
     /**
-     * Keycloak admin-client for managing temporary clients.
-     */
-    private Keycloak keycloakClient() {
-        return KeycloakBuilder.builder()
-                .serverUrl(getIssuerUri())
-                .realm("master")
-                .clientId("admin-cli")
-                .grantType("password")
-                .username(config.keycloakAdmin)
-                .password(config.keycloakAdminPw)
-                .build();
-    }
-
-    /**
      * Get JWT for Keycloak user, used in the /login route.
      */
     public String getTokenForUser(String username, String password) throws IOException {
@@ -148,25 +131,7 @@ public class AuthUtils {
      */
     public String createClientAndGetSecret(String clientId, String description) throws  IOException {
         var secret = UUID.randomUUID().toString();
-
-        ClientRepresentation clientRep = new ClientRepresentation();
-        clientRep.setClientId(clientId);
-        clientRep.setDescription(description);
-        clientRep.setSecret(secret);
-        clientRep.setProtocol("openid-connect");
-        clientRep.setClientAuthenticatorType("client-secret");
-        clientRep.setPublicClient(false);
-        clientRep.setStandardFlowEnabled(false);
-        clientRep.setDirectAccessGrantsEnabled(false);
-        clientRep.setServiceAccountsEnabled(true);
-
-        try (var keycloak = keycloakClient()) {
-            try (var result = keycloak.realm(getRealm()).clients().create(clientRep)) {
-                if (result.getStatus() > 299) {
-                    throw new IOException("Keycloak Client could not be created: " + result.getStatusInfo());
-                }
-            }
-        }
+        KeycloakUtil.createClient(getIssuerUri(), getRealm(), getAdminToken(), clientId, description, secret);
         return secret;
     }
 
@@ -175,19 +140,14 @@ public class AuthUtils {
      */
     public boolean deleteClient(String clientId) throws IOException {
         if (! authEnabled()) return false;
-        try (var keycloak = keycloakClient()) {
-            var client = keycloak.realm(getRealm()).clients().findByClientId(clientId).stream().findAny();
-            if (client.isPresent()) {
-                try (var result = keycloak.realm(getRealm()).clients().delete(client.get().getId())) {
-                    if (result.getStatus() > 299) {
-                        throw new IOException("Keycloak Client could not be deleted: " + result.getStatusInfo());
-                    }
-                }
-                return true;
-            } else {
-                return false;
-            }
-        }
+        return KeycloakUtil.deleteClient(getIssuerUri(), getRealm(), getAdminToken(), clientId);
+    }
+
+    /**
+     * Get token for Keycloak admin user, for managing temporary clients via the Keycloak admin REST API.
+     */
+    private String getAdminToken() throws IOException {
+        return KeycloakUtil.getAdminToken(getIssuerUri(), config.keycloakAdmin, config.keycloakAdminPw);
     }
 
     /**
