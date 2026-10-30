@@ -1,6 +1,7 @@
 package de.gtarc.opaca.platform;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.core.type.TypeReference;
@@ -46,6 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Log4j2
 @Configuration
 @RestController
+@SecurityRequirement(name = "bearerAuth")
 public class McpController {
 
     private static final String SECURITY_CONTEXT = "securityContext";
