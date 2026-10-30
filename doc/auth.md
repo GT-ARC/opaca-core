@@ -88,7 +88,10 @@ When an Agent Container is initiated, the runtime platform creates a temporary c
 
 ### Authenticating the Runtime Platform against its Agent Containers
 
-On startup, the platform also creates a temporary client for itself, which is then used to create access tokens for forwarding requests to the containers. <!-- NOT YET IMPLEMENTED The token includes the original requester's username as a sub-field, without exposing their original JWT to the container, so the container can not impersonate that user.--> The container should then check the validity of the token (c.f. the JIAC VI Reference Implementation for how this can be done) and can optionally also check which user made the request. (A user may also use their own JWT to send a request directly to the container, but as long as authentication is enabled, the container should reject requests with a missing or invalid JWT.)
+On startup, the platform also creates a temporary client for itself, which is then used to create access tokens for forwarding requests to the containers. The container should then check the validity of the token. Besides checking the issuer and expiration, the container should also make sure that the token is coming **only** from its own parent Runtime Platform and _not_ directly from a user. (An exception to this may be routes that are intended to be called directly by a user, e.g., for hosted files or extra-ports.) This way, the container does not have to perform any RBAC checks itself but can rely on the fact that the runtime platform did those before forwarding the request. It also makes sure that "restricted" containers (see below) can only be accessed by their original creators.
+
+Please refer to `AuthHelper` in the JIAC VI Reference Implementation for how this can be done.
+
 
 ### Authenticating the Runtime Platform against another Runtime Platform
 
@@ -120,5 +123,3 @@ The following sequence diagram shows, slightly simplified, how the interaction b
 Besides Role-based Access Control and Container-Login, it's also possible to start Agent Containers with the `"restricted": true` parameter. This way, the actions provided by the container may only be used by the user who started the container. Other users can still see the container and its agents and actions in the list of running containers, and users with role `MANAGER` can still stop the container, but all other users -- even `MANAGER` -- will get a `403` error when trying to `/invoke` any of the container's actions or `/send` a message to one of its agents.
 
 Starting a container in "restricted" mode will **fail** if the user is currently not logged in.
-
-**Note:** The check is performed by the Runtime Platform; depending on how the container was started and in what network it is running, users may still be able to invoke actions by calling the respective routes at the container itself, bypassing the Runtime Platform. 
