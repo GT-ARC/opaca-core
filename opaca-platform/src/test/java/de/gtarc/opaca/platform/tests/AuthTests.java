@@ -227,12 +227,14 @@ public class AuthTests {
     }
 
 
-    // Authentication against the containers
+    // Authentication directly against the containers
 
     @Test
-    public void test04WithToken() throws Exception {
+    public void test04WithUserToken() throws Exception {
+        // Users should NOT be able to directly interact with the containers, as this would circumvent the platform's
+        // RBAC and 'protected' container checks
         var con = requestWithToken(containerIP, "GET", "/info", null, token_A);
-        Assert.assertEquals(200, con.getResponseCode());
+        Assert.assertEquals(401, con.getResponseCode());
     }
     
     @Test
