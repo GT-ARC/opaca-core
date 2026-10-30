@@ -46,7 +46,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Log4j2
 @Configuration
 @RestController
-public class PlatformMcpController {
+public class McpController {
 
     private static final String SECURITY_CONTEXT = "securityContext";
 

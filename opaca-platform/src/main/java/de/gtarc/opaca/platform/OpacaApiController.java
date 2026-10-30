@@ -35,14 +35,14 @@ import java.util.NoSuchElementException;
 
 /**
  * REST controller for the OPACA Runtime Platform API. This class only defines the REST endpoints,
- * handles security etc. (once that's implemented); the actual logic is implemented elsewhere.
+ * handles security etc.; the actual logic is implemented elsewhere.
  */
 @Log4j2
 @RestController
 @SecurityRequirement(name = "bearerAuth")
 @CrossOrigin(origins = "*", allowedHeaders = "*",
 		methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS } )
-public class PlatformRestController {
+public class OpacaApiController {
 
 	@Autowired
 	private PlatformService platformService;
@@ -154,7 +154,7 @@ public class PlatformRestController {
 	@GetMapping("/")
 	@Hidden
 	public String landingPage() throws IOException {
-		try (var inputstream = PlatformRestController.class.getResourceAsStream("/static/index.html")) {
+		try (var inputstream = OpacaApiController.class.getResourceAsStream("/static/index.html")) {
 			return new String(inputstream.readAllBytes(), StandardCharsets.UTF_8);
 		}
 	}
