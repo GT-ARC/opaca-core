@@ -5,28 +5,66 @@ import com.fasterxml.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.api.RuntimePlatformApi;
 import de.gtarc.opaca.model.*;
+import lombok.extern.java.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpCookie;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 
 /**
  * Implementation of the API forwarding to the REST services at a specific base URL.
- * Can be used for e.g. calling routes of a connected Runtime Platform, or a container's
+ * Can be used for, e.g., calling routes of a connected Runtime Platform, or a container's
  * parent Runtime Platform, or just for testing.
+ *
+ * The optional refreshTokenCallback can be used to automatically refresh the Keycloak
+ * access token when it expires, using either the platform's /login/renew route with a
+ * refresh token, or the client's id and secret, depending on the caller.
  */
+@Log
 public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
 
     public final String baseUrl;
     private final RestHelper client;
+    private Supplier<String> refreshTokenCallback = null;
+
 
     public ApiProxy(String baseUrl, String senderId, String token) {
         this.baseUrl = baseUrl;
-        this.client = new RestHelper(baseUrl);
+        this.client = new RestHelper(baseUrl) {
+            @Override
+            public InputStream request(String method, String path, List<HttpCookie> cookies, Object payload) throws IOException {
+                try {
+                    return super.request(method, path, cookies, payload);
+                } catch (RequestException e) {
+                    if (refreshToken(e)) return super.request(method, path, cookies, payload);
+                    throw e;
+                }
+            }
+            @Override
+            public void streamRequest(String method, String path, byte[] payload) throws IOException {
+                try {
+                    super.streamRequest(method, path, payload);
+                } catch (RequestException e) {
+                    if (refreshToken(e)) super.streamRequest(method, path, payload);
+                    else throw e;
+                }
+            }
+            // automatically refresh access token with given supplier
+            private boolean refreshToken(RequestException ex) {
+                if (ex.getNestedError().statusCode == 401 && refreshTokenCallback != null) {
+                    ApiProxy.log.info("Refreshing expired access token...");
+                    this.token = refreshTokenCallback.get();
+                    return true;
+                }
+                return false;
+            }
+        };
         this.client.senderId = senderId;
         this.client.token = token;
     }
@@ -38,6 +76,11 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
 
     public ApiProxy withExtraHeaders(Map<String, String> headers) {
         this.client.extraHeaders = headers;
+        return this;
+    }
+
+    public ApiProxy withRefreshTokenCallback(Supplier<String> callback) {
+        this.refreshTokenCallback = callback;
         return this;
     }
 
@@ -72,9 +115,14 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
     // AUTHENTICATION
 
     @Override
-    public String platformLogin(Login loginParams) throws IOException {
-        // token should be raw string
-        return client.readStream(client.request("POST", "/login", loginParams));
+    public TokenPair platformLogin(Login loginParams) throws IOException {
+        return client.post("/login", loginParams, TokenPair.class);
+    }
+
+    @Override
+    public TokenPair renewToken(String refreshToken) throws IOException {
+        var body = Map.of("refreshToken", refreshToken);
+        return client.post("/login/renew", body, TokenPair.class);
     }
 
     @Override
@@ -229,4 +277,5 @@ public class ApiProxy implements RuntimePlatformApi, AgentContainerApi {
                 .map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
                 .collect(Collectors.joining("&"));
     }
+
 }

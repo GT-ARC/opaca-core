@@ -19,27 +19,28 @@ object AuthHelper {
     private val runtimePlatformUrl = System.getenv(AgentContainerApi.ENV_PLATFORM_URL)
 
     /** Keycloak URL and Realm, if Platform is using Auth; else null/empty */
-    private var keycloakUrl = System.getenv(AgentContainerApi.ENV_KEYCLOAK_URL)
+    private val keycloakUrl = System.getenv(AgentContainerApi.ENV_KEYCLOAK_URL)
 
     /** Client Secret to request a new JWT if Platform is using Auth; Client-ID is Container-ID */
-    private var clientSecret = System.getenv(AgentContainerApi.ENV_CLIENT_SECRET)
+    private val clientSecret = System.getenv(AgentContainerApi.ENV_CLIENT_SECRET)
+
+    private val noAuth = keycloakUrl.isNullOrBlank()
+
+    /** Proxy to the parent Runtime Platform, including fresh access token, if necessary. */
+    val parentProxy: ApiProxy = ApiProxy(runtimePlatformUrl, containerId, getToken())
+        .withRefreshTokenCallback(if (noAuth) null else ::getToken)
+
 
     /**
-     * Get token for communicating with RP, if Keycloak is set, otherwise no token / empty string (will then be ignored)
-     * TODO currently, this creates a fresh token with each call; ideally, the token should be cached while its valid.
+     * Get token for communicating with RP if Keycloak is set, otherwise no token / empty string (will then be ignored)
      */
-    fun getToken() = if (keycloakUrl.isNullOrBlank()) null else KeycloakUtil.getTokenForClient(keycloakUrl, containerId, clientSecret)
-
-    /**
-     * Get Proxy to parent Runtime Platform, including fresh access token, if necessary.
-     */
-    fun getParentProxy() = ApiProxy(runtimePlatformUrl, containerId, getToken())
+    fun getToken() = if (noAuth) null else KeycloakUtil.getTokenForClient(keycloakUrl, containerId, clientSecret)
 
     /**
      * Validate the token received with the HTTP request. Most of this is actually done in KeycloakUtil.
      */
     fun validateToken(token: String?): Boolean {
-        if (keycloakUrl.isNullOrBlank()) {
+        if (noAuth) {
             return true
         } else {
             try {

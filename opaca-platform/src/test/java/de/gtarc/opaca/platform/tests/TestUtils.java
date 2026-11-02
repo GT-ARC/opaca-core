@@ -169,6 +169,11 @@ public class TestUtils {
         return connection;
     }
 
+    public static String getToken(String platformUrl, String username, String password) throws Exception {
+        var con = request(platformUrl, "POST", "/login", new Login(username, password));
+        return result(con, TokenPair.class).getAccessToken();
+    }
+
     public static String result(HttpURLConnection connection) throws IOException {
         return new String(connection.getInputStream().readAllBytes());
     }

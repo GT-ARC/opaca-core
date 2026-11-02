@@ -21,4 +21,13 @@ public class Login {
     @NotNull
     String password;
 
+
+    @Data @AllArgsConstructor @NoArgsConstructor
+    @ToString(exclude = {"refreshToken"})
+    public static class Renew {
+
+        @NotNull
+        String refreshToken;
+
+    }
 }

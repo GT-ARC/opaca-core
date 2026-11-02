@@ -53,9 +53,19 @@ public interface PlatformApi {
      * REST: POST /login
      *
      * @param loginParams Bundles the username and password in the request body
-     * @return JWT access token
+     * @return JWT access token and refresh token
      */
-    String platformLogin(Login loginParams) throws IOException;
+    TokenPair platformLogin(Login loginParams) throws IOException;
+
+    /**
+     * Get a new pair of Access Token and refresh token when the old access token expired.
+     *
+     * REST: /login/renew
+     *
+     * @param refreshToken The refresh token previously returned by /login
+     * @return New pair of access token and refresh token
+     */
+    TokenPair renewToken(String refreshToken) throws IOException;
 
     /*
      * CONNECTED PLATFORM FORWARDING

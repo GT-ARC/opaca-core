@@ -71,12 +71,12 @@ public class AuthTests {
         var login_A = createLogin("manager", "12345");
         var con_A = request(PLATFORM_A, "POST", "/login", login_A);
         Assert.assertEquals(200, con_A.getResponseCode());
-        token_A = result(con_A);
+        token_A = result(con_A, TokenPair.class).getAccessToken();
         Assert.assertNotNull(token_A);
         var login_B = createLogin("manager", "12345");
         var con_B = request(PLATFORM_B, "POST", "/login", login_B);
         Assert.assertEquals(200, con_B.getResponseCode());
-        token_B = result(con_B);
+        token_B = result(con_B, TokenPair.class).getAccessToken();
         Assert.assertNotNull(token_B);
     }
 
@@ -113,6 +113,24 @@ public class AuthTests {
         var info = result(con_B, RuntimePlatform.class);
         Assert.assertNotNull(info);
         platformBBaseUrl = info.getBaseUrl();
+    }
+
+    @Test
+    public void test02TokenRenewal() throws Exception {
+        // get access token and refresh token, access token is valid
+        var con = request(PLATFORM_A, "POST", "/login", new Login("user1", "12345"));
+        var res1 = result(con, TokenPair.class);
+        con = requestWithToken(PLATFORM_A, "GET", "/info", null, res1.getAccessToken());
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // refresh token, new access token works
+        con = request(PLATFORM_A, "POST", "/login/renew", Map.of("refreshToken", res1.getRefreshToken()));
+        var res2 = result(con, TokenPair.class);
+        con = requestWithToken(PLATFORM_A, "GET", "/info", null, res2.getAccessToken());
+        Assert.assertEquals(200, con.getResponseCode());
+
+        // NOTE: Whether the first access-token and refresh-token can still be used after the
+        // refresh token was used is a Keycloak setting and thus intentionally not tested here.
     }
 
     @Test
@@ -280,8 +298,8 @@ public class AuthTests {
     @Test
     public void test08ContainerLogin() throws Exception {
         // login as two users for testing
-        var token1 = result(request(PLATFORM_A, "POST", "/login", new Login("user1", "12345")));
-        var token2 = result(request(PLATFORM_A, "POST", "/login", new Login("user2", "12345")));
+        var token1 = getToken("user1", "12345");
+        var token2 = getToken("user2", "12345");
 
         // login to container as both users
         result(requestWithToken(PLATFORM_A, "POST", "/containers/login/" + containerId, new Login("container user 1", ""), token1));
@@ -475,9 +493,7 @@ public class AuthTests {
     }
 
     private String getToken(String user, String password) throws Exception {
-        var login = createLogin(user, password);
-        var con = request(PLATFORM_A, "POST", "/login", login);
-        return result(con);
+        return TestUtils.getToken(PLATFORM_A, user, password);
     }
 
 }
