@@ -6,9 +6,9 @@ The Runtime Platform can optionally require Authentication on all routes, as det
 
 Using the Swagger UI, you have to click the "Authorize" button and enter the token, which will subsequently be used for all requests. When calling the routes programmatically, including e.g. from within the Agent Container, the token has to be provided as a header field, e.g. `connection.setRequestProperty("Authorization", "Bearer " + token)`.
 
-To get the token, you can use the `/login` route and enter your Keycloak credentials, or acquire the token directly from Keycloak. Note that when using the `/login` route, your Keycloak credentials are passed through the OPACA platform, but they will at no point be stored or logged.
+To get the token, you can use the `/login` route and enter your Keycloak credentials, or acquire the token directly from Keycloak. Note that when using the `/login` route, your Keycloak credentials are passed through the OPACA platform, but they will at no point be stored or logged. By default, a Keycloak token will be valid for 5 minutes. To renew the access token, you can use the `/login/renew` route with the refresh token you got along with the access token when you called `/login`. (The old access token remains valid by OAuth2 design. Whether the refresh token can be reused is a Keycloak setting and not enforced by the OPACA platform.)
 
-By default, authentication is not required, but even if authentication is not _required_, it is _enabled_ (provided that Keycloak is configured) and can be used to log in and invoke actions as specific users. This is so that Container Login (see below) is properly usable even if no platform login is required. Otherwise, container-login tokens would be associated with the default user, which may not be desirable if the platform is used by multiple users. 
+By default, authentication is not required, but even if authentication is not _required_, it can be _enabled_ (if Keycloak is configured in the Environment) and can be used to log in and invoke actions as specific users. This is so that Container Login (see below) is properly usable even if no platform login is required. Otherwise, container-login tokens would be associated with the default user, which may not be desirable if the platform is used by multiple users. 
 
 
 ## Rule Based Access Control

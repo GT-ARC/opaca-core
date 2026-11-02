@@ -129,7 +129,7 @@ abstract class AbstractContainerizedAgent(name: String, val description: String?
         log.info("Outbound Invoke: $action @ $agentId ($containerId, $forward) with $parameters")
         val jsonParameters = parameters.entries
             .associate { Pair<String, JsonNode>(it.key, RestHelper.mapper.valueToTree(it.value)) }
-        val res = AuthHelper.getParentProxy().invoke(action, jsonParameters, agentId, timeout, containerId, forward)
+        val res = AuthHelper.parentProxy.invoke(action, jsonParameters, agentId, timeout, containerId, forward)
         return RestHelper.mapper.treeToValue(res, type)
     }
 
@@ -139,7 +139,7 @@ abstract class AbstractContainerizedAgent(name: String, val description: String?
     fun sendOutboundStreamGetRequest(stream: String, agentId: String?,
                                      containerId: String? = null, forward: Boolean = true): InputStream {
         log.info("Outbound Stream Get: $stream @ $agentId ($containerId, $forward)")
-        return AuthHelper.getParentProxy().getStream(stream, agentId, containerId, forward)
+        return AuthHelper.parentProxy.getStream(stream, agentId, containerId, forward)
     }
 
     /**
@@ -148,7 +148,7 @@ abstract class AbstractContainerizedAgent(name: String, val description: String?
     fun sendOutboundStreamPostRequest(stream: String, inputStream: ByteArray, agentId: String?,
                                       containerId: String? = null, forward: Boolean = true) {
         log.info("Outbound Stream Post: $stream @ $agentId ($containerId, $forward)")
-        AuthHelper.getParentProxy().postStream(stream, inputStream, agentId, containerId, forward)
+        AuthHelper.parentProxy.postStream(stream, inputStream, agentId, containerId, forward)
     }
 
     /**
@@ -159,7 +159,7 @@ abstract class AbstractContainerizedAgent(name: String, val description: String?
                               containerId: String? = null, forward: Boolean = true) {
         log.info("Outbound Broadcast: $message @ $channel ($containerId, $forward)")
         val payload: JsonNode = RestHelper.mapper.valueToTree(message)
-        AuthHelper.getParentProxy().broadcast(channel, Message(payload, name), containerId, forward)
+        AuthHelper.parentProxy.broadcast(channel, Message(payload, name), containerId, forward)
     }
 
     /**
@@ -170,7 +170,7 @@ abstract class AbstractContainerizedAgent(name: String, val description: String?
                             containerId: String? = null, forward: Boolean = true) {
         log.info("Outbound Message: $message @ $agentId ($containerId, $forward)")
         val payload: JsonNode = RestHelper.mapper.valueToTree(message)
-        AuthHelper.getParentProxy().send(agentId, Message(payload, name), containerId, forward)
+        AuthHelper.parentProxy.send(agentId, Message(payload, name), containerId, forward)
     }
 
     /**

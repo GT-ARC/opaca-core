@@ -160,7 +160,7 @@ public class McpTests {
     // Helper methods
 
     private static String getToken(String user, String password) throws Exception {
-        return result(request(PLATFORM_URL, "POST", "/login", new Login(user, password)));
+        return TestUtils.getToken(PLATFORM_URL, user, password);
     }
 
     private static String postSampleContainer(String url) throws Exception {
