@@ -222,7 +222,7 @@ class ContainerAgent(
     private fun notifyPlatform() {
         if (! server.isRunning) return
         try {
-            AuthHelper.getParentProxy().notifyUpdateContainer(containerId)
+            AuthHelper.parentProxy.notifyUpdateContainer(containerId)
         } catch (e: RestHelper.RequestException) {
             log.error("Failed to notify parent platform: ${e.message}")
         }

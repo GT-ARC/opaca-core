@@ -165,11 +165,20 @@ public class OpacaApiController {
 
 	@PostMapping("/login")
 	@Operation(summary="Login with username and password", tags={"authentication"})
-	public String login(
+	public TokenPair login(
 			@Valid @RequestBody Login loginParams
 	) throws IOException {
 		log.info("POST /login {}", loginParams);
 		return platformService.platformLogin(loginParams);
+	}
+
+	@PostMapping("/login/renew")
+	@Operation(summary="Use Refresh Token to get new Access Token", tags={"authentication"})
+	public TokenPair renew(
+			@Valid @RequestBody Login.Renew renew
+	) throws IOException {
+		log.info("POST /login/renew");
+		return platformService.renewToken(renew.getRefreshToken());
 	}
 
 	/*

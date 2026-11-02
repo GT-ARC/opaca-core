@@ -39,6 +39,7 @@ public class SecurityConfiguration {
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/login",
+            "/login/renew",
             "/error",
             "/configuration/ui",
             "/configuration/security",

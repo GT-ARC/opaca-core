@@ -9,10 +9,10 @@ import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
 import com.nimbusds.jwt.proc.DefaultJWTProcessor;
+import de.gtarc.opaca.model.TokenPair;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -32,14 +33,23 @@ public class KeycloakUtil {
     /**
      * Call getToken with payload for User login
      */
-    public static String getTokenForUser(String keycloakUrlAndRealm, String clientId, String username, String password) throws IOException {
+    public static TokenPair getTokenForUser(String keycloakUrlAndRealm, String clientId, String username, String password) throws IOException {
         var data = Map.of(
                 "grant_type", "password",
                 "client_id", clientId,
                 "username", username,
                 "password", password
         );
-        return getToken(keycloakUrlAndRealm, data);
+        return getTokens(keycloakUrlAndRealm, data);
+    }
+
+    public static TokenPair refreshToken(String keycloakUrlAndRealm, String clientId, String refreshToken) throws IOException {
+        var data = Map.of(
+                "grant_type", "refresh_token",
+                "client_id", clientId,
+                "refresh_token", refreshToken
+        );
+        return getTokens(keycloakUrlAndRealm, data);
     }
 
     /**
@@ -51,7 +61,7 @@ public class KeycloakUtil {
                 "client_id", clientId,
                 "client_secret", clientSecret
         );
-        return getToken(keycloakUrlAndRealm, data);
+        return getTokens(keycloakUrlAndRealm, data).getAccessToken();
     }
 
     /**
@@ -59,7 +69,7 @@ public class KeycloakUtil {
      * The keycloakUrl is the plain server URL, i.e. without the '/realms/...' part.
      */
     public static String getAdminToken(String keycloakUrl, String adminUser, String adminPassword) throws IOException {
-        return getTokenForUser(keycloakUrl + "/realms/master", "admin-cli", adminUser, adminPassword);
+        return getTokenForUser(keycloakUrl + "/realms/master", "admin-cli", adminUser, adminPassword).getAccessToken();
     }
 
     /**
@@ -102,7 +112,7 @@ public class KeycloakUtil {
         return rest;
     }
 
-    private static String getToken(String keycloakUrlAndRealm, Map<String, String> data) throws IOException {
+    private static TokenPair getTokens(String keycloakUrlAndRealm, Map<String, String> data) throws IOException {
         String form = data.entrySet().stream()
                 .map(e -> e.getKey() + "=" + e.getValue())
                 .collect(Collectors.joining("&"));
@@ -117,7 +127,10 @@ public class KeycloakUtil {
             );
             JsonNode body = RestHelper.readJson(response.body());
             if (response.statusCode() == 200) {
-                return body.get("access_token").asText();
+                return new TokenPair(
+                        body.get("access_token").asString(),
+                        body.optional("refresh_token").map(JsonNode::asString).orElse(null)
+                );
             } else {
                 throw new IOException(String.format("Login failed (%s): %s", response.statusCode(), body.get("error_description").asString()));
             }
@@ -126,13 +139,19 @@ public class KeycloakUtil {
         }
     }
 
+
+    private static final Map<String, JWKSource<SecurityContext>> cachedSources = new ConcurrentHashMap<>();
+
     /**
      * Validate the given token, by trying to process it using the given Keycloak URL, then
      * checking the expiration date. Returns Map of the token's claims.
      */
     public static Map<String, Object> validateToken(String keycloakUrlAndRealm, String token) throws IOException {
         String jwksUri = keycloakUrlAndRealm + "/protocol/openid-connect/certs";
-        JWKSource<SecurityContext> keySource = new RemoteJWKSet<>(new URL(jwksUri));
+        if (! cachedSources.containsKey(jwksUri)) {
+            cachedSources.put(jwksUri, new RemoteJWKSet(URI.create(jwksUri).toURL()));
+        }
+        JWKSource<SecurityContext> keySource = cachedSources.get(jwksUri);
 
         ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
         jwtProcessor.setJWSKeySelector(new JWSVerificationKeySelector<>(JWSAlgorithm.RS256, keySource));

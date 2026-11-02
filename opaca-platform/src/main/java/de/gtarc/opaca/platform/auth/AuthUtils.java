@@ -1,5 +1,7 @@
 package de.gtarc.opaca.platform.auth;
 
+import com.nimbusds.jwt.JWTParser;
+import de.gtarc.opaca.model.TokenPair;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.util.KeycloakUtil;
 import jakarta.annotation.PostConstruct;
@@ -11,6 +13,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.text.ParseException;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -104,11 +108,37 @@ public class AuthUtils {
     /**
      * Get JWT for Keycloak user, used in the /login route.
      */
-    public String getTokenForUser(String username, String password) throws IOException {
+    public TokenPair getTokenForUser(String username, String password) throws IOException {
         if (! authEnabled()) {
             throw new IllegalArgumentException("Login not possible: Keycloak is not configured!");
         }
         return KeycloakUtil.getTokenForUser(config.keycloakIssuerUri, config.keycloakClientId, username, password);
+    }
+
+    public TokenPair renewToken(String refreshToken) throws IOException {
+        if (! authEnabled()) {
+            throw new IllegalArgumentException("Login not possible: Keycloak is not configured!");
+        }
+        return KeycloakUtil.refreshToken(config.keycloakIssuerUri, config.keycloakClientId, refreshToken);
+    }
+
+    /**
+     * Access token used by the platform itself to communicate with deployed containers and connected platforms.
+     * This is cached to avoid unnecessary calls to Keycloak. If the token is close to expiration, a new one is fetched.
+     * Since the platform created new ApiProxy instances on demand, this is easier and less invasive than caching the
+     * ApiProxies for different containers and connected platforms with auto-refresh callback...
+     */
+    private static String cachedPlatformToken = null;
+
+    private boolean needsNewAccessToken() {
+        if (cachedPlatformToken == null) return true;
+        try {
+            var expiration = JWTParser.parse(cachedPlatformToken).getJWTClaimsSet().getExpirationTime();
+            return expiration == null || expiration.toInstant().isBefore(Instant.now().plusSeconds(30));
+        } catch (ParseException e) {
+            log.warn("Could not parse cached platform token");
+            return true;
+        }
     }
 
     /**
@@ -116,13 +146,16 @@ public class AuthUtils {
      */
     public String getPlatformToken() {
         if (platformClientSecret == null) return null;
-        // TODO reuse last token if still valid
-        try {
-            // TODO include current request user's username as extra payload?
-            return KeycloakUtil.getTokenForClient(config.keycloakIssuerUri, platformId, platformClientSecret);
-        } catch (IOException e) {
-            throw new RuntimeException("Could not get JWT for Runtime Platform", e);
+        if (needsNewAccessToken()) {
+            try {
+                log.info("Platform is getting a new access token...");
+                // TODO include current request user's username as extra payload? (if so, make Cache a Map)
+                cachedPlatformToken = KeycloakUtil.getTokenForClient(config.keycloakIssuerUri, platformId, platformClientSecret);
+            } catch (IOException e) {
+                throw new RuntimeException("Could not get JWT for Runtime Platform", e);
+            }
         }
+        return cachedPlatformToken;
     }
 
     /**

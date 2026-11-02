@@ -71,9 +71,18 @@ public class PlatformService implements PlatformApi {
     }
 
     @Override
-    public String platformLogin(Login loginParams) {
+    public TokenPair platformLogin(Login loginParams) {
         try {
             return authUtils.getTokenForUser(loginParams.getUsername(), loginParams.getPassword());
+        } catch (IOException e) {
+            throw new BadCredentialsException(e.getMessage());
+        }
+    }
+
+    @Override
+    public TokenPair renewToken(String refreshToken) {
+        try {
+            return authUtils.renewToken(refreshToken);
         } catch (IOException e) {
             throw new BadCredentialsException(e.getMessage());
         }

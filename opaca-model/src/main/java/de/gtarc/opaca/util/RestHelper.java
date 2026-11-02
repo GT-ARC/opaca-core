@@ -182,7 +182,7 @@ public class RestHelper {
     }
 
     /**
-     * Create connection for given method and path with all the necessary properties and headers.
+     * Create the connection for a given method and path with all the necessary properties and headers.
      */
     private HttpURLConnection createConnection(String method, String path, List<HttpCookie> cookies) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl + path).toURL().openConnection();
