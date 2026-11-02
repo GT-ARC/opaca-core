@@ -31,7 +31,7 @@ When an Agent Container is started, the Runtime Platform will pass certain envir
 
 The runtime platform is implemented in Java using [Spring Boot](https://spring.io/projects/spring-boot) 4.x (with Jackson 3 for JSON handling; the shared mapper is `RestHelper.mapper`). The main entry point is the `Application` class. Environment variables are captured in the `application.properties` file and accessed via `PlatformConfig`.
 
-The REST routes corresponding to the OPACA API are defined in the `PlatformRestController` and preprocessed in the `EventsFilter` for, e.g., creating "events" for certain API calls. The actual implementation logic is distributed over different service classes: `PlatformService`, `ContainersService`, `AgentsService`, and `ConnectionsService`. The main responsibility of the Runtime Platform is twofold: First, it has to manage (start and stop) Agent Containers and connected Runtime Platforms; second, it has to forward incoming requests to the appropriate container or connected platform.
+The REST routes corresponding to the OPACA API are defined in the `OpacaApiController` and preprocessed in the `EventsFilter` for, e.g., creating "events" for certain API calls. The actual implementation logic is distributed over different service classes: `PlatformService`, `ContainersService`, `AgentsService`, and `ConnectionsService`. The main responsibility of the Runtime Platform is twofold: First, it has to manage (start and stop) Agent Containers and connected Runtime Platforms; second, it has to forward incoming requests to the appropriate container or connected platform.
 
 #### Container Management
 

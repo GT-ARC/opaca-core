@@ -1,5 +1,9 @@
 package de.gtarc.opaca.platform;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -36,11 +40,15 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Controller exposing the /mcp endpoints and hosting the MCP Sync Server.
+ * Controller exposing the /mcp endpoints and hosting the MCP Sync Server (using JSON-RPC).
+ *
+ * In addition, also provides a convenience REST route /mcp to get a list of available MCP tools.
  */
 @Log4j2
 @Configuration
-public class PlatformMcpController {
+@RestController
+@SecurityRequirement(name = "bearerAuth")
+public class McpController {
 
     private static final String SECURITY_CONTEXT = "securityContext";
 
@@ -93,6 +101,12 @@ public class PlatformMcpController {
     public void onContainerChanged(ContainersService.ContainerChangedEvent event) {
         log.info("Received container changed event, syncing tools.");
         syncTools();
+    }
+
+    @GetMapping("/mcp/list")
+    @Operation(summary="Get list of available MCP tools (use JSON-RPC for calling MCP methods)", tags={"mcp"})
+    public List<McpSchema.Tool> mcpTools() {
+        return mcpServer.listTools();
     }
 
     private synchronized void syncTools() {
