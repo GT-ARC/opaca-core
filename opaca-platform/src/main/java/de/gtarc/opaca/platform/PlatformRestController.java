@@ -160,7 +160,7 @@ public class PlatformRestController {
 	 */
 
 	@PostMapping("/login")
-	@Operation(summary="Login with username and password", tags={"authentication"})
+	@Operation(summary="Login with username and password", tags={"platform"})
 	public TokenPair login(
 			@Valid @RequestBody Login loginParams
 	) throws IOException {
@@ -169,7 +169,7 @@ public class PlatformRestController {
 	}
 
 	@PostMapping("/login/renew")
-	@Operation(summary="Use Refresh Token to get new Access Token", tags={"authentication"})
+	@Operation(summary="Use Refresh Token to get new Access Token", tags={"platform"})
 	public TokenPair renew(
 			@Valid @RequestBody Login.Renew renew
 	) throws IOException {
@@ -182,21 +182,21 @@ public class PlatformRestController {
 	 */
 
 	@GetMapping("/info")
-	@Operation(summary="Get information on this Runtime Platform", tags={"info"})
+	@Operation(summary="Get information on this Runtime Platform", tags={"platform"})
 	public RuntimePlatform getPlatformInfo() throws IOException {
 		log.info("GET /info");
 		return platformService.getPlatformInfo();
 	}
 
 	@GetMapping("/config")
-	@Operation(summary="Get Configuration of this Runtime Platform", tags={"info"})
+	@Operation(summary="Get Configuration of this Runtime Platform", tags={"platform"})
 	public Map<String, ?> getPlatformConfig() throws IOException {
 		log.info("GET /config");
 		return platformService.getPlatformConfig();
 	}
 
 	@GetMapping("/history")
-	@Operation(summary="Get history on this Runtime Platform", tags={"info"})
+	@Operation(summary="Get history on this Runtime Platform", tags={"platform"})
 	public List<Event> getHistory(
 			@RequestParam(required = false) String filter
 	) throws IOException {
@@ -218,7 +218,7 @@ public class PlatformRestController {
 	 */
 
 	@PostMapping("/query")
-	@Operation(summary="Send message to integrated LLM Agent (requires configured API key)", tags={"llm"})
+	@Operation(summary="Send message to integrated LLM Agent (requires configured API key)", tags={"platform"})
 	public Object query(String message) throws IOException {
 		return llmService.query(message, authUtils.getRequestUser());
 	}
