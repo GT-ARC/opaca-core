@@ -3,7 +3,7 @@ package de.gtarc.opaca.platform.util;
 import java.util.Map;
 import java.util.HashMap;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaRegistry;
@@ -65,7 +65,7 @@ public class ArgumentValidator {
             case "integer" -> node.isInt();
             case "number" -> node.isNumber();
             case "boolean" -> node.isBoolean();
-            case "string" -> node.isTextual();
+            case "string" -> node.isString();
             case "null" -> node.isNull();
             case "array" -> isValidList(node, items);
             default -> isValidObject(node, type);

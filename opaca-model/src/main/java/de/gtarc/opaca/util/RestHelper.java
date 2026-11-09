@@ -1,10 +1,12 @@
 package de.gtarc.opaca.util;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.MapperFeature;
+import tools.jackson.databind.json.JsonMapper;
 import de.gtarc.opaca.model.ErrorResponse;
 import de.gtarc.opaca.model.Event;
 import de.gtarc.opaca.model.Event.*;
@@ -44,33 +46,63 @@ public class RestHelper {
 
     public Map<String, String> extraHeaders = new HashMap<>();
 
-    public static final ObjectMapper mapper = JsonMapper.builder()
-            .findAndAddModules().build();
+
+    /**
+     * Shared Jackson 3 mapper. Dates and durations are written as ISO-8601 strings (the Jackson 3 default).
+     * Some other Jackson 3 defaults (alphabetical property sorting etc.) are set back to the Jackson 2 behavior.
+     */
+    public static final JsonMapper mapper = JsonMapper.builder()
+            .findAndAddModules()
+            .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
+            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+            // final fields without setters (e.g. 'id' and 'timestamp' of Event) must still be settable when deserializing
+            .enable(MapperFeature.ALLOW_FINAL_FIELDS_AS_MUTATORS)
+            .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            // do not use the Lombok all-args constructors (Jackson 3 auto-detects them), as that would drop the field defaults
+            .changeDefaultVisibility(v -> v.withCreatorVisibility(JsonAutoDetect.Visibility.NONE))
+            .build();
+
+    /**
+     * Jackson 3 exceptions are unchecked; for the callers of this class, which expect IOExceptions for
+     * e.g. malformed JSON, those are wrapped.
+     */
+    @FunctionalInterface
+    private interface Parser<T> {
+        T parse() throws JacksonException;
+    }
+
+    private static <T> T parse(Parser<T> parser) throws IOException {
+        try {
+            return parser.parse();
+        } catch (JacksonException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+    }
 
 
     public <T> T get(String path, Class<T> type) throws IOException {
         var stream = request("GET", path, null);
-        return type == null ? null : mapper.readValue(stream, type);
+        return type == null ? null : parse(() -> mapper.readValue(stream, type));
     }
 
     public <T> T get(String path, TypeReference<T> type) throws IOException {
         var stream = request("GET", path, null);
-        return type == null ? null : mapper.readValue(stream, type);
+        return type == null ? null : parse(() -> mapper.readValue(stream, type));
     }
 
     public <T> T post(String path, Object payload, Class<T> type) throws IOException {
         var stream = request("POST", path, payload);
-        return type == null ? null : mapper.readValue(stream, type);
+        return type == null ? null : parse(() -> mapper.readValue(stream, type));
     }
 
     public <T> T put(String path, Object payload, Class<T> type) throws IOException {
         var stream = request("PUT", path, payload);
-        return type == null ? null : mapper.readValue(stream, type);
+        return type == null ? null : parse(() -> mapper.readValue(stream, type));
     }
 
     public <T> T delete(String path, Object payload, Class<T> type) throws IOException {
         var stream = request("DELETE", path, payload);
-        return type == null ? null : mapper.readValue(stream, type);
+        return type == null ? null : parse(() -> mapper.readValue(stream, type));
     }
 
     public void postStream(String path, byte[] inputStream) {
@@ -121,7 +153,7 @@ public class RestHelper {
             if (payload != null) {
                 String content = (payload instanceof String)
                         ? (String) payload
-                        : mapper.writeValueAsString(payload);
+                        : writeJson(payload);
                 byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
                 connection.setDoOutput(true);
                 connection.setFixedLengthStreamingMode(bytes.length);
@@ -180,20 +212,24 @@ public class RestHelper {
     }
 
     public static JsonNode readJson(String json) throws IOException {
-        return mapper.readTree(json);
+        return parse(() -> mapper.readTree(json));
     }
 
     public static Map<String, JsonNode> readMap(String json) throws IOException {
         TypeReference<Map<String, JsonNode>> prototype = new TypeReference<>() {};
-        return mapper.readValue(json, prototype);
+        return parse(() -> mapper.readValue(json, prototype));
+    }
+
+    public static <T> T readObject(InputStream json, Class<T> type) throws IOException {
+        return parse(() -> mapper.readValue(json, type));
     }
 
     public static <T> T readObject(String json, Class<T> type) throws IOException {
-        return mapper.readValue(json, type);
+        return parse(() -> mapper.readValue(json, type));
     }
 
     public static String writeJson(Object obj) throws IOException {
-        return mapper.writeValueAsString(obj);
+        return parse(() -> mapper.writeValueAsString(obj));
     }
 
     public String readStream(InputStream stream) {
@@ -207,7 +243,7 @@ public class RestHelper {
         try {
             var nestedError = mapper.readValue(response, ErrorResponse.class);
             return new RequestException(message, nestedError);
-        } catch (IllegalArgumentException | JsonProcessingException e) {
+        } catch (IllegalArgumentException | JacksonException e) {
             var nestedError = new ErrorResponse(connection.getResponseCode(), response, null);
             return new RequestException(message, nestedError);
         }

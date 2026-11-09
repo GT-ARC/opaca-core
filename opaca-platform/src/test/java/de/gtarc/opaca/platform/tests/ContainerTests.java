@@ -1,6 +1,6 @@
 package de.gtarc.opaca.platform.tests;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.*;
 
@@ -403,9 +403,9 @@ public class ContainerTests {
         Thread.sleep(200);
         Assert.assertEquals(1, events.size());
         JsonNode event = RestHelper.readJson(events.get(0));
-        Assert.assertEquals("BROADCAST", event.get("type").asText());
-        Assert.assertEquals("topic", event.get("topic").asText());
-        Assert.assertEquals("testBroadcast", event.get("message").get("payload").asText());
+        Assert.assertEquals("BROADCAST", event.get("type").asString());
+        Assert.assertEquals("topic", event.get("topic").asString());
+        Assert.assertEquals("testBroadcast", event.get("message").get("payload").asString());
     }
 
     /**

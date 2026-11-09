@@ -1,7 +1,7 @@
 package de.gtarc.opaca.platform;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
 import de.gtarc.opaca.model.*;
 import de.gtarc.opaca.platform.auth.AuthUtils;
 import de.gtarc.opaca.platform.services.*;
@@ -35,14 +35,14 @@ import java.util.NoSuchElementException;
 
 /**
  * REST controller for the OPACA Runtime Platform API. This class only defines the REST endpoints,
- * handles security etc. (once that's implemented); the actual logic is implemented elsewhere.
+ * handles security etc.; the actual logic is implemented elsewhere.
  */
 @Log4j2
 @RestController
 @SecurityRequirement(name = "bearerAuth")
 @CrossOrigin(origins = "*", allowedHeaders = "*",
 		methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS } )
-public class PlatformRestController {
+public class OpacaApiController {
 
 	@Autowired
 	private PlatformService platformService;
@@ -96,11 +96,11 @@ public class PlatformRestController {
 		return makeErrorResponse(HttpStatus.NOT_FOUND, e, null);
 	}
 
-	@ExceptionHandler(value=JsonProcessingException.class)
-	@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
-	public ResponseEntity<ErrorResponse> handleJsonException(JsonProcessingException e) {
+	@ExceptionHandler(value=JacksonException.class)
+	@ResponseStatus(HttpStatus.UNPROCESSABLE_CONTENT)
+	public ResponseEntity<ErrorResponse> handleJsonException(JacksonException e) {
 		log.warn(e.getMessage());  // user error
-		return makeErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, e, null);
+		return makeErrorResponse(HttpStatus.UNPROCESSABLE_CONTENT, e, null);
 	}
 
 	@ExceptionHandler(value=RequestException.class)
@@ -113,6 +113,10 @@ public class PlatformRestController {
 	@ExceptionHandler(value=IOException.class)
 	@ResponseStatus(HttpStatus.BAD_GATEWAY)
 	public ResponseEntity<ErrorResponse> handleIoException(IOException e) {
+		if (e.getCause() instanceof JacksonException) {
+			// malformed JSON, wrapped by the RestHelper
+			return handleJsonException((JacksonException) e.getCause());
+		}
 		log.error(e.getMessage());  // should not happen (but can also be user error)
 		return makeErrorResponse(HttpStatus.BAD_GATEWAY, e, null);
 	}
@@ -125,10 +129,10 @@ public class PlatformRestController {
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
-	@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+	@ResponseStatus(HttpStatus.UNPROCESSABLE_CONTENT)
 	public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException e) {
 		log.warn(e.getMessage()); // jakarta not-null validation failed
-		return makeErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, e, null);
+		return makeErrorResponse(HttpStatus.UNPROCESSABLE_CONTENT, e, null);
 	}
 
 	@ExceptionHandler(SecurityException.class)
@@ -150,7 +154,7 @@ public class PlatformRestController {
 	@GetMapping("/")
 	@Hidden
 	public String landingPage() throws IOException {
-		try (var inputstream = PlatformRestController.class.getResourceAsStream("/static/index.html")) {
+		try (var inputstream = OpacaApiController.class.getResourceAsStream("/static/index.html")) {
 			return new String(inputstream.readAllBytes(), StandardCharsets.UTF_8);
 		}
 	}

@@ -17,6 +17,7 @@ import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.*;
 import io.kubernetes.client.custom.IntOrString;
 import io.kubernetes.client.util.Config;
+import lombok.NoArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
 import java.io.IOException;
@@ -42,8 +43,7 @@ public class KubernetesClient extends AbstractContainerClient {
     private Map<String, String> auth;
 
 
-    @Data
-    @AllArgsConstructor
+    @Data @NoArgsConstructor @AllArgsConstructor
     public static class PodInfo {
         String containerId;
         String internalIp;

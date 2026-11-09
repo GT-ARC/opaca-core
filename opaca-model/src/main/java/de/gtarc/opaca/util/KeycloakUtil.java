@@ -1,8 +1,6 @@
 package de.gtarc.opaca.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.NullNode;
+import tools.jackson.databind.JsonNode;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.jwk.source.RemoteJWKSet;
@@ -15,11 +13,13 @@ import de.gtarc.opaca.model.TokenPair;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -64,6 +64,54 @@ public class KeycloakUtil {
         return getTokens(keycloakUrlAndRealm, data).getAccessToken();
     }
 
+    /**
+     * Get token for the Keycloak admin user (in the 'master' realm), needed for managing clients via the admin REST API.
+     * The keycloakUrl is the plain server URL, i.e. without the '/realms/...' part.
+     */
+    public static String getAdminToken(String keycloakUrl, String adminUser, String adminPassword) throws IOException {
+        return getTokenForUser(keycloakUrl + "/realms/master", "admin-cli", adminUser, adminPassword).getAccessToken();
+    }
+
+    /**
+     * Create a private client (service account only, no interactive login) with the given secret in the given realm,
+     * using the Keycloak admin REST API. Throws IOException (RestHelper.RequestException) if this fails.
+     */
+    public static void createClient(String keycloakUrl, String realm, String adminToken,
+                                    String clientId, String description, String secret) throws IOException {
+        var clientRep = new LinkedHashMap<String, Object>();
+        clientRep.put("clientId", clientId);
+        clientRep.put("description", description);
+        clientRep.put("secret", secret);
+        clientRep.put("protocol", "openid-connect");
+        clientRep.put("clientAuthenticatorType", "client-secret");
+        clientRep.put("publicClient", false);
+        clientRep.put("standardFlowEnabled", false);
+        clientRep.put("directAccessGrantsEnabled", false);
+        clientRep.put("serviceAccountsEnabled", true);
+        adminClient(keycloakUrl, adminToken).post("/admin/realms/" + realm + "/clients", clientRep, null);
+    }
+
+    /**
+     * Delete the client with the given client-ID (not the internal UUID) from the given realm.
+     * Returns false if no such client exists.
+     */
+    public static boolean deleteClient(String keycloakUrl, String realm, String adminToken, String clientId) throws IOException {
+        var rest = adminClient(keycloakUrl, adminToken);
+        var clients = rest.get("/admin/realms/" + realm + "/clients?clientId="
+                + URLEncoder.encode(clientId, StandardCharsets.UTF_8), JsonNode.class);
+        if (clients == null || clients.isEmpty()) {
+            return false;
+        }
+        rest.delete("/admin/realms/" + realm + "/clients/" + clients.get(0).get("id").asString(), null, null);
+        return true;
+    }
+
+    private static RestHelper adminClient(String keycloakUrl, String adminToken) {
+        var rest = new RestHelper(keycloakUrl);
+        rest.token = adminToken;
+        return rest;
+    }
+
     private static TokenPair getTokens(String keycloakUrlAndRealm, Map<String, String> data) throws IOException {
         String form = data.entrySet().stream()
                 .map(e -> e.getKey() + "=" + e.getValue())
@@ -77,14 +125,14 @@ public class KeycloakUtil {
                             .build(),
                     HttpResponse.BodyHandlers.ofString()
             );
-            JsonNode body = new ObjectMapper().readTree(response.body());
+            JsonNode body = RestHelper.readJson(response.body());
             if (response.statusCode() == 200) {
                 return new TokenPair(
-                        body.get("access_token").asText(),
-                        body.optional("refresh_token").map(JsonNode::asText).orElse(null)
+                        body.get("access_token").asString(),
+                        body.optional("refresh_token").map(JsonNode::asString).orElse(null)
                 );
             } else {
-                throw new IOException(String.format("Login failed (%s): %s", response.statusCode(), body.get("error_description").asText()));
+                throw new IOException(String.format("Login failed (%s): %s", response.statusCode(), body.get("error_description").asString()));
             }
         } catch (InterruptedException e) {
             throw new IOException("Login failed: Interrupted");

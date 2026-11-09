@@ -7,6 +7,8 @@ import de.gtarc.opaca.model.Message
 import de.gtarc.opaca.util.RestHelper
 import io.javalin.Javalin
 import io.javalin.http.Context
+import io.javalin.json.JsonMapper
+import java.lang.reflect.Type
 
 /**
  * New version of the server providing the REST routes for the OPACA Agent Container API using
@@ -21,7 +23,7 @@ import io.javalin.http.Context
  */
 class RestServerJavalin(val impl: ContainerAgent, val port: Int) {
 
-    private val server = Javalin.create()
+    private val server = Javalin.create { it.jsonMapper(OpacaJsonMapper) }
             .before {
                 val tokenFromRequest = it.header("Authorization")?.removePrefix("Bearer ")
                 if (! AuthHelper.validateToken(tokenFromRequest)) {
@@ -106,6 +108,22 @@ class RestServerJavalin(val impl: ContainerAgent, val port: Int) {
     fun withToken(context: Context): AgentContainerApi {
         return impl.LoggedInContainerImpl(context.header(AgentContainerApi.HEADER_TOKEN))
     }
+
+}
+
+/**
+ * Javalin JsonMapper using the shared (Jackson 3) mapper of the RestHelper, as Javalin 6 only auto-detects Jackson 2.
+ */
+object OpacaJsonMapper : JsonMapper {
+
+    // like Javalin's own JavalinJackson, Strings are passed through unchanged (treated as already being JSON/plain text),
+    // otherwise e.g. the login token would be returned with surrounding quotes
+    override fun toJsonString(obj: Any, type: Type): String =
+        if (obj is String) obj else RestHelper.mapper.writeValueAsString(obj)
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : Any> fromJsonString(json: String, targetType: Type): T =
+        RestHelper.mapper.readValue(json, RestHelper.mapper.constructType(targetType)) as T
 
 }
 

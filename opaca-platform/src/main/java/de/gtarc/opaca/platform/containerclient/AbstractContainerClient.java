@@ -1,6 +1,5 @@
 package de.gtarc.opaca.platform.containerclient;
 
-import com.google.common.base.Strings;
 import de.gtarc.opaca.api.AgentContainerApi;
 import de.gtarc.opaca.model.AgentContainerImage;
 import de.gtarc.opaca.platform.PlatformConfig;
@@ -77,7 +76,7 @@ abstract public class AbstractContainerClient implements ContainerClient {
      * Adapted from EMPAIA Job Execution Service
      */
     protected List<ImageRegistryAuth> getImageRegistryAuth() {
-        if (Strings.isNullOrEmpty(config.registryNames)) {
+        if (! config.isSet(config.registryNames)) {
             return List.of();
         }
         var sep = config.registrySeparator;

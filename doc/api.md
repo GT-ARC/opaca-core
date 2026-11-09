@@ -274,7 +274,7 @@ The OPACA Platform uses Spring Boot, which provides an Open-API compliant descri
     "arguments": {string: string}
     "agents": [ AgentDescription ],
     "owner": string,
-    "runningSince": "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+    "runningSince": "ISO-8601 timestamp, e.g. 2026-10-29T14:21:05.123456Z"
     "connectivity": {
         "publicUrl": URL,
         "apiPortMapping": int,

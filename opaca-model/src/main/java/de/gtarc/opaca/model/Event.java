@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.*;
 
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -48,7 +50,7 @@ public abstract class Event {
     final String id = UUID.randomUUID().toString();
 
     /** time when this event was created */
-    final Long timestamp = System.currentTimeMillis();
+    final ZonedDateTime timestamp = ZonedDateTime.now(ZoneId.of("Z"));
 
     /** the type of event, determines the type of the payload */
     public abstract EventType getType();

@@ -1,15 +1,19 @@
 package de.gtarc.opaca.platform;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 import de.gtarc.opaca.model.AgentContainer;
 import de.gtarc.opaca.model.AgentDescription;
 import de.gtarc.opaca.model.Action;
 import de.gtarc.opaca.platform.services.AgentsService;
 import de.gtarc.opaca.platform.util.ActionToOpenApi;
 import de.gtarc.opaca.platform.services.ContainersService;
-import io.modelcontextprotocol.json.jackson2.JacksonMcpJsonMapper;
+import io.modelcontextprotocol.json.jackson3.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.common.McpTransportContext;
 import io.modelcontextprotocol.server.McpServer;
 import io.modelcontextprotocol.server.McpServerFeatures;
@@ -36,11 +40,15 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Controller exposing the /mcp endpoints and hosting the MCP Sync Server.
+ * Controller exposing the /mcp endpoints and hosting the MCP Sync Server (using JSON-RPC).
+ *
+ * In addition, also provides a convenience REST route /mcp to get a list of available MCP tools.
  */
 @Log4j2
 @Configuration
-public class PlatformMcpController {
+@RestController
+@SecurityRequirement(name = "bearerAuth")
+public class McpController {
 
     private static final String SECURITY_CONTEXT = "securityContext";
 
@@ -51,7 +59,7 @@ public class PlatformMcpController {
     private AgentsService agentsService;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private JsonMapper objectMapper;
 
     private McpSyncServer mcpServer;
     private WebMvcStreamableServerTransportProvider transportProvider;
@@ -93,6 +101,12 @@ public class PlatformMcpController {
     public void onContainerChanged(ContainersService.ContainerChangedEvent event) {
         log.info("Received container changed event, syncing tools.");
         syncTools();
+    }
+
+    @GetMapping("/mcp/list")
+    @Operation(summary="Get list of available MCP tools (use JSON-RPC for calling MCP methods)", tags={"mcp"})
+    public List<McpSchema.Tool> mcpTools() {
+        return mcpServer.listTools();
     }
 
     private synchronized void syncTools() {
@@ -172,8 +186,8 @@ public class PlatformMcpController {
             String resultText;
             if (result == null) {
                 resultText = "null";
-            } else if (result.isTextual()) {
-                resultText = result.asText();
+            } else if (result.isString()) {
+                resultText = result.asString();
             } else {
                 resultText = objectMapper.writeValueAsString(result);
             }
@@ -212,13 +226,15 @@ public class PlatformMcpController {
             requestBodySchema.setRequired(requiredList);
         }
 
-        // Convert the Swagger ObjectSchema to Map<String, Object>
-        Map<String, Object> schemaMap = Json.mapper().convertValue(requestBodySchema, new TypeReference<>() {});
+        // Convert the Swagger ObjectSchema to Map<String, Object>; swagger-core is still Jackson 2 based,
+        // so this is the boundary: everything else (e.g. the definitions) is handled using Jackson 3
+        @SuppressWarnings("unchecked")
+        Map<String, Object> schemaMap = Json.mapper().convertValue(requestBodySchema, Map.class);
 
         // Inject custom schema definitions
         Map<String, Object> definitionsMap = new HashMap<>();
         for (var def : container.getImage().getDefinitions().entrySet()) {
-            definitionsMap.put(def.getKey(), Json.mapper().convertValue(def.getValue(), new TypeReference<>() {}));
+            definitionsMap.put(def.getKey(), objectMapper.convertValue(def.getValue(), new TypeReference<Map<String, Object>>() {}));
         }
         for (var def : container.getImage().getDefinitionsByUrl().entrySet()) {
             definitionsMap.put(def.getKey(), Map.of("$ref", def.getValue()));

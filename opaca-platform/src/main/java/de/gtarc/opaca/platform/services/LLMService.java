@@ -1,6 +1,6 @@
 package de.gtarc.opaca.platform.services;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import de.gtarc.opaca.platform.PlatformConfig;
 import de.gtarc.opaca.util.RestHelper;
 import dev.langchain4j.agent.tool.Tool;
@@ -17,10 +17,11 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 
 /**
@@ -121,9 +122,12 @@ public class LLMService {
     class AssistantTools {
 
         @Tool
-        Object invoke(String actionName, Map<String, JsonNode> parameters) throws IOException {
+        Object invoke(String actionName, Map<String, Object> parameters) throws IOException {
             log.info("LLM called Tool '{}' with {}", actionName, parameters);
-            return agentsService.invoke(actionName, parameters, null, 10, null, false);
+            var paramsAsJson = parameters.entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey,
+                            e -> RestHelper.mapper.convertValue(e.getValue(), JsonNode.class)));
+            return agentsService.invoke(actionName, paramsAsJson, null, 10, null, false);
         }
 
     }

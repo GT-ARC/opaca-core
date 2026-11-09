@@ -45,7 +45,7 @@ Please refer to the [API docs](doc/api.md) page for more information about the d
 
 ## Modules
 
-* `opaca-platform`: reference implementation of Runtime Platform, done in Java + Spring Boot
+* `opaca-platform`: reference implementation of Runtime Platform, done in Java + Spring Boot 4
 * `opaca-container`: reference implementation of Agent Container, done in JIAC VI (Java, Kotlin)
 * `opaca-model` interface descriptions and model classes for the API (Java)
 * `examples`: sample agent container(s) to be executed on the platform; sample-container is an example that can be used to quickly test platform setup and manually test actions, ping-pong is an example that can be used to test communication between two containers

@@ -2,12 +2,11 @@ package de.gtarc.opaca.platform.auth;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.converter.Converter;
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.stereotype.Component;
@@ -46,7 +45,7 @@ public class JwtConverter implements Converter<Jwt, AbstractAuthenticationToken>
                 authorities.add(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"));
             }
         }
-        return new JwtAuthenticationToken(jwt, authorities, jwt.getClaim(JwtClaimNames.SUB));
+        return new JwtAuthenticationToken(jwt, authorities, jwt.getSubject());
     }
 
     @SuppressWarnings("unchecked")
