@@ -2,7 +2,7 @@ name: Create an Publish Docker Image to GitHub Registry
 
 on:
   push:
-    branches: [ 'main' , 'ci-test']
+    branches: [ 'main' ]
     tags: [ 'v*' ]
 
 jobs:
