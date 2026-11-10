@@ -4,7 +4,7 @@
 FROM maven:3.9.11-ibm-semeru-21-noble AS builder
 WORKDIR /build
 COPY . .
-RUN mvn clean package -DskipTests
+RUN mvn clean package -DskipTests -pl ':opaca-model,:opaca-platform'
 
 # STAGE 2: CREATE THE FINAL IMAGE
 FROM ibm-semeru-runtimes:open-21-jdk
