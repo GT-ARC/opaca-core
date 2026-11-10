@@ -1,7 +1,7 @@
 # TWO-STAGED DOCKERFILE FOR CI
 
 # STAGE 1: BUILD THE APPLICATION
-FROM maven:3.9.11-ibm-semeru-21-noble AS builder
+FROM --platform=$BUILDPLATFORM maven:3.9.11-ibm-semeru-21-noble AS builder
 WORKDIR /build
 COPY . .
 RUN mvn clean package -DskipTests -pl ':opaca-model,:opaca-platform'
