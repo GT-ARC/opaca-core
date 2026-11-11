@@ -96,4 +96,15 @@
         </plugins>
     </build>
 
+    <repositories>
+        <repository>
+            <id>dai-open</id>
+            <url>https://repositories.dai-labor.de/extern/content/repositories/dai-open/</url>
+        </repository>
+        <repository>
+            <id>dai-open-snapshot</id>
+            <url>https://repositories.dai-labor.de/extern/content/repositories/dai-open-snapshot/</url>
+        </repository>
+    </repositories>
+
 </project>
